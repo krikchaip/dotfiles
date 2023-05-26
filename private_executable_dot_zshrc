@@ -17,7 +17,7 @@ export GOBIN="$HOME/go/bin"
 export PATH="/usr/local/bin:$ZSH:$PNPM_HOME:$GOBIN:$PATH"
 
 export GDRIVE="${GDRIVE:=~/Google\ Drive/My\ Drive}"
-export REVIEW_DIR="~/.code-review"
+export REVIEW_DIR="$HOME/.code-review"
 
 #** Preferred editor for local and remote sessions
 # if [[ -n $SSH_CONNECTION ]]; then
@@ -110,9 +110,6 @@ source $ZSH/oh-my-zsh.sh
 #** For a full list of active aliases, run `alias`.
 
 alias zshconfig="code -n ~/.zshrc"
-
-alias backup-config="cp -R ~/{setup,.zshrc,.config} '$GDRIVE'/Config"
-alias sync-config="cp -R '$GDRIVE'/Config/{setup,.zshrc,.config} ~/"
 
 alias gdrive="open '$GDRIVE'"
 alias gchrome-dev="open -a \"Google Chrome\" --args --remote-debugging-port=9222 --incognito"
