@@ -5,6 +5,8 @@
 
 #** oh my zsh
 alias zshconfig="chezmoi edit --apply ~/.zshrc"
+alias zshalias="chezmoi edit --apply ~/.oh-my-zsh/custom/aliases.zsh"
+alias zshfunc="chezmoi edit --apply ~/.oh-my-zsh/custom/functions.zsh"
 
 #** docker client
 alias da="docker attach"
