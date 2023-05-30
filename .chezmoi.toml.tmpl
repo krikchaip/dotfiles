@@ -1,3 +1,8 @@
+{{- $devcontainer := and
+  (env "REMOTE_CONTAINERS" | not | not)
+  (eq (env "TERM_PROGRAM") "vscode")
+-}}
+
 [edit]
   command = "code"
   args = ["--wait"]
@@ -6,3 +11,4 @@
   exclude = ["scripts"]
 
 [data]
+  devcontainer = {{ $devcontainer }}
