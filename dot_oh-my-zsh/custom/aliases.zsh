@@ -43,3 +43,5 @@ alias px="pnpx"
 
 #** chezmoi
 alias cz="chezmoi"
+alias czsr="chezmoi state delete-bucket --bucket scriptState"
+alias czst="chezmoi state data"
