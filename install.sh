@@ -15,6 +15,4 @@ fi
 
 sudo sh -c "${chezmoi_install_script}" -- -b /usr/local/bin
 
-env >~/chezmoi.log
-
 chezmoi init --apply
