@@ -1,4 +1,5 @@
 **/.DS_Store
+install.sh
 README.md
 
 {{- if .devcontainer }}
