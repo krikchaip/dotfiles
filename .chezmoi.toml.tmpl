@@ -1,7 +1,4 @@
-{{- $devcontainer := or
-  (env "REMOTE_CONTAINERS" | not | not)
-  (eq (env "TERM_PROGRAM") "vscode")
--}}
+{{- $devcontainer := env "REMOTE_CONTAINERS" | not | not -}}
 
 [edit]
   command = "code"
