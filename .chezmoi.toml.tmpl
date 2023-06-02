@@ -5,7 +5,9 @@
   args = ["--wait", "--new-window"]
 
 [diff]
-  exclude = ["scripts"]
+  command = "code"
+  args = ["--diff", "{{ "{{" }} .Destination {{ "}}" }}", "{{ "{{" }} .Target {{ "}}" }}"]
+  exclude = ["scripts", "externals"]
 
 [data]
   devcontainer = {{ $devcontainer }}
