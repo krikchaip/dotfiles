@@ -5,33 +5,35 @@ set -euo pipefail
 #** install homebrew
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-brew bundle --no-lock --file=/dev/stdin <<EOF
-  #** adds more repos to the list of formulae
-  #** that brew tracks, updates, and installs from
-  tap "homebrew/cask-fonts"
+brew bundle --no-lock --file=/dev/stdin <<-EOF
+	#** adds more repos to the list of formulae
+	#** that brew tracks, updates, and installs from
+	tap "homebrew/cask-fonts"
+	tap "koekeishiya/formulae"
 
-  #** brew formulae
-  brew "bat"
-  brew "dive"
-  brew "golang"
-  brew "golangci-lint"
-  brew "n"
-  brew "shellcheck"
-  brew "shfmt"
+	#** brew formulae
+	brew "bat"
+	brew "dive"
+	brew "golang"
+	brew "golangci-lint"
+	brew "n"
+	brew "shellcheck"
+	brew "shfmt"
+	brew "yabai"
 
-  #** brew cask applications
-  cask "1password"
-  cask "dbeaver-community"
-  cask "displaylink"
-  cask "docker"
-  cask "font-fira-code"
-  cask "google-chrome"
-  cask "google-drive"
-  cask "insomnia"
-  cask "karabiner-elements"
-  cask "notion"
-  cask "numi"
-  cask "visual-studio-code"
+	#** brew cask applications
+	cask "1password"
+	cask "dbeaver-community"
+	cask "displaylink"
+	cask "docker"
+	cask "font-fira-code"
+	cask "google-chrome"
+	cask "google-drive"
+	cask "insomnia"
+	cask "karabiner-elements"
+	cask "notion"
+	cask "numi"
+	cask "visual-studio-code"
 EOF
 
 #** enable repeat keys for VSCode (Vim extension)
@@ -39,7 +41,7 @@ defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false
 
 #** install oh-my-zsh
 if [ ! -d "$ZSH" ]; then
-  sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+	sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 fi
 
 #** nodejs & package managers setup
