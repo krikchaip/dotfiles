@@ -19,6 +19,7 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 	brew "n"
 	brew "shellcheck"
 	brew "shfmt"
+	brew "skhd"
 	brew "yabai"
 
 	#** brew cask applications
@@ -35,6 +36,10 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 	cask "numi"
 	cask "visual-studio-code"
 EOF
+
+#** start yabai & skhd on background
+yabai --start-service
+skhd --start-service
 
 #** enable repeat keys for VSCode (Vim extension)
 defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false

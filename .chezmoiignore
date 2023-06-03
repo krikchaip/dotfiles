@@ -4,5 +4,7 @@ README.md
 
 {{- if .devcontainer }}
 .config/karabiner
+.config/skhd
+.config/yabai
 .zshrc
 {{ end -}}
