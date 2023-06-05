@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# # Windows are now managed by yabai
+yabai -m config layout bsp
+
+# # New window spawns to the left if vertical split, or top if horizontal split
+# yabai -m config window_placement first_child
+
+# New window spawns to the right if vertical split, or bottom if horizontal split
+yabai -m config window_placement second_child
+
+# Padding and gaps
+GAPS=10
+yabai -m config top_padding $GAPS
+yabai -m config bottom_padding $GAPS
+yabai -m config left_padding $GAPS
+yabai -m config right_padding $GAPS
+yabai -m config window_gap $GAPS
+
+# Makes it so all windows always occupy the same space, independent of how deeply nested they are in the window tree.
+yabai -m config auto_balance on
+
+# # A value of 0.2 means that the old window occupies 20% of the available space and the new window occupies 80% of the available space.
+# yabai -m config split_ratio 0.667
+
+# Set mouse interaction modifier key (default: fn)
+yabai -m config mouse_modifier alt
+
+# # Set modifier + left-click drag to move window (default: move)
+# yabai -m config mouse_action1 move
+
+# # Set modifier + right-click drag to resize window (default: resize)
+# yabai -m config mouse_action2 resize
+
+# # Focus windows without having to click on them
+# # off       (default macos behavious)
+# # autofocus (window gets focused, but not raised)
+# # autoraise (window gets raised as if it was clicked on)
+# yabai -m config focus_follows_mouse autoraise
+
+# Set mouse follows focus mode
+yabai -m config mouse_follows_focus on
+
+# # [System Integrity Protection must be partially disabled]
+# # Floating (unmanaged/untiled) windows are always on top
+# yabai -m config window_topmost on
+
+# # [System Integrity Protection must be partially disabled]
+# # Modify window shadows (default: on, options: on, off, float)
+# # example: show shadows only for floating windows
+# yabai -m config window_shadow off
+
+# # [System Integrity Protection must be partially disabled]
+# # Window opacity (default: off)
+# yabai -m config window_opacity on
+# yabai -m config active_window_opacity 1.0
+# yabai -m config normal_window_opacity 0.9

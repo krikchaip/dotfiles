@@ -48,3 +48,6 @@ alias czi="chezmoi init"
 alias czs="chezmoi status"
 alias czsr="chezmoi state delete-bucket --bucket scriptState"
 alias czst="chezmoi state data"
+
+#** yabai
+alias yba="chezmoi apply ~/.config/yabai && yabai --restart-service"
