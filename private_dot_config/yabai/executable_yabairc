@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# # Windows are now managed by yabai
-yabai -m config layout bsp
-
-# # New window spawns to the left if vertical split, or top if horizontal split
-# yabai -m config window_placement first_child
-
-# New window spawns to the right if vertical split, or bottom if horizontal split
-yabai -m config window_placement second_child
+# Rules & Signals
+yabai -m rule --add app="^Calculator$" manage=off
+yabai -m rule --add app="^Karabiner-" manage=off
+yabai -m rule --add app="^OpenVPN Connect$" manage=off
+yabai -m rule --add app="^Safari$" manage=off
+yabai -m rule --add app="^Slack$" manage=off
+yabai -m rule --add app="^Stickies$" manage=off sticky=on
+yabai -m rule --add app="^System Preferences$" manage=off
 
 # Padding and gaps
 GAPS=10
@@ -17,11 +17,20 @@ yabai -m config left_padding $GAPS
 yabai -m config right_padding $GAPS
 yabai -m config window_gap $GAPS
 
+# # New window spawns to the left if vertical split, or top if horizontal split
+# yabai -m config window_placement first_child
+
+# New window spawns to the right if vertical split, or bottom if horizontal split
+yabai -m config window_placement second_child
+
 # Makes it so all windows always occupy the same space, independent of how deeply nested they are in the window tree.
 yabai -m config auto_balance on
 
 # # A value of 0.2 means that the old window occupies 20% of the available space and the new window occupies 80% of the available space.
 # yabai -m config split_ratio 0.667
+
+# Windows are now managed by yabai
+yabai -m config layout bsp
 
 # Set mouse interaction modifier key (default: fn)
 yabai -m config mouse_modifier alt
@@ -32,14 +41,17 @@ yabai -m config mouse_modifier alt
 # # Set modifier + right-click drag to resize window (default: resize)
 # yabai -m config mouse_action2 resize
 
+# # Action performed when a bsp-managed window is dropped in the center of some other bsp-managed window.
+# yabai -m config mouse_drop_action swap
+
 # # Focus windows without having to click on them
-# # off       (default macos behavious)
+# # off       (default macos behaviour)
 # # autofocus (window gets focused, but not raised)
 # # autoraise (window gets raised as if it was clicked on)
 # yabai -m config focus_follows_mouse autoraise
 
-# Set mouse follows focus mode
-yabai -m config mouse_follows_focus on
+# # Set mouse follows focus mode
+# yabai -m config mouse_follows_focus on
 
 # # [System Integrity Protection must be partially disabled]
 # # Floating (unmanaged/untiled) windows are always on top
