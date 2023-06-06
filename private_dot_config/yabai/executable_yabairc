@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Rules & Signals
+#** Rules & Signals
+yabai -m rule --add app="^Activity Monitor$" manage=off
 yabai -m rule --add app="^Calculator$" manage=off
 yabai -m rule --add app="^Karabiner-" manage=off
 yabai -m rule --add app="^OpenVPN Connect$" manage=off
@@ -9,61 +10,92 @@ yabai -m rule --add app="^Slack$" manage=off
 yabai -m rule --add app="^Stickies$" manage=off sticky=on
 yabai -m rule --add app="^System Preferences$" manage=off
 
-# Padding and gaps
-GAPS=10
+#** Padding and gaps
+GAPS=8
 yabai -m config top_padding $GAPS
 yabai -m config bottom_padding $GAPS
 yabai -m config left_padding $GAPS
 yabai -m config right_padding $GAPS
 yabai -m config window_gap $GAPS
 
-# # New window spawns to the left if vertical split, or top if horizontal split
-# yabai -m config window_placement first_child
-
-# New window spawns to the right if vertical split, or bottom if horizontal split
-yabai -m config window_placement second_child
-
-# Makes it so all windows always occupy the same space, independent of how deeply nested they are in the window tree.
+#** Makes it so all windows always occupy the same space, independent of how deeply nested they are in the window tree.
 yabai -m config auto_balance on
 
-# # A value of 0.2 means that the old window occupies 20% of the available space and the new window occupies 80% of the available space.
+#** New window spawns to the left if vertical split, or top if horizontal split
+# yabai -m config window_placement first_child
+
+#** New window spawns to the right if vertical split, or bottom if horizontal split
+yabai -m config window_placement second_child
+
+#** Specify how a window should be split.
+#** vertical: The window is split along the y-axis.
+#** horizontal: The window is split along the x-axis.
+#** auto: The axis is determined based on width/height ratio.
+yabai -m config split_type auto
+
+#** A value of 0.2 means that the old window occupies 20% of the available space and the new window occupies 80% of the available space.
 # yabai -m config split_ratio 0.667
 
-# Windows are now managed by yabai
-yabai -m config layout bsp
-
-# Set mouse interaction modifier key (default: fn)
+#** Set mouse interaction modifier key (default: fn)
 yabai -m config mouse_modifier alt
 
-# # Set modifier + left-click drag to move window (default: move)
+#** Set modifier + left-click drag to move window (default: move)
 # yabai -m config mouse_action1 move
 
-# # Set modifier + right-click drag to resize window (default: resize)
+#** Set modifier + right-click drag to resize window (default: resize)
 # yabai -m config mouse_action2 resize
 
-# # Action performed when a bsp-managed window is dropped in the center of some other bsp-managed window.
+#** Action performed when a bsp-managed window is dropped in the center of some other bsp-managed window.
+#** value: swap | stack
 # yabai -m config mouse_drop_action swap
 
-# # Focus windows without having to click on them
-# # off       (default macos behaviour)
-# # autofocus (window gets focused, but not raised)
-# # autoraise (window gets raised as if it was clicked on)
+#** Focus windows without having to click on them
+#** off       (default macos behaviour)
+#** autofocus (window gets focused, but not raised)
+#** autoraise (window gets raised as if it was clicked on)
 # yabai -m config focus_follows_mouse autoraise
 
-# # Set mouse follows focus mode
+#** Set mouse follows focus mode
 # yabai -m config mouse_follows_focus on
 
-# # [System Integrity Protection must be partially disabled]
-# # Floating (unmanaged/untiled) windows are always on top
+#** Specify which display a newly created window should be managed in
+#** default: The display in which the window is created (standard macOS behaviour).
+#** focused: The display that has focus when the window is created.
+#** cursor: The display that currently holds the mouse cursor.
+yabai -m config window_origin_display focused
+
+#** Draw border for windows
+yabai -m config window_border on
+
+#** Draw border in high resolution mode; for High Dots Per Inch ("Retina") displays.
+yabai -m config window_border_hidpi off
+
+#** Blur border allowing it to act as a backdrop for transparent windows.
+# yabai -m config window_border_blur on
+
+#** Width of window border. If the given width is an odd number, it will be incremented by 1.
+yabai -m config window_border_width 4
+
+#** Color of the border of the focused window.
+yabai -m config active_window_border_color 0xff00ff00
+
+#** Color of the border of an unfocused window.
+yabai -m config normal_window_border_color 0x00ffffff
+
+#** [System Integrity Protection must be partially disabled]
+#** Floating (unmanaged/untiled) windows are always on top
 # yabai -m config window_topmost on
 
-# # [System Integrity Protection must be partially disabled]
-# # Modify window shadows (default: on, options: on, off, float)
-# # example: show shadows only for floating windows
+#** [System Integrity Protection must be partially disabled]
+#** Modify window shadows (default: on, options: on, off, float)
+#** example: show shadows only for floating windows
 # yabai -m config window_shadow off
 
-# # [System Integrity Protection must be partially disabled]
-# # Window opacity (default: off)
+#** [System Integrity Protection must be partially disabled]
+#** Window opacity (default: off)
 # yabai -m config window_opacity on
 # yabai -m config active_window_opacity 1.0
 # yabai -m config normal_window_opacity 0.9
+
+#** Windows are now managed by yabai
+yabai -m config layout bsp

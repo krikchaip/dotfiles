@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# -e: exit on error
-# -u: exit on unset variables
+#** -e: exit on error
+#** -u: exit on unset variables
 set -eu
 
 if ! chezmoi="$(command -v chezmoi)"; then
@@ -29,5 +29,5 @@ set -- init --apply
 
 echo "Running 'chezmoi $*'" >&2
 
-# exec: replace current process with chezmoi
+#** exec: replace current process with chezmoi
 exec "$chezmoi" "$@"

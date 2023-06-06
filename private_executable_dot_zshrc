@@ -1,3 +1,5 @@
+#!/bin/zsh
+
 export GOBIN="$HOME/go/bin"
 export LOCAL_BIN="/usr/local/bin"
 export PNPM_HOME="$HOME/Library/pnpm"
