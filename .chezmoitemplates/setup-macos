@@ -16,6 +16,7 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 	brew "dive"
 	brew "golang"
 	brew "golangci-lint"
+	brew "jq"
 	brew "n"
 	brew "shellcheck"
 	brew "shfmt"
@@ -41,7 +42,7 @@ EOF
 #** NOTE: to disable SIP (System Integrity Protection) please follows the link below
 #** https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection
 yabai --start-service && skhd --start-service
-[[ $(arch) == *"arm"* ]] && sudo nvram boot-args=-arm64e_preview_abi
+[[ $(arch) == *"arm"* ]] && (csrutil status | grep -qv 'enabled') && sudo nvram boot-args=-arm64e_preview_abi
 
 #** enable repeat keys for VSCode (Vim extension)
 defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false
