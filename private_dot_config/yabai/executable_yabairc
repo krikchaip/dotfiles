@@ -68,7 +68,7 @@ yabai -m config mouse_modifier alt
 # yabai -m config mouse_drop_action swap
 
 #** Windows are now managed by yabai
-#** value: float | bsp | stack
+#** value: float(unmanaged) | bsp | stack
 # yabai -m config layout bsp
 
 #** Padding and gaps
