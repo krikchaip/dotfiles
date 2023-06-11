@@ -1,17 +1,21 @@
 #!/bin/bash
 
+GAP=8
+
+IS_SINGLE_DISPLAY=$(yabai -m query --displays | jq 'length == 1 and ([.[].frame.w, .[].frame.h] | min) < 1440')
+
 #**************************************************************#
 #***************** [Global Configurations] ********************#
 #**************************************************************#
 
 #** Set mouse follows focus mode
-# yabai -m config mouse_follows_focus on
+yabai -m config mouse_follows_focus on
 
 #** Focus windows without having to click on them
 #** off       (default macos behaviour)
 #** autofocus (window gets focused, but not raised)
 #** autoraise (window gets raised as if it was clicked on)
-# yabai -m config focus_follows_mouse autoraise
+# yabai -m config focus_follows_mouse autofocus
 
 #** Specify which display a newly created window should be managed in
 #** default : The display in which the window is created (standard macOS behaviour).
@@ -65,14 +69,17 @@ yabai -m config mouse_modifier alt
 
 #** Action performed when a bsp-managed window is dropped in the center of some other bsp-managed window.
 #** value: swap | stack
-# yabai -m config mouse_drop_action swap
+yabai -m config mouse_drop_action stack
 
 #** Windows are now managed by yabai
 #** value: float(unmanaged) | bsp | stack
-# yabai -m config layout bsp
+if [ "$IS_SINGLE_DISPLAY" = true ]; then
+  yabai -m config layout stack
+else
+  yabai -m config layout bsp
+fi
 
 #** Padding and gaps
-GAP=8
 yabai -m config top_padding $GAP
 yabai -m config bottom_padding $GAP
 yabai -m config left_padding $GAP
@@ -99,7 +106,17 @@ yabai -m config window_gap $GAP
 #******************* [Rules and Signals] **********************#
 #**************************************************************#
 
-# yabai -m rule --add app!="^Google Chrome$" manage=off
+#** all applications are unmanaged by default
+# yabai -m rule --add app=".*" manage=off
+
+#** allow only these applications to be managed
+# yabai -m rule --add app="^Google Chrome$" manage=on
 # yabai -m rule --add app="^Code$" manage=on
 # yabai -m rule --add app="^Notion$" manage=on
 # yabai -m rule --add app="^Terminal$" manage=on
+
+#** disallow these applications from being managed by yabai
+yabai -m rule --add app="^OpenVPN Connect$" manage=off
+yabai -m rule --add app="^Slack$" manage=off
+yabai -m rule --add app="^Stickies$" manage=off grid=10:10:0:9:3:1
+yabai -m rule --add app="^System Settings$" manage=off
