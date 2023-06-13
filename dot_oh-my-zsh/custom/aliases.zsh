@@ -52,4 +52,5 @@ alias czst="chezmoi state data"
 #** yabai
 alias yba="chezmoi apply ~/.config/yabai && yabai --restart-service"
 alias ybe="yabai --stop-service"
+alias ybr="yabai --restart-service"
 alias ybs="yabai --start-service"
