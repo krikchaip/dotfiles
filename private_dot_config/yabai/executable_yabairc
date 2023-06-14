@@ -132,3 +132,6 @@ yabai -m rule --add app="^System Settings$" manage=off
 # yabai -m signal --add event=display_added action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 # yabai -m signal --add event=display_removed action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 # yabai -m signal --add event=display_moved action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
+
+#** disable "Secure Keyboard Entry" on Terminal focus
+yabai -m signal --add app="^Terminal$" event=window_focused action="defaults write -app Terminal SecureKeyboardEntry -bool false"
