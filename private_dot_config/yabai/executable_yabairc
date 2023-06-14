@@ -122,11 +122,11 @@ yabai -m config window_gap $GAP
 # yabai -m rule --add app="^Terminal$" manage=on
 
 #** disallow these applications from being managed by yabai
-yabai -m rule --add app="^Calculator$" manage=off
-yabai -m rule --add app="^OpenVPN Connect$" manage=off
-yabai -m rule --add app="^SpaceLauncher$" manage=off
-yabai -m rule --add app="^Stickies$" manage=off grid=10:10:0:9:3:1
-yabai -m rule --add app="^System Settings$" manage=off
+yabai -m rule --add app="^Calculator$" manage=off border=off
+yabai -m rule --add app="^OpenVPN Connect$" manage=off border=off
+yabai -m rule --add app="^SpaceLauncher$" manage=off border=off
+yabai -m rule --add app="^Stickies$" manage=off border=off grid=10:10:0:9:3:1
+yabai -m rule --add app="^System Settings$" manage=off border=off
 
 #** readjust spaces when the display changes
 # yabai -m signal --add event=display_added action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
