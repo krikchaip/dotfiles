@@ -14,6 +14,7 @@ alt - k : yabai -m window --focus north      || yabai -m display --focus north
 alt - l : yabai -m window --focus east       || yabai -m display --focus east
 alt - n : yabai -m window --focus stack.next || yabai -m window  --focus stack.first
 alt - p : yabai -m window --focus stack.prev || yabai -m window  --focus stack.last
+alt - r : yabai -m window --focus recent
 
 #** change window rotation
 shift + alt - x : yabai -m space --mirror x-axis
