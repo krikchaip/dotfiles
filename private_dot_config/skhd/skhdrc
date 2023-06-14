@@ -65,3 +65,6 @@ ctrl + shift + alt - h : yabai -m window --insert west
 ctrl + shift + alt - j : yabai -m window --insert south
 ctrl + shift + alt - k : yabai -m window --insert north
 ctrl + shift + alt - l : yabai -m window --insert east
+
+#** manage yabai process
+ctrl + shift + alt - r : yabai --restart-service
