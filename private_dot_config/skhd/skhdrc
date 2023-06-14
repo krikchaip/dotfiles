@@ -38,7 +38,7 @@ shift + alt - 3 : yabai -m window  --display 2; \
 #** balance the split ratios on the selected space
 shift + alt - 0 : yabai -m space --balance
 
-#** resize the root window to take 2/3 space
+#** resize the root window
 shift + alt - home : yabai -m window --ratio abs:0.666
 shift + alt - end  : yabai -m window --ratio abs:0.333
 
@@ -61,11 +61,19 @@ cmd + alt - j : yabai -m window --warp south
 cmd + alt - k : yabai -m window --warp north
 cmd + alt - l : yabai -m window --warp east
 
-#** split window
+#** set split direction for the current window
 ctrl + shift + alt - h : yabai -m window --insert west
 ctrl + shift + alt - j : yabai -m window --insert south
 ctrl + shift + alt - k : yabai -m window --insert north
 ctrl + shift + alt - l : yabai -m window --insert east
 
-#** manage yabai process
+#** restart yabai process
 ctrl + shift + alt - r : yabai --restart-service
+
+#** switch space layout
+ctrl + shift + alt - t : CURRENT_LAYOUT=$(yabai -m query --spaces --space | jq -r '.type'); \
+                         case $CURRENT_LAYOUT in; \
+                           bsp)   LAYOUT=stack ;; \
+                           stack) LAYOUT=bsp ;; \
+                         esac; \
+                         yabai -m space --layout $LAYOUT
