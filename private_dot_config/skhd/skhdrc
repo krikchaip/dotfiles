@@ -2,12 +2,12 @@
 #********** Yabai - Tiling window management for the Mac ***********#
 #*******************************************************************#
 
-# change display focus
+#** change display focus
 alt - 1 : yabai -m display --focus 1
 alt - 2 : yabai -m display --focus 3
 alt - 3 : yabai -m display --focus 2
 
-# change window focus
+#** change window focus
 alt - h : yabai -m window --focus west       || yabai -m display --focus west
 alt - j : yabai -m window --focus south      || yabai -m display --focus south
 alt - k : yabai -m window --focus north      || yabai -m display --focus north
@@ -15,18 +15,18 @@ alt - l : yabai -m window --focus east       || yabai -m display --focus east
 alt - n : yabai -m window --focus stack.next || yabai -m window  --focus stack.first
 alt - p : yabai -m window --focus stack.prev || yabai -m window  --focus stack.last
 
-# change window rotation
+#** change window rotation
 shift + alt - x : yabai -m space --mirror x-axis
 shift + alt - y : yabai -m space --mirror y-axis
 shift + alt - r : yabai -m space --rotate 270
 
-# swap window position
+#** swap window position
 shift + alt - h : yabai -m window --swap west
 shift + alt - j : yabai -m window --swap south
 shift + alt - k : yabai -m window --swap north
 shift + alt - l : yabai -m window --swap east
 
-# send window to another display
+#** send window to another display
 shift + alt - 1 : yabai -m window  --display 1; \
                   yabai -m display --focus   1
 shift + alt - 2 : yabai -m window  --display 3; \
@@ -34,26 +34,33 @@ shift + alt - 2 : yabai -m window  --display 3; \
 shift + alt - 3 : yabai -m window  --display 2; \
                   yabai -m display --focus   2
 
-# stack window onto another
+#** balance the split ratios on the selected space
+shift + alt - 0 : yabai -m space --balance
+
+#** resize the root window to take 2/3 space
+shift + alt - home : yabai -m window --ratio abs:0.666
+shift + alt - end  : yabai -m window --ratio abs:0.333
+
+#** stack window onto another
 ctrl + alt - h : yabai -m window --stack west
 ctrl + alt - j : yabai -m window --stack south
 ctrl + alt - k : yabai -m window --stack north
 ctrl + alt - l : yabai -m window --stack east
 
-# toggle window focus
+#** toggle window focus
 ctrl + alt - f : yabai -m window --toggle float --grid 10:10:2:1:6:8; \
                  yabai -m window --toggle border
 
-# toggle window fullscreen zoom
+#** toggle window fullscreen zoom
 ctrl + alt - z : yabai -m window --toggle zoom-fullscreen
 
-# reinsert window onto another
+#** reinsert window onto another
 cmd + alt - h : yabai -m window --warp west
 cmd + alt - j : yabai -m window --warp south
 cmd + alt - k : yabai -m window --warp north
 cmd + alt - l : yabai -m window --warp east
 
-# split window
+#** split window
 ctrl + shift + alt - h : yabai -m window --insert west
 ctrl + shift + alt - j : yabai -m window --insert south
 ctrl + shift + alt - k : yabai -m window --insert north

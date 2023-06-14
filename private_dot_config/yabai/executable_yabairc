@@ -57,7 +57,7 @@ yabai -m config normal_window_border_color 0x00ffffff
 yabai -m config split_type auto
 
 #** Makes it so all windows always occupy the same space, independent of how deeply nested they are in the window tree.
-yabai -m config auto_balance on
+yabai -m config auto_balance off
 
 #** Set mouse interaction modifier key (default: fn)
 yabai -m config mouse_modifier alt
@@ -122,6 +122,7 @@ yabai -m config window_gap $GAP
 # yabai -m rule --add app="^Terminal$" manage=on
 
 #** disallow these applications from being managed by yabai
+yabai -m rule --add app="^Calculator$" manage=off
 yabai -m rule --add app="^OpenVPN Connect$" manage=off
 yabai -m rule --add app="^Stickies$" manage=off grid=10:10:0:9:3:1
 yabai -m rule --add app="^System Settings$" manage=off
