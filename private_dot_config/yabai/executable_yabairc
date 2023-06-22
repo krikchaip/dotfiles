@@ -123,6 +123,7 @@ yabai -m config window_gap $GAP
 
 #** disallow these applications from being managed by yabai
 yabai -m rule --add app="^Calculator$" manage=off border=off
+yabai -m rule --add app="^Finder$" manage=off border=off
 yabai -m rule --add app="^OpenVPN Connect$" manage=off border=off
 yabai -m rule --add app="^SpaceLauncher$" manage=off border=off
 yabai -m rule --add app="^Stickies$" manage=off border=off grid=10:10:0:9:3:1
@@ -134,5 +135,4 @@ yabai -m rule --add app="^System Settings$" manage=off border=off
 # yabai -m signal --add event=display_moved action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 
 #** disable "Secure Keyboard Entry" for Terminal
-yabai -m signal --add app="^Terminal$" event=window_created action="defaults write -app Terminal SecureKeyboardEntry -bool false"
 yabai -m signal --add app="^Terminal$" event=window_focused action="defaults write -app Terminal SecureKeyboardEntry -bool false"
