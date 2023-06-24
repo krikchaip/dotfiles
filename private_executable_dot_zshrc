@@ -1,5 +1,10 @@
 #!/bin/zsh
 
+#** fix AWK error "illegal byte sequence"
+#** ref: https://stackoverflow.com/questions/19242275/re-error-illegal-byte-sequence-on-mac-os-x
+export LANG=C
+export LC_CTYPE=C
+
 export GOBIN="$HOME/go/bin"
 export LOCAL_BIN="/usr/local/bin"
 export PNPM_HOME="$HOME/Library/pnpm"
