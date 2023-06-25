@@ -4,8 +4,8 @@
 
 #** change display focus
 alt - 1 : yabai -m display --focus 1
-alt - 2 : yabai -m display --focus 3
-alt - 3 : yabai -m display --focus 2
+alt - 2 : yabai -m display --focus 2
+alt - 3 : yabai -m display --focus 3
 
 #** change window focus
 alt - h : yabai -m window --focus west       || yabai -m display --focus west
@@ -19,10 +19,10 @@ alt - r : yabai -m window --focus recent
 #** move window to another display
 shift + alt - 1 : yabai -m window  --display 1; \
                   yabai -m display --focus   1
-shift + alt - 2 : yabai -m window  --display 3; \
-                  yabai -m display --focus   3
-shift + alt - 3 : yabai -m window  --display 2; \
+shift + alt - 2 : yabai -m window  --display 2; \
                   yabai -m display --focus   2
+shift + alt - 3 : yabai -m window  --display 3; \
+                  yabai -m display --focus   3
 
 #** balance the split ratios on the selected space
 shift + alt - 0 : yabai -m space --balance
