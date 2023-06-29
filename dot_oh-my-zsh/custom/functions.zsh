@@ -22,7 +22,7 @@ restart-touchbar() {
 #** continue on code reviewing
 review() {
   local branch="$1"
-  if [ -d $(readlink -f "$REVIEW_DIR/$branch")]; then
+  if [ -d $(readlink -f "$REVIEW_DIR/$branch") ]; then
     code -n "$REVIEW_DIR/$branch"
   fi
 }
@@ -31,7 +31,7 @@ review() {
 review-done() {
   local branch="$1"
   git worktree remove "$REVIEW_DIR/$branch"
-  git branch -d "$branch"
+  git branch -D "$branch"
 }
 
 #** start code reviewing
