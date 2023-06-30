@@ -45,9 +45,6 @@ EOF
 yabai --start-service && skhd --start-service
 [[ $(arch) == *"arm"* ]] && (csrutil status | grep -qv 'enabled') && sudo nvram boot-args=-arm64e_preview_abi
 
-#** enable repeat keys for VSCode (Vim extension)
-defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false
-
 #** install oh-my-zsh
 [ ! -d "$ZSH" ] && sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 

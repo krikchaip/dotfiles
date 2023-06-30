@@ -1,0 +1,81 @@
+#!/bin/bash
+
+#**************************************************************#
+#***************** [Global Configurations] ********************#
+#**************************************************************#
+
+#** Appearance > Appearance = Dark
+defaults write -g AppleInterfaceStyle Dark
+
+#** Accessibility > Display > Reduce motion = ✅
+defaults write com.apple.universalaccess reduceMotion -bool true
+
+#** Accessibility > Pointer Control > Double-click speed
+defaults write -g com.apple.mouse.doubleClickThreshold -float 0.5
+
+#** Accessibility > Pointer Control > Sprint-loading = ✅
+defaults write -g com.apple.springing.enabled -bool true
+
+#** Accessibility > Pointer Control > Sprint-loading speed
+defaults write -g com.apple.springing.delay -float 0.5
+
+#** Desktop & Dock > Dock > Size
+defaults write com.apple.dock tilesize -int 27
+
+#** Desktop & Dock > Dock > Magnification
+defaults write com.apple.dock largesize -int 16
+
+#** Desktop & Dock > Dock > Position on screen
+defaults write com.apple.dock orientation left
+
+#** Desktop & Dock > Dock > Minimize windows into application icon
+defaults write com.apple.dock minimize-to-application -bool false
+
+#** Desktop & Dock > Dock > Show indicators for open applications
+defaults write com.apple.dock show-process-indicators -bool true
+
+#** Desktop & Dock > Mission Control > Automatically rearrange Spaces based on most recent use
+defaults write com.apple.dock mru-spaces -bool false
+
+#** Desktop & Dock > Mission Control > Switch to a space with open windows for the application
+defaults write -g AppleSpacesSwitchOnActivate -bool false
+
+#** Desktop & Dock > Mission Control > Displays have separate Spaces
+defaults write com.apple.spaces spans-displays -bool false
+
+#** Keyboard > Key repeat rate
+defaults write -g KeyRepeat -float 2
+
+#** Keyboard > Delay until repeat
+defaults write -g InitialKeyRepeat -float 15
+
+#** Keyboard > Touch Bar Settings > Touch Bar Shows = App Controls & Show Control Strip = ✅
+defaults write com.apple.touchbar.agent PresentationModeGlobal appWithControlStrip
+
+#** Keyboard > Touch Bar Settings > Press and hold fn key to = Show F# keys
+defaults write com.apple.touchbar.agent PresentationModeFnModes -dict-add "appWithControlStrip" -string "functionKeys"
+
+#** Keyboard > Touch Bar Settings > Show typing suggestions
+defaults write -g NSAutomaticTextCompletionEnabled -bool false
+
+#** Keyboard > Touch Bar Settings > Customize Control Strip...
+defaults write com.apple.controlstrip MiniCustomized -array \
+  "com.apple.system.show-desktop"
+defaults write com.apple.controlstrip FullCustomized -array \
+  "com.apple.system.group.brightness" \
+  "NSTouchBarItemIdentifierFlexibleSpace" \
+  "com.apple.system.mission-control" \
+  "com.apple.system.launchpad" \
+  "NSTouchBarItemIdentifierFlexibleSpace" \
+  "com.apple.system.screencapture" \
+  "com.apple.system.sleep" \
+  "NSTouchBarItemIdentifierFlexibleSpace" \
+  "com.apple.system.group.media" \
+  "com.apple.system.group.volume"
+
+#**************************************************************#
+#*************** [Application Configurations] *****************#
+#**************************************************************#
+
+#** enable repeat keys for VSCode (Vim extension)
+defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false
