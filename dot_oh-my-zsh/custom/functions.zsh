@@ -47,3 +47,9 @@ what-have-i-done-today() {
     --relative-date --since="10am" \
     --author="$(git config --get user.name)"
 }
+
+#** apply system settings immediately without restarting computer
+apply-settings() {
+  osascript -e 'tell application "System Preferences" to quit'
+  /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+}
