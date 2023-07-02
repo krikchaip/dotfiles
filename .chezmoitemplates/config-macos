@@ -179,6 +179,21 @@ defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 27 "$(ke
 #** Keyboard > Keyboard Shortcuts... > Keyboard > Move focus to status menu = ctrl + cmd + shift + l
 defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 57 "$(key-combo 108 37 1441792)"
 
+#** Keyboard > Keyboard Shortcuts... > Input Sources > Select the previous input source = ❌
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 60 "$(key-disable)"
+
+#** Keyboard > Keyboard Shortcuts... > Input Sources > Select next source in Input menu = cmd + space
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 61 "$(key-combo 32 49 1048576)"
+
+#** Keyboard > Keyboard Shortcuts... > Spotlight > Show Spotlight search = opt + space
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 "$(key-combo 32 49 524288)"
+
+#** Keyboard > Keyboard Shortcuts... > Spotlight > Show Finder search window = ❌
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 65 "$(key-disable)"
+
+#** Keyboard > Keyboard Shortcuts... > App Shortcuts > Stickies > Strikethrough = cmd + shift + s
+defaults write com.apple.Stickies NSUserKeyEquivalents -dict-add "Strikethrough" -string "@\$s"
+
 #**************************************************************#
 #*************** [Application Configurations] *****************#
 #**************************************************************#
