@@ -229,6 +229,32 @@ defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadTwoFin
 defaults write com.apple.AppleMultitouchTrackpad TrackpadRotate -bool true
 defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRotate -bool true
 
+#** Trackpad > More Gestures > Swipe between pages = ❌
+defaults write -g AppleEnableSwipeNavigateWithScrolls -bool false
+
+#** Trackpad > More Gestures > Swipe between full-screen applications = Swipe Left or Right with Three Fingers
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerHorizSwipeGesture -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadThreeFingerHorizSwipeGesture -int 2
+
+#** Trackpad > More Gestures > Notification Center = ✅
+defaults write com.apple.AppleMultitouchTrackpad TrackpadTwoFingerFromRightEdgeSwipeGesture -int 3
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadTwoFingerFromRightEdgeSwipeGesture -int 3
+
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerVertSwipeGesture -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadThreeFingerVertSwipeGesture -int 2
+
+#** Trackpad > More Gestures > Mission Control = Swipe Up with Three Fingers
+defaults write com.apple.dock showMissionControlGestureEnabled -bool true
+
+#** Trackpad > More Gestures > App Expose = Swipe Down with Three Fingers
+defaults write com.apple.dock showAppExposeGestureEnabled -bool true
+
+#** Trackpad > More Gestures > Launchpad = Pinch with thumb and three fingers
+defaults write com.apple.dock showLaunchpadGestureEnabled -bool true
+
+#** Trackpad > More Gestures > Show Desktop = Spread with thumb and three fingers
+defaults write com.apple.dock showDesktopGestureEnabled -bool true
+
 #**************************************************************#
 #*************** [Application Configurations] *****************#
 #**************************************************************#
