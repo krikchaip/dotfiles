@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#** Will not proceed further until DisplayLink has started
+while ! pgrep DisplayLinkUserAgent; do
+  printf "Waiting for \033[93mDisplayLinkUserAgent\033[0m process to be started ⌛️\n"
+  sleep 3
+done
+
 GAP=8
 
 HAS_ONLY_INTERNAL=$(yabai -m query --displays | jq 'length == 1 and ([.[].frame.w, .[].frame.h] | min) < 1440')
@@ -112,16 +118,16 @@ yabai -m config window_gap $GAP
 #******************* [Rules and Signals] **********************#
 #**************************************************************#
 
-#** all applications are unmanaged by default
+#** All applications are unmanaged by default
 # yabai -m rule --add app=".*" manage=off
 
-#** allow only these applications to be managed
+#** Allow only these applications to be managed
 # yabai -m rule --add app="^Google Chrome$" manage=on
 # yabai -m rule --add app="^Code$" manage=on
 # yabai -m rule --add app="^Notion$" manage=on
 # yabai -m rule --add app="^Terminal$" manage=on
 
-#** disallow these applications from being managed by yabai
+#** Disallow these applications from being managed by yabai
 yabai -m rule --add app="^1Password$" manage=off border=off
 yabai -m rule --add app="^Calculator$" manage=off border=off
 yabai -m rule --add app="^Finder$" manage=off border=off
@@ -130,12 +136,12 @@ yabai -m rule --add app="^SpaceLauncher$" manage=off border=off
 yabai -m rule --add app="^Stickies$" manage=off border=off grid=10:10:0:9:3:1
 yabai -m rule --add app="^System Settings$" manage=off border=off
 
-#** readjust spaces when the display changes
+#** Readjust spaces when the display changes
 # yabai -m signal --add event=display_added action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 # yabai -m signal --add event=display_removed action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 # yabai -m signal --add event=display_moved action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 
-#** disable "Secure Keyboard Entry" for Terminal
+#** Disable "Secure Keyboard Entry" for Terminal
 yabai -m signal --add event=window_created app="^Terminal$" action="defaults write -app Terminal SecureKeyboardEntry -bool false"
 yabai -m signal --add event=window_focused app="^Terminal$" action="defaults write -app Terminal SecureKeyboardEntry -bool false"
 yabai -m signal --add event=space_changed action="defaults write -app Terminal SecureKeyboardEntry -bool false"
