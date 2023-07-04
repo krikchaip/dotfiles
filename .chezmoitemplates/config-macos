@@ -77,7 +77,7 @@ defaults write com.apple.dock show-process-indicators -bool true
 defaults write com.apple.dock mru-spaces -bool false
 
 #** Desktop & Dock > Mission Control > Switch to a space with open windows for the application
-defaults write -g AppleSpacesSwitchOnActivate -bool false
+defaults write -g AppleSpacesSwitchOnActivate -bool true
 
 #** Desktop & Dock > Mission Control > Displays have separate Spaces
 defaults write com.apple.spaces spans-displays -bool false
