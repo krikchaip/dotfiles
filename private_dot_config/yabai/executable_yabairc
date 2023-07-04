@@ -122,6 +122,7 @@ yabai -m config window_gap $GAP
 # yabai -m rule --add app="^Terminal$" manage=on
 
 #** disallow these applications from being managed by yabai
+yabai -m rule --add app="^1Password$" manage=off border=off
 yabai -m rule --add app="^Calculator$" manage=off border=off
 yabai -m rule --add app="^Finder$" manage=off border=off
 yabai -m rule --add app="^OpenVPN Connect$" manage=off border=off
