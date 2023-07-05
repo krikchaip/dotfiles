@@ -1,9 +1,12 @@
 #!/bin/zsh
 
+#** You may need to manually set your language environment
+export LANG=en_US.UTF-8
+
 #** fix AWK error "illegal byte sequence"
 #** ref: https://stackoverflow.com/questions/19242275/re-error-illegal-byte-sequence-on-mac-os-x
-export LANG=C
-export LC_CTYPE=C
+# export LANG=C
+# export LC_CTYPE=C
 
 #** fix ERR_PNPM_NO_GLOBAL_BIN_DIR Unable to find the global bin directory.
 #** ref: https://github.com/pnpm/pnpm/issues/4658
