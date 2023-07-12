@@ -136,12 +136,12 @@ yabai -m rule --add app="^SpaceLauncher$" manage=off border=off
 yabai -m rule --add app="^Stickies$" manage=off border=off grid=10:10:0:9:3:1
 yabai -m rule --add app="^System Settings$" manage=off border=off
 
-#** Readjust spaces when the display changes
+#** Re-adjust spaces when display changes
 # yabai -m signal --add event=display_added action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 # yabai -m signal --add event=display_removed action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 # yabai -m signal --add event=display_moved action="if [ $HAS_ONLY_INTERNAL = true ]; then yabai -m config layout stack; else yabai -m config layout bsp; for SID in $INTERNAL_SPACE_IDS; do yabai -m config --space \$SID layout stack; done; fi"
 
 #** Disable "Secure Keyboard Entry" for Terminal
-yabai -m signal --add event=window_created app="^Terminal$" action="defaults write -app Terminal SecureKeyboardEntry -bool false"
-yabai -m signal --add event=window_focused app="^Terminal$" action="defaults write -app Terminal SecureKeyboardEntry -bool false"
-yabai -m signal --add event=space_changed action="defaults write -app Terminal SecureKeyboardEntry -bool false"
+# yabai -m signal --add event=window_created app="^Terminal$" action="defaults write -app Terminal SecureKeyboardEntry -bool false"
+# yabai -m signal --add event=window_focused app="^Terminal$" action="defaults write -app Terminal SecureKeyboardEntry -bool false"
+# yabai -m signal --add event=space_changed action="defaults write -app Terminal SecureKeyboardEntry -bool false"
