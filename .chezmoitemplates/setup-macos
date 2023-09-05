@@ -20,7 +20,6 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 	brew "yabai"
 
 	#** brew cask applications
-	cask "spacelauncher"
 	cask "1password"
 	cask "dbeaver-community"
 	cask "displaylink"
@@ -32,6 +31,8 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 	cask "karabiner-elements"
 	cask "notion"
 	cask "numi"
+	cask "shortcat"
+	cask "spacelauncher"
 	cask "visual-studio-code"
 EOF
 
