@@ -418,12 +418,12 @@
       ]
     },
     {
-      "description": "Escape (press ctrl)",
+      "description": "Escape / Control with Caps Lock",
       "manipulators": [
         {
           "type": "basic",
           "from": {
-            "key_code": "left_control",
+            "key_code": "caps_lock",
             "modifiers": { "optional": ["any"] }
           },
           "to": [{ "key_code": "left_control", "lazy": true }],
