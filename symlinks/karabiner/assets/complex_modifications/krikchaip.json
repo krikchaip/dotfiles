@@ -1,0 +1,435 @@
+{
+  "title": "krikchaip's keybinding",
+  "maintainers": ["krikchaip"],
+  "rules": [
+    {
+      "description": "Force Quit Applications (del)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": { "key_code": "delete_forward" },
+          "to": [{ "key_code": "escape", "modifiers": ["command", "option"] }],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "description": "Keychron K2",
+                  "vendor_id": 1452,
+                  "product_id": 591,
+                  "is_keyboard": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Change Input Source (shift+spacebar)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "spacebar",
+            "modifiers": { "mandatory": ["shift"] }
+          },
+          "to": [{ "key_code": "spacebar", "modifiers": ["command"] }]
+        }
+      ]
+    },
+    {
+      "description": "Delete backward to the beginning of the word (ctrl+cmd+,)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "comma",
+            "modifiers": {
+              "mandatory": ["control", "command"],
+              "optional": ["any"]
+            }
+          },
+          "to": [{ "key_code": "delete_or_backspace", "modifiers": ["option"] }]
+        }
+      ]
+    },
+    {
+      "description": "Delete forward to the end of the word (ctrl+cmd+.)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "period",
+            "modifiers": {
+              "mandatory": ["control", "command"],
+              "optional": ["any"]
+            }
+          },
+          "to": [{ "key_code": "delete_forward", "modifiers": ["option"] }],
+          "conditions": [
+            {
+              "type": "frontmost_application_unless",
+              "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "period",
+            "modifiers": {
+              "mandatory": ["control", "command"],
+              "optional": ["any"]
+            }
+          },
+          "to": [{ "key_code": "d", "modifiers": ["option"] }],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Delete text from cursor to the beginning of the line (ctrl+cmd+;)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "semicolon",
+            "modifiers": {
+              "mandatory": ["control", "command"],
+              "optional": ["any"]
+            }
+          },
+          "to": [
+            { "key_code": "delete_or_backspace", "modifiers": ["command"] }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_unless",
+              "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "semicolon",
+            "modifiers": {
+              "mandatory": ["control", "command"],
+              "optional": ["any"]
+            }
+          },
+          "to": [{ "key_code": "w", "modifiers": ["option"] }],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Delete text from cursor to the end of the line (ctrl+cmd+')",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "quote",
+            "modifiers": {
+              "mandatory": ["control", "command"],
+              "optional": ["any"]
+            }
+          },
+          "to": [{ "key_code": "k", "modifiers": ["control"] }]
+        }
+      ]
+    },
+    {
+      "description": "Move the cursor backward one word (ctrl+,)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "comma",
+            "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+          },
+          "to": [{ "key_code": "left_arrow", "modifiers": ["option"] }]
+        }
+      ]
+    },
+    {
+      "description": "Move the cursor forward one word (ctrl+.)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "period",
+            "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+          },
+          "to": [{ "key_code": "right_arrow", "modifiers": ["option"] }]
+        }
+      ]
+    },
+    {
+      "description": "Move the cursor to the beginning of the line (ctrl+;)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "semicolon",
+            "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+          },
+          "to": [{ "key_code": "left_arrow", "modifiers": ["command"] }],
+          "conditions": [
+            {
+              "type": "frontmost_application_unless",
+              "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "semicolon",
+            "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+          },
+          "to": [{ "key_code": "a", "modifiers": ["control"] }],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Move the cursor to the end of the line (ctrl+')",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "quote",
+            "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+          },
+          "to": [{ "key_code": "right_arrow", "modifiers": ["command"] }],
+          "conditions": [
+            {
+              "type": "frontmost_application_unless",
+              "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "quote",
+            "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+          },
+          "to": [{ "key_code": "e", "modifiers": ["control"] }],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Arrow mode (space+[hjkl])",
+      "manipulators": [
+        {
+          "description": "Left Arrow",
+          "type": "basic",
+          "from": { "key_code": "h", "modifiers": { "optional": ["any"] } },
+          "to": [{ "key_code": "left_arrow" }],
+          "conditions": [
+            { "type": "variable_if", "name": "arrow_mode", "value": 1 }
+          ]
+        },
+        {
+          "description": "Left Arrow (simultaneous)",
+          "type": "basic",
+          "from": {
+            "simultaneous": [{ "key_code": "spacebar" }, { "key_code": "h" }],
+            "simultaneous_options": {
+              "key_down_order": "strict",
+              "key_up_order": "strict_inverse",
+              "to_after_key_up": [
+                { "set_variable": { "name": "arrow_mode", "value": 0 } }
+              ]
+            },
+            "modifiers": { "optional": ["any"] }
+          },
+          "to": [
+            { "set_variable": { "name": "arrow_mode", "value": 1 } },
+            { "key_code": "left_arrow" }
+          ],
+          "parameters": {
+            "basic.simultaneous_threshold_milliseconds": 500
+          }
+        },
+        {
+          "description": "Down Arrow",
+          "type": "basic",
+          "from": { "key_code": "j", "modifiers": { "optional": ["any"] } },
+          "to": [{ "key_code": "down_arrow" }],
+          "conditions": [
+            { "type": "variable_if", "name": "arrow_mode", "value": 1 }
+          ]
+        },
+        {
+          "description": "Down Arrow (simultaneous)",
+          "type": "basic",
+          "from": {
+            "simultaneous": [{ "key_code": "spacebar" }, { "key_code": "j" }],
+            "simultaneous_options": {
+              "key_down_order": "strict",
+              "key_up_order": "strict_inverse",
+              "to_after_key_up": [
+                { "set_variable": { "name": "arrow_mode", "value": 0 } }
+              ]
+            },
+            "modifiers": { "optional": ["any"] }
+          },
+          "to": [
+            { "set_variable": { "name": "arrow_mode", "value": 1 } },
+            { "key_code": "down_arrow" }
+          ],
+          "parameters": {
+            "basic.simultaneous_threshold_milliseconds": 500
+          }
+        },
+        {
+          "description": "Up Arrow",
+          "type": "basic",
+          "from": { "key_code": "k", "modifiers": { "optional": ["any"] } },
+          "to": [{ "key_code": "up_arrow" }],
+          "conditions": [
+            { "type": "variable_if", "name": "arrow_mode", "value": 1 }
+          ]
+        },
+        {
+          "description": "Up Arrow (simultaneous)",
+          "type": "basic",
+          "from": {
+            "simultaneous": [{ "key_code": "spacebar" }, { "key_code": "k" }],
+            "simultaneous_options": {
+              "key_down_order": "strict",
+              "key_up_order": "strict_inverse",
+              "to_after_key_up": [
+                { "set_variable": { "name": "arrow_mode", "value": 0 } }
+              ]
+            },
+            "modifiers": { "optional": ["any"] }
+          },
+          "to": [
+            { "set_variable": { "name": "arrow_mode", "value": 1 } },
+            { "key_code": "up_arrow" }
+          ],
+          "parameters": {
+            "basic.simultaneous_threshold_milliseconds": 500
+          }
+        },
+        {
+          "description": "Right Arrow",
+          "type": "basic",
+          "from": { "key_code": "l", "modifiers": { "optional": ["any"] } },
+          "to": [{ "key_code": "right_arrow" }],
+          "conditions": [
+            { "type": "variable_if", "name": "arrow_mode", "value": 1 }
+          ]
+        },
+        {
+          "description": "Right Arrow (simultaneous)",
+          "type": "basic",
+          "from": {
+            "simultaneous": [{ "key_code": "spacebar" }, { "key_code": "l" }],
+            "simultaneous_options": {
+              "key_down_order": "strict",
+              "key_up_order": "strict_inverse",
+              "to_after_key_up": [
+                { "set_variable": { "name": "arrow_mode", "value": 0 } }
+              ]
+            },
+            "modifiers": { "optional": ["any"] }
+          },
+          "to": [
+            { "set_variable": { "name": "arrow_mode", "value": 1 } },
+            { "key_code": "right_arrow" }
+          ],
+          "parameters": {
+            "basic.simultaneous_threshold_milliseconds": 500
+          }
+        }
+      ]
+    },
+    {
+      "description": "[VSCode] Shrink (;') / Expand (,.) selection",
+      "manipulators": [
+        {
+          "description": "Shrink selection (;')",
+          "type": "basic",
+          "from": {
+            "simultaneous": [
+              { "key_code": "semicolon" },
+              { "key_code": "quote" }
+            ]
+          },
+          "to": [
+            {
+              "key_code": "left_arrow",
+              "modifiers": ["command", "shift", "control"]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^com\\.microsoft\\.VSCode$"]
+            }
+          ]
+        },
+        {
+          "description": "Expand selection (,.)",
+          "type": "basic",
+          "from": {
+            "simultaneous": [{ "key_code": "comma" }, { "key_code": "period" }]
+          },
+          "to": [
+            {
+              "key_code": "right_arrow",
+              "modifiers": ["command", "shift", "control"]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^com\\.microsoft\\.VSCode$"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Escape / Control with Caps Lock",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "caps_lock",
+            "modifiers": { "optional": ["any"] }
+          },
+          "to": [{ "key_code": "left_control", "lazy": true }],
+          "to_if_alone": [{ "key_code": "escape" }]
+        }
+      ]
+    }
+  ]
+}
