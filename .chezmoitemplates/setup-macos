@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# exit immediately on non-zero return
+# return non-zero if any command in a pipeline fails
+set -eo pipefail
+
 #** install homebrew
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
@@ -29,10 +33,10 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 	cask "google-drive"
 	cask "insomnia"
 	cask "karabiner-elements"
+	cask "logi-options-plus"
 	cask "notion"
 	cask "numi"
 	cask "shortcat"
-	# cask "spacelauncher"
 	cask "visual-studio-code"
 EOF
 
