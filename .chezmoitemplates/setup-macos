@@ -25,11 +25,11 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 
 	#** brew cask applications
 	cask "1password"
+	cask "arc"
 	cask "dbeaver-community"
 	cask "displaylink"
 	cask "docker"
 	cask "font-fira-code"
-	cask "google-chrome"
 	cask "google-drive"
 	cask "insomnia"
 	cask "karabiner-elements"
