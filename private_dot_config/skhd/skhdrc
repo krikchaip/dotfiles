@@ -60,12 +60,10 @@ ctrl + alt - k : yabai -m window --stack north
 ctrl + alt - l : yabai -m window --stack east
 
 #** pop out the current window
-ctrl + alt - p : yabai -m window --toggle float --grid 10:10:2:1:6:8; \
-                 yabai -m window --toggle border
+ctrl + alt - p : yabai -m window --toggle float --grid 10:10:2:1:6:8
 
 #** toggle window float
-ctrl + alt - t : yabai -m window --toggle float; \
-                 yabai -m window --toggle border
+ctrl + alt - t : yabai -m window --toggle float
 
 #** toggle window fullscreen zoom
 ctrl + alt - z : yabai -m window --toggle zoom-fullscreen
