@@ -110,6 +110,7 @@ yabai -m config window_gap $GAP
 yabai -m rule --add app="^1Password$" manage=off
 yabai -m rule --add app="^Activity Monitor$" manage=off
 yabai -m rule --add app="^Calculator$" manage=off
+yabai -m rule --add app="^Calendar$" manage=off
 yabai -m rule --add app="^Dictionary$" manage=off
 yabai -m rule --add app="^Finder$" manage=off
 yabai -m rule --add app="^Logi Options\+$" manage=off
