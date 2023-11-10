@@ -48,7 +48,7 @@ yabai -m config split_type auto
 yabai -m config auto_balance off
 
 #** Set mouse interaction modifier key (default: fn)
-yabai -m config mouse_modifier alt
+# yabai -m config mouse_modifier alt
 
 #** Set modifier + left-click drag to move window (default: move)
 # yabai -m config mouse_action1 move
