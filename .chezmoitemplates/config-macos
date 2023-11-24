@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# On the first change:
+#   - `defaults read > /tmp/before`
+#   - make changes in the system preferences
+#   - `defaults read > /tmp/after`
+#   - `code --diff /tmp/before /tmp/after`
+
+# On subsequent changes:
+#   - make changes in the system preferences
+#   - `mv /tmp/after /tmp/before; defaults read > /tmp/after; code --diff /tmp/before /tmp/after`
+
 #** XML template for com.apple.symbolichotkeys -> AppleSymbolicHotKeys
 function key-disable() {
   local TEMPLATE="<dict><key>enabled</key><false/></dict>"
@@ -139,32 +149,32 @@ defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 79 "$(ke
 #** Keyboard > Keyboard Shortcuts... > Mission Control > Move right a space = ctrl + right
 defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 81 "$(key-combo 65535 124 10747904)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 1 = ctrl + 1
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 118 "$(key-combo 65535 18 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 1 = ctrl + cmd + 1
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 118 "$(key-combo 49 18 1310720)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 2 = ctrl + 2
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 119 "$(key-combo 65535 19 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 2 = ctrl + cmd + 2
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 119 "$(key-combo 50 19 1310720)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 3 = ctrl + 3
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 120 "$(key-combo 65535 20 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 3 = ctrl + cmd + 3
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 120 "$(key-combo 51 20 1310720)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 4 = ctrl + 4
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 121 "$(key-combo 65535 21 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 4 = ctrl + cmd + 4
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 121 "$(key-combo 52 21 1310720)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 5 = ctrl + 5
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 122 "$(key-combo 65535 23 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 5 = ctrl + cmd + 5
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 122 "$(key-combo 53 23 1310720)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 6 = ctrl + 6
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 123 "$(key-combo 65535 22 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 6 = ctrl + cmd + 6
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 123 "$(key-combo 54 22 1310720)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 7 = ctrl + 7
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 124 "$(key-combo 65535 26 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 7 = ctrl + cmd + 7
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 124 "$(key-combo 55 26 1310720)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 8 = ctrl + 8
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 125 "$(key-combo 65535 28 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 8 = ctrl + cmd + 8
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 125 "$(key-combo 56 28 1310720)"
 
-#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 9 = ctrl + 9
-defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 126 "$(key-combo 65535 25 262144)"
+#** Keyboard > Keyboard Shortcuts... > Mission Control > Switch to Desktop 9 = ctrl + cmd + 9
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 126 "$(key-combo 57 25 1310720)"
 
 #** Keyboard > Keyboard Shortcuts... > Keyboard > Change the way Tab moves focus = ❌
 defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 13 "$(key-disable)"
