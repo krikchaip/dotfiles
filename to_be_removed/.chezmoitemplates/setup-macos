@@ -15,11 +15,6 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 
 	#** brew formulae
 	brew "asdf"
-	brew "bat"
-	brew "dive"
-	brew "jq"
-	brew "shellcheck"
-	brew "shfmt"
 	brew "skhd"
 	brew "yabai"
 
@@ -29,14 +24,11 @@ brew bundle --no-lock --file=/dev/stdin <<-EOF
 	cask "dbeaver-community"
 	cask "displaylink"
 	cask "docker"
-	cask "font-fira-code"
 	cask "google-drive"
 	cask "insomnia"
 	cask "karabiner-elements"
 	cask "logi-options-plus"
 	cask "notion"
-	cask "numi"
-	cask "shortcat"
 	cask "visual-studio-code"
 EOF
 
