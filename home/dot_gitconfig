@@ -1,7 +1,3 @@
 [user]
 	name = krikchaip
 	email = krikchai.p@gmail.com
-[pull]
-	rebase = false
-[core]
-	editor = code --wait
