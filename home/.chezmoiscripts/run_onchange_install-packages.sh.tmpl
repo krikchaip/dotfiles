@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# install homebrew
+if [ ! "$(command -v brew)" ]; then
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+
+# install homebrew packages
+{{- range .packages.homebrew }}
+brew install {{ . }}
+{{- end }}
+
+# install asdf plugins
+{{- range .packages.asdf }}
+asdf plugin add {{ . }}
+{{- end }}
+
+# install asdf latest binaries
+{{- range .packages.asdf }}
+asdf install {{ . }} latest
+{{- end }}
+
+# use the latest binary versions
+{{- range .packages.asdf }}
+asdf global {{ . }} latest
+{{- end }}
+
+# launch yabai & skhd in the background
+if pgrep yabai; then yabai --restart-service; else yabai --start-service; fi
+if pgrep skhd; then skhd --restart-service; else skhd --start-service; fi
+
+# to disable the SIP (System Integrity Protection), please follow the instructions from the link below.
+# ref: https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection

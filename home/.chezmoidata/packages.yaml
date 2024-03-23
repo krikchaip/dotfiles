@@ -1,0 +1,31 @@
+packages:
+  homebrew:
+    - 1password
+    - arc
+    - asdf
+    - dbeaver-community
+    - displaylink
+    - docker
+    - google-drive
+    - insomnia
+    - karabiner-elements
+    - kitty
+    - logi-options-plus
+    - neovim
+    - notion
+    - nushell
+    - skhd
+    - visual-studio-code
+    - yabai
+
+  asdf:
+    - elixir
+    - erlang
+    - nodejs
+    - pnpm
+
+  pnpm:
+    - '@microsoft/rush'
+    - turbo
+    - vercel
+    - vite
