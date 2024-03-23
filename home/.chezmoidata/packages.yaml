@@ -8,6 +8,7 @@ packages:
     - docker
     - google-drive
     - insomnia
+    - jq
     - karabiner-elements
     - kitty
     - logi-options-plus
