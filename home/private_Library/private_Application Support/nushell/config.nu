@@ -6,8 +6,8 @@ $env.config = {
 }
 
 # custom-defined aliases and functions
-source aliases.nu
-source functions.nu
+source custom/aliases.nu
+source custom/functions.nu
 
 # setup asdf integration, including auto completion
 source /opt/homebrew/opt/asdf/libexec/asdf.nu
