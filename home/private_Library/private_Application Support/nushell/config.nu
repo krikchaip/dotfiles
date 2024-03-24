@@ -1,7 +1,8 @@
 $env.config = {
   buffer_editor: nvim
-  show_banner: false
+  edit_mode: vi
   shell_integration: true
+  show_banner: false
 }
 
 # setup asdf integration, including auto completion
