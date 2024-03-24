@@ -42,3 +42,6 @@ alias ybs = yabai --start-service
 alias ske = skhd --stop-service
 alias skr = skhd --restart-service
 alias sks = skhd --start-service
+
+# neovim
+alias nv = nvim
