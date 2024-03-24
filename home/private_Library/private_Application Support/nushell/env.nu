@@ -4,10 +4,11 @@ let path_list = (
   $env.PATH
   | split row (char esep)
 
-  # homebrew for macOS ARM64 (Apple Silicon)
+  # homebrew binaries for macOS ARM64 (Apple Silicon)
   | append /opt/homebrew/bin
 
-  # chezmoi binary and others
+  # other binary locations
+  | append /usr/local/bin
   | append ($env.HOME | path join ".local" "bin")
 
   # fix ERR_PNPM_NO_GLOBAL_BIN_DIR Unable to find the global bin directory.
@@ -20,3 +21,10 @@ $env.PATH = ($path_list | uniq)
 
 # set asdf installation path installed via homebrew
 $env.ASDF_DIR = (brew --prefix asdf | str trim | into string | path join 'libexec')
+
+# make source/use file-relative in env.nu and config.nu
+# ref: https://github.com/nushell/nushell/issues/8127
+#      https://www.nushell.sh/book/modules.html#dumping-files-into-directory
+$env.NU_LIB_DIRS = [
+  $nu.default-config-dir
+]
