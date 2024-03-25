@@ -5,8 +5,9 @@ $env.config = {
   show_banner: false
 }
 
-# custom-defined aliases and functions
+# custom-defined aliases, functions and etc.
 source custom/aliases.nu
+source custom/completions.nu
 source custom/functions.nu
 
 # setup asdf integration, including auto completion

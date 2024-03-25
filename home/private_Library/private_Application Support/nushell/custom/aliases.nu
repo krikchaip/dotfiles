@@ -1,3 +1,5 @@
+source nu_scripts/aliases/git/git-aliases.nu
+
 # system commands
 alias als = help aliases
 alias desktop = cd ~/Desktop
