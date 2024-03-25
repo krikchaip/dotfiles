@@ -22,8 +22,15 @@ def "git work-done today" []: nothing -> nothing {
 
 # the cat command on steroids!
 def c [file: path]: nothing -> nothing {
+  let extension = ($file | path parse | get extension | to text)
   let mime = (file --mime-type -b $file | to text)
   let allowed_mimes = [image/png image/svg+xml]
 
-  if $mime in $allowed_mimes { kitten icat $file } else { bat $file }
+  if $mime in $allowed_mimes {
+    kitten icat $file
+  } else if $extension =~ "plist" {
+    plutil -convert xml1 -o - $file
+  } else {
+    bat $file
+  }
 }
