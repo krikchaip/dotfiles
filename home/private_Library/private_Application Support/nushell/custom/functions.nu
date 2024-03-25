@@ -19,3 +19,11 @@ def "apply system-settings" []: nothing -> nothing {
 def "git work-done today" []: nothing -> nothing {
   git log --stat --relative-date --since=10am --author=(git config --get user.name)
 }
+
+# the cat command on steroids!
+def c [file: path]: nothing -> nothing {
+  let mime = (file --mime-type -b $file | to text)
+  let allowed_mimes = [image/png image/svg+xml]
+
+  if $mime in $allowed_mimes { kitten icat $file } else { bat $file }
+}

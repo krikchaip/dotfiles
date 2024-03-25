@@ -3,6 +3,7 @@ packages:
     - 1password
     - arc
     - asdf
+    - bat
     - dbeaver-community
     - displaylink
     - docker
