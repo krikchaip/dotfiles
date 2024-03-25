@@ -2,4 +2,11 @@
   command = "nvim"
 
 [diff]
+  command = "kitten"
+  args = ["diff", "{{ .Target }}", "{{ .Destination }}"]
   exclude = ["scripts", "externals"]
+
+[[textconv]]
+  command = "plutil"
+  args = ["-convert", "xml1", "-o", "-", "-"]
+  pattern = "**/*.plist"
