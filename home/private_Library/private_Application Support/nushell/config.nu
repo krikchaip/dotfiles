@@ -9,6 +9,7 @@ $env.config = {
 source custom/aliases.nu
 source custom/completions.nu
 source custom/functions.nu
+source custom/themes.nu
 
 # setup asdf integration, including auto completion
 source /opt/homebrew/opt/asdf/libexec/asdf.nu
