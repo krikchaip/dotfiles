@@ -5,6 +5,7 @@ packages:
     formulae:
       - asdf
       - bat
+      - font-fira-code
       - font-fira-code-nerd-font
       - jq
       - neovim
