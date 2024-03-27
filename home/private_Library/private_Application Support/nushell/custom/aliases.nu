@@ -5,7 +5,9 @@ alias als = help aliases
 alias desktop = cd ~/Desktop
 alias dskt = cd ~/Desktop
 alias l = ls -a
+alias lf = ls -af
 alias ll = ls -al
+alias llf = ls -afl
 alias mime-type = file --mime-type -b
 
 # docker client
