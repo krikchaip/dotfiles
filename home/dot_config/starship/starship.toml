@@ -1,0 +1,6 @@
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# This is the list of prompt-wide configuration options
+# ref: https://starship.rs/config/#prompt
+command_timeout = 1000

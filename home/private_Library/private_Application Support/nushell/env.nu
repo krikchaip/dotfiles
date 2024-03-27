@@ -22,6 +22,9 @@ $env.PATH = ($path_list | uniq)
 # set asdf installation path installed via homebrew
 $env.ASDF_DIR = (brew --prefix asdf | str trim | into string | path join 'libexec')
 
+# change the default configuration file location for starship
+$env.STARSHIP_CONFIG = ($env.HOME | path join ".config" "starship" "starship.toml")
+
 # make source/use file-relative in env.nu and config.nu
 # ref: https://github.com/nushell/nushell/issues/8127
 #      https://www.nushell.sh/book/modules.html#dumping-files-into-directory
