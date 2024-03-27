@@ -1,24 +1,30 @@
 packages:
   homebrew:
-    - 1password
-    - arc
-    - asdf
-    - bat
-    - dbeaver-community
-    - displaylink
-    - docker
-    - google-drive
-    - insomnia
-    - jq
-    - karabiner-elements
-    - kitty
-    - logi-options-plus
-    - neovim
-    - notion
-    - nushell
-    - skhd
-    - visual-studio-code
-    - yabai
+    taps:
+      - homebrew/cask-fonts
+    formulae:
+      - asdf
+      - bat
+      - font-fira-code-nerd-font
+      - jq
+      - neovim
+      - nushell
+      - skhd
+      - starship
+      - yabai
+    casks:
+      - 1password
+      - arc
+      - dbeaver-community
+      - displaylink
+      - docker
+      - google-drive
+      - insomnia
+      - karabiner-elements
+      - kitty
+      - logi-options-plus
+      - notion
+      - visual-studio-code
 
   asdf:
     - elixir

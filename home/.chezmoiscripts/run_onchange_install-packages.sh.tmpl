@@ -5,8 +5,16 @@ if [ ! "$(command -v brew)" ]; then
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
+# add more repositories to install 3rd-party formulae/casks
+{{- range .packages.homebrew.taps }}
+brew tap {{ . }}
+{{- end }}
+
 # install homebrew packages
-{{- range .packages.homebrew }}
+{{- range .packages.homebrew.formulae }}
+brew install {{ . }}
+{{- end }}
+{{- range .packages.homebrew.casks }}
 brew install {{ . }}
 {{- end }}
 
