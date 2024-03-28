@@ -16,7 +16,7 @@ def "apply system-settings" []: nothing -> nothing {
 }
 
 # show all the work done from 10am till now
-def "git work-done today" []: nothing -> nothing {
+def "show work-done today" []: nothing -> nothing {
   git log --stat --relative-date --since=10am --author=(git config --get user.name)
 }
 
