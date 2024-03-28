@@ -1,10 +1,13 @@
-[edit]
-  command = "nvim"
+[cd]
+  command = "nu"
 
 [diff]
   command = "kitten"
   args = ["diff", "{{ .Target }}", "{{ .Destination }}"]
   exclude = ["scripts", "externals"]
+
+[edit]
+  command = "nvim"
 
 [[textconv]]
   command = "plutil"
