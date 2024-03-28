@@ -4,16 +4,13 @@ let path_list = (
   $env.PATH
   | split row (char esep)
 
+  # other system binaries locations
+  | prepend /usr/local/bin
+  | prepend ($env.HOME | path join ".local" "bin")
+
   # homebrew binaries for macOS ARM64 (Apple Silicon)
-  | append /opt/homebrew/bin
-
-  # other binary locations
-  | append /usr/local/bin
-  | append ($env.HOME | path join ".local" "bin")
-
-  # fix ERR_PNPM_NO_GLOBAL_BIN_DIR Unable to find the global bin directory.
-  # ref: https://github.com/pnpm/pnpm/issues/4658
-  | append ($env.HOME | path join "Library" "pnpm")
+  | prepend /opt/homebrew/sbin
+  | prepend /opt/homebrew/bin
 )
 
 # filter so the paths are unique
