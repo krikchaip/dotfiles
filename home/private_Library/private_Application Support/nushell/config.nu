@@ -1,7 +1,7 @@
 # setup 3rd-party integration
-source vendor/mise.nu
-source vendor/nu_scripts.nu
-source vendor/starship.nu
+use vendor/nu_scripts.nu
+use vendor/mise.nu
+use vendor/starship.nu
 
 # custom-defined aliases, functions and etc.
 source custom/aliases.nu
@@ -12,5 +12,5 @@ $env.config = {
   edit_mode: vi
   shell_integration: true
   show_banner: false,
-  color_config: (monokai-soda)
+  color_config: (nu_scripts monokai-soda)
 }

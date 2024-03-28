@@ -1,9 +1,12 @@
 export-env {
   $env.MISE_SHELL = "nu"
+  $env.PATH = ($env.PATH | prepend ($env.HOME | path join ".local" "share" "mise" "shims"))
+
   let mise_hook = {
     condition: { "MISE_SHELL" in $env }
     code: { mise_hook }
   }
+
   add-hook hooks.pre_prompt $mise_hook
   add-hook hooks.env_change.PWD $mise_hook
 }
@@ -11,6 +14,7 @@ export-env {
 def --env add-hook [field: cell-path new_hook: any] {
   let old_config = $env.config? | default {}
   let old_hooks = $old_config | get $field --ignore-errors | default []
+
   $env.config = ($old_config | upsert $field ($old_hooks ++ $new_hook))
 }
 
