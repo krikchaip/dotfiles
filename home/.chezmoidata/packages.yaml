@@ -1,15 +1,14 @@
 packages:
   homebrew:
-    taps:
-      - homebrew/cask-fonts
     formulae:
       - bat
-      - font-fira-code
-      - font-fira-code-nerd-font
+      - homebrew/cask-fonts/font-fira-code
+      - homebrew/cask-fonts/font-fira-code-nerd-font
       - jq
       - mise
       - neovim
       - nushell
+      - rsteube/tap/carapace
       - skhd
       - starship
       - yabai
