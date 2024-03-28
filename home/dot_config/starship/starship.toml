@@ -4,3 +4,9 @@
 # This is the list of prompt-wide configuration options
 # ref: https://starship.rs/config/#prompt
 command_timeout = 1000
+
+[elixir]
+  disabled = true
+
+[nodejs]
+  disabled = true
