@@ -3,11 +3,11 @@ packages:
     taps:
       - homebrew/cask-fonts
     formulae:
-      - asdf
       - bat
       - font-fira-code
       - font-fira-code-nerd-font
       - jq
+      - mise
       - neovim
       - nushell
       - skhd
@@ -27,7 +27,7 @@ packages:
       - notion
       - visual-studio-code
 
-  asdf:
+  mise:
     - elixir
     - erlang
     - nodejs

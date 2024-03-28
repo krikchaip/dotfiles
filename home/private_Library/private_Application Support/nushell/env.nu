@@ -19,9 +19,6 @@ let path_list = (
 # filter so the paths are unique
 $env.PATH = ($path_list | uniq)
 
-# set asdf installation path installed via homebrew
-$env.ASDF_DIR = (brew --prefix asdf | str trim | into string | path join 'libexec')
-
 # change the default configuration file location for starship
 $env.STARSHIP_CONFIG = ($env.HOME | path join ".config" "starship" "starship.toml")
 

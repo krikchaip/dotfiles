@@ -18,19 +18,9 @@ brew install {{ . }}
 brew install {{ . }}
 {{- end }}
 
-# install asdf plugins
-{{- range .packages.asdf }}
-asdf plugin add {{ . }}
-{{- end }}
-
-# install asdf latest binaries
-{{- range .packages.asdf }}
-asdf install {{ . }} latest
-{{- end }}
-
-# use the latest binary versions
-{{- range .packages.asdf }}
-asdf global {{ . }} latest
+# install and use the latest mise binaries
+{{- range .packages.mise }}
+mise use --global {{ . }}
 {{- end }}
 
 # launch yabai & skhd in the background

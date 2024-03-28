@@ -10,7 +10,7 @@ source custom/aliases.nu
 source custom/completions.nu
 source custom/functions.nu
 source custom/themes.nu
-source custom/starship.nu
 
-# setup asdf integration, including auto completion
-source /opt/homebrew/opt/asdf/libexec/asdf.nu
+# setup 3rd-party integration
+source vendor/mise.nu
+source vendor/starship.nu
