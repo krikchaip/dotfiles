@@ -5,8 +5,16 @@
 # ref: https://starship.rs/config/#prompt
 command_timeout = 1000
 
+[docker_context]
+  disabled = true
+
 [elixir]
   disabled = true
 
-[nodejs]
-  disabled = true
+[custom.elixir]
+  description = "The currently installed versions of Elixir and OTP"
+  format = 'via [$symbol( v$output) ]($style)'
+  symbol = '💧'
+  style = 'bold purple'
+  command = """mise current elixir | split row '-' | $"($in.0) \\(OTP ($in.2 | str trim)\\)""""
+  detect_files = ['mix.exs']
