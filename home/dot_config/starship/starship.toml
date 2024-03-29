@@ -12,9 +12,16 @@ command_timeout = 1000
   disabled = true
 
 [custom.elixir]
-  description = "The currently installed versions of Elixir and OTP"
+  description = 'The currently installed versions of Elixir and OTP'
   format = 'via [$symbol( v$output) ]($style)'
   symbol = '💧'
   style = 'bold purple'
   command = """mise current elixir | split row '-' | $"($in.0) \\(OTP ($in.2 | str trim)\\)""""
   detect_files = ['mix.exs']
+
+[custom.pnpm]
+  description = 'The currently installed version of Pnpm'
+  format = 'via [pnpm( v$output) ]($style)'
+  style = 'bold #f69220'
+  command = 'mise current pnpm'
+  detect_files = ['pnpm-lock.yaml']
