@@ -5,13 +5,13 @@ packages:
       - homebrew/cask-fonts/font-fira-code
       - homebrew/cask-fonts/font-fira-code-nerd-font
       - jq
+      - koekeishiya/formulae/skhd
+      - koekeishiya/formulae/yabai
       - mise
       - neovim
       - nushell
       - rsteube/tap/carapace
-      - skhd
       - starship
-      - yabai
     casks:
       - 1password
       - arc
