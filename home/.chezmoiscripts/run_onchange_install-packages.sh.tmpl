@@ -18,6 +18,11 @@ brew install {{ . }}
 mise use --global {{ . }}
 {{- end }}
 
+# install global npm packages via pnpm
+{{- range .packages.pnpm }}
+pnpm add --global {{ . }}
+{{- end }}
+
 # launch yabai & skhd in the background
 if pgrep yabai; then yabai --restart-service; else yabai --start-service; fi
 if pgrep skhd; then skhd --restart-service; else skhd --start-service; fi
