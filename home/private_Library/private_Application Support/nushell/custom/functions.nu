@@ -10,7 +10,7 @@ def "restart touchbar" []: nothing -> nothing {
 }
 
 # apply system settings immediately without restarting the computer
-def "apply system-settings" []: nothing -> nothing {
+def "system-settings apply" []: nothing -> nothing {
   osascript -e 'tell application "System Preferences" to quit'
   /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
 }
