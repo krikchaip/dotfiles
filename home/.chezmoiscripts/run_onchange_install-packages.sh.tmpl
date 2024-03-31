@@ -20,7 +20,7 @@ mise use --global {{ . }}
 
 # install global npm packages via pnpm
 {{- range .packages.pnpm }}
-pnpm add --global {{ . }}
+nu -c 'pnpm add --global {{ . }}'
 {{- end }}
 
 # launch yabai & skhd in the background

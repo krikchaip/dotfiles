@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #** Will not proceed further until DisplayLink has started
-while ! pgrep DisplayLinkUserAgent; do
-  printf "Waiting for \033[93mDisplayLinkUserAgent\033[0m process to be started ⌛️\n"
-  sleep 3
-done
+# while ! pgrep DisplayLinkUserAgent; do
+#   printf "Waiting for \033[93mDisplayLinkUserAgent\033[0m process to be started ⌛️\n"
+#   sleep 3
+# done
 
 GAP=8
 

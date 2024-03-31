@@ -28,3 +28,7 @@ $env.PATH = ($path_list | uniq)
 $env.NU_LIB_DIRS = [
   $nu.default-config-dir
 ]
+
+# to fix the ERR_PNPM_NO_GLOBAL_BIN_DIR issue
+# ref: https://github.com/pnpm/pnpm/issues/4658
+$env.PNPM_HOME = ($env.HOME | path join "Library" "pnpm")
