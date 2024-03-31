@@ -57,7 +57,6 @@ osascript -e 'tell application "System Preferences" to quit'
 defaults write -g AppleInterfaceStyle Dark
 
 #** Accessibility > Display > Reduce motion = ✅
-defaults write com.apple.universalaccess reduceMotion -bool true
 defaults write com.apple.Accessibility ReduceMotionEnabled -bool true
 
 #** Accessibility > Pointer Control > Double-click speed
@@ -83,6 +82,9 @@ defaults write com.apple.dock minimize-to-application -bool false
 
 #** Desktop & Dock > Dock > Show indicators for open applications
 defaults write com.apple.dock show-process-indicators -bool true
+
+#** Desktop & Dock > Desktop & Stage Manager > Click wallpaper to reveal desktop = ❌
+defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
 
 #** Desktop & Dock > Mission Control > Automatically rearrange Spaces based on most recent use
 defaults write com.apple.dock mru-spaces -bool false
@@ -218,6 +220,9 @@ defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 65 "$(ke
 
 #** Keyboard > Keyboard Shortcuts... > App Shortcuts > Stickies > Strikethrough = cmd + shift + s
 defaults write com.apple.Stickies NSUserKeyEquivalents -dict-add "Strikethrough" -string "@\$s"
+
+#** Mouse > Tracking speed
+defaults write -g com.apple.mouse.scaling -float 3
 
 #** Trackpad > Point & Click > Tracking speed = Fast
 defaults write -g com.apple.trackpad.scaling -float 3
