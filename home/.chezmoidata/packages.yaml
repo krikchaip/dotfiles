@@ -17,8 +17,8 @@ packages:
       - arc
       - dbeaver-community
       - displaylink
-      - docker
       - google-drive
+      - homebrew/cask/docker
       - insomnia
       - karabiner-elements
       - kitty
