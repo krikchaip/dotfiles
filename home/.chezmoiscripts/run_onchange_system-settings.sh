@@ -58,6 +58,7 @@ defaults write -g AppleInterfaceStyle Dark
 
 #** Accessibility > Display > Reduce motion = ✅
 defaults write com.apple.universalaccess reduceMotion -bool true
+defaults write com.apple.Accessibility ReduceMotionEnabled -bool true
 
 #** Accessibility > Pointer Control > Double-click speed
 defaults write -g com.apple.mouse.doubleClickThreshold -float 0.5
@@ -229,8 +230,9 @@ defaults write com.apple.AppleMultitouchTrackpad SecondClickThreshold -int 0
 defaults write com.apple.AppleMultitouchTrackpad ActuateDetents -int 0
 defaults write com.apple.AppleMultitouchTrackpad ForceSuppressed -bool true
 
-#** Trackpad > Point & Click > Look up & data detectors = ❌
-defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerTapGesture -int 0
+#** Trackpad > Point & Click > Look up & data detectors = ✅
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerTapGesture -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadThreeFingerTapGesture -int 2
 
 #** Trackpad > Point & Click > Secondary click = Click or Tap with Two Fingers
 defaults write com.apple.AppleMultitouchTrackpad TrackpadRightClick -bool true
@@ -238,6 +240,7 @@ defaults write com.apple.AppleMultitouchTrackpad TrackpadCornerSecondaryClick -i
 
 #** Trackpad > Point & Click > Tap to click = ✅
 defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
 
 #** Trackpad > Scroll & Zoom > Natural scrolling = ✅
 defaults write -g com.apple.swipescrolldirection -bool true
