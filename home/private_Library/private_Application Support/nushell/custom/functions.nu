@@ -15,6 +15,42 @@ def "system-settings apply" []: nothing -> nothing {
   /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
 }
 
+# see the differences of the current system settings, before and after modification
+def "system-settings diff" []: nothing -> nothing {
+  let files = [/tmp/system-settings.before, /tmp/system-settings.after]
+
+  if ($files | path exists | any { |el| not $el }) {
+    return
+  }
+
+  code --diff ...$files
+}
+
+# start comparing system settings. go modify the settings, then run `continue`
+def "system-settings diff start" []: nothing -> nothing {
+  let files = [/tmp/system-settings.before, /tmp/system-settings.after]
+  let content = (defaults read | to text)
+
+  $files | each { |f| rm -f $f; $content | save -f $f }
+
+  return
+}
+
+# run this on subsequent changes of the system settings
+def "system-settings diff continue" []: nothing -> nothing {
+  let files = [/tmp/system-settings.before, /tmp/system-settings.after]
+
+  if ($files | path exists | any { |el| not $el }) {
+    system-settings diff start
+    print "Some cache files are missing, modify the settings and then run this again!"
+
+    return
+  }
+
+  mv $files.1 $files.0
+  defaults read | save -f $files.1
+}
+
 # show all the work done from 10am till now
 def "show work-done today" []: nothing -> nothing {
   git log --stat --relative-date --since=10am --author=(git config --get user.name)
