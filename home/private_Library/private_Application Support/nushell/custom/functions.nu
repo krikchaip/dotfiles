@@ -23,7 +23,7 @@ def "system-settings diff" []: nothing -> nothing {
     return
   }
 
-  code --diff ...$files
+  code --diff -n ...$files
 }
 
 # start comparing system settings. go modify the settings, then run `continue`
