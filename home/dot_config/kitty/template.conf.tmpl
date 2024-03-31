@@ -1,0 +1,7 @@
+# kitty's default shell
+# ref: https://sw.kovidgoyal.net/kitty/conf/#opt-kitty.shell
+shell {{ if eq .chezmoi.arch "arm" }}/opt/homebrew/bin/nu{{ else }}/usr/local/bin/nu{{ end }}
+
+# kitty's default text editor
+# ref: https://sw.kovidgoyal.net/kitty/conf/#opt-kitty.editor
+editor {{ if eq .chezmoi.arch "arm" }}/opt/homebrew/bin/nvim{{ else }}/usr/local/bin/nvim{{ end }}
