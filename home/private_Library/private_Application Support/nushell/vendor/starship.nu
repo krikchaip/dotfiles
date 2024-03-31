@@ -12,7 +12,7 @@ export-env {
     STARSHIP_SESSION_KEY: (random chars -l 16)
 
     PROMPT_MULTILINE_INDICATOR: (
-      ^/opt/homebrew/bin/starship prompt --continuation
+      ^starship prompt --continuation
     )
 
     # Does not play well with default character module.
@@ -22,7 +22,7 @@ export-env {
     PROMPT_COMMAND: {||
       # jobs are not supported
       (
-        ^/opt/homebrew/bin/starship prompt
+        ^starship prompt
           --cmd-duration $env.CMD_DURATION_MS
           $"--status=($env.LAST_EXIT_CODE)"
           --terminal-width (term size).columns
@@ -35,7 +35,7 @@ export-env {
 
     PROMPT_COMMAND_RIGHT: {||
       (
-        ^/opt/homebrew/bin/starship prompt
+        ^starship prompt
           --right
           --cmd-duration $env.CMD_DURATION_MS
           $"--status=($env.LAST_EXIT_CODE)"

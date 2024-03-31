@@ -4,12 +4,14 @@ let path_list = (
   $env.PATH
   | split row (char esep)
 
+  # homebrew binaries for macOS on Intel
   | prepend /usr/local/bin
 
-  # homebrew binaries for macOS ARM64 (Apple Silicon)
+  # homebrew binaries for macOS on ARM64 (Apple Silicon)
   | prepend /opt/homebrew/sbin
   | prepend /opt/homebrew/bin
 
+  # for chezmoi that was installed during initial installation
   | prepend ($env.HOME | path join ".local" "bin")
 )
 
