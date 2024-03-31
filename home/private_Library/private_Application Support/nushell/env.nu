@@ -11,8 +11,12 @@ let path_list = (
   | prepend /opt/homebrew/sbin
   | prepend /opt/homebrew/bin
 
-  # for chezmoi that was installed during initial installation
+  # for chezmoi binary that was installed during initial setup
   | prepend ($env.HOME | path join ".local" "bin")
+
+  # for global pnpm binaries
+  # ref: https://github.com/pnpm/pnpm/issues/4658
+  | append ($env.HOME | path join "Library" "pnpm")
 )
 
 # filter so the paths are unique
