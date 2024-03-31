@@ -2,6 +2,10 @@ export-env {
   $env.PATH = ($env.PATH | prepend ($env.HOME | path join "Library" "Application Support" "carapace" "bin"))
 }
 
+export def --env get-env [name] { $env | get $name }
+export def --env set-env [name, value] { load-env { $name: $value } }
+export def --env unset-env [name] { hide-env $name }
+
 export def main [] {
   return {|spans|
     # if the current command is an alias, get it's expansion
