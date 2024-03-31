@@ -12,12 +12,18 @@ $env.config = {
   buffer_editor: nvim
   edit_mode: vi
   shell_integration: true
-  show_banner: false,
-  color_config: (monokai-soda),
+  show_banner: false
+  color_config: (monokai-soda)
   completions: {
-    external: {
-      enable: true,
-      completer: (carapace)
-    }
+    external: { enable: true, completer: (carapace) }
   }
+  keybindings: [
+    {
+      name: open_help_menu
+      modifier: control
+      keycode: char_h
+      mode: vi_insert
+      event: { send: menu, name: help_menu }
+    }
+  ]
 }
