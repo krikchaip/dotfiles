@@ -25,3 +25,10 @@ command_timeout = 1000
   style = 'bold #f69220'
   command = 'mise current pnpm'
   detect_files = ['pnpm-lock.yaml']
+
+[custom.yarn]
+  description = 'The currently installed version of Yarn'
+  format = 'via [( v$output) ]($style)'
+  style = 'bold #4577ad'
+  command = 'mise current yarn'
+  detect_files = ['yarn.lock']
