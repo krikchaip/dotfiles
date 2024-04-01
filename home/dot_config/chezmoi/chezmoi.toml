@@ -2,8 +2,8 @@
   command = "nu"
 
 [diff]
-  command = "kitten"
-  args = ["diff", "{{ .Target }}", "{{ .Destination }}"]
+  command = "nvim"
+  args = ["-d", "{{ .Target }}", "{{ .Destination }}"]
   exclude = ["scripts", "externals"]
 
 [edit]
