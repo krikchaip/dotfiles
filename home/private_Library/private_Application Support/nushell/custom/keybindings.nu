@@ -73,6 +73,15 @@ def custom-keybindings [] {
       }
     }
 
+    # ctrl+shift+right -> select_line_end
+    {
+      name: select_line_end
+      modifier: control_shift
+      keycode: right
+      mode: [emacs vi_insert vi_normal]
+      event: { edit: MoveToLineEnd select: true }
+    }
+
     # ctrl+left -> line_start
     {
       name: line_start
@@ -80,6 +89,15 @@ def custom-keybindings [] {
       keycode: left
       mode: [emacs vi_insert vi_normal]
       event: { edit: MoveToLineStart }
+    }
+
+    # ctrl+shift+left -> select_line_start
+    {
+      name: select_line_start
+      modifier: control_shift
+      keycode: left
+      mode: [emacs vi_insert vi_normal]
+      event: { edit: MoveToLineStart select: true }
     }
 
     # right -> menu_right_or_right
