@@ -44,5 +44,24 @@ $env.config = {
       mode: [emacs vi_insert]
       event: { edit: MoveWordLeft }
     }
+    {
+      name: complete_hint_or_end_of_line
+      modifier: control
+      keycode: right
+      mode: [emacs vi_insert]
+      event: {
+        until: [
+          { send: HistoryHintComplete }
+          { edit: MoveToLineEnd }
+        ]
+      }
+    }
+    {
+      name: line_start
+      modifier: control
+      keycode: left
+      mode: [emacs vi_insert]
+      event: { edit: MoveToLineStart }
+    }
   ]
 }
