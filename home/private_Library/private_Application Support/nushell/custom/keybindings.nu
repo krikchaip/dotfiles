@@ -83,5 +83,17 @@ def custom-keybindings [] {
         ]
       }
     }
+
+    # ctrl+y -> change_dir_with_fzf
+    # {
+    #   name: change_dir_with_fzf
+    #   modifier: control
+    #   keycode: char_y
+    #   mode: [emacs vi_insert vi_normal]
+    #   event: {
+    #     send: executehostcommand
+    #     cmd: 'cd (ls | where type == dir | each { |it| $it.name} | str join (char nl) | fzf | decode utf-8 | str trim)'
+    #   }
+    # }
   ]
 }
