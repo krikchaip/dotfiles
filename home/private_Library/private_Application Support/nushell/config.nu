@@ -63,5 +63,29 @@ $env.config = {
       mode: [emacs vi_insert]
       event: { edit: MoveToLineStart }
     }
+    {
+      name: menu_right_or_right
+      modifier: none
+      keycode: right
+      mode: [emacs vi_insert vi_normal]
+      event: {
+        until: [
+          { send: MenuRight }
+          { send: Right }
+        ]
+      }
+    }
+    {
+      name: menu_left_or_left
+      modifier: none
+      keycode: left
+      mode: [emacs vi_insert vi_normal]
+      event: {
+        until: [
+          { send: MenuLeft }
+          { send: Left }
+        ]
+      }
+    }
   ]
 }
