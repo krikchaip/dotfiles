@@ -1,17 +1,21 @@
 def custom-keybindings [] {
   [
+    # ctrl+h -> open_help_menu
     {
       name: open_help_menu
       modifier: control
       keycode: char_h
-      mode: [emacs vi_insert]
+      mode: [emacs vi_insert vi_normal]
       event: { send: menu, name: help_menu }
     }
+
+
+    # alt+right -> complete_word_or_word_right
     {
       name: complete_word_or_word_right
       modifier: alt
       keycode: right
-      mode: [emacs vi_insert]
+      mode: [emacs vi_insert vi_normal]
       event: {
         until: [
           { send: HistoryHintWordComplete }
@@ -19,18 +23,22 @@ def custom-keybindings [] {
         ]
       }
     }
+
+    # alt+left -> word_left
     {
       name: word_left
       modifier: alt
       keycode: left
-      mode: [emacs vi_insert]
+      mode: [emacs vi_insert vi_normal]
       event: { edit: MoveWordLeft }
     }
+
+    # ctrl+right -> complete_hint_or_line_end
     {
-      name: complete_hint_or_end_of_line
+      name: complete_hint_or_line_end
       modifier: control
       keycode: right
-      mode: [emacs vi_insert]
+      mode: [emacs vi_insert vi_normal]
       event: {
         until: [
           { send: HistoryHintComplete }
@@ -38,13 +46,17 @@ def custom-keybindings [] {
         ]
       }
     }
+
+    # ctrl+left -> line_start
     {
       name: line_start
       modifier: control
       keycode: left
-      mode: [emacs vi_insert]
+      mode: [emacs vi_insert vi_normal]
       event: { edit: MoveToLineStart }
     }
+
+    # right -> menu_right_or_right
     {
       name: menu_right_or_right
       modifier: none
@@ -57,6 +69,8 @@ def custom-keybindings [] {
         ]
       }
     }
+
+    # left -> menu_left_or_left
     {
       name: menu_left_or_left
       modifier: none
