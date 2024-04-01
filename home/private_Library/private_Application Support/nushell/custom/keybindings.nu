@@ -9,6 +9,14 @@ def custom-keybindings [] {
       event: { send: menu, name: help_menu }
     }
 
+    # ctrl+shift+c -> copy_selection
+    {
+      name: copy_selection
+      modifier: control_shift
+      keycode: char_c
+      mode: [emacs vi_insert vi_normal]
+      event: { edit: CopySelection }
+    }
 
     # alt+right -> complete_word_or_word_right
     {
@@ -19,9 +27,18 @@ def custom-keybindings [] {
       event: {
         until: [
           { send: HistoryHintWordComplete }
-          { edit: MoveWordRight }
+          { edit: MoveWordRightStart }
         ]
       }
+    }
+
+    # alt+shift+right -> select_word_right
+    {
+      name: select_word_right
+      modifier: alt_shift
+      keycode: right
+      mode: [emacs vi_insert vi_normal]
+      event: { edit: MoveWordRight select: true }
     }
 
     # alt+left -> word_left
@@ -31,6 +48,15 @@ def custom-keybindings [] {
       keycode: left
       mode: [emacs vi_insert vi_normal]
       event: { edit: MoveWordLeft }
+    }
+
+    # alt+shift+left -> select_word_left
+    {
+      name: select_word_left
+      modifier: alt_shift
+      keycode: left
+      mode: [emacs vi_insert vi_normal]
+      event: { edit: MoveWordLeft select: true }
     }
 
     # ctrl+right -> complete_hint_or_line_end
