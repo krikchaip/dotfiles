@@ -3,6 +3,10 @@ vim.cmd("set shiftwidth=2")
 vim.cmd("set softtabstop=2")
 vim.cmd("set tabstop=2")
 
+vim.g.mapleader = "\\"
+
+vim.keymap.set('n', '<leader>bd', ':bdelete<Cr>')
+
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
@@ -30,6 +34,26 @@ local plugins = {
       })
 
       vim.cmd([[colorscheme monokai-pro]])
+    end
+  },
+  {
+    'nvim-telescope/telescope.nvim',
+    branch = '0.1.x',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' }
+    },
+    config = function()
+      local telescope = require('telescope')
+      local builtin = require('telescope.builtin')
+
+      telescope.setup({})
+
+      telescope.load_extension('fzf')
+
+      vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
+      vim.keymap.set('n', '<leader>lg', builtin.live_grep, {})
+      vim.keymap.set('n', '<leader>bl', builtin.buffers, {})
     end
   }
 }
