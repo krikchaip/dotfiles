@@ -2,6 +2,7 @@ packages:
   homebrew:
     formulae:
       - bat
+      - fd
       - homebrew/cask-fonts/font-fira-code
       - homebrew/cask-fonts/font-fira-code-nerd-font
       - jq
