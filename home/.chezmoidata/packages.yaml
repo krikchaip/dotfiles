@@ -10,6 +10,7 @@ packages:
       - mise
       - neovim
       - nushell
+      - ripgrep
       - rsteube/tap/carapace
       - starship
     casks:
