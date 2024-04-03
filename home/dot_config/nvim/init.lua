@@ -4,7 +4,8 @@ vim.cmd('set softtabstop=2')
 vim.cmd('set tabstop=2')
 vim.cmd('set shell=nu')
 
-vim.g.mapleader = '\\'
+-- vim.g.mapleader = '\\'
+vim.g.mapleader = ' '
 
 vim.g.loaded_python3_provider = 0
 vim.g.loaded_ruby_provider = 0
@@ -68,7 +69,10 @@ local plugins = {
       local telescope = require('telescope')
       local builtin = require('telescope.builtin')
 
-      telescope.setup({})
+      telescope.setup({
+        defaults = {},
+        pickers = {}
+      })
 
       telescope.load_extension('fzf')
 
