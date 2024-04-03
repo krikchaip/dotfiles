@@ -12,7 +12,7 @@ vim.g.loaded_ruby_provider = 0
 vim.g.loaded_node_provider = 0
 vim.g.loaded_perl_provider = 0
 
-vim.keymap.set('n', '<leader>bd', ':bdelete<Cr>')
+vim.keymap.set('n', '<leader>bd', ':bdelete<Cr>', { desc = "hello world!" })
 
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 
@@ -76,16 +76,23 @@ local plugins = {
 
       telescope.load_extension('fzf')
 
-      vim.keymap.set('n', '<leader>fe', builtin.find_files, {})
-      vim.keymap.set('n', '<leader>fw', ':Telescope grep_string search="" only_sort_text=true<Cr>')
-      -- vim.keymap.set('n', '<leader>fw', builtin.live_grep, {})
-      vim.keymap.set('n', '<leader>bl', builtin.buffers, {})
-      vim.keymap.set('n', '<leader>bh', builtin.oldfiles, {})
-      vim.keymap.set('n', '<leader>cm', builtin.commands, {})
-      vim.keymap.set('n', '<leader>ch', builtin.command_history, {})
-      vim.keymap.set('n', '<leader>/', builtin.search_history, {})
-      vim.keymap.set('n', '<leader>hh', builtin.help_tags, {})
-      vim.keymap.set('n', '<leader>hm', builtin.man_pages, {})
+      vim.keymap.set('n', '<leader>fe', builtin.find_files, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>fw', ':Telescope grep_string search="" only_sort_text=true<Cr>',
+        { desc = "hello world!" })
+      -- vim.keymap.set('n', '<leader>fw', builtin.live_grep, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>bl', builtin.buffers, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>bh', builtin.oldfiles, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>cm', builtin.commands, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>ch', builtin.command_history, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>/', builtin.search_history, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>hh', builtin.help_tags, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>hm', builtin.man_pages, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>mk', builtin.marks, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>sc', builtin.colorscheme, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>jj', builtin.jumplist, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>vo', builtin.vim_options, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>"', builtin.registers, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>va', builtin.autocommands, { desc = "hello world!" })
     end
   },
   {
