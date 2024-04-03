@@ -60,7 +60,7 @@ local plugins = {
   {
     'nvim-treesitter/nvim-treesitter',
     dependencies = {
-      { 'nushell/tree-sitter-nu' }
+      'nushell/tree-sitter-nu'
     },
     build = ':TSUpdate',
     config = function()
