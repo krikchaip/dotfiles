@@ -37,8 +37,8 @@ local plugins = {
       require('filetype').setup({
         overrides = {
           extensions = {
-            -- nu = "nu",
-            -- tmpl = "template"
+            -- nu = 'nu',
+            -- tmpl = 'template'
           }
         }
       })
