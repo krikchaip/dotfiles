@@ -77,7 +77,8 @@ local plugins = {
       telescope.load_extension('fzf')
 
       vim.keymap.set('n', '<leader>fe', builtin.find_files, {})
-      vim.keymap.set('n', '<leader>ff', builtin.live_grep, {})
+      -- vim.keymap.set('n', '<leader>ff', builtin.live_grep, {})
+      vim.keymap.set('n', '<leader>ff', ':Telescope grep_string search="" only_sort_text=true<Cr>')
       vim.keymap.set('n', '<leader>bl', builtin.buffers, {})
     end
   },
