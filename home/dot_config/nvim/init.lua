@@ -6,6 +6,11 @@ vim.cmd('set shell=nu')
 
 vim.g.mapleader = '\\'
 
+vim.g.loaded_python3_provider = 0
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_node_provider = 0
+vim.g.loaded_perl_provider = 0
+
 vim.keymap.set('n', '<leader>bd', ':bdelete<Cr>')
 
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
