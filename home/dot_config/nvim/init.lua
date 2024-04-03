@@ -78,6 +78,7 @@ local plugins = {
       }
 
       configs.setup({
+        ensure_installed = { 'lua', 'vim', 'vimdoc', 'query', 'elixir', 'javascript', 'html' },
         auto_install = true,
         highlight = {
           enable = true,
