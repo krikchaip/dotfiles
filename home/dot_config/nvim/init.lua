@@ -93,6 +93,9 @@ local plugins = {
       vim.keymap.set('n', '<leader>vo', builtin.vim_options, { desc = "hello world!" })
       vim.keymap.set('n', '<leader>"', builtin.registers, { desc = "hello world!" })
       vim.keymap.set('n', '<leader>va', builtin.autocommands, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>vk', builtin.keymaps, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader>ff', builtin.current_buffer_fuzzy_find, { desc = "hello world!" })
+      vim.keymap.set('n', '<leader><leader>', builtin.resume, { desc = "hello world!" })
     end
   },
   {
