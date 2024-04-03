@@ -30,6 +30,20 @@ vim.opt.rtp:prepend(lazypath)
 
 local plugins = {
   {
+    'nathom/filetype.nvim',
+    priority = 1000,
+    config = function()
+      require('filetype').setup({
+        overrides = {
+          extensions = {
+            -- nu = "nu",
+            -- tmpl = "template"
+          }
+        }
+      })
+    end
+  },
+  {
     'loctvl842/monokai-pro.nvim',
     lazy = false,
     priority = 1000,
