@@ -51,6 +51,11 @@ def "system-settings diff continue" []: nothing -> nothing {
   defaults read | save -f $files.1
 }
 
+# clean uninstall lazy.nvim. restore nvim to its original state
+def "uninstall lazy.nvim" []: nothing -> nothing {
+  rm -rf ~/.local/share/nvim/lazy ~/.local/state/nvim/lazy ~/.config/nvim/lazy-lock.json
+}
+
 # show all the work done from 10am till now
 def "show work-done today" []: nothing -> nothing {
   git log --stat --relative-date --since=10am --author=(git config --get user.name)
