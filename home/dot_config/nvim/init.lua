@@ -57,8 +57,58 @@ local plugins = {
       vim.keymap.set('n', '<leader>bl', builtin.buffers, {})
     end
   },
+  {
+    'nvim-treesitter/nvim-treesitter',
+    dependencies = {
+      { 'nushell/tree-sitter-nu' }
+    },
+    build = ':TSUpdate',
+    config = function()
+      local configs = require('nvim-treesitter.configs')
+      local parser_configs = require('nvim-treesitter.parsers').get_parser_configs()
+
+      parser_configs.nu = {
+        install_info = {
+          url = 'https://github.com/nushell/tree-sitter-nu',
+          files = { 'src/parser.c' },
+          branch = 'main',
+        },
+        filetype = 'nu',
+      }
+
+      configs.setup({
+        auto_install = true,
+        highlight = {
+          enable = true,
+          disable = { 'json' }
+        },
+        indent = {
+          enable = true
+        },
+        incremental_selection = {
+          enable = true,
+          keymaps = {
+            init_selection = 'gnn',
+            node_incremental = 'grn',
+            scope_incremental = 'grc',
+            node_decremental = 'grm',
+          },
+        },
+      })
+
+      vim.treesitter.language.register('gotmpl', 'template')
+
+      vim.cmd('set foldmethod=expr')
+      vim.cmd('set foldexpr=nvim_treesitter#foldexpr()')
+      vim.cmd('set nofoldenable')
+    end
+  }
 }
 
-local opts = {}
+local opts = {
+  install = {
+    colorscheme = { 'monokai-pro' }
+  }
+}
 
 require('lazy').setup(plugins, opts)
