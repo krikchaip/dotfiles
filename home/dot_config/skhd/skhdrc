@@ -28,6 +28,18 @@ ctrl + cmd - y ; yabai
 #** exit yabai mode
 yabai < escape ; default
 
+#** change window focus in yabai mode
+yabai < left  : yabai -m window --focus west       || yabai -m display --focus west
+yabai < down  : yabai -m window --focus south      || yabai -m display --focus south
+yabai < up    : yabai -m window --focus north      || yabai -m display --focus north
+yabai < right : yabai -m window --focus east       || yabai -m display --focus east
+yabai < cmd - up   : yabai -m window --focus stack.next || yabai -m window  --focus stack.first
+yabai < cmd - down : yabai -m window --focus stack.prev || yabai -m window  --focus stack.last
+
+#** change display focus in yabai mode
+yabai < cmd - left  : yabai -m display --focus prev
+yabai < cmd - right : yabai -m display --focus next
+
 #** move window to another space
 yabai < 1 : yabai -m window --space 1
 yabai < 2 : yabai -m window --space 2
@@ -56,7 +68,7 @@ yabai < l : yabai -m window --swap east
 #** change window rotation
 yabai < x : yabai -m space --mirror x-axis
 yabai < y : yabai -m space --mirror y-axis
-yabai < t : yabai -m space --rotate 270
+yabai < r : yabai -m space --rotate 270
 
 #** stack window onto another
 yabai < shift - h : yabai -m window --stack west
