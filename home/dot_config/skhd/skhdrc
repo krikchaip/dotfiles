@@ -20,7 +20,8 @@ ctrl + cmd + shift - 3 : yabai -m display --focus 3
 :: default : yabai -m config menubar_opacity 1.0
 
 #** yabai mode. dim the menu bar upon entering
-:: yabai @ : yabai -m config menubar_opacity 0.4
+:: yabai @ : yabai -m config menubar_opacity 0.4; \
+             osascript -e 'display notification "Press <ESC> to exit." with title "skhd" subtitle "Entering \"yabai\" mode" sound name "Submarine"'
 
 #** enter yabai mode
 ctrl + cmd - y ; yabai
