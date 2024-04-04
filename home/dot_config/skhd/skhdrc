@@ -11,67 +11,79 @@ ctrl + cmd - n : yabai -m window --focus stack.next || yabai -m window  --focus 
 ctrl + cmd - p : yabai -m window --focus stack.prev || yabai -m window  --focus stack.last
 ctrl + cmd - r : yabai -m window --focus recent
 
-#** move window to another space
-ctrl + alt - 1 : yabai -m window --space 1
-ctrl + alt - 2 : yabai -m window --space 2
-ctrl + alt - 3 : yabai -m window --space 3
-ctrl + alt - 4 : yabai -m window --space 4
-ctrl + alt - 5 : yabai -m window --space 5
-ctrl + alt - 6 : yabai -m window --space 6
-ctrl + alt - 7 : yabai -m window --space 7
-ctrl + alt - 8 : yabai -m window --space 8
-ctrl + alt - 9 : yabai -m window --space 9
-
 #** change display focus
 ctrl + cmd + shift - 1 : yabai -m display --focus 1
 ctrl + cmd + shift - 2 : yabai -m display --focus 2
 ctrl + cmd + shift - 3 : yabai -m display --focus 3
 
+#** default skhd mode
+:: default : yabai -m config menubar_opacity 1.0
+
+#** yabai mode. dim the menu bar upon entering
+:: yabai @ : yabai -m config menubar_opacity 0.4
+
+#** enter yabai mode
+ctrl + cmd - y ; yabai
+
+#** exit yabai mode
+yabai < escape ; default
+
+#** move window to another space
+yabai < 1 : yabai -m window --space 1
+yabai < 2 : yabai -m window --space 2
+yabai < 3 : yabai -m window --space 3
+yabai < 4 : yabai -m window --space 4
+yabai < 5 : yabai -m window --space 5
+yabai < 6 : yabai -m window --space 6
+yabai < 7 : yabai -m window --space 7
+yabai < 8 : yabai -m window --space 8
+yabai < 9 : yabai -m window --space 9
+
 #** move window to another display
-shift + alt - 1 : yabai -m window  --display 1; \
-                  yabai -m display --focus   1
-shift + alt - 2 : yabai -m window  --display 2; \
-                  yabai -m display --focus   2
-shift + alt - 3 : yabai -m window  --display 3; \
-                  yabai -m display --focus   3
+yabai < shift - 1 : yabai -m window  --display 1; \
+                    yabai -m display --focus   1
+yabai < shift - 2 : yabai -m window  --display 2; \
+                    yabai -m display --focus   2
+yabai < shift - 3 : yabai -m window  --display 3; \
+                    yabai -m display --focus   3
 
 #** swap window position
-shift + alt - h : yabai -m window --swap west
-shift + alt - j : yabai -m window --swap south
-shift + alt - k : yabai -m window --swap north
-shift + alt - l : yabai -m window --swap east
+yabai < h : yabai -m window --swap west
+yabai < j : yabai -m window --swap south
+yabai < k : yabai -m window --swap north
+yabai < l : yabai -m window --swap east
 
 #** change window rotation
-shift + alt - x : yabai -m space --mirror x-axis
-shift + alt - y : yabai -m space --mirror y-axis
-shift + alt - r : yabai -m space --rotate 270
+yabai < x : yabai -m space --mirror x-axis
+yabai < y : yabai -m space --mirror y-axis
+yabai < t : yabai -m space --rotate 270
 
 #** stack window onto another
-ctrl + alt - h : yabai -m window --stack west
-ctrl + alt - j : yabai -m window --stack south
-ctrl + alt - k : yabai -m window --stack north
-ctrl + alt - l : yabai -m window --stack east
+yabai < shift - h : yabai -m window --stack west
+yabai < shift - j : yabai -m window --stack south
+yabai < shift - k : yabai -m window --stack north
+yabai < shift - l : yabai -m window --stack east
 
 #** resize the root window
-shift + alt - home : yabai -m window --ratio abs:0.666
-shift + alt - end  : yabai -m window --ratio abs:0.333
+yabai < alt - b : yabai -m window --ratio abs:0.666
+yabai < alt - s : yabai -m window --ratio abs:0.333
 
 #** balance the split ratios on the selected space
-shift + alt - 0 : yabai -m space --balance
+yabai < alt - 0 : yabai -m space --balance
 
 #** pop out the current window
-ctrl + alt - p : yabai -m window --toggle float --grid 10:10:2:1:6:8
+yabai < p : yabai -m window --toggle float --grid 10:10:2:1:6:8
 
 #** toggle window fullscreen zoom
-ctrl + alt - z : yabai -m window --toggle zoom-fullscreen
+yabai < z : yabai -m window --toggle zoom-fullscreen
 
 #** restart yabai process
-ctrl + shift + alt - r : yabai --restart-service
+yabai < cmd - r : yabai --restart-service
 
 #** switch space layout
-ctrl + shift + alt - t : CURRENT_LAYOUT=$(yabai -m query --spaces --space | jq -r '.type'); \
-                         case $CURRENT_LAYOUT in; \
-                           bsp)   LAYOUT=stack ;; \
-                           stack) LAYOUT=bsp ;; \
-                         esac; \
-                         yabai -m space --layout $LAYOUT
+yabai < cmd - l : CURRENT_LAYOUT=$(yabai -m query --spaces --space | jq -r '.type'); \
+                  case $CURRENT_LAYOUT in; \
+                    bsp)   LAYOUT=stack ;; \
+                    stack) LAYOUT=bsp ;; \
+                  esac; \
+                  yabai -m space --layout $LAYOUT
