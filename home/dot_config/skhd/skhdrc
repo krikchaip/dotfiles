@@ -1,6 +1,19 @@
+#** default skhd mode
+:: default : yabai -m config menubar_opacity 1.0
+
 #*******************************************************************#
 #********** Yabai - Tiling window management for the Mac ***********#
 #*******************************************************************#
+
+#** yabai mode. dim the menu bar upon entering
+:: yabai @ : yabai -m config menubar_opacity 0.4; \
+             osascript -e 'display notification "Press <ESC> to exit." with title "skhd" subtitle "Entering \"yabai\" mode" sound name "Submarine"'
+
+#** enter yabai mode
+ctrl + cmd - y ; yabai
+
+#** exit yabai mode
+yabai < escape ; default
 
 #** change window focus
 ctrl + cmd - h : yabai -m window --focus west       || yabai -m display --focus west
@@ -15,19 +28,6 @@ ctrl + cmd - r : yabai -m window --focus recent
 ctrl + cmd + shift - 1 : yabai -m display --focus 1
 ctrl + cmd + shift - 2 : yabai -m display --focus 2
 ctrl + cmd + shift - 3 : yabai -m display --focus 3
-
-#** default skhd mode
-:: default : yabai -m config menubar_opacity 1.0
-
-#** yabai mode. dim the menu bar upon entering
-:: yabai @ : yabai -m config menubar_opacity 0.4; \
-             osascript -e 'display notification "Press <ESC> to exit." with title "skhd" subtitle "Entering \"yabai\" mode" sound name "Submarine"'
-
-#** enter yabai mode
-ctrl + cmd - y ; yabai
-
-#** exit yabai mode
-yabai < escape ; default
 
 #** change window focus in yabai mode
 yabai < left  : yabai -m window --focus west       || yabai -m display --focus west
@@ -100,3 +100,18 @@ yabai < cmd - l : CURRENT_LAYOUT=$(yabai -m query --spaces --space | jq -r '.typ
                     stack) LAYOUT=bsp ;; \
                   esac; \
                   yabai -m space --layout $LAYOUT
+
+#*******************************************************************#
+#************** Kitty - GPU based terminal emulator ****************#
+#*******************************************************************#
+
+#** show visual indicators upon entering special keyboard mode on Kitty
+ctrl + shift - k -> [
+  "kitty" : yabai -m config menubar_opacity 0.4; \
+            osascript -e 'display notification "Press <ESC> to exit." with title "skhd" subtitle "Entering \"kitty\" mode" sound name "Submarine"'
+]
+
+#** restore OS ui to its original state on keyboard mode exit
+escape -> [
+  "kitty" : yabai -m config menubar_opacity 1.0
+]
