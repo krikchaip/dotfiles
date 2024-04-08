@@ -32,7 +32,8 @@ RHS_STATUS_FILLED = True
 # Separators and status icons
 LEFT_SEP = ""
 RIGHT_SEP = ""
-SOFT_SEP = "│"
+# SOFT_SEP = "│"
+SOFT_SEP = " "
 PADDING = " "
 BRANCH_ICON = "󰘬"
 ELLIPSIS = "…"
@@ -88,6 +89,9 @@ def _draw_element(
     icon: Optional[str] = None,
     soft_sep: Optional[str] = None,
 ) -> int:
+    left_sep = LEFT_SEP
+    right_sep = RIGHT_SEP
+
     # When max_tab_length < MIN_TAB_LEN, we just draw an ellipsis, without separators or
     # anything else, so that it's clear that one either needs a larger max_tab_length,
     # or another tab bar design
@@ -108,10 +112,13 @@ def _draw_element(
         text_bg = colors["bg"]
         icon_bg = colors["bg"]
 
+        left_sep = " "
+        right_sep = " "
+
     components = list()
 
     # Left separator
-    components.append((LEFT_SEP, icon_bg, colors["bg"]))
+    components.append((left_sep, icon_bg, colors["bg"]))
     # Padding between left separator and rest of tab
     if padded:
         components.append((PADDING, text_fg, text_bg))
@@ -130,7 +137,7 @@ def _draw_element(
     # Right separator, which is drawn using the same colors as the left separator in
     # case there isn't a tab title
     right_sep_fg = text_bg if title != "" else icon_bg
-    components.append((RIGHT_SEP, right_sep_fg, colors["bg"]))
+    components.append((right_sep, right_sep_fg, colors["bg"]))
     # Inter-tab soft separator
     if soft_sep:
         components.append((soft_sep, colors["soft_sep_fg"], colors["bg"]))
