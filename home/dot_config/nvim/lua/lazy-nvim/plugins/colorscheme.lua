@@ -9,10 +9,10 @@ return {
     'folke/tokyonight.nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function()
-      require('tokyonight').setup({
-        style = "storm",     -- The theme comes in three styles, `storm`, `moon`, a darker variant `night` and `day`
+      require('tokyonight').setup {
+        style = 'storm',     -- The theme comes in three styles, `storm`, `moon`, a darker variant `night` and `day`
         transparent = false, -- Enable this to disable setting the background color
-      })
+      }
 
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
@@ -21,6 +21,18 @@ return {
 
       -- You can configure highlights by doing something like:
       vim.cmd.hi 'Comment gui=none'
+    end,
+  },
+  {
+    'loctvl842/monokai-pro.nvim',
+    priority = 1000,
+    config = function()
+      require('monokai-pro').setup {
+        filter = 'pro', -- classic | octagon | pro | machine | ristretto | spectrum
+        transparent_background = false,
+      }
+
+      vim.cmd [[colorscheme monokai-pro]]
     end,
   },
 }
