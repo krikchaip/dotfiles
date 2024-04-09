@@ -41,5 +41,8 @@ require('lazy').setup('lazy-nvim.plugins', {
   },
 })
 
+-- Toggle Lazy popup window
+vim.keymap.set('n', '<leader>lz', '<cmd>Lazy<CR>', { desc = 'Toggle [l]a[z]y popup window' })
+
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
