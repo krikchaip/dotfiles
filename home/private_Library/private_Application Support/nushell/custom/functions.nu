@@ -51,9 +51,15 @@ def "system-settings diff continue" []: nothing -> nothing {
   defaults read | save -f $files.1
 }
 
-# clean uninstall lazy.nvim. restore nvim to its original state
-def "uninstall lazy.nvim" []: nothing -> nothing {
-  rm -rf ~/.local/share/nvim/lazy ~/.local/state/nvim/lazy ~/.config/nvim/lazy-lock.json
+# remove all nvim artifacts. restore nvim to its original state
+def "restore-factory nvim" []: nothing -> nothing {
+  [
+    ~/.local/share/nvim
+    ~/.local/state/nvim
+    ~/.config/nvim
+  ] | each { |p| rm -rf $p }
+
+  return
 }
 
 # show all the work done from 10am till now
