@@ -88,6 +88,7 @@ def _draw_element(
     accented: bool = False,
     icon: Optional[str] = None,
     soft_sep: Optional[str] = None,
+    is_tabs: bool = False
 ) -> int:
     left_sep = LEFT_SEP
     right_sep = RIGHT_SEP
@@ -118,26 +119,34 @@ def _draw_element(
     components = list()
 
     # Left separator
-    components.append((left_sep, icon_bg, colors["bg"]))
+    left_sep_fg = text_bg if is_tabs else icon_bg
+    components.append((left_sep, left_sep_fg, colors["bg"]))
+
     # Padding between left separator and rest of tab
     if padded:
         components.append((PADDING, text_fg, text_bg))
+
     # Icon, with padding on the right if there's a tab title, and more padding before
     # title if the tab is filled and there's a tab title
     if icon:
         icon_padding = PADDING if title != "" else ""
         components.append((f"{icon}{icon_padding}", text_fg, icon_bg))
+
         if filled and title != "":
             components.append((PADDING, text_fg, text_bg))
+
     # Title
     components.append((title, text_fg, text_bg))
+
     # Padding between tab content and right separator
     if padded:
         components.append((PADDING, text_fg, text_bg))
+
     # Right separator, which is drawn using the same colors as the left separator in
     # case there isn't a tab title
     right_sep_fg = text_bg if title != "" else icon_bg
     components.append((right_sep, right_sep_fg, colors["bg"]))
+
     # Inter-tab soft separator
     if soft_sep:
         components.append((soft_sep, colors["soft_sep_fg"], colors["bg"]))
@@ -145,17 +154,20 @@ def _draw_element(
     for c in components:
         screen.cursor.fg = c[1]
         screen.cursor.bg = c[2]
+
         if isinstance(c[0], str):
             screen.draw(c[0])
         else:
             draw_title(c[0], screen, tab, index)
             max_cursor_x = before + max_tab_length - len(LEFT_SEP) - len(PADDING)
+
             if screen.cursor.x > max_cursor_x:
                 screen.cursor.x = max_cursor_x - 1
                 screen.draw("…")
 
     # Element ends before soft separator
     end = screen.cursor.x - (len(soft_sep) if soft_sep else 0)
+
     return end
 
 
@@ -319,9 +331,10 @@ def draw_tab(
         max_tab_length,
         index,
         colors,
-        filled=tab.is_active,
+        accented=tab.is_active,
         padded=PADDED_TABS,
         soft_sep=soft_sep,
+        is_tabs=True
     )
 
     # Draw right-hand side status
@@ -344,7 +357,7 @@ def draw_tab(
             elements.append({"title": branch, "icon": BRANCH_ICON, "accented": False})
         elements.append({"title": user, "icon": USER_ICON, "accented": is_ssh})
         # elements.append({"title": host, "icon": HOST_ICON, "accented": is_ssh})
-        elements.append({"title": utc, "icon": UTC_ICON, "accented": True})
+        elements.append({"title": utc, "icon": UTC_ICON, "accented": False})
 
         # Move cursor horizontally so that right-hand side status is right-aligned
         rhs_status_len = _calc_elements_len(elements)
