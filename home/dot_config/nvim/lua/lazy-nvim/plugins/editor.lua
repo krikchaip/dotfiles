@@ -47,24 +47,20 @@ return {
         pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook()
       }
 
-      vim.keymap.set('n', '<C-/>', 'gcc', {
-        desc = 'Toggles the current line using linewise comment',
-        remap = true
+      vim.keymap.set('n', '<C-/>', '<Plug>(comment_toggle_linewise_current)', {
+        desc = 'Toggle comment on the current line [linewise]',
       })
 
-      vim.keymap.set('v', '<C-/>', 'gc', {
-        desc = 'Toggles the region using linewise comment',
-        remap = true
+      vim.keymap.set('n', '<C-S-/>', '<Plug>(comment_toggle_blockwise_current)', {
+        desc = 'Toggle comment on the current line [blockwise]',
       })
 
-      vim.keymap.set('n', '<C-S-/>', 'gbc', {
-        desc = 'Toggles the current line using blockwise comment',
-        remap = true
+      vim.keymap.set('x', '<C-/>', '<Plug>(comment_toggle_linewise_visual)', {
+        desc = 'Toggle comment on the selected region [linewise]'
       })
 
-      vim.keymap.set('v', '<C-S-/>', 'gb', {
-        desc = 'Toggles the region using blockwise comment',
-        remap = true
+      vim.keymap.set('x', '<C-S-/>', '<Plug>(comment_toggle_blockwise_visual)', {
+        desc = 'Toggle comment on the selected region [blockwise]'
       })
     end
   },
