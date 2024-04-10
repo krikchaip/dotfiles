@@ -42,7 +42,7 @@ require('lazy').setup('lazy-nvim.plugins', {
 })
 
 -- Open Lazy popup window
-vim.keymap.set('n', '<leader>lz', '<cmd>Lazy<CR>', { desc = 'Open [l]a[z]y popup window' })
+vim.keymap.set('n', '<C-S-x>', '<cmd>Lazy<CR>', { desc = 'Open Lazy popup window' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et

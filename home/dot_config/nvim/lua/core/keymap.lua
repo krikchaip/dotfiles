@@ -35,5 +35,5 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 -- Delete current buffer
 -- See `:help bdelete`
-vim.keymap.set('n', '<leader>q', '<cmd>bdelete<CR>', { desc = 'Buffer [q]uit' })
-vim.keymap.set('n', '<leader><S-q>', '<cmd>bdelete!<CR>', { desc = 'Force Buffer [Q]uit' })
+vim.keymap.set('n', '<C-q>', '<cmd>bdelete<CR>', { desc = 'Delete current buffer' })
+vim.keymap.set('n', '<C-S-q>', '<cmd>bdelete!<CR>', { desc = 'Force delete current buffer' })
