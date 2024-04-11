@@ -62,12 +62,28 @@ return {
           mappings = {
             i = {
               -- ['<c-enter>'] = 'to_fuzzy_refine'
-              ['<esc>'] = actions.close
+              ['<ESC>'] = actions.close
             }
           }
         },
 
-        -- pickers = {}
+        pickers = {
+          help_tags = {
+            mappings = {
+              i = {
+                ['<CR>'] = actions.select_vertical
+              }
+            }
+          },
+
+          man_pages = {
+            mappings = {
+              i = {
+                ['<CR>'] = actions.select_vertical
+              }
+            }
+          }
+        },
 
         extensions = {
           ['ui-select'] = { require('telescope.themes').get_dropdown() }
@@ -83,6 +99,15 @@ return {
       vim.keymap.set('n', '<C-S-m>', builtin.man_pages, { desc = 'Search man pages' })
 
       -- [[ NVim settings ]]
+      -- vim.keymap.set('n', '<leader>sc', builtin.colorscheme, { desc = "hello world!" })
+      -- vim.keymap.set('n', '<leader>vo', builtin.vim_options, { desc = "hello world!" })
+      -- vim.keymap.set('n', '<leader>va', builtin.autocommands, { desc = "hello world!" })
+      -- vim.keymap.set('n', '<leader>vk', builtin.keymaps, { desc = "hello world!" })
+
+      -- Shortcut for searching your Neovim configuration files
+      -- vim.keymap.set('n', '<leader>sn', function()
+      --   builtin.find_files { cwd = vim.fn.stdpath 'config' }
+      -- end, { desc = '[S]earch [N]eovim files' })
 
       -- vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
       -- vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
@@ -111,11 +136,6 @@ return {
       --     prompt_title = 'Live Grep in Open Files',
       --   }
       -- end, { desc = '[S]earch [/] in Open Files' })
-
-      -- Shortcut for searching your Neovim configuration files
-      -- vim.keymap.set('n', '<leader>sn', function()
-      --   builtin.find_files { cwd = vim.fn.stdpath 'config' }
-      -- end, { desc = '[S]earch [N]eovim files' })
     end,
   },
 }
