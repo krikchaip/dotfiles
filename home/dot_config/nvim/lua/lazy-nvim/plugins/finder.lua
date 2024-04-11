@@ -29,7 +29,6 @@ return {
     branch = '0.1.x',
     dependencies = {
       'nvim-lua/plenary.nvim',
-      'nvim-telescope/telescope-ui-select.nvim',
 
       { -- If encountering errors, see telescope-fzf-native README for installation instructions
         'nvim-telescope/telescope-fzf-native.nvim',
@@ -49,13 +48,16 @@ return {
         'nvim-tree/nvim-web-devicons',
         enabled = vim.g.have_nerd_font
       },
+
+      'nvim-telescope/telescope-ui-select.nvim',
     },
     config = function()
+      local telescope = require 'telescope'
       local builtin = require 'telescope.builtin' -- See `:help telescope.builtin`
       local actions = require 'telescope.actions' -- See `:help telescope.actions`
 
       -- See `:help telescope` and `:help telescope.setup()`
-      require('telescope').setup {
+      telescope.setup {
         defaults = {
           mappings = {
             i = {
@@ -73,8 +75,8 @@ return {
       }
 
       -- Enable Telescope extensions if they are installed
-      pcall(require('telescope').load_extension, 'fzf')
-      pcall(require('telescope').load_extension, 'ui-select')
+      telescope.load_extension 'fzf'
+      telescope.load_extension 'ui-select'
 
       -- [[ Documentations ]]
       vim.keymap.set('n', '<C-S-h>', builtin.help_tags, { desc = 'Search nvim help pages' })
