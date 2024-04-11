@@ -3,7 +3,7 @@
 
 [diff]
   command = "nvim"
-  args = ["-d", "{{ .Target }}", "{{ .Destination }}"]
+  args = ["-d", "{{ .Destination }}", "{{ .Target }}"]
   exclude = ["scripts", "externals"]
 
 [edit]
