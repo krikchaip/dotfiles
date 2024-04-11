@@ -50,6 +50,7 @@ return {
       },
 
       'nvim-telescope/telescope-ui-select.nvim',
+      'chezmoi-nvim',
     },
     config = function()
       local telescope = require 'telescope'
@@ -61,7 +62,8 @@ return {
         defaults = {
           mappings = {
             i = {
-              -- ['<c-enter>'] = 'to_fuzzy_refine'
+              -- ['<C-CR>'] = 'to_fuzzy_refine'
+              ['<S-CR>'] = actions.select_tab,
               ['<ESC>'] = actions.close
             }
           }
@@ -93,6 +95,7 @@ return {
       -- Enable Telescope extensions if they are installed
       telescope.load_extension 'fzf'
       telescope.load_extension 'ui-select'
+      telescope.load_extension 'chezmoi'
 
       -- [[ Documentations ]]
       vim.keymap.set('n', '<C-S-h>', builtin.help_tags, { desc = 'Search nvim help pages' })
@@ -104,10 +107,10 @@ return {
       vim.keymap.set('n', '<C-,>a', builtin.autocommands, { desc = 'List nvim [a]utocommands' })
       vim.keymap.set('n', '<C-,>k', builtin.keymaps, { desc = 'List [k]eymappings' })
 
-      -- Shortcut for searching your Neovim configuration files
-      -- vim.keymap.set('n', '<C-S-,>', function()
-      --   builtin.find_files { cwd = vim.fn.stdpath 'config' }
-      -- end, { desc = '' })
+      -- Shortcut for searching your Chezmoi files
+      vim.keymap.set('n', '<C-S-,>', function()
+        telescope.extensions.chezmoi.find_files { path_display = { 'smart' } }
+      end, { desc = 'Search Chezmoi files' })
 
       -- vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
       -- vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
