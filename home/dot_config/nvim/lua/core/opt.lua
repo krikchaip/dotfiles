@@ -22,6 +22,12 @@ vim.opt.number = true
 -- Experiment for yourself to see if you like it!
 -- vim.opt.relativenumber = true
 
+-- Do not wrap lines
+vim.opt.wrap = false
+
+-- Columns to scroll horizontally when texts are off the screen
+vim.opt.sidescrolloff = 4
+
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
 
