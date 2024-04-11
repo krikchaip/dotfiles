@@ -70,3 +70,8 @@ vim.opt.scrolloff = 5
 
 -- Set highlight on search
 vim.opt.hlsearch = true
+
+-- Configure the default shell to nushell
+vim.opt.shell = 'nu'
+vim.opt.shellredir = '| save %s'
+vim.opt.shellpipe = '| ^tee %s'
