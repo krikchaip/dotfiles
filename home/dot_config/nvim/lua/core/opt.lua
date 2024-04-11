@@ -11,6 +11,10 @@ vim.g.maplocalleader = ' '
 -- Set to true if you have a Nerd Font installed
 vim.g.have_nerd_font = true
 
+-- Nushell config paths
+vim.g.nu_config_path = '~/Library/Application Support/nushell/config.nu'
+vim.g.nu_env_path = '~/Library/Application Support/nushell/env.nu'
+
 -- Make line numbers default
 vim.opt.number = true
 
@@ -75,3 +79,9 @@ vim.opt.hlsearch = true
 vim.opt.shell = 'nu'
 vim.opt.shellredir = '| save %s'
 vim.opt.shellpipe = '| ^tee %s'
+vim.opt.shellcmdflag =
+    "--config \""
+    .. vim.g.nu_config_path
+    .. "\" --env-config \""
+    .. vim.g.nu_env_path
+    .. "\" -c"
