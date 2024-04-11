@@ -50,7 +50,8 @@ return {
       },
 
       'nvim-telescope/telescope-ui-select.nvim',
-      'chezmoi-nvim',
+      'chezmoi-highlighter',
+      'chezmoi-watcher',
     },
     config = function()
       local telescope = require 'telescope'

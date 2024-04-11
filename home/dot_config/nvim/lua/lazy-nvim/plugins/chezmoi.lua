@@ -1,7 +1,7 @@
 return {
-  { -- https://github.com/xvzc/chezmoi.nvim?tab=readme-ov-file
+  { -- https://github.com/xvzc/chezmoi.nvim
     'xvzc/chezmoi.nvim',
-    name = 'chezmoi-nvim',
+    name = 'chezmoi-watcher',
     dependencies = { 'nvim-lua/plenary.nvim' },
     config = function()
       require('chezmoi').setup {
@@ -31,5 +31,14 @@ return {
       --   end,
       -- })
     end
-  }
+  },
+
+  { -- https://github.com/alker0/chezmoi.vim
+    'alker0/chezmoi.vim',
+    name = 'chezmoi-highlighter',
+    init = function()
+      -- This option is required.
+      vim.g['chezmoi#use_tmp_buffer'] = true
+    end,
+  },
 }
