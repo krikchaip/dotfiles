@@ -106,7 +106,7 @@ yabai < cmd - l : CURRENT_LAYOUT=$(yabai -m query --spaces --space | jq -r '.typ
 #*******************************************************************#
 
 #** show visual indicators upon entering special keyboard mode on Kitty
-ctrl + shift - k -> [
+ctrl + cmd - t -> [
   "kitty" : yabai -m config menubar_opacity 0.4; \
             osascript -e 'display notification "Press <ESC> to exit." with title "skhd" subtitle "Entering \"kitty\" mode" sound name "Submarine"'
 ]
