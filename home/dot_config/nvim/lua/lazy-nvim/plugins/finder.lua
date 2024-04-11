@@ -99,15 +99,15 @@ return {
       vim.keymap.set('n', '<C-S-m>', builtin.man_pages, { desc = 'Search man pages' })
 
       -- [[ NVim settings ]]
-      -- vim.keymap.set('n', '<leader>sc', builtin.colorscheme, { desc = "hello world!" })
-      -- vim.keymap.set('n', '<leader>vo', builtin.vim_options, { desc = "hello world!" })
-      -- vim.keymap.set('n', '<leader>va', builtin.autocommands, { desc = "hello world!" })
-      -- vim.keymap.set('n', '<leader>vk', builtin.keymaps, { desc = "hello world!" })
+      vim.keymap.set('n', '<C-,>c', builtin.colorscheme, { desc = 'Change [c]olorscheme' })
+      vim.keymap.set('n', '<C-,>o', builtin.vim_options, { desc = 'Set nvim [o]ptions' })
+      vim.keymap.set('n', '<C-,>a', builtin.autocommands, { desc = 'List nvim [a]utocommands' })
+      vim.keymap.set('n', '<C-,>k', builtin.keymaps, { desc = 'List [k]eymappings' })
 
       -- Shortcut for searching your Neovim configuration files
-      -- vim.keymap.set('n', '<leader>sn', function()
+      -- vim.keymap.set('n', '<C-S-,>', function()
       --   builtin.find_files { cwd = vim.fn.stdpath 'config' }
-      -- end, { desc = '[S]earch [N]eovim files' })
+      -- end, { desc = '' })
 
       -- vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
       -- vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
