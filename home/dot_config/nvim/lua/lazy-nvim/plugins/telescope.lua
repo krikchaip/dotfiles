@@ -130,7 +130,7 @@ return {
       -- [[ Explorer ]]
       vim.keymap.set('n', '<leader>ef', builtin.find_files, { desc = '[e]xplorer find [f]iles' })
 
-      -- [[ Etc. ]]
+      -- [[ Menus ]]
       vim.keymap.set('n', '<C-S-;>', builtin.commands, { desc = 'Search custom commands' })
 
       -- [[ Full-text search ]]

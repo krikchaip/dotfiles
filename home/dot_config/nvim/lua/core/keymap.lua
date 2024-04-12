@@ -33,6 +33,11 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
+-- Saving buffers (files)
+vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Write current buffer (save file)' })
+vim.keymap.set('i', '<C-s>', '<cmd>w<CR>', { desc = 'Write current buffer (save file)' })
+vim.keymap.set('n', '<leader><S-w>', '<cmd>wall<CR>', { desc = 'Write all changed buffers (save all files)' })
+
 -- Delete current buffer
 -- See `:help bdelete`
 vim.keymap.set('n', '<leader>q', '<cmd>bdelete<CR>', { desc = 'Delete current buffer' })
@@ -42,5 +47,3 @@ vim.keymap.set('n', '<leader><S-q>', '<cmd>bdelete!<CR>', { desc = 'Force delete
 -- See `:help :exit`
 vim.keymap.set('n', '<C-q>', '<cmd>qall<CR>', { desc = 'Quit all buffers (soft quit NeoVim)' })
 vim.keymap.set('n', '<C-S-q>', '<cmd>qall!<CR>', { desc = 'Force quit NeoVim' })
-
--- Saving files (buffers)
