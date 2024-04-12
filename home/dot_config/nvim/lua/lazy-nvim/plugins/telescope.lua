@@ -8,7 +8,7 @@
 return {
   { -- Fuzzy Finder (files, lsp, etc)
     -- Telescope is a fuzzy finder that comes with a lot of different things that
-    -- it can fuzzy find! It's more than just a "file finder", it can search
+    -- it can fuzzy find! It's more than just a 'file finder', it can search
     -- many different aspects of Neovim, your workspace, LSP, and more!
     --
     -- The easiest way to use Telescope, is to start by doing something like:
@@ -117,15 +117,25 @@ return {
         telescope.extensions.chezmoi.find_files { path_display = { 'smart' } }
       end, { desc = 'Search Chezmoi files' })
 
-      -- vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
-      -- vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      -- vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
+      -- [[ Histories ]]
+      vim.keymap.set('n', '<leader>|', builtin.oldfiles, { desc = 'Buffer history' })
+      vim.keymap.set('n', '<leader>?', builtin.search_history, { desc = 'Search history' })
+      vim.keymap.set('n', '<leader>:', builtin.command_history, { desc = 'Command history' })
+
+      -- [[ Navigation ]]
+      vim.keymap.set('n', '<leader>\\', builtin.buffers, { desc = 'Search open buffers' })
+      vim.keymap.set('n', '<leader>a', builtin.builtin, { desc = 'Search [a]ll pickers' })
+      vim.keymap.set('n', '<leader><leader>', builtin.resume, { desc = 'Resume last search' })
+
+      -- [[ Explorer ]]
+      vim.keymap.set('n', '<leader>ef', builtin.find_files, { desc = '[e]xplorer find [f]iles' })
+
+      -- [[ Etc. ]]
+      vim.keymap.set('n', '<C-S-;>', builtin.commands, { desc = 'Search custom commands' })
+
+      -- [[ Full-text search ]]
       -- vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       -- vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
-      -- vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
-      -- vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
-      -- vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
-      -- vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
 
       -- Slightly advanced example of overriding default behavior and theme
       -- vim.keymap.set('n', '<leader>/', function()
