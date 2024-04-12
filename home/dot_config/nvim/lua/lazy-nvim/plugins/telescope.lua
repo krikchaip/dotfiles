@@ -57,6 +57,29 @@ return {
       local telescope = require 'telescope'
       local builtin = require 'telescope.builtin' -- See `:help telescope.builtin`
       local actions = require 'telescope.actions' -- See `:help telescope.actions`
+      local actions_state = require 'telescope.actions.state'
+
+      local custom_actions = {
+        -- ref: https://github.com/nvim-telescope/telescope.nvim/issues/1048#issuecomment-1679797700
+        select_tab_or_multi = function(prompt_bufnr)
+          local picker = actions_state.get_current_picker(prompt_bufnr)
+          local multi = picker:get_multi_selection()
+
+          if not vim.tbl_isempty(multi) then
+            actions.close(prompt_bufnr)
+
+            for _, j in pairs(multi) do
+              if j.path ~= nil and j.lnum ~= nil then
+                vim.cmd(string.format('%s %s:%s', 'tabedit', j.path, j.lnum))
+              elseif j.path ~= nil then
+                vim.cmd(string.format('%s %s', 'tabedit', j.path))
+              end
+            end
+          else
+            actions.select_tab(prompt_bufnr)
+          end
+        end
+      }
 
       -- See `:help telescope` and `:help telescope.setup()`
       telescope.setup {
@@ -64,8 +87,8 @@ return {
           mappings = {
             i = {
               -- ['<C-CR>'] = 'to_fuzzy_refine'
-              ['<S-CR>'] = actions.select_tab,
-              ['<ESC>'] = actions.close
+              ['<ESC>'] = actions.close,                      -- completely disable normal mode on telescope prompt
+              ['<S-CR>'] = custom_actions.select_tab_or_multi -- open selected items in new tabs
             }
           }
         },
