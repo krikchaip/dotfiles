@@ -85,6 +85,10 @@ return {
                 ['<CR>'] = actions.select_vertical
               }
             }
+          },
+
+          colorscheme = {
+            enable_preview = true
           }
         },
 
