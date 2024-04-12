@@ -34,6 +34,9 @@ vim.opt.mouse = 'a'
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
 
+-- Always show tabline (0 = 'never', 1 = 'atleast two', 2 = 'always')
+vim.opt.showtabline = 2
+
 -- Sync clipboard between OS and Neovim.
 -- Remove this option if you want your OS clipboard to remain independent.
 -- See `:help 'clipboard'`
