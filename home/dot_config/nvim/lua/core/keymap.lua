@@ -47,3 +47,19 @@ vim.keymap.set('n', '<leader><S-q>', '<cmd>bdelete!<CR>', { desc = 'Force delete
 -- See `:help :exit`
 vim.keymap.set('n', '<C-q>', '<cmd>qall<CR>', { desc = 'Quit all buffers (soft quit NeoVim)' })
 vim.keymap.set('n', '<C-S-q>', '<cmd>qall!<CR>', { desc = 'Force quit NeoVim' })
+
+-- Tab Navigation
+-- See `:help tab-page`
+vim.keymap.set('n', '<C-n>', '<cmd>tabnew<CR>', { desc = 'Create a new empty tab' })
+vim.keymap.set('n', '<leader>tq', '<cmd>tabclose<CR>', { desc = 'Close the current tab' })
+vim.keymap.set('n', '<leader>tb', '<cmd>-tabmove<CR>', { desc = 'Move the current tab [b]ackward' })
+vim.keymap.set('n', '<leader>tf', '<cmd>+tabmove<CR>', { desc = 'Move the current tab [f]orward' })
+vim.keymap.set('n', '<C-1>', '<cmd>1tabnext<CR>', { desc = 'Go to tab #1' })
+vim.keymap.set('n', '<C-2>', '<cmd>2tabnext<CR>', { desc = 'Go to tab #2' })
+vim.keymap.set('n', '<C-3>', '<cmd>3tabnext<CR>', { desc = 'Go to tab #3' })
+vim.keymap.set('n', '<C-4>', '<cmd>4tabnext<CR>', { desc = 'Go to tab #4' })
+vim.keymap.set('n', '<C-5>', '<cmd>5tabnext<CR>', { desc = 'Go to tab #5' })
+vim.keymap.set('n', '<C-6>', '<cmd>6tabnext<CR>', { desc = 'Go to tab #6' })
+vim.keymap.set('n', '<C-7>', '<cmd>7tabnext<CR>', { desc = 'Go to tab #7' })
+vim.keymap.set('n', '<C-8>', '<cmd>8tabnext<CR>', { desc = 'Go to tab #8' })
+vim.keymap.set('n', '<C-9>', '<cmd>9tabnext<CR>', { desc = 'Go to tab #9' })
