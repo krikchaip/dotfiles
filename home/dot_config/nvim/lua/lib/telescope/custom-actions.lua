@@ -20,7 +20,7 @@ local M = {}
 
 -- ref: https://github.com/nvim-telescope/telescope.nvim/issues/1048#issuecomment-1227591722
 function M.select_one_or_multi(method)
-  return function(prompt_bufnr)
+  local function select_one_or_multi(prompt_bufnr)
     local picker = action_state.get_current_picker(prompt_bufnr)
     local multi_selection = picker:get_multi_selection()
 
@@ -77,6 +77,8 @@ function M.select_one_or_multi(method)
       actions["select_" .. method](prompt_bufnr)
     end
   end
+
+  return select_one_or_multi
 end
 
 return M
