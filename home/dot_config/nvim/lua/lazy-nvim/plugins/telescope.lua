@@ -60,6 +60,7 @@ return {
 
       ---@diagnostic disable-next-line: different-requires
       local custom_actions = require 'lib.telescope.actions'
+      local custom_pickers = require 'lib.telescope.pickers'
 
       -- See `:help telescope` and `:help telescope.setup()`
       telescope.setup {
@@ -171,7 +172,7 @@ return {
       vim.keymap.set('n', '<leader><leader>', builtin.resume, { desc = 'Resume last search' })
 
       -- [[ Explorer ]]
-      vim.keymap.set('n', '<leader>ef', builtin.find_files, { desc = '[e]xplorer find [f]iles' })
+      vim.keymap.set('n', '<leader>ef', custom_pickers.find_files, { desc = '[e]xplorer find [f]iles' })
 
       -- [[ Menus ]]
       vim.keymap.set('n', '<C-S-;>', builtin.commands, { desc = 'Search custom commands' })
