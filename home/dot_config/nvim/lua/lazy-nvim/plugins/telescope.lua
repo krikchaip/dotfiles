@@ -108,6 +108,14 @@ return {
 
           colorscheme = {
             enable_preview = true
+          },
+
+          buffers = {
+            mappings = {
+              i = {
+                ['<C-c>'] = actions.delete_buffer,
+              }
+            }
           }
         },
 
