@@ -65,9 +65,23 @@ return {
         defaults = {
           mappings = {
             i = {
+              -- completely disable `normal` mode on telescope prompt
+              ['<ESC>'] = actions.close,
+              ['<C-c>'] = false,
+
+              -- results scrolling alternatives
+              ['<C-f>'] = actions.results_scrolling_down,
+              ['<C-b>'] = actions.results_scrolling_up,
+
+              -- remap <Tab> keys
+              ['<Tab>'] = actions.toggle_selection,
+              ['<S-Tab>'] = false,
+
+              -- open selected items in new tabs
+              ['<S-CR>'] = custom_actions.select_tab_or_multi,
+              ['<C-t>'] = false,
+
               -- ['<C-CR>'] = 'to_fuzzy_refine'
-              ['<ESC>'] = actions.close,                             -- completely disable normal mode on telescope prompt
-              ['<S-CR>'] = custom_actions.select_one_or_multi 'tab', -- open selected items in new tabs
             }
           }
         },
@@ -76,7 +90,8 @@ return {
           help_tags = {
             mappings = {
               i = {
-                ['<CR>'] = actions.select_vertical
+                ['<CR>'] = actions.select_vertical,
+                ['<C-v>'] = false
               }
             }
           },
@@ -84,7 +99,8 @@ return {
           man_pages = {
             mappings = {
               i = {
-                ['<CR>'] = actions.select_vertical
+                ['<CR>'] = actions.select_vertical,
+                ['<C-v>'] = false
               }
             }
           },
