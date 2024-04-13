@@ -132,9 +132,7 @@ return {
       vim.keymap.set('n', '<C-,>k', builtin.keymaps, { desc = 'List [k]eymappings' })
 
       -- Shortcut for searching your Chezmoi files
-      vim.keymap.set('n', '<C-S-,>', function()
-        telescope.extensions.chezmoi.find_files { path_display = { 'smart' } }
-      end, { desc = 'Search Chezmoi files' })
+      vim.keymap.set('n', '<C-S-,>', telescope.extensions.chezmoi.find_files, { desc = 'Search Chezmoi files' })
 
       -- [[ Histories ]]
       vim.keymap.set('n', '<leader>|', builtin.oldfiles, { desc = 'Buffer history' })
