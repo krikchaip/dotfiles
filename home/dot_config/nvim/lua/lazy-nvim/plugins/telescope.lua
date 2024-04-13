@@ -58,7 +58,8 @@ return {
       local builtin = require 'telescope.builtin' -- See `:help telescope.builtin`
       local actions = require 'telescope.actions' -- See `:help telescope.actions`
 
-      local custom_actions = require 'lib.telescope.custom-actions'
+      ---@diagnostic disable-next-line: different-requires
+      local custom_actions = require 'lib.telescope.actions'
 
       -- See `:help telescope` and `:help telescope.setup()`
       telescope.setup {
