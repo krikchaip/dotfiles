@@ -202,7 +202,37 @@ return {
                 ['<S-CR>'] = actions.select_default,
               }
             }
-          }
+          },
+
+          git_branches = {
+            mappings = {
+              i = {
+                ['<C-d>'] = actions.preview_scrolling_down,
+                ['<C-BS>'] = actions.git_delete_branch,
+              }
+            }
+          },
+
+          git_status = {
+            git_icons = {
+              added = "+",
+              changed = "~",
+              copied = ">",
+              deleted = "-",
+              renamed = "➡",
+              unmerged = "‡",
+              untracked = "?",
+            },
+
+            mappings = {
+              i = {
+                ['<C-t>'] = false,
+
+                ['<CR>'] = custom_actions.select_tab_or_multi,
+                ['<S-CR>'] = actions.select_default,
+              }
+            }
+          },
         },
 
         extensions = {
@@ -281,11 +311,11 @@ return {
       vim.keymap.set('i', '<C-f>', local_fuzzy_find, { desc = 'Fuzzily search in current buffer' })
 
       -- [[ Git Integration ]]
-      vim.keymap.set('n', '<leader>gc', builtin.git_commits, { desc = 'Show Git [c]ommits' })
-      -- builtin.git_bcommits
-      -- builtin.git_branches
-      -- builtin.git_status
-      -- builtin.git_stash
+      vim.keymap.set('n', '<leader>gc', builtin.git_commits, { desc = 'Show repo [c]ommits' })
+      vim.keymap.set('n', '<leader>gf', builtin.git_bcommits, { desc = 'Show [f]ile commits' })
+      vim.keymap.set('n', '<leader>gb', builtin.git_branches, { desc = 'Manage [b]ranches' })
+      vim.keymap.set('n', '<leader>gs', builtin.git_status, { desc = 'Show Git [s]tatus' })
+      vim.keymap.set('n', '<leader>gh', builtin.git_stash, { desc = 'List stas[h] items' })
     end,
   },
 }
