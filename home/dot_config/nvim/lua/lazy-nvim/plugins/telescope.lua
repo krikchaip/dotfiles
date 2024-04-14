@@ -81,23 +81,35 @@ return {
 
           mappings = {
             i = {
-              -- completely disable `normal` mode on telescope prompt
-              ['<ESC>'] = actions.close,
               ['<C-c>'] = false,
+              ['<C-l>'] = false,
+              ['<C-n>'] = false,
+              ['<C-p>'] = false,
+              ['<C-r><C-w>'] = false,
+              ['<M-f>'] = false,
+              ['<S-Tab>'] = false,
 
-              -- results scrolling alternatives
-              ['<C-f>'] = actions.results_scrolling_down,
-              ['<C-b>'] = actions.results_scrolling_up,
+              -- ['<C-CR>'] = 'to_fuzzy_refine'
+
+              -- close prompt with <ESC> instead of <C-c>
+              ['<ESC>'] = actions.close,
+
+              -- preview horizontal scrolling (<C-d>, <C-u> for vertical)
+              ['<C-f>'] = actions.preview_scrolling_right,
+              ['<C-b>'] = actions.preview_scrolling_left,
+
+              -- result scrolling alternatives
+              ['<M-h>'] = actions.results_scrolling_left,
+              ['<M-l>'] = actions.results_scrolling_right,
+              ['<M-j>'] = actions.results_scrolling_down,
+              ['<M-k>'] = actions.results_scrolling_up,
+
+              -- move selection alternatives
+              ['<C-j>'] = actions.move_selection_next,
+              ['<C-k>'] = actions.move_selection_previous,
 
               -- remap <Tab> keys
               ['<Tab>'] = actions.toggle_selection,
-              ['<S-Tab>'] = false,
-
-              -- open selected items in new tabs
-              ['<S-CR>'] = custom_actions.select_tab_or_multi,
-              ['<C-t>'] = false,
-
-              -- ['<C-CR>'] = 'to_fuzzy_refine'
             }
           }
         },
@@ -106,8 +118,8 @@ return {
           help_tags = {
             mappings = {
               i = {
+                ['<C-v>'] = false,
                 ['<CR>'] = actions.select_vertical,
-                ['<C-v>'] = false
               }
             }
           },
@@ -115,8 +127,8 @@ return {
           man_pages = {
             mappings = {
               i = {
+                ['<C-v>'] = false,
                 ['<CR>'] = actions.select_vertical,
-                ['<C-v>'] = false
               }
             }
           },
@@ -128,13 +140,32 @@ return {
           find_files = {
             -- `hidden = true` will still show the inside of `.git/` as it's not `.gitignore`.
             -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
-            find_command = { 'rg', '--files', '--hidden', '--glob', '!**/.git/*' }
+            find_command = { 'rg', '--files', '--hidden', '--glob', '!**/.git/*' },
+
+            mappings = {
+              i = {
+                ['<C-t>'] = false,
+                ['<CR>'] = custom_actions.select_tab_or_multi,
+              }
+            }
           },
 
           buffers = {
             mappings = {
               i = {
+                ['<C-t>'] = false,
+
+                ['<CR>'] = custom_actions.select_tab_or_multi,
                 ['<C-c>'] = actions.delete_buffer,
+              }
+            }
+          },
+
+          oldfiles = {
+            mappings = {
+              i = {
+                ['<C-t>'] = false,
+                ['<CR>'] = custom_actions.select_tab_or_multi,
               }
             }
           }
@@ -183,8 +214,6 @@ return {
       vim.keymap.set('n', '<C-S-;>', builtin.commands, { desc = 'Search custom commands' })
 
       -- [[ Full-text search ]]
-      -- vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
-      -- vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
 
       -- Slightly advanced example of overriding default behavior and theme
       -- vim.keymap.set('n', '<leader>/', function()
@@ -194,6 +223,9 @@ return {
       --     previewer = false,
       --   })
       -- end, { desc = '[/] Fuzzily search in current buffer' })
+
+      -- vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
+      -- vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
 
       -- It's also possible to pass additional configuration options.
       --  See `:help telescope.builtin.live_grep()` for information about particular keys
