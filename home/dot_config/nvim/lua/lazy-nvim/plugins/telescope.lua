@@ -76,7 +76,16 @@ return {
             '--line-number',
             '--column',
             '--smart-case',
-            '--trim' -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#ripgrep-remove-indentation
+
+            -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
+            '--hidden',
+            '--glob', '!**/.git/*',
+            '--glob', '!**/pnpm-lock.yaml',
+            '--glob', '!**/yarn.lock',
+            '--glob', '!**/package-lock.json',
+
+            -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#ripgrep-remove-indentation
+            '--trim',
           },
 
           mappings = {
@@ -177,14 +186,21 @@ return {
               }
             }
           },
+
+          grep_string = {
+            mappings = {
+              i = {
+                ['<C-t>'] = false,
+
                 ['<CR>'] = custom_actions.select_tab_or_multi,
+                ['<S-CR>'] = actions.select_default,
               }
             }
           }
         },
 
         extensions = {
-          ['ui-select'] = { require('telescope.themes').get_dropdown() }
+          ['ui-select'] = { require('telescope.themes').get_dropdown() },
         }
       }
 
@@ -232,6 +248,17 @@ return {
       vim.keymap.set('n', '<C-S-;>', builtin.commands, { desc = 'Search custom commands' })
 
       -- [[ Full-text search ]]
+      vim.keymap.set({ 'n', 'i' }, '<C-S-f>', function()
+        -- Live grep does not support fuzzy finding
+        -- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
+        builtin.grep_string {
+          prompt_title = 'Search current workspace',
+          search = '',
+          only_sort_text = true
+        }
+      end, { desc = 'Search text in current workspace' })
+
+      -- vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
 
       -- Slightly advanced example of overriding default behavior and theme
       -- vim.keymap.set('n', '<leader>/', function()
@@ -241,18 +268,6 @@ return {
       --     previewer = false,
       --   })
       -- end, { desc = '[/] Fuzzily search in current buffer' })
-
-      -- vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
-      -- vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
-
-      -- It's also possible to pass additional configuration options.
-      --  See `:help telescope.builtin.live_grep()` for information about particular keys
-      -- vim.keymap.set('n', '<leader>s/', function()
-      --   builtin.live_grep {
-      --     grep_open_files = true,
-      --     prompt_title = 'Live Grep in Open Files',
-      --   }
-      -- end, { desc = '[S]earch [/] in Open Files' })
     end,
   },
 }
