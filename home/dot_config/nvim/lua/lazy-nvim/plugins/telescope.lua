@@ -60,6 +60,7 @@ return {
       local telescope = require 'telescope'
       local builtin = require 'telescope.builtin' -- See `:help telescope.builtin`
       local actions = require 'telescope.actions' -- See `:help telescope.actions`
+      local themes = require 'telescope.themes'
 
       local custom_actions = require 'lib.telescope.actions'
       local custom_pickers = require 'lib.telescope.pickers'
@@ -263,14 +264,16 @@ return {
         }
       end, { desc = 'Search text in current workspace' })
 
-      -- Slightly advanced example of overriding default behavior and theme
-      -- vim.keymap.set('n', '<leader>/', function()
-      --   -- You can pass additional configuration to Telescope to change the theme, layout, etc.
-      --   builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
-      --     winblend = 10,
-      --     previewer = false,
-      --   })
-      -- end, { desc = '[/] Fuzzily search in current buffer' })
+      -- Fuzzy search within buffer
+      local function local_fuzzy_find()
+        builtin.current_buffer_fuzzy_find(themes.get_dropdown {
+          winblend = 10,
+          previewer = false,
+        })
+      end
+
+      vim.keymap.set('n', '<leader>/', local_fuzzy_find, { desc = 'Fuzzily search in current buffer' })
+      vim.keymap.set('i', '<C-f>', local_fuzzy_find, { desc = 'Fuzzily search in current buffer' })
     end,
   },
 }
