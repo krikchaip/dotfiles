@@ -1,3 +1,5 @@
+---@diagnostic disable: different-requires
+
 -- NOTE: Plugins can specify dependencies.
 --
 -- The dependencies are proper plugin specifications as well - anything
@@ -26,7 +28,8 @@ return {
     -- Telescope picker. This is really useful to discover what Telescope can
     -- do as well as how to actually do it!
     'nvim-telescope/telescope.nvim',
-    branch = '0.1.x',
+    -- branch = '0.1.x',
+    commit = '4d4ade7',
     dependencies = {
       'nvim-lua/plenary.nvim',
 
@@ -58,7 +61,6 @@ return {
       local builtin = require 'telescope.builtin' -- See `:help telescope.builtin`
       local actions = require 'telescope.actions' -- See `:help telescope.actions`
 
-      ---@diagnostic disable-next-line: different-requires
       local custom_actions = require 'lib.telescope.actions'
       local custom_pickers = require 'lib.telescope.pickers'
 
@@ -147,6 +149,9 @@ return {
       telescope.load_extension 'fzf'
       telescope.load_extension 'ui-select'
       telescope.load_extension 'chezmoi'
+
+      -- Custom Telescope auto commands
+      require 'lib.telescope.autocmd'
 
       -- [[ Documentations ]]
       vim.keymap.set('n', '<C-S-h>', builtin.help_tags, { desc = 'Search nvim help pages' })
