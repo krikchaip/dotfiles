@@ -248,6 +248,11 @@ return {
       vim.keymap.set('n', '<C-S-;>', builtin.commands, { desc = 'Search custom commands' })
 
       -- [[ Full-text search ]]
+      vim.keymap.set({ 'n', 'x' }, '<leader>*', builtin.grep_string, {
+        desc = 'Search current word in workspace'
+      })
+
+      -- Search text within workspace using grep_string
       vim.keymap.set({ 'n', 'i' }, '<C-S-f>', function()
         -- Live grep does not support fuzzy finding
         -- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
@@ -257,8 +262,6 @@ return {
           only_sort_text = true
         }
       end, { desc = 'Search text in current workspace' })
-
-      -- vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
 
       -- Slightly advanced example of overriding default behavior and theme
       -- vim.keymap.set('n', '<leader>/', function()
