@@ -118,6 +118,11 @@ return {
 
               -- remap <Tab> keys
               ['<Tab>'] = actions.toggle_selection,
+
+              -- cycle through Git previewers
+              -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#mapping-c-sc-a-to-cycle-previewer-for-git-commits-to-show-full-message
+              ['<C-S-left>'] = actions.cycle_previewers_prev,
+              ['<C-S-right>'] = actions.cycle_previewers_next,
             }
           }
         },
@@ -274,6 +279,13 @@ return {
 
       vim.keymap.set('n', '<leader>/', local_fuzzy_find, { desc = 'Fuzzily search in current buffer' })
       vim.keymap.set('i', '<C-f>', local_fuzzy_find, { desc = 'Fuzzily search in current buffer' })
+
+      -- [[ Git Integration ]]
+      vim.keymap.set('n', '<leader>gc', builtin.git_commits, { desc = 'Show Git [c]ommits' })
+      -- builtin.git_bcommits
+      -- builtin.git_branches
+      -- builtin.git_status
+      -- builtin.git_stash
     end,
   },
 }
