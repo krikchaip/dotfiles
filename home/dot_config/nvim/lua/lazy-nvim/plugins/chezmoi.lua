@@ -5,16 +5,16 @@ return {
     dependencies = { 'nvim-lua/plenary.nvim' },
     config = function()
       require('chezmoi').setup {
-        edit = {
-          watch = true, -- default 'false'
-          -- force = false,
-        },
+        -- edit = {
+        --   watch = true,
+        --   force = false,
+        -- },
 
-        notification = {
-          on_open = false, -- default 'true'
-          -- on_apply = true,
-          -- on_watch = false,
-        },
+        -- notification = {
+        --   on_open = true,
+        --   on_apply = true,
+        --   on_watch = false,
+        -- },
 
         -- telescope = {
         --   select = { '<CR>' },
@@ -22,14 +22,14 @@ return {
       }
 
       -- Automatically apply changes on files under chezmoi source path
-      -- vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
-      --   desc = 'Automatically apply changes on files under chezmoi source path',
-      --   group = vim.api.nvim_create_augroup('chezmoi-watch', { clear = true }),
-      --   pattern = { os.getenv('HOME') .. '/.local/share/chezmoi/*' },
-      --   callback = function()
-      --     vim.schedule(require('chezmoi.commands.__edit').watch)
-      --   end,
-      -- })
+      vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
+        desc = 'Automatically apply changes on files under chezmoi source path',
+        group = vim.api.nvim_create_augroup('chezmoi-watch', { clear = true }),
+        pattern = { os.getenv('HOME') .. '/.local/share/chezmoi/*' },
+        callback = function()
+          vim.schedule(require('chezmoi.commands.__edit').watch)
+        end,
+      })
     end
   },
 
