@@ -89,8 +89,6 @@ return {
               ['<M-f>'] = false,
               ['<S-Tab>'] = false,
 
-              -- ['<C-CR>'] = 'to_fuzzy_refine'
-
               -- close prompt with <ESC> instead of <C-c>
               ['<ESC>'] = actions.close,
 
@@ -119,7 +117,9 @@ return {
             mappings = {
               i = {
                 ['<C-v>'] = false,
+
                 ['<CR>'] = actions.select_vertical,
+                ['<S-CR>'] = actions.select_default,
               }
             }
           },
@@ -128,7 +128,9 @@ return {
             mappings = {
               i = {
                 ['<C-v>'] = false,
+
                 ['<CR>'] = actions.select_vertical,
+                ['<S-CR>'] = actions.select_default,
               }
             }
           },
@@ -145,7 +147,9 @@ return {
             mappings = {
               i = {
                 ['<C-t>'] = false,
+
                 ['<CR>'] = custom_actions.select_tab_or_multi,
+                ['<S-CR>'] = actions.select_default,
               }
             }
           },
@@ -156,6 +160,8 @@ return {
                 ['<C-t>'] = false,
 
                 ['<CR>'] = custom_actions.select_tab_or_multi,
+                ['<S-CR>'] = actions.select_default,
+
                 ['<C-c>'] = actions.delete_buffer,
               }
             }
@@ -165,6 +171,12 @@ return {
             mappings = {
               i = {
                 ['<C-t>'] = false,
+
+                ['<CR>'] = custom_actions.select_tab_or_multi,
+                ['<S-CR>'] = actions.select_default,
+              }
+            }
+          },
                 ['<CR>'] = custom_actions.select_tab_or_multi,
               }
             }
