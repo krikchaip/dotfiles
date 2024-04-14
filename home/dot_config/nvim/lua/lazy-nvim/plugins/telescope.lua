@@ -68,6 +68,16 @@ return {
       -- See `:help telescope` and `:help telescope.setup()`
       telescope.setup {
         defaults = {
+          -- don't cycle results when scrolling past the last/first item
+          scroll_strategy = 'limit',
+
+          -- flip prompt bar position and initial result highlight
+          sorting_strategy = 'ascending',
+          layout_strategy = 'horizontal',
+          layout_config = {
+            prompt_position = 'top',
+          },
+
           -- these args will be used for `live_grep` and `grep_string`
           vimgrep_arguments = {
             'rg',
@@ -95,12 +105,14 @@ return {
               ['<C-l>'] = false,
               ['<C-n>'] = false,
               ['<C-p>'] = false,
+              ['<C-q>'] = false,
               ['<C-r><C-w>'] = false,
               ['<M-f>'] = false,
               ['<S-Tab>'] = false,
 
-              -- close prompt with <ESC> instead of <C-c>
+              -- close prompt with these instead of <C-c>
               ['<ESC>'] = actions.close,
+              ['<C-q'] = actions.close,
 
               -- preview horizontal scrolling (<C-d>, <C-u> for vertical)
               ['<C-f>'] = actions.preview_scrolling_right,
