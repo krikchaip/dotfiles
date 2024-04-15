@@ -29,11 +29,12 @@ return {
       -- Document existing key chains
       -- see: https://github.com/folke/which-key.nvim?tab=readme-ov-file#-setup
       require('which-key').register {
-        ['<C-,>']     = { name = 'NVim settings', _ = 'which_key_ignore' },
-        ['<leader>']  = { name = 'Special', _ = 'which_key_ignore' },
-        ['<leader>e'] = { name = 'Explorer', _ = 'which_key_ignore' },
-        ['<leader>t'] = { name = 'Tab', _ = 'which_key_ignore' },
-        ['<leader>g'] = { name = 'Git', _ = 'which_key_ignore' },
+        ['<C-,>']      = { name = 'Nvim Settings', _ = 'which_key_ignore' },
+        ['<leader>']   = { name = 'Special', _ = 'which_key_ignore' },
+        ['<leader>e']  = { name = 'Explorer', _ = 'which_key_ignore' },
+        ['<leader>t']  = { name = 'Tab', _ = 'which_key_ignore' },
+        ['<leader>g']  = { name = 'Git', _ = 'which_key_ignore' },
+        ['<leader>gh'] = { name = 'Git hunk', _ = 'which_key_ignore' },
       }
     end,
   },

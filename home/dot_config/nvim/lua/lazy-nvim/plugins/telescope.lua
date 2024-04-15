@@ -330,7 +330,7 @@ return {
       vim.keymap.set('n', '<leader>gf', builtin.git_bcommits, { desc = 'Show [f]ile commits' })
       vim.keymap.set('n', '<leader>gb', builtin.git_branches, { desc = 'Manage [b]ranches' })
       vim.keymap.set('n', '<leader>gs', builtin.git_status, { desc = 'Show Git [s]tatus' })
-      vim.keymap.set('n', '<leader>gh', builtin.git_stash, { desc = 'List stas[h] items' })
+      vim.keymap.set('n', '<leader>gt', builtin.git_stash, { desc = 'List s[t]ash items' })
       vim.keymap.set('n', '<leader>gm', '<cmd>Telescope conflicts<CR>', { desc = 'Show [m]erge conflicts' })
     end,
   },
