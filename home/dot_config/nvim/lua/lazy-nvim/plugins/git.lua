@@ -52,7 +52,7 @@ return {
           else
             gitsigns.nav_hunk('next', { preview = true })
           end
-        end, { desc = 'Jump to next unstaged [c]hange (hunk)' })
+        end, { desc = 'Jump to next unstaged [c]hange' })
 
         map('n', '[c', function()
           if vim.wo.diff then
@@ -60,12 +60,26 @@ return {
           else
             gitsigns.nav_hunk('prev', { preview = true })
           end
-        end, { desc = 'Jump to previous unstaged [c]hange (hunk)' })
+        end, { desc = 'Jump to previous unstaged [c]hange' })
+
+        -- [[ Menus ]]
+
+        map('n', '<leader>gd', function()
+          gitsigns.diffthis()
+        end, { desc = 'Show [d]iff against staged changes' })
+
+        map('n', '<leader>gD', function()
+          gitsigns.diffthis('~')
+        end, { desc = 'Show [D]iff against last commit' })
+
+        map('n', '<leader>gi', function()
+          gitsigns.blame_line { full = true }
+        end, { desc = 'Show line [i]nfo' })
 
         -- [[ Actions ]]
 
-        -- map('n', '<leader>hs', gitsigns.stage_hunk)
-        -- map('v', '<leader>hs', function() gitsigns.stage_hunk { vim.fn.line('.'), vim.fn.line('v') } end)
+        -- map('n', '<leader>gcs', gitsigns.stage_hunk)
+        -- map('v', '<leader>gcs', function() gitsigns.stage_hunk { vim.fn.line('.'), vim.fn.line('v') } end)
 
         -- map('n', '<leader>hr', gitsigns.reset_hunk)
         -- map('v', '<leader>hr', function() gitsigns.reset_hunk { vim.fn.line('.'), vim.fn.line('v') } end)
@@ -74,14 +88,6 @@ return {
 
         -- map('n', '<leader>hS', gitsigns.stage_buffer)
         -- map('n', '<leader>hR', gitsigns.reset_buffer)
-
-        -- map('n', '<leader>hp', gitsigns.preview_hunk)
-        -- map('n', '<leader>hb', function() gitsigns.blame_line { full = true } end)
-        -- map('n', '<leader>hd', gitsigns.diffthis)
-        -- map('n', '<leader>hD', function() gitsigns.diffthis('~') end)
-
-        -- map('n', '<leader>tb', gitsigns.toggle_current_line_blame)
-        -- map('n', '<leader>td', gitsigns.toggle_deleted)
 
         -- [[ Text objects ]]
 
