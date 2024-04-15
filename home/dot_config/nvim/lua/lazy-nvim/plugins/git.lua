@@ -44,23 +44,23 @@ return {
           vim.keymap.set(mode, l, r, opts)
         end
 
-        -- [WIP] Navigation
+        -- [[ Navigation ]]
 
-        -- map('n', ']c', function()
-        --   if vim.wo.diff then
-        --     vim.cmd.normal({ ']c', bang = true })
-        --   else
-        --     gitsigns.nav_hunk('next')
-        --   end
-        -- end)
+        map('n', ']c', function()
+          if vim.wo.diff then
+            vim.cmd.normal({ ']c', bang = true })
+          else
+            gitsigns.nav_hunk('next', { preview = true })
+          end
+        end, { desc = 'Jump to next unstaged [c]hange (hunk)' })
 
-        -- map('n', '[c', function()
-        --   if vim.wo.diff then
-        --     vim.cmd.normal({ '[c', bang = true })
-        --   else
-        --     gitsigns.nav_hunk('prev')
-        --   end
-        -- end)
+        map('n', '[c', function()
+          if vim.wo.diff then
+            vim.cmd.normal({ '[c', bang = true })
+          else
+            gitsigns.nav_hunk('prev', { preview = true })
+          end
+        end, { desc = 'Jump to previous unstaged [c]hange (hunk)' })
 
         -- [WIP] Actions
 
