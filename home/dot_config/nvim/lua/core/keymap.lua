@@ -52,6 +52,7 @@ vim.keymap.set('n', '<C-S-q>', '<cmd>qall!<CR>', { desc = 'Force quit NeoVim' })
 -- See `:help tab-page`
 vim.keymap.set('n', '<C-n>', '<cmd>tabnew<CR>', { desc = 'Create a new empty tab' })
 vim.keymap.set('n', '<leader>tq', '<cmd>tabclose<CR>', { desc = 'Close the current tab' })
+vim.keymap.set('n', '<leader>to', '<cmd>tabonly<CR>', { desc = 'Close all other tab pages' })
 vim.keymap.set('n', '<C-S-left>', '<cmd>-tabmove<CR>', { desc = 'Move the current tab backward' })
 vim.keymap.set('n', '<C-S-right>', '<cmd>+tabmove<CR>', { desc = 'Move the current tab forward' })
 vim.keymap.set('n', '<C-left>', '<cmd>tabprevious<CR>', { desc = 'Go to previous tab' })
