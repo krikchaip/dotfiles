@@ -53,7 +53,9 @@ return {
       },
 
       'nvim-telescope/telescope-ui-select.nvim',
-      'chezmoi-highlighter',
+      'Snikimonkd/telescope-git-conflicts.nvim',
+
+      'chezmoi-highlighter', -- TODO: move to treesitter.lua
       'chezmoi-watcher',
     },
     config = function()
@@ -256,6 +258,7 @@ return {
       telescope.load_extension 'fzf'
       telescope.load_extension 'ui-select'
       telescope.load_extension 'chezmoi'
+      telescope.load_extension 'conflicts'
 
       -- Custom Telescope auto commands
       require 'lib.telescope.autocmd'
@@ -323,11 +326,12 @@ return {
       vim.keymap.set('i', '<C-f>', local_fuzzy_find, { desc = 'Fuzzily search in current buffer' })
 
       -- [[ Git Integration ]]
-      vim.keymap.set('n', '<leader>gc', builtin.git_commits, { desc = 'Show repo [c]ommits' })
+      vim.keymap.set('n', '<leader>gl', builtin.git_commits, { desc = 'Show Git repo [l]ogs' })
       vim.keymap.set('n', '<leader>gf', builtin.git_bcommits, { desc = 'Show [f]ile commits' })
       vim.keymap.set('n', '<leader>gb', builtin.git_branches, { desc = 'Manage [b]ranches' })
       vim.keymap.set('n', '<leader>gs', builtin.git_status, { desc = 'Show Git [s]tatus' })
       vim.keymap.set('n', '<leader>gh', builtin.git_stash, { desc = 'List stas[h] items' })
+      vim.keymap.set('n', '<leader>gc', '<cmd>Telescope conflicts<CR>', { desc = 'Show merge [c]onflicts' })
     end,
   },
 }
