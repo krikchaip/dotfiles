@@ -331,7 +331,7 @@ return {
       vim.keymap.set('n', '<leader>gb', builtin.git_branches, { desc = 'Manage [b]ranches' })
       vim.keymap.set('n', '<leader>gs', builtin.git_status, { desc = 'Show Git [s]tatus' })
       vim.keymap.set('n', '<leader>gh', builtin.git_stash, { desc = 'List stas[h] items' })
-      vim.keymap.set('n', '<leader>gc', '<cmd>Telescope conflicts<CR>', { desc = 'Show merge [c]onflicts' })
+      vim.keymap.set('n', '<leader>gm', '<cmd>Telescope conflicts<CR>', { desc = 'Show [m]erge conflicts' })
     end,
   },
 }
