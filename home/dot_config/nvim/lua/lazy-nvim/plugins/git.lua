@@ -62,7 +62,7 @@ return {
           end
         end, { desc = 'Jump to previous unstaged [c]hange (hunk)' })
 
-        -- [WIP] Actions
+        -- [[ Actions ]]
 
         -- map('n', '<leader>hs', gitsigns.stage_hunk)
         -- map('v', '<leader>hs', function() gitsigns.stage_hunk { vim.fn.line('.'), vim.fn.line('v') } end)
@@ -83,11 +83,11 @@ return {
         -- map('n', '<leader>tb', gitsigns.toggle_current_line_blame)
         -- map('n', '<leader>td', gitsigns.toggle_deleted)
 
-        -- [WIP] Text objects
+        -- [[ Text objects ]]
 
         -- 'o' stands for "Operator-pending" mode
         -- 'x' stands for "Visual-only" mode
-        -- map({ 'o', 'x' }, 'ih', ':<C-U>Gitsigns select_hunk<CR>')
+        -- map({ 'o', 'x' }, 'ih', '<cmd><C-U>Gitsigns select_hunk<CR>')
       end
     },
   },
