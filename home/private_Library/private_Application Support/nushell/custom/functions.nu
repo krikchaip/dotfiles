@@ -53,11 +53,9 @@ def "system-settings diff continue" []: nothing -> nothing {
 
 # remove all nvim artifacts. restore nvim to its original state
 def "restore-factory nvim" []: nothing -> nothing {
-  [
-    ~/.local/share/nvim
-    ~/.local/state/nvim
-    ~/.config/nvim
-  ] | each { |p| rm -rf $p }
+  rm -rf ~/.local/share/nvim
+  rm -rf ~/.local/state/nvim
+  rm -rf ~/.config/nvim
 
   return
 }
