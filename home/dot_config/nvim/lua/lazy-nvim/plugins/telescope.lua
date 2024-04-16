@@ -145,7 +145,9 @@ return {
             mappings = {
               i = {
                 ['<C-v>'] = false,
-                ['<S-CR>'] = actions.select_vertical,
+
+                ['<CR>'] = actions.select_vertical,
+                ['<S-CR>'] = actions.select_default,
               }
             }
           },
@@ -154,7 +156,9 @@ return {
             mappings = {
               i = {
                 ['<C-v>'] = false,
-                ['<S-CR>'] = actions.select_vertical,
+
+                ['<CR>'] = actions.select_vertical,
+                ['<S-CR>'] = actions.select_default,
               }
             }
           },
