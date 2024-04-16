@@ -78,22 +78,44 @@ return {
 
         -- [[ Actions ]]
 
-        -- map('n', '<leader>gcs', gitsigns.stage_hunk)
-        -- map('v', '<leader>gcs', function() gitsigns.stage_hunk { vim.fn.line('.'), vim.fn.line('v') } end)
+        map('n', '<leader>gcs', function()
+          gitsigns.stage_hunk()
+        end, { desc = '[s]tage change at the cursor position' })
 
-        -- map('n', '<leader>hr', gitsigns.reset_hunk)
-        -- map('v', '<leader>hr', function() gitsigns.reset_hunk { vim.fn.line('.'), vim.fn.line('v') } end)
+        map('v', '<leader>gcs', function()
+          gitsigns.stage_hunk { vim.fn.line('.'), vim.fn.line('v') }
+        end, { desc = '[s]tage selected range' })
 
-        -- map('n', '<leader>hu', gitsigns.undo_stage_hunk)
+        map('n', '<leader>gcS', function()
+          gitsigns.stage_buffer()
+        end, { desc = '[S]tage all changes' })
 
-        -- map('n', '<leader>hS', gitsigns.stage_buffer)
-        -- map('n', '<leader>hR', gitsigns.reset_buffer)
+        map('n', '<leader>gcu', function()
+          gitsigns.undo_stage_hunk()
+        end, { desc = '[u]ndo the last staged change' })
+
+        map('n', '<leader>gcU', function()
+          gitsigns.reset_buffer_index()
+        end, { desc = '[U]ndo all staged changes' })
+
+        map('n', '<leader>gcr', function()
+          gitsigns.reset_hunk()
+        end, { desc = '[r]eset change at the cursor position to staged' })
+
+        map('v', '<leader>gcr', function()
+          gitsigns.reset_hunk { vim.fn.line('.'), vim.fn.line('v') }
+        end, { desc = '[r]eset selected range to staged' })
+
+        map('n', '<leader>gcR', function()
+          gitsigns.reset_buffer()
+        end, { desc = '[R]eset all changes to staged' })
 
         -- [[ Text objects ]]
 
         -- 'o' stands for "Operator-pending" mode
         -- 'x' stands for "Visual-only" mode
-        -- map({ 'o', 'x' }, 'ih', '<cmd><C-U>Gitsigns select_hunk<CR>')
+        map({ 'o', 'x' }, 'ic', '<cmd>Gitsigns select_hunk<CR>', { desc = 'the change under cursor' })
+        map({ 'o', 'x' }, 'ac', '<cmd>Gitsigns select_hunk<CR>', { desc = 'the change under cursor' })
       end
     },
   },
