@@ -107,14 +107,13 @@ return {
               ['<C-l>'] = false,
               ['<C-n>'] = false,
               ['<C-p>'] = false,
-              ['<C-q>'] = false,
               ['<C-r><C-w>'] = false,
               ['<M-f>'] = false,
               ['<S-Tab>'] = false,
 
               -- close prompt with these instead of <C-c>
               ['<ESC>'] = actions.close,
-              ['<C-q'] = actions.close,
+              ['<C-q>'] = actions.close,
 
               -- preview horizontal scrolling (<C-d>, <C-u> for vertical)
               ['<C-f>'] = actions.preview_scrolling_right,
