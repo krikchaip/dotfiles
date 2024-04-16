@@ -38,4 +38,31 @@ return {
       }
     end,
   },
+
+  {
+    'petertriho/nvim-scrollbar',
+    dependencies = { 'lewis6991/gitsigns.nvim' },
+    opts = {
+      -- excluded_buftypes = {
+      --   "terminal",
+      -- },
+
+      -- excluded_filetypes = {
+      --   "cmp_docs",
+      --   "cmp_menu",
+      --   "noice",
+      --   "prompt",
+      --   "TelescopePrompt",
+      -- },
+
+      handle = {
+        blend = 15, -- 0 for fully opaque and 100 to full transparent
+      },
+
+      handlers = {
+        gitsigns = true,
+        search = true,
+      }
+    }
+  }
 }
