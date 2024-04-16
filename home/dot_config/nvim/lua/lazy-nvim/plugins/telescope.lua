@@ -145,9 +145,7 @@ return {
             mappings = {
               i = {
                 ['<C-v>'] = false,
-
-                ['<CR>'] = actions.select_vertical,
-                ['<S-CR>'] = actions.select_default,
+                ['<S-CR>'] = actions.select_vertical,
               }
             }
           },
@@ -156,9 +154,7 @@ return {
             mappings = {
               i = {
                 ['<C-v>'] = false,
-
-                ['<CR>'] = actions.select_vertical,
-                ['<S-CR>'] = actions.select_default,
+                ['<S-CR>'] = actions.select_vertical,
               }
             }
           },
@@ -175,9 +171,7 @@ return {
             mappings = {
               i = {
                 ['<C-t>'] = false,
-
-                ['<CR>'] = custom_actions.select_tab_or_multi,
-                ['<S-CR>'] = actions.select_default,
+                ['<S-CR>'] = custom_actions.select_tab_or_multi,
               }
             }
           },
@@ -187,9 +181,7 @@ return {
               i = {
                 ['<C-t>'] = false,
 
-                ['<CR>'] = custom_actions.select_tab_or_multi,
-                ['<S-CR>'] = actions.select_default,
-
+                ['<S-CR>'] = custom_actions.select_tab_or_multi,
                 ['<C-c>'] = actions.delete_buffer,
               }
             }
@@ -199,9 +191,7 @@ return {
             mappings = {
               i = {
                 ['<C-t>'] = false,
-
-                ['<CR>'] = custom_actions.select_tab_or_multi,
-                ['<S-CR>'] = actions.select_default,
+                ['<S-CR>'] = custom_actions.select_tab_or_multi,
               }
             }
           },
@@ -210,9 +200,7 @@ return {
             mappings = {
               i = {
                 ['<C-t>'] = false,
-
-                ['<CR>'] = custom_actions.select_tab_or_multi,
-                ['<S-CR>'] = actions.select_default,
+                ['<S-CR>'] = custom_actions.select_tab_or_multi,
               }
             }
           },
@@ -240,9 +228,7 @@ return {
             mappings = {
               i = {
                 ['<C-t>'] = false,
-
-                ['<CR>'] = custom_actions.select_tab_or_multi,
-                ['<S-CR>'] = actions.select_default,
+                ['<S-CR>'] = custom_actions.select_tab_or_multi,
               }
             }
           },
