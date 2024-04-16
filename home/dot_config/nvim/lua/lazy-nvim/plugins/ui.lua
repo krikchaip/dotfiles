@@ -20,9 +20,9 @@ return {
     config = function()     -- This is the function that runs, AFTER loading
       require('which-key').setup {
         icons = {
-          breadcrumb = "»", -- symbol used in the command line area that shows your active key combo
-          separator = ">",  -- symbol used between a key and it's label
-          group = "+",      -- symbol prepended to a group
+          breadcrumb = '»', -- symbol used in the command line area that shows your active key combo
+          separator = '>',  -- symbol used between a key and it's label
+          group = '+',      -- symbol prepended to a group
         },
       }
 
@@ -41,28 +41,58 @@ return {
 
   {
     'petertriho/nvim-scrollbar',
-    dependencies = { 'lewis6991/gitsigns.nvim' },
-    opts = {
-      -- excluded_buftypes = {
-      --   "terminal",
-      -- },
+    dependencies = { 'lewis6991/gitsigns.nvim', 'kevinhwang91/nvim-hlslens' },
+    config = function()
+      local colors = require('tokyonight.colors').setup()
 
-      -- excluded_filetypes = {
-      --   "cmp_docs",
-      --   "cmp_menu",
-      --   "noice",
-      --   "prompt",
-      --   "TelescopePrompt",
-      -- },
+      require('scrollbar').setup {
+        -- excluded_buftypes = {
+        --   'terminal',
+        -- },
 
-      handle = {
-        blend = 15, -- 0 for fully opaque and 100 to full transparent
-      },
+        -- excluded_filetypes = {
+        --   'cmp_docs',
+        --   'cmp_menu',
+        --   'noice',
+        --   'prompt',
+        --   'TelescopePrompt',
+        -- },
 
-      handlers = {
-        gitsigns = true,
-        search = true,
+        handle = {
+          blend = 10, -- 0 for fully opaque and 100 to full transparent
+        },
+
+        marks = {
+          Search = { color = colors.orange },
+          Error = { color = colors.error },
+          Warn = { color = colors.warning },
+          Info = { color = colors.info },
+          Hint = { color = colors.hint },
+          Misc = { color = colors.purple },
+        },
       }
-    }
+    end
+  },
+
+  {
+    'kevinhwang91/nvim-hlslens',
+    config = function()
+      require('scrollbar.handlers.search').setup {
+        virt_priority = 90,
+      }
+
+      local kopts = { noremap = true, silent = true }
+
+      vim.api.nvim_set_keymap('n', 'n',
+        [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]], kopts)
+      vim.api.nvim_set_keymap('n', 'N',
+        [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]], kopts)
+
+      vim.api.nvim_set_keymap('n', '*', [[*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+      vim.api.nvim_set_keymap('n', '#', [[#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+
+      -- vim.api.nvim_set_keymap('n', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+      -- vim.api.nvim_set_keymap('n', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+    end
   }
 }

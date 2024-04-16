@@ -118,5 +118,9 @@ return {
         map({ 'o', 'x' }, 'ac', '<cmd>Gitsigns select_hunk<CR>', { desc = 'the change under cursor' })
       end
     },
+    config = function(_, opts)
+      require('gitsigns').setup(opts)
+      require("scrollbar.handlers.gitsigns").setup()
+    end
   },
 }
