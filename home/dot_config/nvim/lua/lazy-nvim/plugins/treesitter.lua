@@ -68,6 +68,79 @@ return {
           scope_incremental = false,
         },
       },
+
+      textobjects = {
+        select = {
+          enable = true,
+
+          -- Automatically jump forward to textobj, similar to targets.vim
+          lookahead = true,
+
+          keymaps = {
+            ['aa'] = { query = '@parameter.outer', desc = 'an [a]rgument' },
+            ['ia'] = { query = '@parameter.inner', desc = 'inner [a]rgument' },
+
+            ['am'] = { query = '@function.outer', desc = 'a [m]ethod / function' },
+            ['im'] = { query = '@function.inner', desc = 'inner [m]ethod / function' },
+          },
+        },
+
+        swap = {
+          enable = true,
+
+          swap_next = {
+            ['<leader>sa'] = { query = '@parameter.inner', desc = 'With next [a]rgument' },
+          },
+
+          swap_previous = {
+            ['<leader>sA'] = { query = '@parameter.inner', desc = 'With previous [a]rgument' },
+          },
+        },
+
+        move = {
+          enable = true,
+
+          -- whether to set jumps in the jumplist
+          set_jumps = true,
+
+          goto_next_start = {
+            [']a'] = { query = '@parameter.inner', desc = 'Next [a]rgument start' },
+            [']m'] = { query = '@function.outer', desc = 'Next [m]ethod / function start' },
+
+            -- [']]'] = { query = '@class.outer', desc = 'Next class start' },
+            -- --
+            -- -- You can use regex matching (i.e. lua pattern) and/or pass a list in a 'query' key to group multiple queires.
+            -- [']o'] = '@loop.*',
+            -- -- [']o'] = { query = { '@loop.inner', '@loop.outer' } }
+            -- --
+            -- -- You can pass a query group to use query from `queries/<lang>/<query_group>.scm file in your runtime path.
+            -- -- Below example nvim-treesitter's `locals.scm` and `folds.scm`. They also provide highlights.scm and indent.scm.
+            -- [']s'] = { query = '@scope', query_group = 'locals', desc = 'Next scope' },
+            -- [']z'] = { query = '@fold', query_group = 'folds', desc = 'Next fold' },
+          },
+
+          goto_next_end = {
+            [']A'] = { query = '@parameter.inner', desc = 'Next [a]rgument end' },
+            [']M'] = { query = '@function.outer', desc = 'Next [m]ethod / function end' },
+
+            -- [']['] = '@class.outer',
+          },
+
+          goto_previous_start = {
+            ['[a'] = { query = '@parameter.inner', desc = 'Previous [a]rgument start' },
+            ['[m'] = { query = '@function.outer', desc = 'Previous [m]ethod / function start' },
+
+            -- ['[['] = '@class.outer',
+          },
+
+          goto_previous_end = {
+            ['[A'] = { query = '@parameter.inner', desc = 'Previous [a]rgument end' },
+            ['[M'] = { query = '@function.outer', desc = 'Previous [m]ethod / function end' },
+
+            -- ['[]'] = '@class.outer',
+          },
+        }
+      },
     },
     config = function(_, opts)
       require('nvim-treesitter.configs').setup(opts)
