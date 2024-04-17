@@ -95,6 +95,9 @@ return {
 
             ['ax'] = { query = '@call.outer', desc = 'a function call' },
             ['ix'] = { query = '@call.inner', desc = 'inner function call' },
+
+            ['ai'] = { query = '@conditional.outer', desc = 'an [i]f-statement' },
+            ['ii'] = { query = '@conditional.inner', desc = 'inner [i]f-statement' },
           },
         },
 
@@ -128,6 +131,8 @@ return {
             ['].'] = { query = '@assignment.outer', desc = 'Next assignment start' },
 
             [']x'] = { query = '@call.outer', desc = 'Next function call start' },
+
+            [']i'] = { query = '@conditional.outer', desc = 'Next [i]f-statement start' },
           },
 
           goto_next_end = {
@@ -142,6 +147,8 @@ return {
             [']>'] = { query = '@assignment.outer', desc = 'Next assignment end' },
 
             [']X'] = { query = '@call.outer', desc = 'Next function call end' },
+
+            [']I'] = { query = '@conditional.outer', desc = 'Next [i]f-statement end' },
           },
 
           goto_previous_start = {
@@ -156,6 +163,8 @@ return {
             ['[.'] = { query = '@assignment.outer', desc = 'Previous assignment start' },
 
             ['[x'] = { query = '@call.outer', desc = 'Previous function call start' },
+
+            ['[i'] = { query = '@conditional.outer', desc = 'Previous [i]f-statement start' },
           },
 
           goto_previous_end = {
@@ -170,6 +179,8 @@ return {
             ['[>'] = { query = '@assignment.outer', desc = 'Previous assignment end' },
 
             ['[X'] = { query = '@call.outer', desc = 'Previous function call end' },
+
+            ['[I'] = { query = '@conditional.outer', desc = 'Previous [i]f-statement end' },
           },
         }
       },
@@ -182,12 +193,20 @@ return {
 
       -- Repeat movement with ; and ,
       -- ensure ; goes forward and , goes backward regardless of the last direction
+      -- vim.keymap.set({ 'n', 'x', 'o' }, ';', function()
+      --   ts_repeat_move.repeat_last_move_next()
+      -- end, { desc = 'Repeat last move next' })
+      -- vim.keymap.set({ 'n', 'x', 'o' }, ',', function()
+      --   ts_repeat_move.repeat_last_move_previous()
+      -- end, { desc = 'Repeat last move previous' })
+
+      -- vim way: ; goes to the direction you were moving.
       vim.keymap.set({ 'n', 'x', 'o' }, ';', function()
-        ts_repeat_move.repeat_last_move_next()
-      end, { desc = 'Repeat last move next' })
+        ts_repeat_move.repeat_last_move()
+      end, { desc = 'Repeat last move' })
       vim.keymap.set({ 'n', 'x', 'o' }, ',', function()
-        ts_repeat_move.repeat_last_move_previous()
-      end, { desc = 'Repeat last move previous' })
+        ts_repeat_move.repeat_last_move_opposite()
+      end, { desc = 'Repeat last move opposite' })
 
       -- Optionally, make builtin f, F, t, T also repeatable with ; and ,
       vim.keymap.set({ 'n', 'x', 'o' }, 'f', ts_repeat_move.builtin_f)
