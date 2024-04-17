@@ -107,11 +107,27 @@ return {
   -- ref: https://github.com/nvim-treesitter/nvim-treesitter-context
   {
     'nvim-treesitter/nvim-treesitter-context',
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter-textobjects'
+    },
     opts = {
       enable = true,
       -- max_lines = 3,           -- How many lines the window should span. Values <= 0 mean no limit.
       multiline_threshold = 1, -- Maximum number of lines to show for a single context
-    }
+    },
+    config = function(_, opts)
+      local ts_context = require('treesitter-context')
+      local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+
+      ts_context.setup(opts)
+
+      local ctx_upward_repeatable, _ = ts_repeat_move.make_repeatable_move_pair(
+        function() ts_context.go_to_context(vim.v.count1) end,
+        function() end
+      )
+
+      vim.keymap.set('n', '[C', ctx_upward_repeatable, { desc = 'Jump to [C]ontext upwards' })
+    end
   },
 
   -- Enable super zen mode by dims inactive portions of the code 👍🏻
