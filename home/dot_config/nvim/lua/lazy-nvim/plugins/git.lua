@@ -6,6 +6,9 @@ return {
   -- See `:help gitsigns` to understand what the configuration keys do
   { -- Adds git related signs to the gutter, as well as utilities for managing changes
     'lewis6991/gitsigns.nvim',
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter-textobjects'
+    },
     opts = {
       signs                             = {
         -- add          = { text = '+' },
@@ -36,6 +39,7 @@ return {
 
       on_attach                         = function(bufnr)
         local gitsigns = require('gitsigns')
+        local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
         local function map(mode, l, r, opts)
           opts = opts or {}
@@ -46,21 +50,26 @@ return {
 
         -- [[ Navigation ]]
 
-        map('n', ']c', function()
-          if vim.wo.diff then
-            vim.cmd.normal({ ']c', bang = true })
-          else
-            gitsigns.nav_hunk('next', { preview = true })
-          end
-        end, { desc = 'Jump to next unstaged [c]hange' })
+        local next_hunk_repeatable, prev_hunk_repeatable =
+            ts_repeat_move.make_repeatable_move_pair(
+              function()
+                if vim.wo.diff then
+                  vim.cmd.normal({ ']c', bang = true })
+                else
+                  gitsigns.nav_hunk('next', { preview = true })
+                end
+              end,
+              function()
+                if vim.wo.diff then
+                  vim.cmd.normal({ '[c', bang = true })
+                else
+                  gitsigns.nav_hunk('prev', { preview = true })
+                end
+              end
+            )
 
-        map('n', '[c', function()
-          if vim.wo.diff then
-            vim.cmd.normal({ '[c', bang = true })
-          else
-            gitsigns.nav_hunk('prev', { preview = true })
-          end
-        end, { desc = 'Jump to previous unstaged [c]hange' })
+        map('n', ']c', next_hunk_repeatable, { desc = 'Jump to next unstaged [c]hange' })
+        map('n', '[c', prev_hunk_repeatable, { desc = 'Jump to previous unstaged [c]hange' })
 
         -- [[ Menus ]]
 
