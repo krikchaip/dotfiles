@@ -2,13 +2,24 @@ return {
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
+    dependencies = {
+      -- Nushell syntax highlight support
+      -- ref: https://github.com/nushell/tree-sitter-nu
+      { 'nushell/tree-sitter-nu' },
+
+      -- extended text objects (di*, da*, ci*, ca*, etc.)
+      -- ref: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
+      { 'nvim-treesitter/nvim-treesitter-textobjects' },
+    },
     opts = {
       auto_install = true, -- Autoinstall languages that are not installed
 
       ensure_installed = {
         'lua', 'luadoc',
         'vim', 'vimdoc',
-        'html', 'css', 'javascript',
+        'html', 'css',
+        'javascript', 'typescript', 'tsx',
+        'json', 'jsonc',
         'markdown',
         'elixir',
       },
@@ -69,8 +80,4 @@ return {
       -- vim.cmd('set nofoldenable')
     end
   },
-
-  -- Nushell syntax highlight support
-  -- ref: https://github.com/nushell/tree-sitter-nu
-  { 'nushell/tree-sitter-nu' }
 }
