@@ -86,6 +86,7 @@ return {
             ['ax'] = { query = '@call.outer', desc = 'a function call' },
             ['ai'] = { query = '@conditional.outer', desc = 'an [i]f-statement' },
             ['ao'] = { query = '@loop.outer', desc = 'a [l]oop' },
+            ['ae'] = { query = '@return.outer', desc = 'a r[e]turn statement' },
 
             ['ia'] = { query = '@parameter.inner', desc = 'inner [a]rgument' },
             ['im'] = { query = '@function.inner', desc = 'inner [m]ethod' },
@@ -96,6 +97,7 @@ return {
             ['ix'] = { query = '@call.inner', desc = 'inner function call' },
             ['ii'] = { query = '@conditional.inner', desc = 'inner [i]f-statement' },
             ['io'] = { query = '@loop.inner', desc = 'inner [l]oop' },
+            ['ie'] = { query = '@return.inner', desc = 'inner r[e]turn statement' },
           },
         },
 
@@ -127,6 +129,7 @@ return {
             [']x'] = { query = '@call.outer', desc = 'Next function call start' },
             [']i'] = { query = '@conditional.outer', desc = 'Next [i]f-statement start' },
             [']o'] = { query = '@loop.outer', desc = 'Next [l]oop start' },
+            [']e'] = { query = '@return.outer', desc = 'Next r[e]turn statement start' },
           },
 
           goto_next_end = {
@@ -139,6 +142,7 @@ return {
             [']X'] = { query = '@call.outer', desc = 'Next function call end' },
             [']I'] = { query = '@conditional.outer', desc = 'Next [i]f-statement end' },
             [']O'] = { query = '@loop.outer', desc = 'Next [l]oop end' },
+            [']E'] = { query = '@return.outer', desc = 'Next r[e]turn statement end' },
           },
 
           goto_previous_start = {
@@ -151,6 +155,7 @@ return {
             ['[x'] = { query = '@call.outer', desc = 'Previous function call start' },
             ['[i'] = { query = '@conditional.outer', desc = 'Previous [i]f-statement start' },
             ['[o'] = { query = '@loop.outer', desc = 'Previous [l]oop start' },
+            ['[e'] = { query = '@return.outer', desc = 'Previous r[e]turn statement start' },
           },
 
           goto_previous_end = {
@@ -163,6 +168,7 @@ return {
             ['[X'] = { query = '@call.outer', desc = 'Previous function call end' },
             ['[I'] = { query = '@conditional.outer', desc = 'Previous [i]f-statement end' },
             ['[O'] = { query = '@loop.outer', desc = 'Previous [l]oop end' },
+            ['[E'] = { query = '@return.outer', desc = 'Previous r[e]turn statement end' },
           },
         }
       },
