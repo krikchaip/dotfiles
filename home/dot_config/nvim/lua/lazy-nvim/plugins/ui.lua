@@ -113,4 +113,23 @@ return {
       multiline_threshold = 1, -- Maximum number of lines to show for a single context
     }
   },
+
+  -- Enable super zen mode by dims inactive portions of the code 👍🏻
+  -- ref: https://github.com/folke/twilight.nvim
+  {
+    'folke/twilight.nvim',
+    config = function()
+      require('twilight').setup {
+        dimming = {
+          -- when true, other windows will be fully dimmed (unless they contain the same buffer)
+          inactive = false,
+        },
+
+        -- amount of lines we will try to show around the current line
+        context = 10,
+      }
+
+      vim.keymap.set('n', '<leader>z', '<cmd>Twilight<CR>', { desc = 'Toggle [z]en mode 🧘🏼' })
+    end
+  }
 }
