@@ -89,6 +89,9 @@ return {
             ['ar'] = { query = '@assignment.rhs', desc = 'a [r]ight assignment' },
             ['il'] = { query = '@assignment.lhs', desc = 'inner [l]eft assignment' },
             ['ir'] = { query = '@assignment.rhs', desc = 'inner [r]ight assignment' },
+
+            ['a.'] = { query = '@assignment.outer', desc = 'an assignment' },
+            ['i.'] = { query = '@assignment.inner', desc = 'inner assignment' },
           },
         },
 
@@ -112,6 +115,7 @@ return {
 
           goto_next_start = {
             [']a'] = { query = '@parameter.inner', desc = 'Next [a]rgument start' },
+
             [']m'] = { query = '@function.outer', desc = 'Next [m]ethod start' },
             [']f'] = { query = '@function.outer', desc = 'Next [f]unction start' },
 
@@ -129,6 +133,7 @@ return {
 
           goto_next_end = {
             [']A'] = { query = '@parameter.inner', desc = 'Next [a]rgument end' },
+
             [']M'] = { query = '@function.outer', desc = 'Next [m]ethod end' },
             [']F'] = { query = '@function.outer', desc = 'Next [f]unction end' },
 
@@ -137,6 +142,7 @@ return {
 
           goto_previous_start = {
             ['[a'] = { query = '@parameter.inner', desc = 'Previous [a]rgument start' },
+
             ['[m'] = { query = '@function.outer', desc = 'Previous [m]ethod start' },
             ['[f'] = { query = '@function.outer', desc = 'Previous [f]unction start' },
 
@@ -145,6 +151,7 @@ return {
 
           goto_previous_end = {
             ['[A'] = { query = '@parameter.inner', desc = 'Previous [a]rgument end' },
+
             ['[M'] = { query = '@function.outer', desc = 'Previous [m]ethod end' },
             ['[F'] = { query = '@function.outer', desc = 'Previous [f]unction end' },
 
