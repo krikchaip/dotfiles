@@ -71,7 +71,7 @@ return {
       telescope.setup {
         defaults = {
           -- don't cycle results when scrolling past the last/first item
-          scroll_strategy = 'limit',
+          -- scroll_strategy = 'limit',
 
           -- flip prompt bar position and initial result highlight
           sorting_strategy = 'ascending',

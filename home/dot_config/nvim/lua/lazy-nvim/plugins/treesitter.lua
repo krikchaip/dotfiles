@@ -119,16 +119,10 @@ return {
             [']m'] = { query = '@function.outer', desc = 'Next [m]ethod start' },
             [']f'] = { query = '@function.outer', desc = 'Next [f]unction start' },
 
-            -- [']]'] = { query = '@class.outer', desc = 'Next class start' },
-            -- --
-            -- -- You can use regex matching (i.e. lua pattern) and/or pass a list in a 'query' key to group multiple queires.
-            -- [']o'] = '@loop.*',
-            -- -- [']o'] = { query = { '@loop.inner', '@loop.outer' } }
-            -- --
-            -- -- You can pass a query group to use query from `queries/<lang>/<query_group>.scm file in your runtime path.
-            -- -- Below example nvim-treesitter's `locals.scm` and `folds.scm`. They also provide highlights.scm and indent.scm.
-            -- [']s'] = { query = '@scope', query_group = 'locals', desc = 'Next scope' },
-            -- [']z'] = { query = '@fold', query_group = 'folds', desc = 'Next fold' },
+            [']l'] = { query = '@assignment.lhs', desc = 'Next [l]eft assignment start' },
+            [']r'] = { query = '@assignment.rhs', desc = 'Next [r]ight assignment start' },
+
+            ['].'] = { query = '@assignment.outer', desc = 'Next assignment start' },
           },
 
           goto_next_end = {
@@ -137,7 +131,10 @@ return {
             [']M'] = { query = '@function.outer', desc = 'Next [m]ethod end' },
             [']F'] = { query = '@function.outer', desc = 'Next [f]unction end' },
 
-            -- [']['] = '@class.outer',
+            [']L'] = { query = '@assignment.lhs', desc = 'Next [l]eft assignment end' },
+            [']R'] = { query = '@assignment.rhs', desc = 'Next [r]ight assignment end' },
+
+            [']>'] = { query = '@assignment.outer', desc = 'Next assignment end' },
           },
 
           goto_previous_start = {
@@ -146,7 +143,10 @@ return {
             ['[m'] = { query = '@function.outer', desc = 'Previous [m]ethod start' },
             ['[f'] = { query = '@function.outer', desc = 'Previous [f]unction start' },
 
-            -- ['[['] = '@class.outer',
+            ['[l'] = { query = '@assignment.lhs', desc = 'Previous [l]eft assignment start' },
+            ['[r'] = { query = '@assignment.rhs', desc = 'Previous [r]ight assignment start' },
+
+            ['[.'] = { query = '@assignment.outer', desc = 'Previous assignment start' },
           },
 
           goto_previous_end = {
@@ -155,7 +155,10 @@ return {
             ['[M'] = { query = '@function.outer', desc = 'Previous [m]ethod end' },
             ['[F'] = { query = '@function.outer', desc = 'Previous [f]unction end' },
 
-            -- ['[]'] = '@class.outer',
+            ['[L'] = { query = '@assignment.lhs', desc = 'Previous [l]eft assignment end' },
+            ['[R'] = { query = '@assignment.rhs', desc = 'Previous [r]ight assignment end' },
+
+            ['[>'] = { query = '@assignment.outer', desc = 'Previous assignment end' },
           },
         }
       },
