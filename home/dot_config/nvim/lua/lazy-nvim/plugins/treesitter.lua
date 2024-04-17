@@ -78,25 +78,21 @@ return {
 
           keymaps = {
             ['aa'] = { query = '@parameter.outer', desc = 'an [a]rgument' },
-            ['ia'] = { query = '@parameter.inner', desc = 'inner [a]rgument' },
-
             ['am'] = { query = '@function.outer', desc = 'a [m]ethod' },
             ['af'] = { query = '@function.outer', desc = 'a [f]unction' },
-            ['im'] = { query = '@function.inner', desc = 'inner [m]ethod' },
-            ['if'] = { query = '@function.inner', desc = 'inner [f]unction' },
-
             ['al'] = { query = '@assignment.lhs', desc = 'a [l]eft assignment' },
             ['ar'] = { query = '@assignment.rhs', desc = 'a [r]ight assignment' },
+            ['a.'] = { query = '@assignment.outer', desc = 'an assignment' },
+            ['ax'] = { query = '@call.outer', desc = 'a function call' },
+            ['ai'] = { query = '@conditional.outer', desc = 'an [i]f-statement' },
+
+            ['ia'] = { query = '@parameter.inner', desc = 'inner [a]rgument' },
+            ['im'] = { query = '@function.inner', desc = 'inner [m]ethod' },
+            ['if'] = { query = '@function.inner', desc = 'inner [f]unction' },
             ['il'] = { query = '@assignment.lhs', desc = 'inner [l]eft assignment' },
             ['ir'] = { query = '@assignment.rhs', desc = 'inner [r]ight assignment' },
-
-            ['a.'] = { query = '@assignment.outer', desc = 'an assignment' },
             ['i.'] = { query = '@assignment.inner', desc = 'inner assignment' },
-
-            ['ax'] = { query = '@call.outer', desc = 'a function call' },
             ['ix'] = { query = '@call.inner', desc = 'inner function call' },
-
-            ['ai'] = { query = '@conditional.outer', desc = 'an [i]f-statement' },
             ['ii'] = { query = '@conditional.inner', desc = 'inner [i]f-statement' },
           },
         },
@@ -121,65 +117,45 @@ return {
 
           goto_next_start = {
             [']a'] = { query = '@parameter.inner', desc = 'Next [a]rgument start' },
-
             [']m'] = { query = '@function.outer', desc = 'Next [m]ethod start' },
             [']f'] = { query = '@function.outer', desc = 'Next [f]unction start' },
-
             [']l'] = { query = '@assignment.lhs', desc = 'Next [l]eft assignment start' },
             [']r'] = { query = '@assignment.rhs', desc = 'Next [r]ight assignment start' },
-
             ['].'] = { query = '@assignment.outer', desc = 'Next assignment start' },
-
             [']x'] = { query = '@call.outer', desc = 'Next function call start' },
-
             [']i'] = { query = '@conditional.outer', desc = 'Next [i]f-statement start' },
           },
 
           goto_next_end = {
             [']A'] = { query = '@parameter.inner', desc = 'Next [a]rgument end' },
-
             [']M'] = { query = '@function.outer', desc = 'Next [m]ethod end' },
             [']F'] = { query = '@function.outer', desc = 'Next [f]unction end' },
-
             [']L'] = { query = '@assignment.lhs', desc = 'Next [l]eft assignment end' },
             [']R'] = { query = '@assignment.rhs', desc = 'Next [r]ight assignment end' },
-
             [']>'] = { query = '@assignment.outer', desc = 'Next assignment end' },
-
             [']X'] = { query = '@call.outer', desc = 'Next function call end' },
-
             [']I'] = { query = '@conditional.outer', desc = 'Next [i]f-statement end' },
           },
 
           goto_previous_start = {
             ['[a'] = { query = '@parameter.inner', desc = 'Previous [a]rgument start' },
-
             ['[m'] = { query = '@function.outer', desc = 'Previous [m]ethod start' },
             ['[f'] = { query = '@function.outer', desc = 'Previous [f]unction start' },
-
             ['[l'] = { query = '@assignment.lhs', desc = 'Previous [l]eft assignment start' },
             ['[r'] = { query = '@assignment.rhs', desc = 'Previous [r]ight assignment start' },
-
             ['[.'] = { query = '@assignment.outer', desc = 'Previous assignment start' },
-
             ['[x'] = { query = '@call.outer', desc = 'Previous function call start' },
-
             ['[i'] = { query = '@conditional.outer', desc = 'Previous [i]f-statement start' },
           },
 
           goto_previous_end = {
             ['[A'] = { query = '@parameter.inner', desc = 'Previous [a]rgument end' },
-
             ['[M'] = { query = '@function.outer', desc = 'Previous [m]ethod end' },
             ['[F'] = { query = '@function.outer', desc = 'Previous [f]unction end' },
-
             ['[L'] = { query = '@assignment.lhs', desc = 'Previous [l]eft assignment end' },
             ['[R'] = { query = '@assignment.rhs', desc = 'Previous [r]ight assignment end' },
-
             ['[>'] = { query = '@assignment.outer', desc = 'Previous assignment end' },
-
             ['[X'] = { query = '@call.outer', desc = 'Previous function call end' },
-
             ['[I'] = { query = '@conditional.outer', desc = 'Previous [i]f-statement end' },
           },
         }
