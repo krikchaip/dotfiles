@@ -92,6 +92,9 @@ return {
 
             ['a.'] = { query = '@assignment.outer', desc = 'an assignment' },
             ['i.'] = { query = '@assignment.inner', desc = 'inner assignment' },
+
+            ['ax'] = { query = '@call.outer', desc = 'a function call' },
+            ['ix'] = { query = '@call.inner', desc = 'inner function call' },
           },
         },
 
@@ -123,6 +126,8 @@ return {
             [']r'] = { query = '@assignment.rhs', desc = 'Next [r]ight assignment start' },
 
             ['].'] = { query = '@assignment.outer', desc = 'Next assignment start' },
+
+            [']x'] = { query = '@call.outer', desc = 'Next function call start' },
           },
 
           goto_next_end = {
@@ -135,6 +140,8 @@ return {
             [']R'] = { query = '@assignment.rhs', desc = 'Next [r]ight assignment end' },
 
             [']>'] = { query = '@assignment.outer', desc = 'Next assignment end' },
+
+            [']X'] = { query = '@call.outer', desc = 'Next function call end' },
           },
 
           goto_previous_start = {
@@ -147,6 +154,8 @@ return {
             ['[r'] = { query = '@assignment.rhs', desc = 'Previous [r]ight assignment start' },
 
             ['[.'] = { query = '@assignment.outer', desc = 'Previous assignment start' },
+
+            ['[x'] = { query = '@call.outer', desc = 'Previous function call start' },
           },
 
           goto_previous_end = {
@@ -159,6 +168,8 @@ return {
             ['[R'] = { query = '@assignment.rhs', desc = 'Previous [r]ight assignment end' },
 
             ['[>'] = { query = '@assignment.outer', desc = 'Previous assignment end' },
+
+            ['[X'] = { query = '@call.outer', desc = 'Previous function call end' },
           },
         }
       },
