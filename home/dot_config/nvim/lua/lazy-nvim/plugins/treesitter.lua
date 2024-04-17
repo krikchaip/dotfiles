@@ -65,7 +65,8 @@ return {
       -- NOTE: This will respect your `foldminlines` and `foldnestmax` settings
       vim.cmd('set foldmethod=expr')
       vim.cmd('set foldexpr=nvim_treesitter#foldexpr()')
-      vim.cmd('set nofoldenable')
+      vim.cmd('set foldlevel=999') -- ref: https://stackoverflow.com/questions/5784677/the-first-time-i-close-a-fold-it-closes-all-folds
+      -- vim.cmd('set nofoldenable')
     end
   },
 
