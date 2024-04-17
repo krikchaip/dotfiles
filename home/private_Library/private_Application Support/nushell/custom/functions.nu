@@ -53,11 +53,18 @@ def "system-settings diff continue" []: nothing -> nothing {
 
 # remove all nvim artifacts. restore nvim to its original state
 def "restore-factory nvim" []: nothing -> nothing {
-  rm -rf ~/.local/share/nvim
-  rm -rf ~/.local/state/nvim
-  rm -rf ~/.config/nvim
+  let artifact_paths = [
+    ~/.local/share/nvim
+    ~/.local/state/nvim
+    ~/.config/nvim
+  ]
 
-  return
+  # fix `rm` not working with relative path
+  # ref: https://github.com/nushell/nushell/issues/11061#issuecomment-1812749880
+  for p in $artifact_paths {
+    let absolute_path =  ($p | path expand)
+    rm -rf $absolute_path
+  }
 }
 
 # show all the work done from 10am till now
