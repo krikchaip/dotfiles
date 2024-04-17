@@ -83,12 +83,18 @@ return {
 
       local kopts = { noremap = true, silent = true }
 
+      kopts.desc = 'Jump to the next match'
       vim.api.nvim_set_keymap('n', 'n',
         [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]], kopts)
+
+      kopts.desc = 'Jump to the previous match'
       vim.api.nvim_set_keymap('n', 'N',
         [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]], kopts)
 
+      kopts.desc = 'Jump to the next match under cursor'
       vim.api.nvim_set_keymap('n', '*', [[*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+
+      kopts.desc = 'Jump to the previous match under cursor'
       vim.api.nvim_set_keymap('n', '#', [[#<Cmd>lua require('hlslens').start()<CR>]], kopts)
 
       -- vim.api.nvim_set_keymap('n', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], kopts)
