@@ -210,4 +210,15 @@ return {
       -- vim.cmd('set nofoldenable')
     end
   },
+
+  -- context sticky scroll
+  -- ref: https://github.com/nvim-treesitter/nvim-treesitter-context
+  {
+    'nvim-treesitter/nvim-treesitter-context',
+    opts = {
+      enable = true,
+      -- max_lines = 3,           -- How many lines the window should span. Values <= 0 mean no limit.
+      multiline_threshold = 1, -- Maximum number of lines to show for a single context
+    }
+  },
 }
