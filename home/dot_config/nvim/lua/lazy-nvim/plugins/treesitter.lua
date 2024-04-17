@@ -80,8 +80,15 @@ return {
             ['aa'] = { query = '@parameter.outer', desc = 'an [a]rgument' },
             ['ia'] = { query = '@parameter.inner', desc = 'inner [a]rgument' },
 
-            ['am'] = { query = '@function.outer', desc = 'a [m]ethod / function' },
-            ['im'] = { query = '@function.inner', desc = 'inner [m]ethod / function' },
+            ['am'] = { query = '@function.outer', desc = 'a [m]ethod' },
+            ['af'] = { query = '@function.outer', desc = 'a [f]unction' },
+            ['im'] = { query = '@function.inner', desc = 'inner [m]ethod' },
+            ['if'] = { query = '@function.inner', desc = 'inner [f]unction' },
+
+            ['al'] = { query = '@assignment.lhs', desc = 'a [l]eft assignment' },
+            ['ar'] = { query = '@assignment.rhs', desc = 'a [r]ight assignment' },
+            ['il'] = { query = '@assignment.lhs', desc = 'inner [l]eft assignment' },
+            ['ir'] = { query = '@assignment.rhs', desc = 'inner [r]ight assignment' },
           },
         },
 
@@ -105,7 +112,8 @@ return {
 
           goto_next_start = {
             [']a'] = { query = '@parameter.inner', desc = 'Next [a]rgument start' },
-            [']m'] = { query = '@function.outer', desc = 'Next [m]ethod / function start' },
+            [']m'] = { query = '@function.outer', desc = 'Next [m]ethod start' },
+            [']f'] = { query = '@function.outer', desc = 'Next [f]unction start' },
 
             -- [']]'] = { query = '@class.outer', desc = 'Next class start' },
             -- --
@@ -121,21 +129,24 @@ return {
 
           goto_next_end = {
             [']A'] = { query = '@parameter.inner', desc = 'Next [a]rgument end' },
-            [']M'] = { query = '@function.outer', desc = 'Next [m]ethod / function end' },
+            [']M'] = { query = '@function.outer', desc = 'Next [m]ethod end' },
+            [']F'] = { query = '@function.outer', desc = 'Next [f]unction end' },
 
             -- [']['] = '@class.outer',
           },
 
           goto_previous_start = {
             ['[a'] = { query = '@parameter.inner', desc = 'Previous [a]rgument start' },
-            ['[m'] = { query = '@function.outer', desc = 'Previous [m]ethod / function start' },
+            ['[m'] = { query = '@function.outer', desc = 'Previous [m]ethod start' },
+            ['[f'] = { query = '@function.outer', desc = 'Previous [f]unction start' },
 
             -- ['[['] = '@class.outer',
           },
 
           goto_previous_end = {
             ['[A'] = { query = '@parameter.inner', desc = 'Previous [a]rgument end' },
-            ['[M'] = { query = '@function.outer', desc = 'Previous [m]ethod / function end' },
+            ['[M'] = { query = '@function.outer', desc = 'Previous [m]ethod end' },
+            ['[F'] = { query = '@function.outer', desc = 'Previous [f]unction end' },
 
             -- ['[]'] = '@class.outer',
           },
