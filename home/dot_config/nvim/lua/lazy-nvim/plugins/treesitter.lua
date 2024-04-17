@@ -85,6 +85,7 @@ return {
             ['a.'] = { query = '@assignment.outer', desc = 'an assignment' },
             ['ax'] = { query = '@call.outer', desc = 'a function call' },
             ['ai'] = { query = '@conditional.outer', desc = 'an [i]f-statement' },
+            ['ao'] = { query = '@loop.outer', desc = 'a [l]oop' },
 
             ['ia'] = { query = '@parameter.inner', desc = 'inner [a]rgument' },
             ['im'] = { query = '@function.inner', desc = 'inner [m]ethod' },
@@ -94,6 +95,7 @@ return {
             ['i.'] = { query = '@assignment.inner', desc = 'inner assignment' },
             ['ix'] = { query = '@call.inner', desc = 'inner function call' },
             ['ii'] = { query = '@conditional.inner', desc = 'inner [i]f-statement' },
+            ['io'] = { query = '@loop.inner', desc = 'inner [l]oop' },
           },
         },
 
@@ -124,6 +126,7 @@ return {
             ['].'] = { query = '@assignment.outer', desc = 'Next assignment start' },
             [']x'] = { query = '@call.outer', desc = 'Next function call start' },
             [']i'] = { query = '@conditional.outer', desc = 'Next [i]f-statement start' },
+            [']o'] = { query = '@loop.outer', desc = 'Next [l]oop start' },
           },
 
           goto_next_end = {
@@ -135,6 +138,7 @@ return {
             [']>'] = { query = '@assignment.outer', desc = 'Next assignment end' },
             [']X'] = { query = '@call.outer', desc = 'Next function call end' },
             [']I'] = { query = '@conditional.outer', desc = 'Next [i]f-statement end' },
+            [']O'] = { query = '@loop.outer', desc = 'Next [l]oop end' },
           },
 
           goto_previous_start = {
@@ -146,6 +150,7 @@ return {
             ['[.'] = { query = '@assignment.outer', desc = 'Previous assignment start' },
             ['[x'] = { query = '@call.outer', desc = 'Previous function call start' },
             ['[i'] = { query = '@conditional.outer', desc = 'Previous [i]f-statement start' },
+            ['[o'] = { query = '@loop.outer', desc = 'Previous [l]oop start' },
           },
 
           goto_previous_end = {
@@ -157,6 +162,7 @@ return {
             ['[>'] = { query = '@assignment.outer', desc = 'Previous assignment end' },
             ['[X'] = { query = '@call.outer', desc = 'Previous function call end' },
             ['[I'] = { query = '@conditional.outer', desc = 'Previous [i]f-statement end' },
+            ['[O'] = { query = '@loop.outer', desc = 'Previous [l]oop end' },
           },
         }
       },
