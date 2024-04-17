@@ -10,6 +10,10 @@ return {
       -- extended text objects (di*, da*, ci*, ca*, etc.)
       -- ref: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
       { 'nvim-treesitter/nvim-treesitter-textobjects' },
+
+      -- autoclose and autorename html-like tag
+      -- ref: https://github.com/windwp/nvim-ts-autotag
+      { 'windwp/nvim-ts-autotag' },
     },
     opts = {
       auto_install = true, -- Autoinstall languages that are not installed
@@ -22,6 +26,10 @@ return {
         'json', 'jsonc',
         'markdown',
         'elixir',
+      },
+
+      autotag = {
+        enable = true,
       },
 
       highlight = {
