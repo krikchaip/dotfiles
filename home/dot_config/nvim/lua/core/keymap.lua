@@ -1,28 +1,9 @@
--- [[ Basic Keymaps ]]
--- See `:help vim.keymap.set()`
-
 -- Clear search highlights on pressing <Esc> in normal mode
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
--- Diagnostic keymaps
--- vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous [d]iagnostic message' })
--- vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next [d]iagnostic message' })
--- vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [e]rror messages' })
--- vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [q]uickfix list' })
-
--- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
--- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
--- is not what someone will guess without a bit more experience.
---
+-- Exit terminal mode in the builtin terminal (default: <C-\><C-n>)
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
--- or just use <C-\><C-n> to exit terminal mode
 -- vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
-
--- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo 'Use h to move!!'<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo 'Use l to move!!'<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo 'Use k to move!!'<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo 'Use j to move!!'<CR>')
 
 -- Saving buffers (files)
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Write current buffer (save file)' })
@@ -31,12 +12,10 @@ vim.keymap.set('i', '<C-s>', '<cmd>w<CR>', { desc = 'Write current buffer (save 
 vim.keymap.set('n', '<leader><S-w>', '<cmd>wall<CR>', { desc = 'Write all changed buffers (save all files)' })
 
 -- Delete current buffer
--- See `:help bdelete`
 vim.keymap.set('n', '<leader>q', '<cmd>bdelete<CR>', { desc = 'Delete current buffer' })
 vim.keymap.set('n', '<leader><S-q>', '<cmd>bdelete!<CR>', { desc = 'Force delete current buffer' })
 
 -- Window Navigation
--- See `:help wincmd` for a list of all window commands
 vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
@@ -45,11 +24,11 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 vim.keymap.set('n', '<C-w>n', '<cmd>vnew<CR>', { desc = 'Split a new empty window vertically' })
 vim.keymap.set('n', '<C-w>N', '<cmd>new<CR>', { desc = 'Split a new empty window horizontally' })
 
--- ref: https://www.reddit.com/r/neovim/comments/pibo9c/how_to_focus_an_opened_floating_window/
+-- `<C-w>w` doesn't work when there's more than 2 windows in a tab
+-- ref: https://www.reddit.com/r/neovim/comments/pibo9c/how_to_focus_an_opened_floating_window
 vim.keymap.set('n', '<C-S-k>', '999<C-w>w', { desc = 'Move focus to the floating window' })
 
 -- Tab Navigation
--- See `:help tab-page`
 vim.keymap.set('n', '<C-n>', '<cmd>tabnew<CR>', { desc = 'Create a new empty tab' })
 vim.keymap.set('n', '<leader>tq', '<cmd>tabclose<CR>', { desc = 'Close the current tab' })
 vim.keymap.set('n', '<leader>to', '<cmd>tabonly<CR>', { desc = 'Close all other tab pages' })
@@ -71,6 +50,5 @@ vim.keymap.set('n', '<C-8>', '<cmd>8tabnext<CR>', { desc = 'Go to tab #8' })
 vim.keymap.set('n', '<C-9>', '<cmd>9tabnext<CR>', { desc = 'Go to tab #9' })
 
 -- Exit NeoVim
--- See `:help :exit`
 vim.keymap.set('n', '<C-q>', '<cmd>qall<CR>', { desc = 'Quit all buffers (soft quit NeoVim)' })
 vim.keymap.set('n', '<C-S-q>', '<cmd>qall!<CR>', { desc = 'Force quit NeoVim' })

@@ -1,9 +1,6 @@
--- [[ Setting options ]]
--- See `:help vim.opt`
--- For more options, you can see `:help option-list`
+-- [[ option-list, vim.opt, vim.o, vim.g ]]
 
 -- Set <space> as the leader key
--- See `:help mapleader`
 -- NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
@@ -18,8 +15,7 @@ vim.g.nu_env_path = '~/Library/Application Support/nushell/env.nu'
 -- Make line numbers default
 vim.opt.number = true
 
--- You can also add relative line numbers, to help with jumping.
--- Experiment for yourself to see if you like it!
+-- Show relative line numbers (to help with jumping)
 -- vim.opt.relativenumber = true
 
 -- Do not wrap lines
@@ -38,8 +34,7 @@ vim.opt.showmode = false
 vim.opt.showtabline = 2
 
 -- Sync clipboard between OS and Neovim.
--- Remove this option if you want your OS clipboard to remain independent.
--- See `:help 'clipboard'`
+-- NOTE: remove this option if you want your OS clipboard to remain independent.
 vim.opt.clipboard = 'unnamedplus'
 
 -- Enable break indent
@@ -58,8 +53,7 @@ vim.opt.signcolumn = 'yes'
 -- Decrease update time (default 4000ms)
 vim.opt.updatetime = 2000
 
--- Decrease mapped sequence wait time
--- Displays which-key popup sooner
+-- Decrease mapped sequence wait time (displays which-key popup sooner)
 vim.opt.timeoutlen = 500
 
 -- Configure how new splits should be opened
@@ -71,8 +65,6 @@ vim.opt.splitbelow = true
 vim.opt.foldlevel = 999
 
 -- Sets how neovim will display certain whitespace characters in the editor.
--- See `:help 'list'`
--- and `:help 'listchars'`
 vim.opt.list = true
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 

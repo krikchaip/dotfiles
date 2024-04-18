@@ -1,13 +1,5 @@
--- [[ Configure and install plugins ]]
---
---  To check the current status of your plugins, run
---    :Lazy
---
---  You can press `?` in this menu for help. Use `:q` to close the window
---
---  To update plugins you can run
---    :Lazy update
---
+-- if you experience any errors while trying to install plugins,
+-- run `:checkhealth` for more info. for example `:checkhealth telescope`
 
 require('lazy').setup('lazy-nvim.plugins', {
   install = {
@@ -39,10 +31,9 @@ require('lazy').setup('lazy-nvim.plugins', {
       lazy = '💤 ',
     },
 
+    -- If defined, the description will be shown in the help menu.
+    -- To disable one of the defaults, set it to `false`.
     custom_keys = {
-      -- You can define custom key maps here. If present, the description will
-      -- be shown in the help menu.
-      -- To disable one of the defaults, set it to false.
       ['<localleader>l'] = false,
       ['<localleader>t'] = false,
     },
@@ -51,6 +42,3 @@ require('lazy').setup('lazy-nvim.plugins', {
 
 -- Open Lazy popup window
 vim.keymap.set('n', '<C-S-x>', '<cmd>Lazy<CR>', { desc = 'Open Lazy popup window' })
-
--- The line beneath this is called `modeline`. See `:help modeline`
--- vim: ts=2 sts=2 sw=2 et
