@@ -43,8 +43,8 @@ require('lazy').setup('lazy-nvim.plugins', {
       -- You can define custom key maps here. If present, the description will
       -- be shown in the help menu.
       -- To disable one of the defaults, set it to false.
-      ["<localleader>l"] = false,
-      ["<localleader>t"] = false,
+      ['<localleader>l'] = false,
+      ['<localleader>t'] = false,
     },
   },
 })

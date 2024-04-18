@@ -220,13 +220,13 @@ return {
 
           git_status = {
             git_icons = {
-              added = "+",
-              changed = "~",
-              copied = ">",
-              deleted = "-",
-              renamed = "➡",
-              unmerged = "‡",
-              untracked = "?",
+              added = '+',
+              changed = '~',
+              copied = '>',
+              deleted = '-',
+              renamed = '➡',
+              unmerged = '‡',
+              untracked = '?',
             },
 
             mappings = {

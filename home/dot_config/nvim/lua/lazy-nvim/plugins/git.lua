@@ -122,15 +122,15 @@ return {
 
         -- [[ Text objects ]]
 
-        -- 'o' stands for "Operator-pending" mode
-        -- 'x' stands for "Visual-only" mode
+        -- 'o' stands for 'Operator-pending' mode
+        -- 'x' stands for 'Visual-only' mode
         map({ 'o', 'x' }, 'ic', '<cmd>Gitsigns select_hunk<CR>', { desc = 'the change under cursor' })
         map({ 'o', 'x' }, 'ac', '<cmd>Gitsigns select_hunk<CR>', { desc = 'the change under cursor' })
       end
     },
     config = function(_, opts)
       require('gitsigns').setup(opts)
-      require("scrollbar.handlers.gitsigns").setup()
+      require('scrollbar.handlers.gitsigns').setup()
     end
   },
 }

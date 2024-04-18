@@ -93,8 +93,8 @@ vim.opt.shell = 'nu'
 vim.opt.shellredir = '| save %s'
 vim.opt.shellpipe = '| ^tee %s'
 vim.opt.shellcmdflag =
-    "--config \""
+    '--config "'
     .. vim.g.nu_config_path
-    .. "\" --env-config \""
+    .. '" --env-config "'
     .. vim.g.nu_env_path
-    .. "\" -c"
+    .. '" -c'

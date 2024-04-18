@@ -5,17 +5,17 @@ local action_state = require 'telescope.actions.state'
 local pickers = require 'telescope.pickers'
 
 local edit_file_cmd_map = {
-  vertical   = "vsplit",
-  horizontal = "split",
-  tab        = "tabedit",
-  default    = "edit",
+  vertical   = 'vsplit',
+  horizontal = 'split',
+  tab        = 'tabedit',
+  default    = 'edit',
 }
 
 local edit_buf_cmd_map = {
-  vertical   = "vert sbuffer",
-  horizontal = "sbuffer",
-  tab        = "tab sbuffer",
-  default    = "buffer",
+  vertical   = 'vert sbuffer',
+  horizontal = 'sbuffer',
+  tab        = 'tab sbuffer',
+  default    = 'buffer',
 }
 
 -- ref: https://github.com/nvim-telescope/telescope.nvim/issues/1048#issuecomment-1227591722
@@ -39,11 +39,11 @@ local function select_one_or_multi(method, prompt_bufnr)
         local value = entry.value
         if not value then return end
 
-        if type(value) == "table" then
+        if type(value) == 'table' then
           value = entry.display
         end
 
-        local sections = vim.split(value, ":")
+        local sections = vim.split(value, ':')
 
         filename = sections[1]
         row = tonumber(sections[2])
@@ -53,21 +53,21 @@ local function select_one_or_multi(method, prompt_bufnr)
       local entry_bufnr = entry.bufnr
 
       if entry_bufnr then
-        if not vim.api.nvim_buf_get_option(entry_bufnr, "buflisted") then
-          vim.api.nvim_buf_set_option(entry_bufnr, "buflisted", true)
+        if not vim.api.nvim_buf_get_option(entry_bufnr, 'buflisted') then
+          vim.api.nvim_buf_set_option(entry_bufnr, 'buflisted', true)
         end
 
-        -- local command = i == 1 and "buffer" or edit_buf_cmd_map[method]
+        -- local command = i == 1 and 'buffer' or edit_buf_cmd_map[method]
         local command = edit_buf_cmd_map[method]
 
-        pcall(vim.cmd, string.format("%s %s", command, vim.api.nvim_buf_get_name(entry_bufnr)))
+        pcall(vim.cmd, string.format('%s %s', command, vim.api.nvim_buf_get_name(entry_bufnr)))
       else
-        -- local command = i == 1 and "edit" or edit_file_cmd_map[method]
+        -- local command = i == 1 and 'edit' or edit_file_cmd_map[method]
         local command = edit_file_cmd_map[method]
 
-        if vim.api.nvim_buf_get_name(0) ~= filename or command ~= "edit" then
-          filename = require("plenary.path"):new(vim.fn.fnameescape(filename)):normalize(vim.loop.cwd())
-          pcall(vim.cmd, string.format("%s %s", command, filename))
+        if vim.api.nvim_buf_get_name(0) ~= filename or command ~= 'edit' then
+          filename = require('plenary.path'):new(vim.fn.fnameescape(filename)):normalize(vim.loop.cwd())
+          pcall(vim.cmd, string.format('%s %s', command, filename))
         end
       end
 
@@ -76,7 +76,7 @@ local function select_one_or_multi(method, prompt_bufnr)
       end
     end
   else
-    actions["select_" .. method](prompt_bufnr)
+    actions['select_' .. method](prompt_bufnr)
   end
 end
 
