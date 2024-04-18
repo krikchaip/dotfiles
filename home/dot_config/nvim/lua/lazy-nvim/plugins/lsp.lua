@@ -50,10 +50,16 @@ return {
   { -- actual configs and apis for the Nvim LSP client
     -- ref: https://github.com/neovim/nvim-lspconfig
     'neovim/nvim-lspconfig',
+    name = 'lspconfig',
     dependencies = { 'mason', 'mason-lspconfig' },
     config = function()
       local lspconfig = require 'lspconfig'
-      local mason_lspconfig = require 'mason-lspconfig'
+      -- local mason_lspconfig = require 'mason-lspconfig'
+
+      vim.keymap.set('n', '<leader>li', '<cmd>LspInfo<CR>', { desc = 'Show LSP [i]nfo for current buffer' })
+      vim.keymap.set('n', '<leader>lr', '<cmd>LspRestart<CR>', { desc = '[r]estart running LSP for current buffer' })
+
+      lspconfig.lua_ls.setup {}
     end
   },
 }
