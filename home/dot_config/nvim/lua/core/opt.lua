@@ -66,6 +66,10 @@ vim.opt.timeoutlen = 500
 vim.opt.splitright = true
 vim.opt.splitbelow = true
 
+-- Disable initial folds by setting this value to a high number
+-- ref: https://stackoverflow.com/questions/5784677/the-first-time-i-close-a-fold-it-closes-all-folds
+vim.opt.foldlevel = 999
+
 -- Sets how neovim will display certain whitespace characters in the editor.
 -- See `:help 'list'`
 -- and `:help 'listchars'`
