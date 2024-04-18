@@ -1,5 +1,12 @@
 return {
-  'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  -- Detect tabstop and shiftwidth automatically
+  'tpope/vim-sleuth',
+
+  { -- a minimalist auto brackets closer
+    -- ref: https://github.com/m4xshen/autoclose.nvim
+    'm4xshen/autoclose.nvim',
+    opts = {}
+  },
 
   -- [[ Linewise ]]
   --   `gc` - (Visual mode) Toggles the region using linewise comment
