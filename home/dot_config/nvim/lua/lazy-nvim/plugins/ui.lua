@@ -85,7 +85,7 @@ return {
     'kevinhwang91/nvim-hlslens',
     config = function()
       require('scrollbar.handlers.search').setup {
-        virt_priority = 90,
+        virt_priority = 100,
       }
 
       local kopts = { noremap = true, silent = true }
