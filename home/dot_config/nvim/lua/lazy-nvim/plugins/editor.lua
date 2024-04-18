@@ -1,11 +1,26 @@
 return {
   -- Detect tabstop and shiftwidth automatically
-  'tpope/vim-sleuth',
+  {
+    'tpope/vim-sleuth',
+    name = 'vim-sleuth',
+  },
 
-  { -- a minimalist auto brackets closer
-    -- ref: https://github.com/m4xshen/autoclose.nvim
+  -- A minimalist auto brackets closer
+  -- ref: https://github.com/m4xshen/autoclose.nvim
+  {
     'm4xshen/autoclose.nvim',
-    opts = {}
+    name = 'autoclose',
+  },
+
+  -- Making Comment.nvim understands jsx, vue, markdown and etc.
+  -- ref: https://github.com/JoosepAlviste/nvim-ts-context-commentstring
+  {
+    'JoosepAlviste/nvim-ts-context-commentstring',
+    name = 'ts-context-commentstring',
+    init = function()
+      -- skip backwards compatibility routines and speed up loading
+      vim.g.skip_ts_context_commentstring_module = true
+    end
   },
 
   -- [[ Linewise ]]
@@ -32,25 +47,13 @@ return {
   --   `gb2}` - Toggle until the 2 next blank line
   --   `gbaf` - Toggle comment around a function (w/ LSP/treesitter support)
   --   `gbac` - Toggle comment around a class (w/ LSP/treesitter support)
-  --
-  -- Use `opts = {}` to force a plugin to be loaded.
-  --
-  --  This is equivalent to:
-  --    require('Comment').setup({})
   {
     'numToStr/Comment.nvim',
-    dependencies = {
-      {
-        'JoosepAlviste/nvim-ts-context-commentstring',
-        init = function()
-          -- skip backwards compatibility routines and speed up loading
-          vim.g.skip_ts_context_commentstring_module = true
-        end
-      }
-    },
+    name = 'comment',
+    dependencies = { 'ts-context-commentstring' },
     config = function()
       require('Comment').setup {
-        -- to integrate with nvim-ts-context-commentstring
+        -- integrate with nvim-ts-context-commentstring
         pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook()
       }
 

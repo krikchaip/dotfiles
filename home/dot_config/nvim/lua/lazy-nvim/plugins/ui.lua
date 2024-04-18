@@ -1,24 +1,14 @@
 return {
-  -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
-  --
-  -- This is often very useful to both group configuration, as well as handle
-  -- lazy loading plugins that don't need to be loaded immediately at startup.
-  --
-  -- For example, in the following configuration, we use:
-  --  event = 'VimEnter'
-  --
-  -- which loads which-key before all the UI elements are loaded. Events can be
-  -- normal autocommands events (`:help autocmd-events`).
-  --
-  -- Then, because we use the `config` key, the configuration only runs
-  -- after the plugin has been loaded:
-  --  config = function() ... end
-
+  -- Useful plugin to show you pending keybinds.
+  -- ref: https://github.com/folke/which-key.nvim
   {
-    'folke/which-key.nvim', -- Useful plugin to show you pending keybinds.
-    event = 'VimEnter',     -- Sets the loading event to 'VimEnter'
-    config = function()     -- This is the function that runs, AFTER loading
-      require('which-key').setup {
+    'folke/which-key.nvim',
+    name = 'which-key',
+    event = 'VeryLazy',
+    config = function()
+      local which_key = require 'which-key'
+
+      which_key.setup {
         icons = {
           breadcrumb = '»', -- symbol used in the command line area that shows your active key combo
           separator = '>',  -- symbol used between a key and it's label
@@ -28,7 +18,7 @@ return {
 
       -- Document existing key chains
       -- see: https://github.com/folke/which-key.nvim?tab=readme-ov-file#-setup
-      require('which-key').register {
+      which_key.register {
         ['<C-,>']      = { name = 'Nvim Settings', _ = 'which_key_ignore' },
         ['<leader>']   = { name = 'Special', _ = 'which_key_ignore' },
         ['<leader>e']  = { name = 'Explorer', _ = 'which_key_ignore' },
@@ -39,7 +29,7 @@ return {
         ['<leader>t']  = { name = 'Tab', _ = 'which_key_ignore' },
       }
 
-      require('which-key').register({
+      which_key.register({
         ['<leader>g']  = { name = 'Git', _ = 'which_key_ignore' },
         ['<leader>gc'] = { name = 'Git Change', _ = 'which_key_ignore' },
       }, { mode = 'x' })
@@ -48,7 +38,8 @@ return {
 
   {
     'petertriho/nvim-scrollbar',
-    dependencies = { 'lewis6991/gitsigns.nvim', 'kevinhwang91/nvim-hlslens' },
+    name = 'scrollbar',
+    dependencies = { 'colorscheme.tokyonight' },
     config = function()
       local colors = require('tokyonight.colors').setup()
 
@@ -83,29 +74,31 @@ return {
 
   {
     'kevinhwang91/nvim-hlslens',
+    name = 'hlslens',
+    dependencies = { 'scrollbar' },
     config = function()
       require('scrollbar.handlers.search').setup {
         virt_priority = 100,
       }
 
-      local kopts = { noremap = true, silent = true }
+      local opts = { noremap = true, silent = true }
 
-      kopts.desc = 'Jump to the next match'
+      opts.desc = 'Jump to the next match'
       vim.api.nvim_set_keymap('n', 'n',
-        [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]], kopts)
+        [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]], opts)
 
-      kopts.desc = 'Jump to the previous match'
+      opts.desc = 'Jump to the previous match'
       vim.api.nvim_set_keymap('n', 'N',
-        [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]], kopts)
+        [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]], opts)
 
-      kopts.desc = 'Jump to the next match under cursor'
-      vim.api.nvim_set_keymap('n', '*', [[*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+      opts.desc = 'Jump to the next match under cursor'
+      vim.api.nvim_set_keymap('n', '*', [[*<Cmd>lua require('hlslens').start()<CR>]], opts)
 
-      kopts.desc = 'Jump to the previous match under cursor'
-      vim.api.nvim_set_keymap('n', '#', [[#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+      opts.desc = 'Jump to the previous match under cursor'
+      vim.api.nvim_set_keymap('n', '#', [[#<Cmd>lua require('hlslens').start()<CR>]], opts)
 
-      -- vim.api.nvim_set_keymap('n', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], kopts)
-      -- vim.api.nvim_set_keymap('n', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+      -- vim.api.nvim_set_keymap('n', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], opts)
+      -- vim.api.nvim_set_keymap('n', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], opts)
     end
   },
 
@@ -113,16 +106,15 @@ return {
   -- ref: https://github.com/nvim-treesitter/nvim-treesitter-context
   {
     'nvim-treesitter/nvim-treesitter-context',
-    dependencies = {
-      'nvim-treesitter/nvim-treesitter-textobjects'
-    },
+    name = 'treesitter-context',
+    dependencies = { 'nvim-treesitter.textobjects' },
     opts = {
       enable = true,
       -- max_lines = 3,           -- How many lines the window should span. Values <= 0 mean no limit.
       multiline_threshold = 1, -- Maximum number of lines to show for a single context
     },
     config = function(_, opts)
-      local ts_context = require('treesitter-context')
+      local ts_context = require 'treesitter-context'
       local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
       ts_context.setup(opts)
@@ -140,6 +132,7 @@ return {
   -- ref: https://github.com/folke/twilight.nvim
   {
     'folke/twilight.nvim',
+    name = 'twilight',
     config = function()
       require('twilight').setup {
         dimming = {

@@ -1,8 +1,8 @@
 return {
-  { -- https://github.com/xvzc/chezmoi.nvim
+  {
     'xvzc/chezmoi.nvim',
-    name = 'chezmoi-watcher',
-    dependencies = { 'nvim-lua/plenary.nvim' },
+    name = 'chezmoi.file-watcher',
+    dependencies = { 'plenary' },
     config = function()
       require('chezmoi').setup {
         -- edit = {
@@ -33,9 +33,9 @@ return {
     end
   },
 
-  { -- https://github.com/alker0/chezmoi.vim
+  {
     'alker0/chezmoi.vim',
-    name = 'chezmoi-highlighter',
+    name = 'chezmoi.syntax-highlighter',
     init = function()
       -- This option is required.
       vim.g['chezmoi#use_tmp_buffer'] = true

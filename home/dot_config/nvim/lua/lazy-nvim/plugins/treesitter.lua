@@ -1,19 +1,35 @@
 return {
-  { -- Highlight, edit, and navigate code
+  -- Nushell syntax highlight support
+  -- ref: https://github.com/nushell/tree-sitter-nu
+  {
+    'nushell/tree-sitter-nu',
+    name = 'nvim-treesitter.nushell',
+  },
+
+  -- extended text objects (di*, da*, ci*, ca*, etc.)
+  -- ref: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
+  {
+    'nvim-treesitter/nvim-treesitter-textobjects',
+    name = 'nvim-treesitter.textobjects',
+  },
+
+  -- autoclose and autorename html-like tag
+  -- ref: https://github.com/windwp/nvim-ts-autotag
+  {
+    'windwp/nvim-ts-autotag',
+    name = 'nvim-treesitter.autotag',
+  },
+
+  -- Highlight, edit, and code navigation
+  -- ref: https://github.com/nvim-treesitter/nvim-treesitter
+  {
     'nvim-treesitter/nvim-treesitter',
+    name = 'nvim-treesitter',
     build = ':TSUpdate',
     dependencies = {
-      -- Nushell syntax highlight support
-      -- ref: https://github.com/nushell/tree-sitter-nu
-      { 'nushell/tree-sitter-nu' },
-
-      -- extended text objects (di*, da*, ci*, ca*, etc.)
-      -- ref: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
-      { 'nvim-treesitter/nvim-treesitter-textobjects' },
-
-      -- autoclose and autorename html-like tag
-      -- ref: https://github.com/windwp/nvim-ts-autotag
-      { 'windwp/nvim-ts-autotag' },
+      'nvim-treesitter.nushell',
+      'nvim-treesitter.textobjects',
+      'nvim-treesitter.autotag',
     },
     opts = {
       auto_install = true, -- Autoinstall languages that are not installed
@@ -82,7 +98,7 @@ return {
           enable = true,
 
           -- Automatically jump forward to textobj, similar to targets.vim
-          lookahead = true,
+          -- lookahead = true,
 
           keymaps = {
             ['aa'] = { query = '@parameter.outer', desc = 'an [a]rgument' },

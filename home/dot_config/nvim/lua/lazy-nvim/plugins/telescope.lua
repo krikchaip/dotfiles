@@ -1,73 +1,52 @@
----@diagnostic disable: different-requires
-
--- NOTE: Plugins can specify dependencies.
---
--- The dependencies are proper plugin specifications as well - anything
--- you do for a plugin at the top level, you can do for a dependency.
---
--- Use the `dependencies` key to specify the dependencies of a particular plugin
-
 return {
-  { -- Fuzzy Finder (files, lsp, etc)
-    -- Telescope is a fuzzy finder that comes with a lot of different things that
-    -- it can fuzzy find! It's more than just a 'file finder', it can search
-    -- many different aspects of Neovim, your workspace, LSP, and more!
-    --
-    -- The easiest way to use Telescope, is to start by doing something like:
-    --  :Telescope help_tags
-    --
-    -- After running this command, a window will open up and you're able to
-    -- type in the prompt window. You'll see a list of `help_tags` options and
-    -- a corresponding preview of the help.
-    --
-    -- Two important keymaps to use while in Telescope are:
-    --  - Insert mode: <c-/>
-    --  - Normal mode: ?
-    --
-    -- This opens a window that shows you all of the keymaps for the current
-    -- Telescope picker. This is really useful to discover what Telescope can
-    -- do as well as how to actually do it!
+  -- Help improve Telescope sorting performance
+  {
+    'nvim-telescope/telescope-fzf-native.nvim',
+    name = 'telescope.fzf',
+    build = 'make',   -- run only when the plugin is installed/updated
+    cond = function() -- will enable only when `make` in available
+      return vim.fn.executable 'make' == 1
+    end,
+  },
+
+  -- Telescope UI selecter extension
+  {
+    'nvim-telescope/telescope-ui-select.nvim',
+    name = 'telescope.ui-select',
+  },
+
+  -- Telescope merge conflicts picker
+  {
+    'Snikimonkd/telescope-git-conflicts.nvim',
+    name = 'telescope.conflicts',
+  },
+
+  -- Fuzzy Finder (files, lsp, etc)
+  -- ref: https://github.com/nvim-telescope/telescope.nvim
+  {
     'nvim-telescope/telescope.nvim',
+    name = 'telescope',
     -- branch = '0.1.x',
-    commit = '4d4ade7',
+    commit = '4d4ade7', -- pinned until `autocmd` feature is fixed in the next version
     dependencies = {
-      'nvim-lua/plenary.nvim',
+      'plenary',
+      'web-devicons',
 
-      { -- If encountering errors, see telescope-fzf-native README for installation instructions
-        'nvim-telescope/telescope-fzf-native.nvim',
+      'telescope.fzf',
+      'telescope.ui-select',
+      'telescope.conflicts',
 
-        -- `build` is used to run some command when the plugin is installed/updated.
-        -- This is only run then, not every time Neovim starts up.
-        build = 'make',
-
-        -- `cond` is a condition used to determine whether this plugin should be
-        -- installed and loaded.
-        cond = function()
-          return vim.fn.executable 'make' == 1
-        end,
-      },
-
-      { -- Useful for getting pretty icons, but requires a Nerd Font.
-        'nvim-tree/nvim-web-devicons',
-        enabled = vim.g.have_nerd_font
-      },
-
-      'nvim-telescope/telescope-ui-select.nvim',
-      'Snikimonkd/telescope-git-conflicts.nvim',
-
-      'chezmoi-highlighter', -- TODO: move to treesitter.lua
-      'chezmoi-watcher',
+      'chezmoi.file-watcher',
     },
     config = function()
       local telescope = require 'telescope'
-      local builtin = require 'telescope.builtin' -- See `:help telescope.builtin`
-      local actions = require 'telescope.actions' -- See `:help telescope.actions`
+      local builtin = require 'telescope.builtin'
+      local actions = require 'telescope.actions'
       local themes = require 'telescope.themes'
 
-      local custom_actions = require 'lib.telescope.actions'
-      local custom_pickers = require 'lib.telescope.pickers'
+      local custom_actions = require 'lazy-nvim.lib.telescope-actions'
+      local custom_pickers = require 'lazy-nvim.lib.telescope-pickers'
 
-      -- See `:help telescope` and `:help telescope.setup()`
       telescope.setup {
         defaults = {
           -- don't cycle results when scrolling past the last/first item
@@ -239,18 +218,18 @@ return {
         },
 
         extensions = {
-          ['ui-select'] = { require('telescope.themes').get_dropdown() },
+          ['ui-select'] = { themes.get_dropdown() },
         }
       }
 
       -- Enable Telescope extensions if they are installed
       telescope.load_extension 'fzf'
       telescope.load_extension 'ui-select'
-      telescope.load_extension 'chezmoi'
       telescope.load_extension 'conflicts'
+      telescope.load_extension 'chezmoi'
 
       -- Custom Telescope auto commands
-      require 'lib.telescope.autocmd'
+      require 'lazy-nvim.lib.telescope-autocmd'
 
       -- [[ Documentations ]]
       vim.keymap.set('n', '<C-S-h>', builtin.help_tags, { desc = 'Search nvim help pages' })

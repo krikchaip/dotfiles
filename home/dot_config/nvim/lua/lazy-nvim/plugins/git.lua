@@ -1,15 +1,11 @@
 return {
-  -- Here is a more advanced example where we pass configuration
-  -- options to `gitsigns.nvim`. This is equivalent to the following Lua:
-  --    require('gitsigns').setup({ ... })
-  --
-  -- See `:help gitsigns` to understand what the configuration keys do
-  { -- Adds git related signs to the gutter, as well as utilities for managing changes
+  -- Adds git related signs to the gutter, as well as utilities for managing changes
+  -- ref: https://github.com/lewis6991/gitsigns.nvim?tab=readme-ov-file
+  {
     'lewis6991/gitsigns.nvim',
+    name = 'gitsigns',
     version = '^0.8.0',
-    dependencies = {
-      'nvim-treesitter/nvim-treesitter-textobjects'
-    },
+    dependencies = { 'nvim-treesitter.textobjects', 'scrollbar' },
     opts = {
       signs                             = {
         -- add          = { text = '+' },
@@ -40,7 +36,7 @@ return {
       },
 
       on_attach                         = function(bufnr)
-        local gitsigns = require('gitsigns')
+        local gitsigns = require 'gitsigns'
         local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
         local function map(mode, l, r, opts)

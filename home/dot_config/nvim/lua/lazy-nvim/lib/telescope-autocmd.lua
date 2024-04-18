@@ -1,7 +1,7 @@
 vim.api.nvim_create_autocmd('User', {
   desc = 'Turn on certain settings when Telescope previewer gets loaded',
-  pattern = 'TelescopePreviewerLoaded',
   group = vim.api.nvim_create_augroup('telescope-previewer-settings', { clear = true }),
+  pattern = 'TelescopePreviewerLoaded',
   callback = function(args)
     vim.wo.number = true
 

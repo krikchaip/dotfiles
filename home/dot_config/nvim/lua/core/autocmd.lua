@@ -1,4 +1,4 @@
--- [[ lua-guide-autocommands ]]
+-- [[ lua-guide-autocommands, autocmd-events ]]
 
 -- highlight when yanking (copying) text
 vim.api.nvim_create_autocmd('TextYankPost', {
