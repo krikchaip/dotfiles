@@ -50,8 +50,8 @@ vim.opt.smartcase = true
 -- Keep signcolumn on by default
 vim.opt.signcolumn = 'yes'
 
--- Decrease update time (default 4000ms)
-vim.opt.updatetime = 2000
+-- Decrease update time (default 4000ms, floating menus popup sooner on hover)
+vim.opt.updatetime = 500
 
 -- Decrease mapped sequence wait time (displays which-key popup sooner)
 vim.opt.timeoutlen = 500
