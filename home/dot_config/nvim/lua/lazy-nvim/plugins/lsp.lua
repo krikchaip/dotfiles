@@ -71,10 +71,16 @@ return {
   {
     'neovim/nvim-lspconfig',
     name = 'lspconfig',
-    dependencies = { 'mason', 'mason-lspconfig', 'neodev' },
+    dependencies = {
+      'mason',
+      'mason-lspconfig',
+      'neodev',
+      'nvim-treesitter.textobjects',
+    },
     config = function()
       local lspconfig = require 'lspconfig'
       local mason_lspconfig = require 'mason-lspconfig'
+      local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
       mason_lspconfig.setup_handlers {
         -- will be called for each installed server that doesn't have a dedicated handler
@@ -88,6 +94,15 @@ return {
       -- Global keymappings that doesn't require a buffer
       vim.keymap.set('n', '<leader>li', '<cmd>LspInfo<CR>', { desc = 'Show LSP [i]nfo for current buffer' })
       vim.keymap.set('n', '<leader>lr', '<cmd>LspRestart<CR>', { desc = '[r]estart running LSP for current buffer' })
+
+      -- Diagnostic keymaps
+      local next_diagnostic_repeatable, prev_diagnostic_repeatable = ts_repeat_move.make_repeatable_move_pair(
+        vim.diagnostic.goto_next,
+        vim.diagnostic.goto_prev
+      )
+
+      vim.keymap.set('n', ']d', next_diagnostic_repeatable, { desc = 'Go to next [d]iagnostic message' })
+      vim.keymap.set('n', '[d', prev_diagnostic_repeatable, { desc = 'Go to previous [d]iagnostic message' })
 
       -- will get run when an LSP attaches to a particular buffer
       vim.api.nvim_create_autocmd('LspAttach', {
