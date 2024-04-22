@@ -90,6 +90,9 @@ return {
       -- default Nvim LSP client capabilities
       local capabilities = vim.lsp.protocol.make_client_capabilities()
 
+      -- TODO: LSP autocomplete integration
+      -- capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
+
       -- [[ lspconfig-all, lspconfig-setup ]]
       mason_lspconfig.setup_handlers {
         -- will be called for each installed server that doesn't have a dedicated handler
@@ -137,6 +140,7 @@ return {
         group = vim.api.nvim_create_augroup('lsp-attach-config', { clear = true }),
         callback = function(event)
           setup_diagnostic_hover(event)
+          setup_highlight_references_hover(event)
 
           -- [[ Buffer local mappings ]]
           local opts = { buffer = event.buf, silent = true }

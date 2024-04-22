@@ -25,3 +25,26 @@ function setup_diagnostic_hover(event)
     end
   })
 end
+
+-- used to highlight references of the word under the cursor
+-- when the cursor rests there for a little while
+function setup_highlight_references_hover(event)
+  local client = vim.lsp.get_client_by_id(event.data.client_id)
+
+  if client and client.server_capabilities.documentHighlightProvider then
+    vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
+      desc = 'Highlight references of the word under the cursor',
+      group = vim.api.nvim_create_augroup('highlight-references-hover-' .. event.buf, { clear = false }),
+      buffer = event.buf,
+      callback = vim.lsp.buf.document_highlight,
+    })
+
+    -- when you move your cursor, the highlights will be cleared
+    vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+      desc = 'Clear reference highlights when moving the cursor away',
+      group = vim.api.nvim_create_augroup('highlight-references-clear-' .. event.buf, { clear = false }),
+      buffer = event.buf,
+      callback = vim.lsp.buf.clear_references,
+    })
+  end
+end
