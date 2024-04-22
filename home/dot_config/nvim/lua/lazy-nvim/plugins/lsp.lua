@@ -138,6 +138,11 @@ return {
           -- [[ Buffer local mappings ]]
           local opts = { buffer = event.buf, silent = true }
 
+          -- Opens a popup that displays documentation about the word under your cursor
+          -- See `:help K` for why this keymap.
+          opts.desc = 'Hover Documentation'
+          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
           -- To jump back, press <C-t>.
@@ -168,6 +173,16 @@ return {
           -- Similar to document symbols, except searches over your entire project.
           opts.desc = 'Show workspace [S]ymbols'
           vim.keymap.set('n', '<leader>lS', builtin.lsp_dynamic_workspace_symbols, opts)
+
+          -- Rename the variable under your cursor.
+          -- Most Language Servers support renaming across files, etc.
+          opts.desc = '[R]ename variable'
+          vim.keymap.set('n', 'gR', vim.lsp.buf.rename, opts)
+
+          -- Execute a code action, usually your cursor needs to be on top of an error
+          -- or a suggestion from your LSP for this to activate.
+          opts.desc = 'Execute code [a]ction'
+          vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, opts)
         end
       })
     end
