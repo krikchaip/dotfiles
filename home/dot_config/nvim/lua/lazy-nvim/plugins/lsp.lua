@@ -190,6 +190,17 @@ return {
           -- or a suggestion from your LSP for this to activate.
           opts.desc = 'Execute code [a]ction'
           vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, opts)
+
+          local client = vim.lsp.get_client_by_id(event.data.client_id)
+
+          -- Enable inlay hints (for Nvim v0.10.0 and onwards)
+          -- ref: https://www.youtube.com/watch?v=DYaTzkw3zqQ
+          if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
+            opts.desc = 'Toggle inlay [h]ints'
+            vim.keymap.set('n', '<leader>lh', function()
+              vim.lsp.inlay_hint.enable(0, not vim.lsp.inlay_hint.is_enabled())
+            end, opts)
+          end
         end
       })
     end
