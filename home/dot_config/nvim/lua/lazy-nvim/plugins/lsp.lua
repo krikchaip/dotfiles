@@ -76,11 +76,13 @@ return {
       'mason-lspconfig',
       'neodev',
       'nvim-treesitter.textobjects',
+      'telescope',
     },
     config = function()
       local lspconfig = require 'lspconfig'
       local mason_lspconfig = require 'mason-lspconfig'
       local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+      local builtin = require 'telescope.builtin'
 
       -- default Nvim LSP client capabilities
       local capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -135,6 +137,37 @@ return {
 
           -- [[ Buffer local mappings ]]
           local opts = { buffer = event.buf, silent = true }
+
+          -- Jump to the definition of the word under your cursor.
+          -- This is where a variable was first declared, or where a function is defined, etc.
+          -- To jump back, press <C-t>.
+          opts.desc = 'Jump to [d]efinition'
+          vim.keymap.set('n', 'gd', builtin.lsp_definitions, opts)
+
+          -- Jump to the type of the word under your cursor.
+          -- Useful when you're not sure what type a variable is and you want to see
+          -- the definition of its *type*, not where it was *defined*.
+          opts.desc = 'Jump to type [D]efinition'
+          vim.keymap.set('n', 'gD', builtin.lsp_type_definitions, opts)
+
+          -- Jump to the implementation of the word under your cursor.
+          -- Useful when your language has ways of declaring types without an actual implementation.
+          opts.desc = 'Jump to [I]mplementation'
+          vim.keymap.set('n', 'gI', builtin.lsp_implementations, opts)
+
+          -- Find all references for the word under your cursor.
+          opts.desc = 'Show [r]eferences'
+          vim.keymap.set('n', 'gr', builtin.lsp_references, opts)
+
+          -- Fuzzy find all the symbols in your current document.
+          -- Symbols are things like variables, functions, types, etc.
+          opts.desc = 'Show document [s]ymbols'
+          vim.keymap.set('n', '<leader>ls', builtin.lsp_document_symbols, opts)
+
+          -- Fuzzy find all the symbols in your current workspace.
+          -- Similar to document symbols, except searches over your entire project.
+          opts.desc = 'Show workspace [S]ymbols'
+          vim.keymap.set('n', '<leader>lS', builtin.lsp_dynamic_workspace_symbols, opts)
         end
       })
     end
