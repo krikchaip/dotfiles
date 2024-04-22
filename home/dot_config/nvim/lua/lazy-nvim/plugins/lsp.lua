@@ -64,6 +64,9 @@ return {
     'folke/neodev.nvim',
     name = 'neodev',
     opts = {},
+    config = function(_, opts)
+      require('neodev').setup(opts)
+    end
   },
 
   -- actual configs and apis for the Nvim LSP client
