@@ -82,13 +82,35 @@ return {
       local mason_lspconfig = require 'mason-lspconfig'
       local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
+      -- default Nvim LSP client capabilities
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+
+      -- [[ lspconfig-all, lspconfig-setup ]]
       mason_lspconfig.setup_handlers {
         -- will be called for each installed server that doesn't have a dedicated handler
         function(server_name)
           lspconfig[server_name].setup {
-            -- ...
+            -- tell LSP servers what capabilities that the client (nvim) can handle
+            capabilities = capabilities,
           }
         end,
+
+        -- ref: https://luals.github.io/wiki/settings
+        ['lua_ls'] = function()
+          lspconfig['lua_ls'].setup {
+            capabilities = capabilities,
+            settings = {
+              Lua = {
+                completion = {
+                  callSnippet = 'Replace',
+                },
+                diagnostics = {
+                  disable = { 'missing-fields' }
+                },
+              }
+            },
+          }
+        end
       }
 
       -- Global keymappings that doesn't require a buffer
