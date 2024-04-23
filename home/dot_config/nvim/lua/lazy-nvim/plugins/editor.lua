@@ -12,6 +12,10 @@ return {
     'm4xshen/autoclose.nvim',
     name = 'autoclose',
     event = { 'InsertEnter' },
+    opts = {},
+    config = function(_, opts)
+      require('autoclose').setup(opts)
+    end
   },
 
   -- Making Comment.nvim understands jsx, vue, markdown and etc.
