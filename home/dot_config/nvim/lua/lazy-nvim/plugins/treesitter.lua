@@ -4,6 +4,7 @@ return {
   {
     'nushell/tree-sitter-nu',
     name = 'nvim-treesitter.nushell',
+    event = { 'BufReadPre *.nu', 'BufNewFile *.nu' },
   },
 
   -- extended text objects (di*, da*, ci*, ca*, etc.)
@@ -18,6 +19,7 @@ return {
   {
     'windwp/nvim-ts-autotag',
     name = 'nvim-treesitter.autotag',
+    event = { 'InsertEnter' },
   },
 
   -- Highlight, edit, and code navigation
@@ -26,11 +28,7 @@ return {
     'nvim-treesitter/nvim-treesitter',
     name = 'nvim-treesitter',
     build = ':TSUpdate',
-    dependencies = {
-      'nvim-treesitter.nushell',
-      'nvim-treesitter.textobjects',
-      'nvim-treesitter.autotag',
-    },
+    event = { 'BufReadPre', 'BufNewFile' },
     opts = {
       auto_install = true, -- Autoinstall languages that are not installed
 
