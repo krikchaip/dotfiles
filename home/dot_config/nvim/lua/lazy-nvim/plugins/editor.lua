@@ -3,6 +3,7 @@ return {
   {
     'tpope/vim-sleuth',
     name = 'vim-sleuth',
+    event = { 'BufReadPre', 'BufNewFile' },
   },
 
   -- A minimalist auto brackets closer
@@ -10,6 +11,7 @@ return {
   {
     'm4xshen/autoclose.nvim',
     name = 'autoclose',
+    event = { 'InsertEnter' },
   },
 
   -- Making Comment.nvim understands jsx, vue, markdown and etc.
@@ -50,28 +52,18 @@ return {
   {
     'numToStr/Comment.nvim',
     name = 'comment',
+    keys = {
+      { '<C-/>',   '<Plug>(comment_toggle_linewise_current)',  desc = 'Toggle comment on the current line [linewise]' },
+      { '<C-S-/>', '<Plug>(comment_toggle_blockwise_current)', desc = 'Toggle comment on the current line [blockwise]' },
+      { '<C-/>',   '<Plug>(comment_toggle_linewise_visual)',   desc = 'Toggle comment on the selected region [linewise]',  mode = 'x' },
+      { '<C-S-/>', '<Plug>(comment_toggle_blockwise_visual)',  desc = 'Toggle comment on the selected region [blockwise]', mode = 'x' },
+    },
     dependencies = { 'ts-context-commentstring' },
     config = function()
       require('Comment').setup {
         -- integrate with nvim-ts-context-commentstring
         pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook()
       }
-
-      vim.keymap.set('n', '<C-/>', '<Plug>(comment_toggle_linewise_current)', {
-        desc = 'Toggle comment on the current line [linewise]',
-      })
-
-      vim.keymap.set('n', '<C-S-/>', '<Plug>(comment_toggle_blockwise_current)', {
-        desc = 'Toggle comment on the current line [blockwise]',
-      })
-
-      vim.keymap.set('x', '<C-/>', '<Plug>(comment_toggle_linewise_visual)', {
-        desc = 'Toggle comment on the selected region [linewise]'
-      })
-
-      vim.keymap.set('x', '<C-S-/>', '<Plug>(comment_toggle_blockwise_visual)', {
-        desc = 'Toggle comment on the selected region [blockwise]'
-      })
     end
   },
 }
