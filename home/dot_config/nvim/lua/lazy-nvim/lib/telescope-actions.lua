@@ -1,7 +1,3 @@
-local actions = require 'telescope.actions'
-local action_state = require 'telescope.actions.state'
-local pickers = require 'telescope.pickers'
-
 local edit_file_cmd_map = {
   vertical   = 'vsplit',
   horizontal = 'split',
@@ -18,11 +14,11 @@ local edit_buf_cmd_map = {
 
 -- ref: https://github.com/nvim-telescope/telescope.nvim/issues/1048#issuecomment-1227591722
 local function select_one_or_multi(method, prompt_bufnr)
-  local picker = action_state.get_current_picker(prompt_bufnr)
+  local picker = require('telescope.actions.state').get_current_picker(prompt_bufnr)
   local multi_selection = picker:get_multi_selection()
 
   if #multi_selection > 1 then
-    pickers.on_close_prompt(prompt_bufnr)
+    require('telescope.pickers').on_close_prompt(prompt_bufnr)
     pcall(vim.api.nvim_set_current_win, picker.original_win_id)
 
     for i, entry in ipairs(multi_selection) do
@@ -74,7 +70,7 @@ local function select_one_or_multi(method, prompt_bufnr)
       end
     end
   else
-    actions['select_' .. method](prompt_bufnr)
+    require('telescope.actions')['select_' .. method](prompt_bufnr)
   end
 end
 

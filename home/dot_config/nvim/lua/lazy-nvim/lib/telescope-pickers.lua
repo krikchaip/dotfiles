@@ -24,4 +24,13 @@ function M.find_files(opts)
   require('telescope.builtin').find_files(opts)
 end
 
+function M.local_fuzzy_find()
+  local opts = require('telescope.themes').get_dropdown {
+    winblend = 10,
+    previewer = false,
+  }
+
+  require('telescope.builtin').current_buffer_fuzzy_find(opts)
+end
+
 return M
