@@ -72,7 +72,7 @@ return {
       { '<leader>gt',       '<cmd>Telescope git_stash<CR>',       desc = 'List s[t]ash items' },
       { '<leader>gm',       '<cmd>Telescope conflicts<CR>',       desc = 'Show [m]erge conflicts' },
     },
-    dependencies = { 'plenary', 'web-devicons' },
+    dependencies = { 'plenary', 'web-devicons', 'nvim-treesitter' },
     config = function()
       local telescope = require 'telescope'
       local actions = require 'telescope.actions'
