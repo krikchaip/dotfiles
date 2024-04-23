@@ -19,7 +19,6 @@ return {
   {
     'windwp/nvim-ts-autotag',
     name = 'nvim-treesitter.autotag',
-    event = { 'InsertEnter' },
   },
 
   -- Highlight, edit, and code navigation
@@ -29,6 +28,7 @@ return {
     name = 'nvim-treesitter',
     build = ':TSUpdate',
     event = { 'BufReadPre', 'BufNewFile' },
+    dependencies = { 'nvim-treesitter.autotag' },
     opts = {
       auto_install = true, -- Autoinstall languages that are not installed
 
