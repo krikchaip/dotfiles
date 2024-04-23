@@ -1,3 +1,5 @@
+local custom_pickers = require 'lazy-nvim.lib.telescope-pickers'
+
 return {
   -- Help improve Telescope sorting performance
   {
@@ -28,6 +30,84 @@ return {
     name = 'telescope',
     -- branch = '0.1.x',
     commit = '4d4ade7', -- pinned until `autocmd` feature is fixed in the next version
+    keys = {
+      -- [[ Documentations ]]
+      { '<C-S-h>', '<cmd>Telescope help_tags<CR>',    desc = 'Search nvim help pages' },
+      { '<C-S-m>', '<cmd>Telescope man_pages<CR>',    desc = 'Search man pages' },
+
+      -- [[ NVim settings ]]
+      { '<C-,>c',  '<cmd>Telescope colorscheme<CR>',  desc = 'Change [c]olorscheme' },
+      { '<C-,>o',  '<cmd>Telescope vim_options<CR>',  desc = 'Set nvim [o]ptions' },
+      { '<C-,>a',  '<cmd>Telescope autocommands<CR>', desc = 'List nvim [a]utocommands' },
+      { '<C-,>k',  '<cmd>Telescope keymaps<CR>',      desc = 'List [k]eymappings' },
+
+      -- Shortcut for searching your Chezmoi files
+      {
+        '<C-S-,>',
+        function()
+          -- NOTE: this is somehow doesn't work
+          -- telescope.extensions.chezmoi.find_files {}
+
+          require('telescope.builtin').find_files {
+            prompt_title = 'Chezmoi files',
+            cwd = os.getenv('HOME') .. '/.local/share/chezmoi'
+          }
+        end,
+        desc = 'Search Chezmoi files'
+      },
+
+      -- [[ Histories ]]
+      { '<leader>|',        '<cmd>Telescope oldfiles<CR>',        desc = 'Buffer history' },
+      { '<leader>?',        '<cmd>Telescope search_history<CR>',  desc = 'Search history' },
+      { '<leader>:',        '<cmd>Telescope command_history<CR>', desc = 'Command history' },
+
+      -- [[ Navigation ]]
+      { '<leader>\\',       '<cmd>Telescope buffers<CR>',         desc = 'Search open buffers' },
+      { '<leader>a',        '<cmd>Telescope builtin<CR>',         desc = 'Search [a]ll pickers' },
+      { '<leader><leader>', '<cmd>Telescope resume<CR>',          desc = 'Resume last search' },
+
+      -- [[ Explorer ]]
+      { '<leader>ef',       custom_pickers.find_files,            desc = '[e]xplorer find [f]iles' },
+
+      -- [[ Menus ]]
+      { '<C-S-;>',          '<cmd>Telescope commands<CR>',        desc = 'Search custom commands' },
+
+      -- [[ Full-text search ]]
+      {
+        '<leader>*',
+        '<cmd>Telescope grep_string<CR>',
+        desc = 'Search current word in workspace',
+        mode = { 'n', 'x' },
+      },
+
+      -- Search text within workspace using grep_string
+      {
+        '<C-S-f>',
+        function()
+          -- Live grep does not support fuzzy finding
+          -- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
+          require('telescope.builtin').grep_string {
+            prompt_title = 'Search current workspace',
+            search = '',
+            only_sort_text = true
+          }
+        end,
+        desc = 'Search text in current workspace',
+        mode = { 'n', 'i' },
+      },
+
+      -- Fuzzy search within buffer
+      { '<leader>/',  custom_pickers.local_fuzzy_find,   desc = 'Fuzzily search in current buffer', mode = 'n' },
+      { '<C-f>',      custom_pickers.local_fuzzy_find,   desc = 'Fuzzily search in current buffer', mode = 'i' },
+
+      -- [[ Git Integration ]]
+      { '<leader>gl', '<cmd>Telescope git_commits<CR>',  desc = 'Show Git repo [l]ogs' },
+      { '<leader>gf', '<cmd>Telescope git_bcommits<CR>', desc = 'Show [f]ile commits' },
+      { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Manage [b]ranches' },
+      { '<leader>gs', '<cmd>Telescope git_status<CR>',   desc = 'Show Git [s]tatus' },
+      { '<leader>gt', '<cmd>Telescope git_stash<CR>',    desc = 'List s[t]ash items' },
+      { '<leader>gm', '<cmd>Telescope conflicts<CR>',    desc = 'Show [m]erge conflicts' },
+    },
     dependencies = {
       'plenary',
       'web-devicons',
@@ -35,17 +115,14 @@ return {
       'telescope.fzf',
       'telescope.ui-select',
       'telescope.conflicts',
-
       'chezmoi.file-watcher',
     },
     config = function()
       local telescope = require 'telescope'
-      local builtin = require 'telescope.builtin'
       local actions = require 'telescope.actions'
       local themes = require 'telescope.themes'
 
       local custom_actions = require 'lazy-nvim.lib.telescope-actions'
-      local custom_pickers = require 'lazy-nvim.lib.telescope-pickers'
 
       telescope.setup {
         defaults = {
@@ -230,76 +307,6 @@ return {
 
       -- Custom Telescope auto commands
       require 'lazy-nvim.lib.telescope-autocmd'
-
-      -- [[ Documentations ]]
-      vim.keymap.set('n', '<C-S-h>', builtin.help_tags, { desc = 'Search nvim help pages' })
-      vim.keymap.set('n', '<C-S-m>', builtin.man_pages, { desc = 'Search man pages' })
-
-      -- [[ NVim settings ]]
-      vim.keymap.set('n', '<C-,>c', builtin.colorscheme, { desc = 'Change [c]olorscheme' })
-      vim.keymap.set('n', '<C-,>o', builtin.vim_options, { desc = 'Set nvim [o]ptions' })
-      vim.keymap.set('n', '<C-,>a', builtin.autocommands, { desc = 'List nvim [a]utocommands' })
-      vim.keymap.set('n', '<C-,>k', builtin.keymaps, { desc = 'List [k]eymappings' })
-
-      -- Shortcut for searching your Chezmoi files
-      vim.keymap.set('n', '<C-S-,>', function()
-        -- telescope.extensions.chezmoi.find_files {}
-        builtin.find_files {
-          prompt_title = 'Chezmoi files',
-          cwd = os.getenv('HOME') .. '/.local/share/chezmoi'
-        }
-      end, { desc = 'Search Chezmoi files' })
-
-      -- [[ Histories ]]
-      vim.keymap.set('n', '<leader>|', builtin.oldfiles, { desc = 'Buffer history' })
-      vim.keymap.set('n', '<leader>?', builtin.search_history, { desc = 'Search history' })
-      vim.keymap.set('n', '<leader>:', builtin.command_history, { desc = 'Command history' })
-
-      -- [[ Navigation ]]
-      vim.keymap.set('n', '<leader>\\', builtin.buffers, { desc = 'Search open buffers' })
-      vim.keymap.set('n', '<leader>a', builtin.builtin, { desc = 'Search [a]ll pickers' })
-      vim.keymap.set('n', '<leader><leader>', builtin.resume, { desc = 'Resume last search' })
-
-      -- [[ Explorer ]]
-      vim.keymap.set('n', '<leader>ef', custom_pickers.find_files, { desc = '[e]xplorer find [f]iles' })
-
-      -- [[ Menus ]]
-      vim.keymap.set('n', '<C-S-;>', builtin.commands, { desc = 'Search custom commands' })
-
-      -- [[ Full-text search ]]
-      vim.keymap.set({ 'n', 'x' }, '<leader>*', builtin.grep_string, {
-        desc = 'Search current word in workspace'
-      })
-
-      -- Search text within workspace using grep_string
-      vim.keymap.set({ 'n', 'i' }, '<C-S-f>', function()
-        -- Live grep does not support fuzzy finding
-        -- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
-        builtin.grep_string {
-          prompt_title = 'Search current workspace',
-          search = '',
-          only_sort_text = true
-        }
-      end, { desc = 'Search text in current workspace' })
-
-      -- Fuzzy search within buffer
-      local function local_fuzzy_find()
-        builtin.current_buffer_fuzzy_find(themes.get_dropdown {
-          winblend = 10,
-          previewer = false,
-        })
-      end
-
-      vim.keymap.set('n', '<leader>/', local_fuzzy_find, { desc = 'Fuzzily search in current buffer' })
-      vim.keymap.set('i', '<C-f>', local_fuzzy_find, { desc = 'Fuzzily search in current buffer' })
-
-      -- [[ Git Integration ]]
-      vim.keymap.set('n', '<leader>gl', builtin.git_commits, { desc = 'Show Git repo [l]ogs' })
-      vim.keymap.set('n', '<leader>gf', builtin.git_bcommits, { desc = 'Show [f]ile commits' })
-      vim.keymap.set('n', '<leader>gb', builtin.git_branches, { desc = 'Manage [b]ranches' })
-      vim.keymap.set('n', '<leader>gs', builtin.git_status, { desc = 'Show Git [s]tatus' })
-      vim.keymap.set('n', '<leader>gt', builtin.git_stash, { desc = 'List s[t]ash items' })
-      vim.keymap.set('n', '<leader>gm', '<cmd>Telescope conflicts<CR>', { desc = 'Show [m]erge conflicts' })
     end,
   },
 }
