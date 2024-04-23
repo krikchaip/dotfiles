@@ -3,6 +3,7 @@ return {
     'folke/tokyonight.nvim',
     name = 'colorscheme.tokyonight',
     priority = 1000,
+    lazy = false,
     config = function()
       require('tokyonight').setup {
         style = 'storm',
@@ -17,6 +18,7 @@ return {
     'loctvl842/monokai-pro.nvim',
     name = 'colorscheme.monokai-pro',
     priority = 1000,
+    -- lazy = false,
     config = function()
       require('monokai-pro').setup {
         filter = 'pro',

@@ -2,6 +2,10 @@
 -- run `:checkhealth` for more info. for example `:checkhealth telescope`
 
 require('lazy').setup('lazy-nvim.plugins', {
+  defaults = {
+    lazy = true, -- should all plugins be lazy-loaded?
+  },
+
   install = {
     -- try to load one of these colorschemes when starting an installation during startup
     colorscheme = { 'tokyonight', 'monokai-pro' }
