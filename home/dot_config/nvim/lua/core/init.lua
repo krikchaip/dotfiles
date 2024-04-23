@@ -1,3 +1,4 @@
+require 'core.util'
 require 'core.opt'
 require 'core.diagnostic'
 require 'core.keymap'
