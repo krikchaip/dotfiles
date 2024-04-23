@@ -39,7 +39,7 @@ return {
   {
     'petertriho/nvim-scrollbar',
     name = 'scrollbar',
-    dependencies = { 'colorscheme.tokyonight' },
+    event = { 'BufReadPre', 'BufNewFile' },
     config = function()
       local colors = require('tokyonight.colors').setup()
 
