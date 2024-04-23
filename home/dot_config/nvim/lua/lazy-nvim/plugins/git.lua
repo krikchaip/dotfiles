@@ -5,6 +5,9 @@ return {
     'lewis6991/gitsigns.nvim',
     name = 'gitsigns',
     version = '^0.8.0',
+    cond = function()
+      return is_git_repo() or is_git_file()
+    end,
     event = { 'BufReadPre', 'BufNewFile' },
     opts = {
       signs                             = {
