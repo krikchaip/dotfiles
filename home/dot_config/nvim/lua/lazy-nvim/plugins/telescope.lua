@@ -116,32 +116,35 @@ return {
           mappings = {
             i = {
               ['<C-c>'] = false,
-              ['<C-l>'] = false,
+              ['<C-f>'] = false,
               ['<C-n>'] = false,
               ['<C-p>'] = false,
               ['<C-r><C-w>'] = false,
               ['<M-f>'] = false,
+              ['<M-k>'] = false,
               ['<S-Tab>'] = false,
 
               -- close prompt with these instead of <C-c>
               ['<ESC>'] = actions.close,
               ['<C-q>'] = actions.close,
 
-              -- preview horizontal scrolling (<C-d>, <C-u> for vertical)
-              ['<C-f>'] = actions.preview_scrolling_right,
-              ['<C-b>'] = actions.preview_scrolling_left,
-
-              -- result scrolling alternatives
-              ['<M-h>'] = actions.results_scrolling_left,
-              ['<M-l>'] = actions.results_scrolling_right,
-              ['<M-j>'] = actions.results_scrolling_down,
-              ['<M-k>'] = actions.results_scrolling_up,
-
-              -- move selection alternatives
+              -- move selection
               ['<C-j>'] = actions.move_selection_next,
               ['<C-k>'] = actions.move_selection_previous,
 
-              -- remap <Tab> keys
+              -- result scrolling
+              ['<C-h>'] = actions.results_scrolling_left,
+              ['<C-l>'] = actions.results_scrolling_right,
+              ['<C-d>'] = actions.results_scrolling_down,
+              ['<C-u>'] = actions.results_scrolling_up,
+
+              -- preview scrolling
+              ['<M-h>'] = actions.preview_scrolling_left,
+              ['<M-l>'] = actions.preview_scrolling_right,
+              ['<M-d>'] = actions.preview_scrolling_down,
+              ['<M-u>'] = actions.preview_scrolling_up,
+
+              -- remap <Tab> key to just only select result
               ['<Tab>'] = actions.toggle_selection,
 
               -- cycle through Git previewers
