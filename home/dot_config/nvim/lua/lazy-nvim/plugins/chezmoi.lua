@@ -2,6 +2,10 @@ return {
   {
     'xvzc/chezmoi.nvim',
     name = 'chezmoi.file-watcher',
+    event = {
+      'BufReadPre */.local/share/chezmoi/*',
+      'BufNewFile */.local/share/chezmoi/*',
+    },
     dependencies = { 'plenary' },
     config = function()
       require('chezmoi').setup {
@@ -22,10 +26,10 @@ return {
       }
 
       -- Automatically apply changes on files under chezmoi source path
-      vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
+      vim.api.nvim_create_autocmd({ 'BufReadPre', 'BufNewFile' }, {
         desc = 'Automatically apply changes on files under chezmoi source path',
         group = vim.api.nvim_create_augroup('chezmoi-watch', { clear = true }),
-        pattern = { os.getenv('HOME') .. '/.local/share/chezmoi/*' },
+        pattern = { '*/.local/share/chezmoi/*' },
         callback = function()
           vim.schedule(require('chezmoi.commands.__edit').watch)
         end,
@@ -36,6 +40,10 @@ return {
   {
     'alker0/chezmoi.vim',
     name = 'chezmoi.syntax-highlighter',
+    event = {
+      'BufReadPre */.local/share/chezmoi/*',
+      'BufNewFile */.local/share/chezmoi/*',
+    },
     init = function()
       -- This option is required.
       vim.g['chezmoi#use_tmp_buffer'] = true
