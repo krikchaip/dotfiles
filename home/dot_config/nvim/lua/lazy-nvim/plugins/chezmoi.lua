@@ -40,10 +40,7 @@ return {
   {
     'alker0/chezmoi.vim',
     name = 'chezmoi.syntax-highlighter',
-    event = {
-      'BufReadPre */.local/share/chezmoi/*',
-      'BufNewFile */.local/share/chezmoi/*',
-    },
+    lazy = false,
     init = function()
       -- This option is required.
       vim.g['chezmoi#use_tmp_buffer'] = true
