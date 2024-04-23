@@ -5,7 +5,7 @@ return {
     'lewis6991/gitsigns.nvim',
     name = 'gitsigns',
     version = '^0.8.0',
-    dependencies = { 'nvim-treesitter.textobjects', 'scrollbar' },
+    event = { 'BufReadPre', 'BufNewFile' },
     opts = {
       signs                             = {
         -- add          = { text = '+' },

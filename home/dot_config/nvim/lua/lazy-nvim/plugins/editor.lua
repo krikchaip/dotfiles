@@ -58,7 +58,6 @@ return {
       { '<C-/>',   '<Plug>(comment_toggle_linewise_visual)',   desc = 'Toggle comment on the selected region [linewise]',  mode = 'x' },
       { '<C-S-/>', '<Plug>(comment_toggle_blockwise_visual)',  desc = 'Toggle comment on the selected region [blockwise]', mode = 'x' },
     },
-    dependencies = { 'ts-context-commentstring' },
     config = function()
       require('Comment').setup {
         -- integrate with nvim-ts-context-commentstring
