@@ -32,29 +32,15 @@ return {
     commit = '4d4ade7', -- pinned until `autocmd` feature is fixed in the next version
     keys = {
       -- [[ Documentations ]]
-      { '<C-S-h>', '<cmd>Telescope help_tags<CR>',    desc = 'Search nvim help pages' },
-      { '<C-S-m>', '<cmd>Telescope man_pages<CR>',    desc = 'Search man pages' },
+      { '<C-S-h>',          '<cmd>Telescope help_tags<CR>',       desc = 'Search nvim help pages' },
+      { '<C-S-m>',          '<cmd>Telescope man_pages<CR>',       desc = 'Search man pages' },
 
       -- [[ NVim settings ]]
-      { '<C-,>c',  '<cmd>Telescope colorscheme<CR>',  desc = 'Change [c]olorscheme' },
-      { '<C-,>o',  '<cmd>Telescope vim_options<CR>',  desc = 'Set nvim [o]ptions' },
-      { '<C-,>a',  '<cmd>Telescope autocommands<CR>', desc = 'List nvim [a]utocommands' },
-      { '<C-,>k',  '<cmd>Telescope keymaps<CR>',      desc = 'List [k]eymappings' },
-
-      -- Shortcut for searching your Chezmoi files
-      {
-        '<C-S-,>',
-        function()
-          -- NOTE: this is somehow doesn't work
-          -- telescope.extensions.chezmoi.find_files {}
-
-          require('telescope.builtin').find_files {
-            prompt_title = 'Chezmoi files',
-            cwd = os.getenv('HOME') .. '/.local/share/chezmoi'
-          }
-        end,
-        desc = 'Search Chezmoi files'
-      },
+      { '<C-,>c',           '<cmd>Telescope colorscheme<CR>',     desc = 'Change [c]olorscheme' },
+      { '<C-,>o',           '<cmd>Telescope vim_options<CR>',     desc = 'Set nvim [o]ptions' },
+      { '<C-,>a',           '<cmd>Telescope autocommands<CR>',    desc = 'List nvim [a]utocommands' },
+      { '<C-,>k',           '<cmd>Telescope keymaps<CR>',         desc = 'List [k]eymappings' },
+      { '<C-S-,>',          custom_pickers.find_chezmoi_files,    desc = 'Search Chezmoi files' },
 
       -- [[ Histories ]]
       { '<leader>|',        '<cmd>Telescope oldfiles<CR>',        desc = 'Buffer history' },
@@ -73,40 +59,18 @@ return {
       { '<C-S-;>',          '<cmd>Telescope commands<CR>',        desc = 'Search custom commands' },
 
       -- [[ Full-text search ]]
-      {
-        '<leader>*',
-        '<cmd>Telescope grep_string<CR>',
-        desc = 'Search current word in workspace',
-        mode = { 'n', 'x' },
-      },
-
-      -- Search text within workspace using grep_string
-      {
-        '<C-S-f>',
-        function()
-          -- Live grep does not support fuzzy finding
-          -- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
-          require('telescope.builtin').grep_string {
-            prompt_title = 'Search current workspace',
-            search = '',
-            only_sort_text = true
-          }
-        end,
-        desc = 'Search text in current workspace',
-        mode = { 'n', 'i' },
-      },
-
-      -- Fuzzy search within buffer
-      { '<leader>/',  custom_pickers.local_fuzzy_find,   desc = 'Fuzzily search in current buffer', mode = 'n' },
-      { '<C-f>',      custom_pickers.local_fuzzy_find,   desc = 'Fuzzily search in current buffer', mode = 'i' },
+      { '<leader>*',        '<cmd>Telescope grep_string<CR>',     desc = 'Search current word in workspace', mode = { 'n', 'x' } },
+      { '<leader>/',        custom_pickers.local_fuzzy_find,      desc = 'Fuzzily search in current buffer', mode = 'n' },
+      { '<C-f>',            custom_pickers.local_fuzzy_find,      desc = 'Fuzzily search in current buffer', mode = 'i' },
+      { '<C-S-f>',          custom_pickers.workspace_fuzzy_find,  desc = 'Search text in current workspace', mode = { 'n', 'i' }, },
 
       -- [[ Git Integration ]]
-      { '<leader>gl', '<cmd>Telescope git_commits<CR>',  desc = 'Show Git repo [l]ogs' },
-      { '<leader>gf', '<cmd>Telescope git_bcommits<CR>', desc = 'Show [f]ile commits' },
-      { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Manage [b]ranches' },
-      { '<leader>gs', '<cmd>Telescope git_status<CR>',   desc = 'Show Git [s]tatus' },
-      { '<leader>gt', '<cmd>Telescope git_stash<CR>',    desc = 'List s[t]ash items' },
-      { '<leader>gm', '<cmd>Telescope conflicts<CR>',    desc = 'Show [m]erge conflicts' },
+      { '<leader>gl',       '<cmd>Telescope git_commits<CR>',     desc = 'Show Git repo [l]ogs' },
+      { '<leader>gf',       '<cmd>Telescope git_bcommits<CR>',    desc = 'Show [f]ile commits' },
+      { '<leader>gb',       '<cmd>Telescope git_branches<CR>',    desc = 'Manage [b]ranches' },
+      { '<leader>gs',       '<cmd>Telescope git_status<CR>',      desc = 'Show Git [s]tatus' },
+      { '<leader>gt',       '<cmd>Telescope git_stash<CR>',       desc = 'List s[t]ash items' },
+      { '<leader>gm',       '<cmd>Telescope conflicts<CR>',       desc = 'Show [m]erge conflicts' },
     },
     dependencies = { 'plenary', 'web-devicons' },
     config = function()

@@ -24,6 +24,17 @@ function M.find_files(opts)
   require('telescope.builtin').find_files(opts)
 end
 
+function M.find_chezmoi_files()
+  -- NOTE: this is somehow doesn't work
+  -- telescope.extensions.chezmoi.find_files {}
+
+  require('telescope.builtin').find_files {
+    prompt_title = 'Chezmoi files',
+    cwd = os.getenv('HOME') .. '/.local/share/chezmoi'
+  }
+end
+
+-- Fuzzy search within buffer
 function M.local_fuzzy_find()
   local opts = require('telescope.themes').get_dropdown {
     winblend = 10,
@@ -31,6 +42,17 @@ function M.local_fuzzy_find()
   }
 
   require('telescope.builtin').current_buffer_fuzzy_find(opts)
+end
+
+-- Search text within workspace using grep_string
+function M.workspace_fuzzy_find()
+  -- Live grep does not support fuzzy finding
+  -- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
+  require('telescope.builtin').grep_string {
+    prompt_title = 'Search current workspace',
+    search = '',
+    only_sort_text = true
+  }
 end
 
 return M
