@@ -75,7 +75,7 @@ return {
   {
     'kevinhwang91/nvim-hlslens',
     name = 'hlslens',
-    dependencies = { 'scrollbar' },
+    keys = { '/', '?' },
     config = function()
       require('scrollbar.handlers.search').setup {
         virt_priority = 100,
@@ -107,7 +107,7 @@ return {
   {
     'nvim-treesitter/nvim-treesitter-context',
     name = 'treesitter-context',
-    dependencies = { 'nvim-treesitter.textobjects' },
+    event = { 'BufReadPre', 'BufNewFile' },
     opts = {
       enable = true,
       -- max_lines = 3,           -- How many lines the window should span. Values <= 0 mean no limit.
@@ -133,6 +133,9 @@ return {
   {
     'folke/twilight.nvim',
     name = 'twilight',
+    keys = {
+      { '<leader>z', '<cmd>Twilight<CR>', desc = 'Toggle [z]en mode 🧘🏼' }
+    },
     config = function()
       require('twilight').setup {
         dimming = {
@@ -143,8 +146,6 @@ return {
         -- amount of lines we will try to show around the current line
         context = 10,
       }
-
-      vim.keymap.set('n', '<leader>z', '<cmd>Twilight<CR>', { desc = 'Toggle [z]en mode 🧘🏼' })
     end
   }
 }
