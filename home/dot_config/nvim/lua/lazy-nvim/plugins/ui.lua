@@ -119,12 +119,12 @@ return {
 
       ts_context.setup(opts)
 
-      local _, ctx_upward_repeatable = ts_repeat_move.make_repeatable_move_pair(
+      local _, ctx_upward = ts_repeat_move.make_repeatable_move_pair(
         function() end,
         function() ts_context.go_to_context(vim.v.count1) end
       )
 
-      vim.keymap.set('n', '[C', ctx_upward_repeatable, { desc = 'Jump to [C]ontext upwards' })
+      vim.keymap.set('n', '[C', ctx_upward, { desc = 'Jump to [C]ontext upwards' })
     end
   },
 
