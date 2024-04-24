@@ -27,10 +27,10 @@ return {
       current_line_blame                = true,  -- Toggle with `:Gitsigns toggle_current_line_blame`
 
       current_line_blame_opts           = {
-        virt_text_pos = 'eol', -- 'eol' | 'overlay' | 'right_align'
+        virt_text_pos      = 'eol', -- 'eol' | 'overlay' | 'right_align'
         virt_text_priority = 1000,
-        delay = 500,
-        ignore_whitespace = true,
+        delay              = 500,
+        ignore_whitespace  = true,
       },
 
       current_line_blame_formatter      = '     <author>, <author_time:%R> · <summary>',
@@ -42,90 +42,84 @@ return {
         local gitsigns = require 'gitsigns'
         local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
-        local function map(mode, l, r, opts)
-          opts = opts or {}
-          opts.buffer = bufnr
-
-          vim.keymap.set(mode, l, r, opts)
-        end
+        -- set buffer to `0` or `true` for current buffer
+        local kopts = { buffer = bufnr, silent = true }
 
         -- [[ Navigation ]]
 
-        local next_hunk_repeatable, prev_hunk_repeatable =
-            ts_repeat_move.make_repeatable_move_pair(
-              function()
-                if vim.wo.diff then
-                  vim.cmd.normal({ ']c', bang = true })
-                else
-                  gitsigns.nav_hunk('next', { preview = true })
-                end
-              end,
-              function()
-                if vim.wo.diff then
-                  vim.cmd.normal({ '[c', bang = true })
-                else
-                  gitsigns.nav_hunk('prev', { preview = true })
-                end
-              end
-            )
+        local next_hunk, prev_hunk = ts_repeat_move.make_repeatable_move_pair(
+          function()
+            if vim.wo.diff then
+              vim.cmd.normal({ ']c', bang = true })
+            else
+              gitsigns.nav_hunk('next', { preview = true })
+            end
+          end,
+          function()
+            if vim.wo.diff then
+              vim.cmd.normal({ '[c', bang = true })
+            else
+              gitsigns.nav_hunk('prev', { preview = true })
+            end
+          end
+        )
 
-        map('n', ']c', next_hunk_repeatable, { desc = 'Jump to next unstaged [c]hange' })
-        map('n', '[c', prev_hunk_repeatable, { desc = 'Jump to previous unstaged [c]hange' })
+        kopts.desc = 'Jump to next unstaged [c]hange'
+        vim.keymap.set('n', ']c', next_hunk, kopts)
+
+        kopts.desc = 'Jump to previous unstaged [c]hange'
+        vim.keymap.set('n', '[c', prev_hunk, kopts)
 
         -- [[ Menus ]]
 
-        map('n', '<leader>gd', function()
-          gitsigns.diffthis()
-        end, { desc = 'Show [d]iff against staged changes' })
+        kopts.desc = 'Show [d]iff against staged changes'
+        vim.keymap.set('n', '<leader>gd', function() gitsigns.diffthis() end, kopts)
 
-        map('n', '<leader>gD', function()
-          gitsigns.diffthis('~')
-        end, { desc = 'Show [D]iff against last commit' })
+        kopts.desc = 'Show [D]iff against last commit'
+        vim.keymap.set('n', '<leader>gD', function() gitsigns.diffthis('~') end, kopts)
 
-        map('n', '<leader>gi', function()
-          gitsigns.blame_line { full = true }
-        end, { desc = 'Show line [i]nfo' })
+        kopts.desc = 'Show line [i]nfo'
+        vim.keymap.set('n', '<leader>gi', function() gitsigns.blame_line { full = true } end, kopts)
 
         -- [[ Actions ]]
 
-        map('n', '<leader>gcs', function()
-          gitsigns.stage_hunk()
-        end, { desc = '[s]tage change at the cursor position' })
+        kopts.desc = '[s]tage change at the cursor position'
+        vim.keymap.set('n', '<leader>gcs', function() gitsigns.stage_hunk() end, kopts)
 
-        map('v', '<leader>gcs', function()
+        kopts.desc = '[s]tage selected range'
+        vim.keymap.set('v', '<leader>gcs', function()
           gitsigns.stage_hunk { vim.fn.line('.'), vim.fn.line('v') }
-        end, { desc = '[s]tage selected range' })
+        end, kopts)
 
-        map('n', '<leader>gcS', function()
-          gitsigns.stage_buffer()
-        end, { desc = '[S]tage all changes' })
+        kopts.desc = '[S]tage all changes'
+        vim.keymap.set('n', '<leader>gcS', function() gitsigns.stage_buffer() end, kopts)
 
-        map('n', '<leader>gcu', function()
-          gitsigns.undo_stage_hunk()
-        end, { desc = '[u]ndo the last staged change' })
+        kopts.desc = '[u]ndo the last staged change'
+        vim.keymap.set('n', '<leader>gcu', function() gitsigns.undo_stage_hunk() end, kopts)
 
-        map('n', '<leader>gcU', function()
-          gitsigns.reset_buffer_index()
-        end, { desc = '[U]ndo all staged changes' })
+        kopts.desc = '[U]ndo all staged changes'
+        vim.keymap.set('n', '<leader>gcU', function() gitsigns.reset_buffer_index() end, kopts)
 
-        map('n', '<leader>gcr', function()
-          gitsigns.reset_hunk()
-        end, { desc = '[r]eset change at the cursor position to staged' })
+        kopts.desc = '[r]eset change at the cursor position to staged'
+        vim.keymap.set('n', '<leader>gcr', function() gitsigns.reset_hunk() end, kopts)
 
-        map('v', '<leader>gcr', function()
+        kopts.desc = '[r]eset selected range to staged'
+        vim.keymap.set('v', '<leader>gcr', function()
           gitsigns.reset_hunk { vim.fn.line('.'), vim.fn.line('v') }
-        end, { desc = '[r]eset selected range to staged' })
+        end, kopts)
 
-        map('n', '<leader>gcR', function()
-          gitsigns.reset_buffer()
-        end, { desc = '[R]eset all changes to staged' })
+        kopts.desc = '[R]eset all changes to staged'
+        vim.keymap.set('n', '<leader>gcR', function() gitsigns.reset_buffer() end, kopts)
 
         -- [[ Text objects ]]
-
         -- 'o' stands for 'Operator-pending' mode
         -- 'x' stands for 'Visual-only' mode
-        map({ 'o', 'x' }, 'ic', '<cmd>Gitsigns select_hunk<CR>', { desc = 'the change under cursor' })
-        map({ 'o', 'x' }, 'ac', '<cmd>Gitsigns select_hunk<CR>', { desc = 'the change under cursor' })
+
+        kopts.desc = 'the change under cursor'
+        vim.keymap.set({ 'o', 'x' }, 'ic', '<cmd>Gitsigns select_hunk<CR>', kopts)
+
+        kopts.desc = 'the change under cursor'
+        vim.keymap.set({ 'o', 'x' }, 'ac', '<cmd>Gitsigns select_hunk<CR>', kopts)
       end
     },
     config = function(_, opts)
