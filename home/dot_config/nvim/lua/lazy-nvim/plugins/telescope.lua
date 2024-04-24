@@ -115,41 +115,48 @@ return {
 
           mappings = {
             i = {
-              ['<C-c>'] = false,
-              ['<C-f>'] = false,
-              ['<C-n>'] = false,
-              ['<C-p>'] = false,
-              ['<C-r><C-w>'] = false,
-              ['<M-f>'] = false,
-              ['<M-k>'] = false,
-              ['<S-Tab>'] = false,
+              ['<C-c>']       = false,
+              ['<C-f>']       = false,
+              ['<C-n>']       = false,
+              ['<C-p>']       = false,
+              ['<C-r><C-w>']  = false,
+              ['<C-x>']       = false,
+              ['<M-f>']       = false,
+              ['<M-k>']       = false,
+              ['<S-Tab>']     = false,
 
               -- close prompt with these instead of <C-c>
-              ['<ESC>'] = actions.close,
-              ['<C-q>'] = actions.close,
+              ['<ESC>']       = actions.close,
+              ['<C-q>']       = actions.close,
 
               -- move selection
-              ['<C-j>'] = actions.move_selection_next,
-              ['<C-k>'] = actions.move_selection_previous,
+              ['<C-j>']       = actions.move_selection_next,
+              ['<C-k>']       = actions.move_selection_previous,
 
               -- result scrolling
-              ['<C-h>'] = actions.results_scrolling_left,
-              ['<C-l>'] = actions.results_scrolling_right,
-              ['<C-d>'] = actions.results_scrolling_down,
-              ['<C-u>'] = actions.results_scrolling_up,
+              ['<C-h>']       = actions.results_scrolling_left,
+              ['<C-l>']       = actions.results_scrolling_right,
+              ['<C-d>']       = actions.results_scrolling_down,
+              ['<C-u>']       = actions.results_scrolling_up,
 
               -- preview scrolling
-              ['<M-h>'] = actions.preview_scrolling_left,
-              ['<M-l>'] = actions.preview_scrolling_right,
-              ['<M-d>'] = actions.preview_scrolling_down,
-              ['<M-u>'] = actions.preview_scrolling_up,
+              ['<M-h>']       = actions.preview_scrolling_left,
+              ['<M-l>']       = actions.preview_scrolling_right,
+              ['<M-d>']       = actions.preview_scrolling_down,
+              ['<M-u>']       = actions.preview_scrolling_up,
 
               -- remap <Tab> key to just only select result
-              ['<Tab>'] = actions.toggle_selection,
+              ['<Tab>']       = actions.toggle_selection,
+
+              -- open all selected results in tabs, splits, buffers
+              ['<C-s>']       = custom_actions.select_horizontal_or_multi,
+              ['<C-v>']       = custom_actions.select_vertical_or_multi,
+              ['<C-t>']       = custom_actions.select_tab_or_multi,
+              ['<CR>']        = custom_actions.select_one_or_multi,
 
               -- cycle through Git previewers
               -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#mapping-c-sc-a-to-cycle-previewer-for-git-commits-to-show-full-message
-              ['<C-S-left>'] = actions.cycle_previewers_prev,
+              ['<C-S-left>']  = actions.cycle_previewers_prev,
               ['<C-S-right>'] = actions.cycle_previewers_next,
             }
           }
@@ -159,10 +166,7 @@ return {
           help_tags = {
             mappings = {
               i = {
-                ['<C-v>'] = false,
-
-                ['<CR>'] = actions.select_vertical,
-                ['<S-CR>'] = actions.select_default,
+                ['<CR>'] = custom_actions.select_vertical_or_multi,
               }
             }
           },
@@ -170,10 +174,7 @@ return {
           man_pages = {
             mappings = {
               i = {
-                ['<C-v>'] = false,
-
-                ['<CR>'] = actions.select_vertical,
-                ['<S-CR>'] = actions.select_default,
+                ['<CR>'] = custom_actions.select_vertical_or_multi,
               }
             }
           },
@@ -186,49 +187,12 @@ return {
             -- `hidden = true` will still show the inside of `.git/` as it's not `.gitignore`.
             -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
             find_command = { 'rg', '--files', '--hidden', '--glob', '!**/.git/*' },
-
-            mappings = {
-              i = {
-                ['<C-t>'] = false,
-                ['<S-CR>'] = custom_actions.select_tab_or_multi,
-              }
-            }
           },
 
           buffers = {
             mappings = {
               i = {
-                ['<C-t>'] = false,
-
-                ['<S-CR>'] = custom_actions.select_tab_or_multi,
                 ['<C-c>'] = actions.delete_buffer,
-              }
-            }
-          },
-
-          oldfiles = {
-            mappings = {
-              i = {
-                ['<C-t>'] = false,
-                ['<S-CR>'] = custom_actions.select_tab_or_multi,
-              }
-            }
-          },
-
-          grep_string = {
-            mappings = {
-              i = {
-                ['<C-t>'] = false,
-                ['<S-CR>'] = custom_actions.select_tab_or_multi,
-              }
-            }
-          },
-
-          git_branches = {
-            mappings = {
-              i = {
-                ['<C-d>'] = actions.preview_scrolling_down,
-                ['<C-BS>'] = actions.git_delete_branch,
               }
             }
           },
@@ -243,13 +207,6 @@ return {
               unmerged = '‡',
               untracked = '?',
             },
-
-            mappings = {
-              i = {
-                ['<C-t>'] = false,
-                ['<S-CR>'] = custom_actions.select_tab_or_multi,
-              }
-            }
           },
         },
 
