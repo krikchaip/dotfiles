@@ -7,6 +7,7 @@ return {
   {
     'williamboman/mason.nvim',
     name = 'mason',
+    lazy = false,
     opts = {
       ui = {
         icons = {
@@ -44,9 +45,6 @@ return {
         'elixirls',
       },
     },
-    config = function(_, opts)
-      require('mason-lspconfig').setup(opts)
-    end
   },
 
   -- help managing Mason package installation and updates
@@ -54,7 +52,7 @@ return {
   -- {
   --   'WhoIsSethDaniel/mason-tool-installer.nvim',
   --   name = 'mason-tool-installer',
-  --   dependencies = { 'mason', 'mason-lspconfig' },
+  --   dependencies = { 'mason-lspconfig' },
   --   opts = {},
   -- },
 
@@ -64,9 +62,6 @@ return {
     'folke/neodev.nvim',
     name = 'neodev',
     opts = {},
-    config = function(_, opts)
-      require('neodev').setup(opts)
-    end
   },
 
   -- actual configs and apis for the Nvim LSP client
