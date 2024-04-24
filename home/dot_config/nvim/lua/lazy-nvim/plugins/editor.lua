@@ -11,7 +11,7 @@ return {
   {
     'm4xshen/autoclose.nvim',
     name = 'autoclose',
-    event = { 'InsertEnter' },
+    event = { 'InsertEnter', 'CmdlineEnter' },
     opts = {},
   },
 
