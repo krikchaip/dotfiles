@@ -76,8 +76,20 @@ end
 
 local M = {}
 
+function M.select_vertical_or_multi(prompt_bufnr)
+  select_one_or_multi('vertical', prompt_bufnr)
+end
+
+function M.select_horizontal_or_multi(prompt_bufnr)
+  select_one_or_multi('horizontal', prompt_bufnr)
+end
+
 function M.select_tab_or_multi(prompt_bufnr)
   select_one_or_multi('tab', prompt_bufnr)
+end
+
+function M.select_one_or_multi(prompt_bufnr)
+  select_one_or_multi('default', prompt_bufnr)
 end
 
 return M
