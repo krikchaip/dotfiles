@@ -198,5 +198,9 @@ return {
 
   -- Status updates UI for LSP.
   -- ref: https://github.com/j-hui/fidget.nvim
-  -- { 'j-hui/fidget.nvim' },
+  -- {
+  --   'j-hui/fidget.nvim',
+  --   name = 'fidget',
+  --   opts = {},
+  -- },
 }
