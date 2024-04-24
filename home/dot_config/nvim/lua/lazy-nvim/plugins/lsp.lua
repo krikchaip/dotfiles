@@ -127,7 +127,7 @@ return {
       -- will get run when an LSP attaches to a particular buffer
       vim.api.nvim_create_autocmd('LspAttach', {
         desc = 'Configure hover UIs and map keybindings when an LSP attached to a buffer',
-        group = vim.api.nvim_create_augroup('lsp-attach-config', {}),
+        group = vim.api.nvim_create_augroup('lsp-attach-config', { clear = true }),
         callback = function(event)
           setup_diagnostic_hover(event)
           setup_highlight_references_hover(event)
