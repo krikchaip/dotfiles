@@ -121,13 +121,13 @@ return {
       vim.keymap.set('n', '<leader>lr', '<cmd>LspRestart<CR>', { desc = '[r]estart running LSP for current buffer' })
 
       -- Diagnostic keymaps
-      local next_diagnostic_repeatable, prev_diagnostic_repeatable = ts_repeat_move.make_repeatable_move_pair(
+      local next_diagnostic, prev_diagnostic = ts_repeat_move.make_repeatable_move_pair(
         vim.diagnostic.goto_next,
         vim.diagnostic.goto_prev
       )
 
-      vim.keymap.set('n', ']d', next_diagnostic_repeatable, { desc = 'Go to next [d]iagnostic message' })
-      vim.keymap.set('n', '[d', prev_diagnostic_repeatable, { desc = 'Go to previous [d]iagnostic message' })
+      vim.keymap.set('n', ']d', next_diagnostic, { desc = 'Go to next [d]iagnostic message' })
+      vim.keymap.set('n', '[d', prev_diagnostic, { desc = 'Go to previous [d]iagnostic message' })
 
       -- will get run when an LSP attaches to a particular buffer
       vim.api.nvim_create_autocmd('LspAttach', {
