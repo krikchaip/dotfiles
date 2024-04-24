@@ -69,13 +69,8 @@ return {
   {
     'neovim/nvim-lspconfig',
     name = 'lspconfig',
-    dependencies = {
-      'mason',
-      'mason-lspconfig',
-      'neodev',
-      'nvim-treesitter.textobjects',
-      'telescope',
-    },
+    event = { 'BufReadPre', 'BufNewFile' },
+    dependencies = { 'mason-lspconfig', 'neodev' },
     config = function()
       local lspconfig = require 'lspconfig'
       local mason_lspconfig = require 'mason-lspconfig'
