@@ -8,11 +8,26 @@ return {
 
   -- A minimalist auto brackets closer
   -- ref: https://github.com/m4xshen/autoclose.nvim
+  -- {
+  --   'm4xshen/autoclose.nvim',
+  --   name = 'autoclose',
+  --   event = { 'InsertEnter', 'CmdlineEnter' },
+  --   opts = {},
+  -- },
+
+  -- A super powerful autopair plugin that supports multiple characters
+  -- ref: https://github.com/windwp/nvim-autopairs
   {
-    'm4xshen/autoclose.nvim',
-    name = 'autoclose',
-    event = { 'InsertEnter', 'CmdlineEnter' },
-    opts = {},
+    'windwp/nvim-autopairs',
+    name = 'autopairs',
+    event = { 'InsertEnter' },
+    opts = {
+      disable_filetype       = {},
+      disable_in_visualblock = false, -- disable when insert after visual block mode
+      enable_afterquote      = true,  -- add bracket pairs after quote
+      break_undo             = true,  -- switch for basic rule break undo sequence
+      check_ts               = true,  -- use treesitter to check for a pair
+    },
   },
 
   -- Making Comment.nvim understands jsx, vue, markdown and etc.
