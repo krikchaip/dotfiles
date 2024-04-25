@@ -226,8 +226,8 @@ return {
 
       -- enable tree-sitter based folding
       -- NOTE: This will respect your `foldminlines` and `foldnestmax` settings
-      vim.cmd('set foldmethod=expr')
-      vim.cmd('set foldexpr=nvim_treesitter#foldexpr()')
+      -- vim.cmd('set foldmethod=expr')
+      -- vim.cmd('set foldexpr=nvim_treesitter#foldexpr()')
     end
   },
 }
