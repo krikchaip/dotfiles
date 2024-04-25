@@ -1,6 +1,13 @@
 -- Clear search highlights on pressing <Esc> in normal mode
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+-- Simple autoclose in command mode
+vim.keymap.set('c', '{', '{}<Left>')
+vim.keymap.set('c', '[', '[]<Left>')
+vim.keymap.set('c', '(', '()<Left>')
+vim.keymap.set('c', "'", "''<Left>")
+vim.keymap.set('c', '"', '""<Left>')
+
 -- Exit terminal mode in the builtin terminal (default: <C-\><C-n>)
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
 -- vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
