@@ -69,26 +69,33 @@ return {
     'numToStr/Comment.nvim',
     name = 'comment',
     keys = {
-      { 'gc',      desc = 'Comment toggle linewise' },
-      { 'gb',      desc = 'Comment toggle blockwise' },
-
-      { '<C-/>',   '<Plug>(comment_toggle_linewise_current)',  desc = 'Toggle comment on the current line [linewise]' },
-      { '<C-S-/>', '<Plug>(comment_toggle_blockwise_current)', desc = 'Toggle comment on the current line [blockwise]' },
-
-      { '<C-/>',   '<Plug>(comment_toggle_linewise_visual)',   desc = 'Toggle comment on the selected region [linewise]',  mode = 'x' },
-      { '<C-S-/>', '<Plug>(comment_toggle_blockwise_visual)',  desc = 'Toggle comment on the selected region [blockwise]', mode = 'x' },
+      { 'gc', desc = 'Comment toggle linewise' },
+      { 'gb', desc = 'Comment toggle blockwise' },
 
       {
         '<C-/>',
         function() require('Comment.api').toggle.linewise.current() end,
         desc = 'Toggle comment on the current line [linewise]',
-        mode = 'i',
+        mode = { 'n', 'i' },
       },
       {
         '<C-S-/>',
         function() require('Comment.api').toggle.blockwise.current() end,
         desc = 'Toggle comment on the current line [blockwise]',
-        mode = 'i',
+        mode = { 'n', 'i' },
+      },
+
+      {
+        '<C-/>',
+        '<Plug>(comment_toggle_linewise_visual)',
+        desc = 'Toggle comment on the selected region [linewise]',
+        mode = 'x'
+      },
+      {
+        '<C-S-/>',
+        '<Plug>(comment_toggle_blockwise_visual)',
+        desc = 'Toggle comment on the selected region [blockwise]',
+        mode = 'x'
       },
     },
     config = function()
