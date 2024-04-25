@@ -69,6 +69,8 @@ return {
     'numToStr/Comment.nvim',
     name = 'comment',
     keys = {
+      { 'gc',      desc = 'Comment toggle linewise' },
+      { 'gb',      desc = 'Comment toggle blockwise' },
       { '<C-/>',   '<Plug>(comment_toggle_linewise_current)',  desc = 'Toggle comment on the current line [linewise]' },
       { '<C-S-/>', '<Plug>(comment_toggle_blockwise_current)', desc = 'Toggle comment on the current line [blockwise]' },
       { '<C-/>',   '<Plug>(comment_toggle_linewise_visual)',   desc = 'Toggle comment on the selected region [linewise]',  mode = 'x' },
