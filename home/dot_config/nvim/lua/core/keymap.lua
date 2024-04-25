@@ -6,9 +6,6 @@ vim.keymap.set({ 'i', 'c' }, '<C-u>', '<Up>')
 vim.keymap.set({ 'i', 'c' }, '<C-a>', '<Home>')
 vim.keymap.set({ 'i', 'c' }, '<C-e>', '<End>')
 
--- Clear search highlights on pressing <Esc> in normal mode
-vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
-
 -- Simple autoclose in command mode
 vim.keymap.set('c', '{', '{}<Left>')
 vim.keymap.set('c', '[', '[]<Left>')
@@ -16,14 +13,23 @@ vim.keymap.set('c', '(', '()<Left>')
 vim.keymap.set('c', "'", "''<Left>")
 vim.keymap.set('c', '"', '""<Left>')
 
+-- Clear search highlights on pressing <Esc> in normal mode
+vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+
+-- Insert/Remove indentation with ease
+vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Remove one indent from this line' })
+vim.keymap.set('i', '<M-S-.>', '<C-t>', { desc = 'Insert one indent to this line' })
+vim.keymap.set('x', '<M-S-,>', '<gv', { desc = 'Remove one indent from this region' })
+vim.keymap.set('x', '<M-S-.>', '>gv', { desc = 'Insert one indent to this region' })
+vim.keymap.set('n', '<M-S-,>', '<<', { desc = 'Remove one indent from this line' })
+vim.keymap.set('n', '<M-S-.>', '>>', { desc = 'Insert one indent to this line' })
+
 -- Exit terminal mode in the builtin terminal (default: <C-\><C-n>)
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
 -- vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- Saving buffers (files)
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Write current buffer (save file)' })
-vim.keymap.set('i', '<C-s>', '<cmd>w<CR>', { desc = 'Write current buffer (save file)' })
-
 vim.keymap.set('n', '<leader><S-w>', '<cmd>wall<CR>', { desc = 'Write all changed buffers (save all files)' })
 
 -- Delete current buffer
