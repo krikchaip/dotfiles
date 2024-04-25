@@ -81,11 +81,12 @@ vim.opt.scrolloff = 5
 vim.opt.hlsearch = true
 
 -- Configure the default shell to nushell
+-- ref: https://github.com/neovim/neovim/issues/19648
 vim.opt.shell = 'nu'
-vim.opt.shellredir = '| save %s'
-vim.opt.shellpipe = '| ^tee %s'
+vim.opt.shelltemp = false
 vim.opt.shellcmdflag =
-    '--config "'
+    '--stdin '
+    .. '--config "'
     .. vim.g.nu_config_path
     .. '" --env-config "'
     .. vim.g.nu_env_path
