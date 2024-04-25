@@ -21,7 +21,7 @@ local function select_one_or_multi(method, prompt_bufnr)
     require('telescope.pickers').on_close_prompt(prompt_bufnr)
     pcall(vim.api.nvim_set_current_win, picker.original_win_id)
 
-    for i, entry in ipairs(multi_selection) do
+    for _, entry in ipairs(multi_selection) do
       local filename, row, col
 
       if entry.path or entry.filename then
@@ -74,6 +74,19 @@ local function select_one_or_multi(method, prompt_bufnr)
   end
 end
 
+-- ref: https://github.com/nvim-telescope/telescope.nvim/issues/2602
+local function preview_scroll(prompt_bufnr, direction)
+  local previewer = require('telescope.actions.state').get_current_picker(prompt_bufnr).previewer
+  local status = require('telescope.state').get_status(prompt_bufnr)
+
+  -- Check if we actually have a previewer and a preview window
+  if type(previewer) ~= "table" or previewer.scroll_fn == nil or status.preview_win == nil then
+    return
+  end
+
+  previewer:scroll_fn(1 * direction)
+end
+
 local M = {}
 
 function M.select_vertical_or_multi(prompt_bufnr)
@@ -90,6 +103,14 @@ end
 
 function M.select_one_or_multi(prompt_bufnr)
   select_one_or_multi('default', prompt_bufnr)
+end
+
+function M.preview_scrolling_next(prompt_bufnr)
+  preview_scroll(prompt_bufnr, 1)
+end
+
+function M.preview_scrolling_previous(prompt_bufnr)
+  preview_scroll(prompt_bufnr, -1)
 end
 
 return M

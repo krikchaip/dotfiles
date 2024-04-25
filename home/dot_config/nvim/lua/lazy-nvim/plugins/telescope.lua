@@ -122,24 +122,23 @@ return {
               ['<C-r><C-w>']  = false,
               ['<C-x>']       = false,
               ['<M-f>']       = false,
-              ['<M-k>']       = false,
               ['<S-Tab>']     = false,
 
               -- close prompt with these instead of <C-c>
               ['<ESC>']       = actions.close,
               ['<C-q>']       = actions.close,
 
-              -- move selection
+              -- result scrolling
               ['<C-j>']       = actions.move_selection_next,
               ['<C-k>']       = actions.move_selection_previous,
-
-              -- result scrolling
               ['<C-h>']       = actions.results_scrolling_left,
               ['<C-l>']       = actions.results_scrolling_right,
               ['<C-d>']       = actions.results_scrolling_down,
               ['<C-u>']       = actions.results_scrolling_up,
 
               -- preview scrolling
+              ['<M-j>']       = custom_actions.preview_scrolling_next,
+              ['<M-k>']       = custom_actions.preview_scrolling_previous,
               ['<M-h>']       = actions.preview_scrolling_left,
               ['<M-l>']       = actions.preview_scrolling_right,
               ['<M-d>']       = actions.preview_scrolling_down,
