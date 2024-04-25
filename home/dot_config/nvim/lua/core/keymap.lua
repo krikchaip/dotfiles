@@ -1,3 +1,11 @@
+-- Emacs style movement keys for insert/command mode
+vim.keymap.set({ 'i', 'c' }, '<C-f>', '<Right>')
+vim.keymap.set({ 'i', 'c' }, '<C-b>', '<Left>')
+vim.keymap.set({ 'i', 'c' }, '<C-d>', '<Down>')
+vim.keymap.set({ 'i', 'c' }, '<C-u>', '<Up>')
+vim.keymap.set({ 'i', 'c' }, '<C-a>', '<Home>')
+vim.keymap.set({ 'i', 'c' }, '<C-e>', '<End>')
+
 -- Clear search highlights on pressing <Esc> in normal mode
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 

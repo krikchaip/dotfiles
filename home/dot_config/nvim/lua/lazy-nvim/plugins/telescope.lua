@@ -60,9 +60,8 @@ return {
 
       -- [[ Full-text search ]]
       { '<leader>*',        '<cmd>Telescope grep_string<CR>',     desc = 'Search current word in workspace', mode = { 'n', 'x' } },
-      { '<leader>/',        custom_pickers.local_fuzzy_find,      desc = 'Fuzzily search in current buffer', mode = 'n' },
-      { '<C-f>',            custom_pickers.local_fuzzy_find,      desc = 'Fuzzily search in current buffer', mode = 'i' },
-      { '<C-S-f>',          custom_pickers.workspace_fuzzy_find,  desc = 'Search text in current workspace', mode = { 'n', 'i' }, },
+      { '<leader>/',        custom_pickers.local_fuzzy_find,      desc = 'Fuzzily search in current buffer' },
+      { '<C-S-f>',          custom_pickers.workspace_fuzzy_find,  desc = 'Search text in current workspace' },
 
       -- [[ Git Integration ]]
       { '<leader>gl',       '<cmd>Telescope git_commits<CR>',     desc = 'Show Git repo [l]ogs' },
