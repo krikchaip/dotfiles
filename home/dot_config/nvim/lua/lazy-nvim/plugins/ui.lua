@@ -1,3 +1,5 @@
+local ufo_utils = require 'lazy-nvim.lib.ufo-utils'
+
 return {
   -- Useful plugin to show you pending keybinds.
   -- ref: https://github.com/folke/which-key.nvim
@@ -156,7 +158,9 @@ return {
     name = 'ufo',
     event = 'LspAttach', -- Important! otherwise it won't work
     dependencies = { 'promise-async' },
-    opts = {},
+    opts = {
+      fold_virt_text_handler = ufo_utils.folded_number_suffix,
+    },
     config = function(_, opts)
       require('ufo').setup(opts)
     end
