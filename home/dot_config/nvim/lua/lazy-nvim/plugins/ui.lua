@@ -151,16 +151,47 @@ return {
     end
   },
 
+  -- 'statuscolumn' made easy
+  -- ref: https://github.com/luukvbaal/statuscol.nvim
+  {
+    'luukvbaal/statuscol.nvim',
+    name = 'statuscol',
+    config = function()
+      local statuscol = require 'statuscol'
+      local builtin = require 'statuscol.builtin'
+
+      statuscol.setup {
+        -- whether to right-align the cursor line number with 'relativenumber' set
+        relculright = false,
+
+        segments = {
+          { text = { builtin.foldfunc },      click = 'v:lua.ScFa' },
+          { text = { ' ', builtin.lnumfunc }, click = 'v:lua.ScLa' },
+          { text = { ' ', '%s' },             click = 'v:lua.ScSa' },
+        }
+      }
+    end
+  },
+
   -- Make Nvim's fold look much prettier & modern
   -- ref: https://github.com/kevinhwang91/nvim-ufo
   {
     'kevinhwang91/nvim-ufo',
     name = 'ufo',
     event = 'LspAttach', -- Important! otherwise it won't work
-    dependencies = { 'promise-async' },
+    dependencies = { 'promise-async', 'statuscol' },
     opts = {
       fold_virt_text_handler = ufo_utils.folded_number_suffix,
     },
+    init = function()
+      vim.opt.fillchars = {
+        eob       = ' ',
+        fold      = ' ',
+        foldsep   = ' ',
+        foldopen  = '',
+        foldclose = '',
+      }
+    end,
     config = function(_, opts)
       require('ufo').setup(opts)
 
