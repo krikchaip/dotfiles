@@ -156,6 +156,7 @@ return {
   {
     'luukvbaal/statuscol.nvim',
     name = 'statuscol',
+    event = { 'BufReadPre', 'BufNewFile' },
     config = function()
       local statuscol = require 'statuscol'
       local builtin = require 'statuscol.builtin'
@@ -179,7 +180,7 @@ return {
     'kevinhwang91/nvim-ufo',
     name = 'ufo',
     event = 'LspAttach', -- Important! otherwise it won't work
-    dependencies = { 'promise-async', 'statuscol' },
+    dependencies = { 'promise-async' },
     opts = {
       fold_virt_text_handler = ufo_utils.folded_number_suffix,
     },
@@ -193,18 +194,23 @@ return {
       }
     end,
     config = function(_, opts)
-      require('ufo').setup(opts)
-
-      local ufo_action = require 'ufo.action'
+      local ufo = require 'ufo'
       local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
+      ufo.setup(opts)
+
       local next_closed_fold, prev_closed_fold = ts_repeat_move.make_repeatable_move_pair(
-        ufo_action.goNextClosedFold,
-        ufo_action.goPreviousClosedFold
+        ufo.goNextClosedFold,
+        ufo.goPreviousClosedFold
       )
 
       vim.keymap.set('n', ']z', next_closed_fold, { desc = 'Next closed fold region' })
       vim.keymap.set('n', '[z', prev_closed_fold, { desc = 'Preview closed fold region' })
+
+      -- vim.keymap.set('n', 'K', function()
+      --   local fold_preview_win = ufo.peekFoldedLinesUnderCursor()
+      --   if not fold_preview_win then vim.lsp.buf.hover() end
+      -- end, { desc = 'Hover Documentation / Preview Folded Lines' })
     end
-  }
+  },
 }
