@@ -154,7 +154,11 @@ return {
   {
     'kevinhwang91/nvim-ufo',
     name = 'ufo',
+    event = 'LspAttach', -- Important! otherwise it won't work
     dependencies = { 'promise-async' },
     opts = {},
+    config = function(_, opts)
+      require('ufo').setup(opts)
+    end
   }
 }
