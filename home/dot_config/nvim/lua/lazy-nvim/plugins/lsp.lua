@@ -144,11 +144,8 @@ return {
 
           -- Opens a popup that displays documentation about the word under your cursor
           -- See `:help K` for why this keymap.
-          opts.desc = 'Hover Documentation / Preview Folded Lines'
-          vim.keymap.set('n', 'K', function()
-            local fold_preview_win = require('ufo').peekFoldedLinesUnderCursor()
-            if not fold_preview_win then vim.lsp.buf.hover() end
-          end, opts)
+          opts.desc = 'Hover Documentation'
+          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
 
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
