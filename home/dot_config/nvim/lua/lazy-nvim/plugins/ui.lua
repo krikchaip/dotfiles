@@ -147,5 +147,14 @@ return {
         context = 10,
       }
     end
+  },
+
+  -- Make Nvim's fold look much prettier & modern
+  -- ref: https://github.com/kevinhwang91/nvim-ufo
+  {
+    'kevinhwang91/nvim-ufo',
+    name = 'ufo',
+    dependencies = { 'promise-async' },
+    opts = {},
   }
 }
