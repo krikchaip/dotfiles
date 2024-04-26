@@ -13,6 +13,10 @@ vim.keymap.set('c', '(', '()<Left>')
 vim.keymap.set('c', "'", "''<Left>")
 vim.keymap.set('c', '"', '""<Left>')
 
+-- Fix visual mode yank region cursor moving back to the top
+-- ref: https://stackoverflow.com/questions/3806629/yank-a-region-in-vim-without-the-cursor-moving-to-the-top-of-the-block
+vim.keymap.set('x', 'y', 'ygv<Esc>')
+
 -- Clear search highlights on pressing <Esc> in normal mode
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
