@@ -16,5 +16,11 @@ return {
   {
     'kevinhwang91/promise-async',
     name = 'promise-async',
-  }
+  },
+
+  -- Allows to amend the existing keybinding in Neovim
+  {
+    'anuvyklack/keymap-amend.nvim',
+    name = 'keymap-amend',
+  },
 }
