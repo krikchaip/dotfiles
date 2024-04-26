@@ -228,4 +228,51 @@ return {
       default_keybindings = false,
     },
   },
+
+  {
+    'lukas-reineke/indent-blankline.nvim',
+    name = 'indent-blankline',
+    event = { 'BufReadPost', 'BufNewFile' },
+    main = 'ibl',
+    config = function()
+      local ibl = require 'ibl'
+      local hooks = require 'ibl.hooks'
+
+      ibl.setup {
+        indent = {
+          -- priority = 1,
+          -- char = '▏',
+          char = '│',
+          -- char = '┊',
+        },
+
+        scope = {
+          -- priority = 1024,
+          show_start = false,
+          show_end = false,
+        },
+
+        exclude = {
+          filetypes = {
+            -- 'lspinfo',
+            -- 'packer',
+            -- 'checkhealth',
+            -- 'help',
+            -- 'man',
+            -- 'gitcommit',
+            -- 'TelescopePrompt',
+            -- 'TelescopeResults',
+            -- '',
+          },
+
+          buftypes = {
+            -- 'terminal',
+            -- 'nofile',
+            -- 'quickfix',
+            -- 'prompt',
+          },
+        },
+      }
+    end,
+  },
 }
