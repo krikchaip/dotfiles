@@ -230,13 +230,57 @@ return {
   },
 
   {
+    url = 'https://gitlab.com/HiPhish/rainbow-delimiters.nvim.git',
+    name = 'rainbow-delimiters',
+    config = function()
+      require('rainbow-delimiters.setup').setup {
+        priority = {
+          -- default highlighting priority for this plugin.
+          -- set this to a low-value if you only want to highlight
+          -- just the visual indent guides
+          [''] = 10,
+        },
+      }
+    end
+  },
+
+  {
     'lukas-reineke/indent-blankline.nvim',
     name = 'indent-blankline',
     event = { 'BufReadPost', 'BufNewFile' },
+    dependencies = { 'rainbow-delimiters' },
     main = 'ibl',
     config = function()
       local ibl = require 'ibl'
       local hooks = require 'ibl.hooks'
+
+      local custom_highlight = {
+        { hl = 'RainbowDelimiterRed',    fg = '#E06C75' },
+        { hl = 'RainbowDelimiterYellow', fg = '#E5C07B' },
+        { hl = 'RainbowDelimiterBlue',   fg = '#61AFEF' },
+        { hl = 'RainbowDelimiterOrange', fg = '#D19A66' },
+        { hl = 'RainbowDelimiterGreen',  fg = '#98C379' },
+        { hl = 'RainbowDelimiterViolet', fg = '#C678DD' },
+        { hl = 'RainbowDelimiterCyan',   fg = '#56B6C2' },
+      }
+
+      local hls = vim.tbl_map(function(chl)
+        return chl.hl
+      end, custom_highlight)
+
+      -- create the highlight groups in the highlight setup hook, so they are reset
+      -- every time the colorscheme changes
+      hooks.register(hooks.type.HIGHLIGHT_SETUP, function()
+        for _, chl in ipairs(custom_highlight) do
+          vim.api.nvim_set_hl(0, chl.hl, { fg = chl.fg })
+        end
+      end)
+
+      -- This is to be used to get a reliable sync with 'rainbow-delimiters' plugin
+      hooks.register(
+        hooks.type.SCOPE_HIGHLIGHT,
+        hooks.builtin.scope_highlight_from_extmark
+      )
 
       ibl.setup {
         indent = {
@@ -252,6 +296,8 @@ return {
 
           show_start = false, -- show underline at the start of scope
           show_end = false,   -- show underline at the end of scope
+
+          highlight = hls,    -- set highlight group for scope char
         },
 
         exclude = {
