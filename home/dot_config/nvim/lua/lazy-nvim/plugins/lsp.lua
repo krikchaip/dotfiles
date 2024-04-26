@@ -128,8 +128,8 @@ return {
         vim.diagnostic.goto_prev
       )
 
-      vim.keymap.set('n', ']d', next_diagnostic, { desc = 'Go to next [d]iagnostic message' })
-      vim.keymap.set('n', '[d', prev_diagnostic, { desc = 'Go to previous [d]iagnostic message' })
+      vim.keymap.set('n', ']d', next_diagnostic, { desc = 'Next [d]iagnostic message' })
+      vim.keymap.set('n', '[d', prev_diagnostic, { desc = 'Previous [d]iagnostic message' })
 
       -- will get run when an LSP attaches to a particular buffer
       vim.api.nvim_create_autocmd('LspAttach', {

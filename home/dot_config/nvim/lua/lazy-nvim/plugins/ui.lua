@@ -163,6 +163,17 @@ return {
     },
     config = function(_, opts)
       require('ufo').setup(opts)
+
+      local ufo_action = require 'ufo.action'
+      local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+
+      local next_closed_fold, prev_closed_fold = ts_repeat_move.make_repeatable_move_pair(
+        ufo_action.goNextClosedFold,
+        ufo_action.goPreviousClosedFold
+      )
+
+      vim.keymap.set('n', ']z', next_closed_fold, { desc = 'Next closed fold region' })
+      vim.keymap.set('n', '[z', prev_closed_fold, { desc = 'Preview closed fold region' })
     end
   }
 }

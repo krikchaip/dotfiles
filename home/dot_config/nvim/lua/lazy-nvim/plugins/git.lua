@@ -64,10 +64,10 @@ return {
           end
         )
 
-        kopts.desc = 'Jump to next unstaged [c]hange'
+        kopts.desc = 'Next unstaged [c]hange'
         vim.keymap.set('n', ']c', next_hunk, kopts)
 
-        kopts.desc = 'Jump to previous unstaged [c]hange'
+        kopts.desc = 'Previous unstaged [c]hange'
         vim.keymap.set('n', '[c', prev_hunk, kopts)
 
         -- [[ Menus ]]
