@@ -240,16 +240,18 @@ return {
 
       ibl.setup {
         indent = {
-          -- priority = 1,
+          -- priority = 1, -- indent char virt-text priority
+
           -- char = '▏',
           char = '│',
           -- char = '┊',
         },
 
         scope = {
-          -- priority = 1024,
-          show_start = false,
-          show_end = false,
+          -- priority = 1024, -- scope char virt-text priority
+
+          show_start = false, -- show underline at the start of scope
+          show_end = false,   -- show underline at the end of scope
         },
 
         exclude = {
