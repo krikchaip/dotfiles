@@ -80,6 +80,13 @@ return {
       -- default Nvim LSP client capabilities
       local capabilities = vim.lsp.protocol.make_client_capabilities()
 
+      -- setup LSP capability for nvim-ufo, as we're choosing LSP as its provider
+      -- ref: https://github.com/kevinhwang91/nvim-ufo?tab=readme-ov-file#minimal-configuration
+      capabilities.textDocument.foldingRange = {
+        dynamicRegistration = false,
+        lineFoldingOnly = true,
+      }
+
       -- TODO: LSP autocomplete integration
       -- capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
@@ -137,8 +144,11 @@ return {
 
           -- Opens a popup that displays documentation about the word under your cursor
           -- See `:help K` for why this keymap.
-          opts.desc = 'Hover Documentation'
-          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+          opts.desc = 'Hover Documentation / Preview Folded Lines'
+          vim.keymap.set('n', 'K', function()
+            local fold_preview_win = require('ufo').peekFoldedLinesUnderCursor()
+            if not fold_preview_win then vim.lsp.buf.hover() end
+          end, opts)
 
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
