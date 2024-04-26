@@ -213,4 +213,19 @@ return {
       -- end, { desc = 'Hover Documentation / Preview Folded Lines' })
     end
   },
+
+  {
+    'anuvyklack/fold-preview.nvim',
+    name = 'fold-preview',
+    event = { 'BufReadPre', 'BufNewFile' },
+    dependencies = { 'keymap-amend' },
+    opts = {
+      -- Automatically open preview if cursor enters
+      -- and stays in folded line for specified number of milliseconds
+      auto = 1500,
+
+      -- To just only rely on the auto previewing feature
+      default_keybindings = false,
+    },
+  },
 }
