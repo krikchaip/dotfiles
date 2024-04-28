@@ -4,6 +4,10 @@ packages:
       - bat
       - fd
       - homebrew/cask-fonts/font-fira-code
+      - homebrew/cask-fonts/font-ligature-symbols
+      - homebrew/cask-fonts/font-material-symbols
+      - homebrew/cask-fonts/font-powerline-symbols
+      - homebrew/cask-fonts/font-symbols-only-nerd-font
       - jq
       - koekeishiya/formulae/skhd
       - koekeishiya/formulae/yabai
