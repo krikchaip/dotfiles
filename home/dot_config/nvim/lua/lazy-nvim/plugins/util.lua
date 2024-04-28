@@ -23,4 +23,10 @@ return {
     'anuvyklack/keymap-amend.nvim',
     name = 'keymap-amend',
   },
+
+  -- UI Component Library for Neovim
+  {
+    'MunifTanjim/nui.nvim',
+    name = 'nui',
+  },
 }
