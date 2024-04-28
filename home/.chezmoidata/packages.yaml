@@ -4,7 +4,6 @@ packages:
       - bat
       - fd
       - homebrew/cask-fonts/font-fira-code
-      - homebrew/cask-fonts/font-fira-code-nerd-font
       - jq
       - koekeishiya/formulae/skhd
       - koekeishiya/formulae/yabai

@@ -14,7 +14,7 @@ $env.config = {
   edit_mode: vi
   shell_integration: true
   show_banner: false
-  color_config: (monokai-soda)
+  color_config: (tokyo-storm)
   completions: {
     external: { enable: true, completer: (carapace) }
   }
