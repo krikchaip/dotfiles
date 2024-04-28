@@ -50,13 +50,17 @@ return {
         --   'terminal',
         -- },
 
-        -- excluded_filetypes = {
-        --   'cmp_docs',
-        --   'cmp_menu',
-        --   'noice',
-        --   'prompt',
-        --   'TelescopePrompt',
-        -- },
+        excluded_filetypes = {
+          -- default values
+          'cmp_docs',
+          'cmp_menu',
+          'noice',
+          'prompt',
+          'TelescopePrompt',
+
+          -- custom values
+          'neo-tree',
+        },
 
         handle = {
           blend = 10, -- 0 for fully opaque and 100 to full transparent
