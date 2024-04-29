@@ -16,6 +16,7 @@ packages:
       - mise
       - neovim
       - nushell
+      - pkg-config
       - ripgrep
       - rsteube/tap/carapace
       - starship

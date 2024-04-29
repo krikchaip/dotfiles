@@ -5,7 +5,6 @@ return {
     branch = 'v3.x',
     cmd = 'Neotree',
     dependencies = { 'plenary', 'web-devicons', 'nui', 'image' },
-    opts = {
-    },
+    opts = {},
   }
 }
