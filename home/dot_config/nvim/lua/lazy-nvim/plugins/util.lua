@@ -29,4 +29,29 @@ return {
     'MunifTanjim/nui.nvim',
     name = 'nui',
   },
+
+  -- Image previewer for neo-tree and telescope (kitty-based protocol)
+  {
+    '3rd/image.nvim',
+    name = 'image',
+    opts = {
+      -- toggles images when windows are overlapped
+      window_overlap_clear_enabled = false,
+
+      -- auto show/hide images when the editor gains/looses focus
+      editor_only_render_when_focused = false,
+
+      -- auto show/hide images in the correct Tmux window (needs visual-activity off)
+      tmux_show_only_in_active_window = false,
+
+      -- render image files as images when opened
+      hijack_file_patterns = { '*.png', '*.jpg', '*.jpeg', '*.svg', '*.gif', '*.webp' },
+    },
+    init = function()
+      local home = vim.fn.expand('$HOME')
+      package.path = package.path
+          .. ';' .. home .. '/.luarocks/share/lua/5.1/?/init.lua'
+          .. ';' .. home .. '/.luarocks/share/lua/5.1/?.lua'
+    end,
+  },
 }

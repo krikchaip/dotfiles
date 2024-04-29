@@ -8,9 +8,11 @@ packages:
       - homebrew/cask-fonts/font-material-symbols
       - homebrew/cask-fonts/font-powerline-symbols
       - homebrew/cask-fonts/font-symbols-only-nerd-font
+      - imagemagick
       - jq
       - koekeishiya/formulae/skhd
       - koekeishiya/formulae/yabai
+      - luarocks
       - mise
       - neovim
       - nushell
