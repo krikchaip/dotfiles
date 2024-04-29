@@ -38,7 +38,7 @@ return {
         'html', 'css',
         'javascript', 'typescript', 'tsx',
         'json', 'jsonc',
-        'markdown',
+        'markdown', 'markdown_inline',
         'elixir',
       },
 
