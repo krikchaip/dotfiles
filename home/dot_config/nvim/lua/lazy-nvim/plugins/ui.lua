@@ -60,6 +60,7 @@ return {
 
           -- custom values
           'neo-tree',
+          'neo-tree-popup',
         },
 
         handle = {
