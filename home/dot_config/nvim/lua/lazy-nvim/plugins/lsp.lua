@@ -74,8 +74,6 @@ return {
     config = function()
       local lspconfig = require 'lspconfig'
       local mason_lspconfig = require 'mason-lspconfig'
-      local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
-      local builtin = require 'telescope.builtin'
 
       -- default Nvim LSP client capabilities
       local capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -122,25 +120,31 @@ return {
       vim.keymap.set('n', '<leader>li', '<cmd>LspInfo<CR>', { desc = 'Show LSP [i]nfo for current buffer' })
       vim.keymap.set('n', '<leader>lr', '<cmd>LspRestart<CR>', { desc = '[r]estart running LSP for current buffer' })
 
-      -- Diagnostic keymaps
-      local next_diagnostic, prev_diagnostic = ts_repeat_move.make_repeatable_move_pair(
-        vim.diagnostic.goto_next,
-        vim.diagnostic.goto_prev
-      )
-
-      vim.keymap.set('n', ']d', next_diagnostic, { desc = 'Next [d]iagnostic message' })
-      vim.keymap.set('n', '[d', prev_diagnostic, { desc = 'Previous [d]iagnostic message' })
-
       -- will get run when an LSP attaches to a particular buffer
       vim.api.nvim_create_autocmd('LspAttach', {
         desc = 'Configure hover UIs and map keybindings when an LSP attached to a buffer',
         group = vim.api.nvim_create_augroup('lsp-attach-config', { clear = false }),
         callback = function(event)
+          local builtin = require 'telescope.builtin'
+          local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+
           setup_diagnostic_hover(event)
           setup_highlight_references_hover(event)
 
           -- [[ Buffer local mappings ]]
           local opts = { buffer = event.buf, silent = true }
+
+          -- Diagnostics Navigation
+          local next_diagnostic, prev_diagnostic = ts_repeat_move.make_repeatable_move_pair(
+            vim.diagnostic.goto_next,
+            vim.diagnostic.goto_prev
+          )
+
+          opts.desc = 'Next [d]iagnostic message'
+          vim.keymap.set('n', ']d', next_diagnostic, opts)
+
+          opts.desc = 'Previous [d]iagnostic message'
+          vim.keymap.set('n', '[d', prev_diagnostic, opts)
 
           -- Opens a popup that displays documentation about the word under your cursor
           -- See `:help K` for why this keymap.

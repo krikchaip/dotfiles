@@ -160,7 +160,7 @@ return {
   {
     'luukvbaal/statuscol.nvim',
     name = 'statuscol',
-    event = { 'BufReadPre', 'BufNewFile' },
+    lazy = false,
     config = function()
       local statuscol = require 'statuscol'
       local builtin = require 'statuscol.builtin'
@@ -221,7 +221,7 @@ return {
   {
     'anuvyklack/fold-preview.nvim',
     name = 'fold-preview',
-    event = { 'BufReadPre', 'BufNewFile' },
+    event = { 'BufReadPost', 'BufNewFile' },
     dependencies = { 'keymap-amend' },
     opts = {
       -- Automatically open preview if cursor enters
