@@ -24,6 +24,18 @@ return {
         opts.desc = 'Close Directory'
         vim.keymap.set('n', 'K', api.node.navigate.parent_close, opts)
         vim.keymap.set('n', '<BS>', api.node.navigate.parent_close, opts)
+
+        opts.desc = 'Open Preview'
+        vim.keymap.set('n', '<Tab>', api.node.open.preview, opts)
+
+        opts.desc = 'Open: New Tab'
+        vim.keymap.set('n', '<C-t>', api.node.open.tab, opts)
+
+        opts.desc = 'Open: Vertical Split'
+        vim.keymap.set('n', '<C-v>', api.node.open.vertical, opts)
+
+        opts.desc = 'Open: Horizontal Split'
+        vim.keymap.set('n', '<C-s>', api.node.open.horizontal, opts)
       end,
     },
     init = function()
