@@ -18,14 +18,10 @@ return {
         vim.keymap.set('n', 'i', api.node.show_info_popup, opts)
 
         opts.desc = 'Open'
-        -- vim.keymap.set('n', 'J', api.node.open.edit, opts)
         vim.keymap.set('n', 'o', api.node.open.edit, opts)
-        -- vim.keymap.set('n', '<CR>', api.node.open.edit, opts)
 
         opts.desc = 'Close Directory'
-        -- vim.keymap.set('n', 'K', api.node.navigate.parent_close, opts)
-        vim.keymap.set('n', 'x', api.node.navigate.parent_close, opts)
-        -- vim.keymap.set('n', '<BS>', api.node.navigate.parent_close, opts)
+        vim.keymap.set('n', 'O', api.node.navigate.parent_close, opts)
 
         opts.desc = 'Open Preview'
         vim.keymap.set('n', '<Tab>', api.node.open.preview, opts)
@@ -38,6 +34,21 @@ return {
 
         opts.desc = 'Open: Horizontal Split'
         vim.keymap.set('n', '<C-s>', api.node.open.horizontal, opts)
+
+        opts.desc = 'Rename: Omit Filename'
+        vim.keymap.set('n', 'r', api.fs.rename_sub, opts)
+
+        opts.desc = 'Create File Or Directory'
+        vim.keymap.set('n', 'a', api.fs.create, opts)
+
+        opts.desc = 'Copy'
+        vim.keymap.set('n', 'yy', api.fs.copy.node, opts)
+
+        opts.desc = 'Prev Git Change'
+        vim.keymap.set('n', '[c', api.node.navigate.git.prev, opts)
+
+        opts.desc = 'Next Git Change'
+        vim.keymap.set('n', ']c', api.node.navigate.git.next, opts)
       end,
     },
     init = function()
