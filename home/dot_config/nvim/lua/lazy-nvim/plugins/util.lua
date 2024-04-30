@@ -30,7 +30,7 @@ return {
     name = 'nui',
   },
 
-  -- Image previewer for neo-tree and telescope (kitty-based protocol)
+  -- Image previewer that supports kitty-based protocol
   {
     '3rd/image.nvim',
     name = 'image',
