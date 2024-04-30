@@ -171,9 +171,9 @@ return {
         relculright = false,
 
         segments = {
-          { text = { builtin.foldfunc },      click = 'v:lua.ScFa' },
-          { text = { ' ', builtin.lnumfunc }, click = 'v:lua.ScLa' },
-          { text = { ' ', '%s' },             click = 'v:lua.ScSa' },
+          { text = { '%s' },                  click = 'v:lua.ScSa' },
+          { text = { builtin.lnumfunc, ' ' }, click = 'v:lua.ScLa' },
+          { text = { builtin.foldfunc, ' ' }, click = 'v:lua.ScFa' },
         }
       }
     end
@@ -194,8 +194,8 @@ return {
         eob       = ' ',
         fold      = ' ',
         foldsep   = ' ',
-        foldopen  = '',
-        foldclose = '',
+        foldopen  = '',
+        foldclose = '',
       }
     end,
     config = function(_, opts)
@@ -291,8 +291,8 @@ return {
         indent = {
           -- priority = 1, -- indent char virt-text priority
 
-          -- char = '▏',
-          char = '│',
+          char = '▏',
+          -- char = '│',
           -- char = '┊',
         },
 
