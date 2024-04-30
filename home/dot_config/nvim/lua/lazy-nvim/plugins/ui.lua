@@ -57,10 +57,10 @@ return {
           'noice',
           'prompt',
           'TelescopePrompt',
+          '',
 
           -- custom values
-          'neo-tree',
-          'neo-tree-popup',
+          'NvimTree',
         },
 
         handle = {
