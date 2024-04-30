@@ -13,6 +13,9 @@ return {
 
         opts.desc = 'Toggle Help'
         vim.keymap.set('n', '?', api.tree.toggle_help, opts)
+
+        opts.desc = 'Show Info'
+        vim.keymap.set('n', 'i', api.node.show_info_popup, opts)
       end,
     },
     init = function()
