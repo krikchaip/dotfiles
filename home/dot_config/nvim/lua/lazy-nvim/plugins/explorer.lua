@@ -16,6 +16,14 @@ return {
 
         opts.desc = 'Show Info'
         vim.keymap.set('n', 'i', api.node.show_info_popup, opts)
+
+        opts.desc = 'Open'
+        vim.keymap.set('n', 'J', api.node.open.edit, opts)
+        vim.keymap.set('n', '<CR>', api.node.open.edit, opts)
+
+        opts.desc = 'Close Directory'
+        vim.keymap.set('n', 'K', api.node.navigate.parent_close, opts)
+        vim.keymap.set('n', '<BS>', api.node.navigate.parent_close, opts)
       end,
     },
     init = function()
