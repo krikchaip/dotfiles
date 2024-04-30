@@ -8,6 +8,7 @@ return {
     opts = {
       on_attach = function(bufnr)
         local api = require 'nvim-tree.api'
+        local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
         local opts = { buffer = bufnr, silent = true, nowait = true }
 
@@ -44,11 +45,16 @@ return {
         opts.desc = 'Copy'
         vim.keymap.set('n', 'yy', api.fs.copy.node, opts)
 
-        opts.desc = 'Prev Git Change'
-        vim.keymap.set('n', '[c', api.node.navigate.git.prev, opts)
+        local git_next, git_prev = ts_repeat_move.make_repeatable_move_pair(
+          api.node.navigate.git.next,
+          api.node.navigate.git.prev
+        )
 
         opts.desc = 'Next Git Change'
-        vim.keymap.set('n', ']c', api.node.navigate.git.next, opts)
+        vim.keymap.set('n', ']c', git_next, opts)
+
+        opts.desc = 'Prev Git Change'
+        vim.keymap.set('n', '[c', git_prev, opts)
       end,
     },
     init = function()
