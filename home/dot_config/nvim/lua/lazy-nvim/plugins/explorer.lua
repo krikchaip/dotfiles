@@ -96,7 +96,7 @@ return {
 
           -- Place where the diagnostics icon will be rendered
           -- values: 'before', 'after', 'signcolumn'
-          diagnostics_placement = 'after',
+          diagnostics_placement = 'signcolumn',
 
           -- Place where the modified icon will be rendered
           -- values: 'before', 'after', 'signcolumn'
@@ -124,6 +124,44 @@ return {
       -- Update the focused file on `BufEnter`, un-collapses
       -- the folders recursively until it finds the file.
       update_focused_file = { enable = true },
+
+      diagnostics = {
+        -- LSP and COC diagnostics
+        enable = true,
+
+        -- Show diagnostic icons on parent directories
+        show_on_dirs = true,
+
+        -- Icons for diagnostic severity
+        icons = {
+          error   = '',
+          warning = '',
+          hint    = '',
+          info    = '',
+        },
+      },
+
+      -- Indicate which file have unsaved modification
+      -- requires renderer.icons.show.modified = true
+      --       OR renderer.highlight_modified = true
+      modified = { enable = true },
+
+      live_filter = {
+        -- Whether to filter folders or not
+        always_show_folders = false,
+      },
+
+      actions = {
+        change_dir = {
+          -- Restrict changing to a directory above the global cwd
+          restrict_above_cwd = true,
+        },
+
+        expand_all = {
+          -- A list of directories that should not be expanded automatically
+          exclude = { '.git', 'target', 'build' },
+        },
+      },
 
       on_attach = function(bufnr)
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
