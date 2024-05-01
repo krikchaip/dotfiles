@@ -22,6 +22,28 @@ return {
         sorter = 'extension',
       },
 
+      view = {
+        -- When entering nvim-tree, reposition the view
+        -- so that the current node is initially centralized, like pressing `zz`
+        centralize_selection = true,
+
+        -- Preserves window proportions when opening a file
+        -- If `false`, the height and width of windows other than nvim-tree will be equalized.
+        preserve_window_proportions = true,
+
+        -- Value can be 'yes', 'auto', 'no'
+        signcolumn = 'yes',
+
+        -- Width of the window
+        width = 25,
+
+        -- Use nvim-tree in a floating window
+        -- float = {
+        --   enable = true,
+        -- },
+      },
+
+
       on_attach = function(bufnr)
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
