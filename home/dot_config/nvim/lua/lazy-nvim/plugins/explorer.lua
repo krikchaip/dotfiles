@@ -161,6 +161,46 @@ return {
           -- A list of directories that should not be expanded automatically
           exclude = { '.git', 'target', 'build' },
         },
+
+        open_file = {
+          -- Resizes the tree when opening a file
+          resize_window = false,
+
+          window_picker = {
+            -- If the feature is not enabled, files will open in
+            -- window from which you last opened the tree
+            enable = false,
+
+            -- string 'default' or a function returning
+            -- the window id that will open the node, or 'nil'
+            -- if an invalid window is picked or user cancelled the action
+            -- picker = 'default',
+            -- picker = require('window-picker').pick_window
+          },
+        },
+
+        remove_file = {
+          -- Close any window displaying a file when removing the file from the tree
+          close_window = true,
+        },
+      },
+
+      tab = {
+        -- Configuration for syncing nvim-tree across tabs
+        sync = {
+          -- Opens the tree automatically when switching tabpage or opening a new
+          -- tabpage if the tree was previously open.
+          open = true,
+
+          -- Closes the tree across all tabpages when the tree is closed
+          close = true,
+        },
+      },
+
+      help = {
+        -- 'key' (sort alphabetically by keymap)
+        -- 'desc' (sort alphabetically by description)
+        sort_by = 'desc',
       },
 
       on_attach = function(bufnr)
@@ -239,7 +279,7 @@ return {
             ['i'] = { api.node.show_info_popup, 'Info' },
             ['a'] = { api.fs.create, 'Add' },
             ['d'] = { api.fs.remove, 'Delete' },
-            ['D'] = { api.fs.trash, 'Trash' },
+            ['D'] = { api.fs.trash, 'Trash' }, -- requires the homebrew package `trash`
             ['p'] = { api.fs.paste, 'Paste' },
             ['x'] = { api.fs.cut, 'Cut' },
             ['.'] = { api.node.run.cmd, 'Run Command' },
