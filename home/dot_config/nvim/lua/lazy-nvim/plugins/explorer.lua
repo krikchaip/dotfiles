@@ -311,6 +311,7 @@ return {
             ['bd'] = { marks.bulk.delete, 'Delete Selected' },
             ['bt'] = { marks.bulk.trash, 'Trash Selected' },
             ['bmv'] = { marks.bulk.move, 'Move Selected' },
+            ['bc'] = { marks.clear, 'Clear All' },
           },
         }
 
