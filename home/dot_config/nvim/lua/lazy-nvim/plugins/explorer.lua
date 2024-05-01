@@ -6,8 +6,21 @@ return {
     lazy = false,
     dependencies = { 'web-devicons', 'image' },
     opts = {
+      -- Keeps the cursor on the first letter of the filename when moving in the tree
+      hijack_cursor = false,
+
+      -- Completely disable netrw
       disable_netrw = true,
-      hijack_netrw = true,
+
+      -- Necessary when using a UI prompt decorator such as dressing.nvim or telescope-ui-select.nvim
+      select_prompts = true,
+
+      sort = {
+        -- Changes how files within the same directory are sorted.
+        -- Can be one of 'name', 'case_sensitive', 'modification_time',
+        -- 'extension', 'suffix', 'filetype' or a function.
+        sorter = 'extension',
+      },
 
       on_attach = function(bufnr)
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
@@ -48,8 +61,8 @@ return {
             ['P'] = { api.node.navigate.parent, 'Goto Parent' },
             ['W'] = { api.tree.collapse_all, 'Collapse All' },
             ['E'] = { api.tree.expand_all, 'Expand All' },
-            ['<C-]>'] = { api.tree.change_root_to_node, 'CD' },
-            ['<C-[>'] = { api.tree.change_root_to_parent, 'CD ..' },
+            ['gd'] = { api.tree.change_root_to_node, 'CD' },
+            ['gu'] = { api.tree.change_root_to_parent, 'CD ..' },
           },
 
           ['Navigation'] = {
@@ -62,8 +75,8 @@ return {
             ['[c'] = { api.node.navigate.git.prev, 'Prev Git' },
             [']c'] = { api.node.navigate.git.next, 'Next Git' },
 
-            ['[e'] = { api.node.navigate.diagnostics.prev, 'Prev Diagnostic' },
-            [']e'] = { api.node.navigate.diagnostics.next, 'Next Diagnostic' },
+            ['[d'] = { api.node.navigate.diagnostics.prev, 'Prev Diagnostic' },
+            [']d'] = { api.node.navigate.diagnostics.next, 'Next Diagnostic' },
           },
 
           ['Copy'] = {
