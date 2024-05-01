@@ -25,7 +25,7 @@ return {
       view = {
         -- When entering nvim-tree, reposition the view
         -- so that the current node is initially centralized, like pressing `zz`
-        centralize_selection = true,
+        centralize_selection = false,
 
         -- Preserves window proportions when opening a file
         -- If `false`, the height and width of windows other than nvim-tree will be equalized.
@@ -43,6 +43,10 @@ return {
         -- },
       },
 
+      renderer = {
+        -- Compact folders that only contain a single folder into one node
+        group_empty = true,
+      },
 
       on_attach = function(bufnr)
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
@@ -133,7 +137,7 @@ return {
           },
 
           ['Toggle'] = {
-            ['L'] = { api.node.open.toggle_group_empty, 'Group Empty' },
+            -- ['L'] = { api.node.open.toggle_group_empty, 'Group Empty' },
             ['M'] = { api.tree.toggle_no_bookmark_filter, 'Marks Filter' },
             ['B'] = { api.tree.toggle_no_buffer_filter, 'Buffer Filter' },
             ['C'] = { api.tree.toggle_git_clean_filter, 'Git Clean Filter' },
