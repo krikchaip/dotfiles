@@ -161,7 +161,6 @@ return {
   {
     'luukvbaal/statuscol.nvim',
     name = 'statuscol',
-    lazy = false,
     config = function()
       local statuscol = require 'statuscol'
       local builtin = require 'statuscol.builtin'
@@ -185,7 +184,7 @@ return {
     'kevinhwang91/nvim-ufo',
     name = 'ufo',
     event = 'LspAttach', -- Important! otherwise it won't work
-    dependencies = { 'promise-async' },
+    dependencies = { 'promise-async', 'statuscol' },
     opts = {
       fold_virt_text_handler = ufo_utils.folded_number_suffix,
     },

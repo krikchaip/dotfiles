@@ -9,14 +9,15 @@ return {
       return is_git_repo() or is_git_file()
     end,
     event = { 'BufReadPre', 'BufNewFile' },
+    dependencies = { 'statuscol' },
     opts = {
       signs                             = {
-        -- add          = { text = '┃' },
-        -- change       = { text = '┃' },
+        add          = { text = '┃' },
+        change       = { text = '┃' },
         delete       = { text = '⏵' },
         topdelete    = { text = '⏵' },
-        -- changedelete = { text = '~' },
-        -- untracked    = { text = '┆' },
+        changedelete = { text = '~' },
+        untracked    = { text = '┆' },
       },
 
       attach_to_untracked               = true,
