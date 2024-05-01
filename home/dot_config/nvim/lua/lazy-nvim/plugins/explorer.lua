@@ -258,11 +258,11 @@ return {
             ['J'] = { node.navigate.sibling.last, 'Last Sibling' },
             ['K'] = { node.navigate.sibling.first, 'First Sibling' },
 
-            ['[c'] = { node.navigate.git.prev, 'Prev Git' },
-            [']c'] = { node.navigate.git.next, 'Next Git' },
+            ['[c'] = { node.navigate.git.prev_recursive, 'Prev Git' },
+            [']c'] = { node.navigate.git.next_recursive, 'Next Git' },
 
-            ['[d'] = { node.navigate.diagnostics.prev, 'Prev Diagnostic' },
-            [']d'] = { node.navigate.diagnostics.next, 'Next Diagnostic' },
+            ['[d'] = { node.navigate.diagnostics.prev_recursive, 'Prev Diagnostic' },
+            [']d'] = { node.navigate.diagnostics.next_recursive, 'Next Diagnostic' },
           },
 
           ['Copy'] = {
