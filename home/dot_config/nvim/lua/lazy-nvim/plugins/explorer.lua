@@ -208,6 +208,11 @@ return {
 
         local api = require 'nvim-tree.api'
 
+        local tree = api.tree
+        local node = api.node
+        local fs = api.fs
+        local marks = api.marks
+
         local opts = {
           buffer = bufnr,
           silent = true,
@@ -217,95 +222,95 @@ return {
 
         local mappings = {
           ['Explorer'] = {
-            ['?'] = { api.tree.toggle_help, 'Help' },
-            ['R'] = { api.tree.reload, 'Refresh' },
-            ['q'] = { api.tree.close, 'Close' },
+            ['?'] = { tree.toggle_help, 'Help' },
+            ['R'] = { tree.reload, 'Refresh' },
+            ['q'] = { tree.close, 'Close' },
           },
 
           ['Open'] = {
-            ['<CR>'] = { api.node.open.edit, 'Edit' },
-            ['<2-LeftMouse>'] = { api.node.open.edit, 'Edit' },
-            ['o'] = { api.node.open.edit, 'Edit' },
-            ['O'] = { api.node.open.no_window_picker, 'No Window Picker' },
-            ['<Tab>'] = { api.node.open.preview, 'Preview' },
-            ['s'] = { api.node.run.system, 'In System' },
+            ['<CR>'] = { node.open.edit, 'Edit' },
+            ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
+            ['o'] = { node.open.edit, 'Edit' },
+            ['O'] = { node.open.no_window_picker, 'No Window Picker' },
+            ['<Tab>'] = { node.open.preview, 'Preview' },
+            ['s'] = { node.run.system, 'In System' },
           },
 
           ['Split'] = {
-            ['<C-t>'] = { api.node.open.tab, 'New Tab' },
-            ['<C-v>'] = { api.node.open.vertical, 'Vertical' },
-            ['<C-s>'] = { api.node.open.horizontal, 'Horizontal' },
+            ['<C-t>'] = { node.open.tab, 'New Tab' },
+            ['<C-v>'] = { node.open.vertical, 'Vertical' },
+            ['<C-s>'] = { node.open.horizontal, 'Horizontal' },
           },
 
           ['Directory'] = {
-            ['<BS>'] = { api.node.navigate.parent_close, 'Close Current' },
-            ['P'] = { api.node.navigate.parent, 'Goto Parent' },
-            ['W'] = { api.tree.collapse_all, 'Collapse All' },
-            ['E'] = { api.tree.expand_all, 'Expand All' },
-            ['gd'] = { api.tree.change_root_to_node, 'CD' },
-            ['gu'] = { api.tree.change_root_to_parent, 'CD ..' },
+            ['<BS>'] = { node.navigate.parent_close, 'Close Current' },
+            ['P'] = { node.navigate.parent, 'Goto Parent' },
+            ['W'] = { function() tree.collapse_all { keep_buffers = true } end, 'Collapse All' },
+            ['E'] = { tree.expand_all, 'Expand All' },
+            ['gd'] = { tree.change_root_to_node, 'CD' },
+            ['gu'] = { tree.change_root_to_parent, 'CD ..' },
           },
 
           ['Navigation'] = {
-            ['<'] = { api.node.navigate.sibling.prev, 'Previous Sibling' },
-            ['>'] = { api.node.navigate.sibling.next, 'Next Sibling' },
+            ['<'] = { node.navigate.sibling.prev, 'Previous Sibling' },
+            ['>'] = { node.navigate.sibling.next, 'Next Sibling' },
 
-            ['J'] = { api.node.navigate.sibling.last, 'Last Sibling' },
-            ['K'] = { api.node.navigate.sibling.first, 'First Sibling' },
+            ['J'] = { node.navigate.sibling.last, 'Last Sibling' },
+            ['K'] = { node.navigate.sibling.first, 'First Sibling' },
 
-            ['[c'] = { api.node.navigate.git.prev, 'Prev Git' },
-            [']c'] = { api.node.navigate.git.next, 'Next Git' },
+            ['[c'] = { node.navigate.git.prev, 'Prev Git' },
+            [']c'] = { node.navigate.git.next, 'Next Git' },
 
-            ['[d'] = { api.node.navigate.diagnostics.prev, 'Prev Diagnostic' },
-            [']d'] = { api.node.navigate.diagnostics.next, 'Next Diagnostic' },
+            ['[d'] = { node.navigate.diagnostics.prev, 'Prev Diagnostic' },
+            [']d'] = { node.navigate.diagnostics.next, 'Next Diagnostic' },
           },
 
           ['Copy'] = {
-            ['c'] = { api.fs.copy.node, 'Current Node' },
-            ['y'] = { api.fs.copy.filename, 'Filename' },
-            ['Y'] = { api.fs.copy.relative_path, 'Relative Path' },
-            ['gy'] = { api.fs.copy.absolute_path, 'Absolute Path' },
-            ['ge'] = { api.fs.copy.basename, 'Basename' },
+            ['c'] = { fs.copy.node, 'Current Node' },
+            ['y'] = { fs.copy.filename, 'Filename' },
+            ['Y'] = { fs.copy.relative_path, 'Relative Path' },
+            ['gy'] = { fs.copy.absolute_path, 'Absolute Path' },
+            ['ge'] = { fs.copy.basename, 'Basename' },
           },
 
           ['Rename'] = {
-            ['<C-r>'] = { api.fs.rename_sub, 'Omit Filename' },
-            ['r'] = { api.fs.rename, 'Filename' },
-            ['e'] = { api.fs.rename_basename, 'Basename' },
-            ['u'] = { api.fs.rename_full, 'Full Path' },
+            ['<C-r>'] = { fs.rename_sub, 'Omit Filename' },
+            ['r'] = { fs.rename, 'Filename' },
+            ['e'] = { fs.rename_basename, 'Basename' },
+            ['u'] = { fs.rename_full, 'Full Path' },
           },
 
           ['Operation'] = {
-            ['i'] = { api.node.show_info_popup, 'Info' },
-            ['a'] = { api.fs.create, 'Add' },
-            ['d'] = { api.fs.remove, 'Delete' },
-            ['D'] = { api.fs.trash, 'Trash' }, -- requires the homebrew package `trash`
-            ['p'] = { api.fs.paste, 'Paste' },
-            ['x'] = { api.fs.cut, 'Cut' },
-            ['.'] = { api.node.run.cmd, 'Run Command' },
+            ['i'] = { node.show_info_popup, 'Info' },
+            ['a'] = { fs.create, 'Add' },
+            ['d'] = { fs.remove, 'Delete' },
+            ['D'] = { fs.trash, 'Trash' }, -- requires the homebrew package `trash`
+            ['p'] = { fs.paste, 'Paste' },
+            ['x'] = { fs.cut, 'Cut' },
+            ['.'] = { node.run.cmd, 'Run Command' },
           },
 
           ['Search'] = {
-            ['S'] = { api.tree.search_node, 'Exact' },
+            ['S'] = { tree.search_node, 'Exact' },
             ['f'] = { api.live_filter.start, 'Start Filter' },
             ['F'] = { api.live_filter.clear, 'Clear Filter' },
           },
 
           ['Toggle'] = {
-            -- ['L'] = { api.node.open.toggle_group_empty, 'Group Empty' },
-            ['M'] = { api.tree.toggle_no_bookmark_filter, 'Marks Filter' },
-            ['B'] = { api.tree.toggle_no_buffer_filter, 'Buffer Filter' },
-            ['C'] = { api.tree.toggle_git_clean_filter, 'Git Clean Filter' },
-            ['I'] = { api.tree.toggle_gitignore_filter, 'Git Ignore Filter' },
-            ['H'] = { api.tree.toggle_hidden_filter, 'Dotfiles Filter' },
-            ['U'] = { api.tree.toggle_custom_filter, 'Hidden Filter' },
+            -- ['L'] = { node.open.toggle_group_empty, 'Group Empty' },
+            ['M'] = { tree.toggle_no_bookmark_filter, 'Marks Filter' },
+            ['B'] = { tree.toggle_no_buffer_filter, 'Buffer Filter' },
+            ['C'] = { tree.toggle_git_clean_filter, 'Git Clean Filter' },
+            ['I'] = { tree.toggle_gitignore_filter, 'Git Ignore Filter' },
+            ['H'] = { tree.toggle_hidden_filter, 'Dotfiles Filter' },
+            ['U'] = { tree.toggle_custom_filter, 'Hidden Filter' },
           },
 
           ['Marks'] = {
-            ['m'] = { api.marks.toggle, 'Toggle Current' },
-            ['bd'] = { api.marks.bulk.delete, 'Delete Selected' },
-            ['bt'] = { api.marks.bulk.trash, 'Trash Selected' },
-            ['bmv'] = { api.marks.bulk.move, 'Move Selected' },
+            ['m'] = { marks.toggle, 'Toggle Current' },
+            ['bd'] = { marks.bulk.delete, 'Delete Selected' },
+            ['bt'] = { marks.bulk.trash, 'Trash Selected' },
+            ['bmv'] = { marks.bulk.move, 'Move Selected' },
           },
         }
 
@@ -334,7 +339,17 @@ return {
       nvim_tree.setup(opts)
 
       -- open nvim-tree after setup finished
-      api.tree.open()
+      -- api.tree.open()
+
+      vim.keymap.set('n', '<leader>ef', api.tree.open, { desc = '[f]ocus' })
+
+      vim.keymap.set('n', '<leader>ee', function()
+        api.tree.toggle { focus = false }
+      end, { desc = 'Toggl[e]' })
+
+      vim.keymap.set('n', '<leader>er', function()
+        api.tree.find_file { open = true, focus = false }
+      end, { desc = '[r]eveal' })
     end
   },
 }
