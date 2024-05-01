@@ -161,6 +161,7 @@ return {
   {
     'luukvbaal/statuscol.nvim',
     name = 'statuscol',
+    event = 'VeryLazy',
     config = function()
       local statuscol = require 'statuscol'
       local builtin = require 'statuscol.builtin'
@@ -184,7 +185,7 @@ return {
     'kevinhwang91/nvim-ufo',
     name = 'ufo',
     event = 'LspAttach', -- Important! otherwise it won't work
-    dependencies = { 'promise-async', 'statuscol' },
+    dependencies = { 'promise-async' },
     opts = {
       fold_virt_text_handler = ufo_utils.folded_number_suffix,
     },
@@ -202,6 +203,9 @@ return {
       local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
       ufo.setup(opts)
+
+      -- must reload `statuscol` because this plugin overwrites its value
+      vim.cmd [[ silent Lazy reload statuscol ]]
 
       local next_closed_fold, prev_closed_fold = ts_repeat_move.make_repeatable_move_pair(
         ufo.goNextClosedFold,

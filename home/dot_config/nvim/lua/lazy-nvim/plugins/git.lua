@@ -8,8 +8,7 @@ return {
     cond = function()
       return is_git_repo() or is_git_file()
     end,
-    event = { 'BufReadPre', 'BufNewFile' },
-    dependencies = { 'statuscol' },
+    event = { 'BufReadPost', 'BufNewFile' },
     opts = {
       signs                             = {
         add          = { text = '┃' },
@@ -127,6 +126,9 @@ return {
     config = function(_, opts)
       require('gitsigns').setup(opts)
       require('scrollbar.handlers.gitsigns').setup()
+
+      -- must reload `statuscol` because this plugin overwrites its value
+      vim.cmd [[ silent Lazy reload statuscol ]]
     end
   },
 }
