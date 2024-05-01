@@ -29,7 +29,7 @@ return {
 
         -- Preserves window proportions when opening a file
         -- If `false`, the height and width of windows other than nvim-tree will be equalized.
-        preserve_window_proportions = true,
+        preserve_window_proportions = false,
 
         -- Value can be 'yes', 'auto', 'no'
         signcolumn = 'yes',
@@ -56,6 +56,33 @@ return {
 
         -- Display indent markers when folders are open
         -- indent_markers = { enable = false },
+
+        -- A list of filenames that gets special highlighted
+        -- special_files = { 'Cargo.toml', 'Makefile', 'README.md', 'readme.md' },
+
+        -- Enable highlight for git attributes
+        -- values: 'none', 'icon', 'name', 'all'
+        highlight_git = 'name',
+
+        -- Enable highlight for diagnostics
+        -- values: 'none', 'icon', 'name', 'all'
+        highlight_diagnostics = 'none',
+
+        -- Highlight icons and/or names for bufloded() files
+        -- values: 'none', 'icon', 'name', 'all'
+        highlight_opened_files = 'none',
+
+        -- Highlight icons and/or names for modified files
+        -- values: 'none', 'icon', 'name', 'all'
+        highlight_modified = 'icon',
+
+        -- Highlight bookmarked nodes
+        -- values: 'none', 'icon', 'name', 'all'
+        highlight_bookmarks = 'none',
+
+        -- Enable highlight for clipboard items
+        -- values: 'none', 'icon', 'name', 'all'
+        highlight_clipboard = 'none',
 
         icons = {
           web_devicons = {
