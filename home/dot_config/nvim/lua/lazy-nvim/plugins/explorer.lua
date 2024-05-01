@@ -4,7 +4,7 @@ return {
     name = 'nvim-tree',
     version = '*',
     lazy = false,
-    dependencies = { 'web-devicons', 'image' },
+    dependencies = { 'web-devicons', 'image', 'statuscol' },
     opts = {
       -- Keeps the cursor on the first letter of the filename when moving in the tree
       hijack_cursor = false,
@@ -13,7 +13,7 @@ return {
       disable_netrw = true,
 
       -- Necessary when using a UI prompt decorator such as dressing.nvim or telescope-ui-select.nvim
-      select_prompts = true,
+      select_prompts = false,
 
       sort = {
         -- Changes how files within the same directory are sorted.
@@ -38,15 +38,65 @@ return {
         width = 25,
 
         -- Use nvim-tree in a floating window
-        -- float = {
-        --   enable = true,
-        -- },
+        -- float = { enable = true },
       },
 
       renderer = {
         -- Compact folders that only contain a single folder into one node
         group_empty = true,
+
+        -- Display excessive node name in a floating window
+        full_name = true,
+
+        -- See `:help filename-modifiers` for available `string` options
+        root_folder_label = ':~:s?$??',
+
+        -- Number of spaces for an each tree nesting level
+        indent_width = 1,
+
+        -- Display indent markers when folders are open
+        -- indent_markers = { enable = false },
+
+        icons = {
+          web_devicons = {
+            -- Show web-devicons on folders
+            folder = { enable = true },
+          },
+
+          -- Place where the git icons will be rendered
+          -- values: 'before', 'after', 'signcolumn'
+          git_placement = 'after',
+
+          -- Place where the diagnostics icon will be rendered
+          -- values: 'before', 'after', 'signcolumn'
+          diagnostics_placement = 'after',
+
+          -- Place where the modified icon will be rendered
+          -- values: 'before', 'after', 'signcolumn'
+          modified_placement = 'after',
+
+          -- Place where the bookmarks icon will be rendered
+          -- values: 'before', 'after', 'signcolumn'
+          bookmarks_placement = 'signcolumn',
+
+          glyphs = {
+            -- Glyphs for git status
+            git = {
+              unstaged  = '✗',
+              staged    = '✓',
+              unmerged  = '',
+              renamed   = '➜',
+              untracked = '★',
+              deleted   = '',
+              ignored   = '◌',
+            },
+          },
+        },
       },
+
+      -- Update the focused file on `BufEnter`, un-collapses
+      -- the folders recursively until it finds the file.
+      update_focused_file = { enable = true },
 
       on_attach = function(bufnr)
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
