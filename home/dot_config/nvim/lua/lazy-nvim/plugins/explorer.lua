@@ -245,7 +245,7 @@ return {
           ['Directory'] = {
             ['<BS>'] = { node.navigate.parent_close, 'Close Current' },
             ['P'] = { node.navigate.parent, 'Goto Parent' },
-            ['W'] = { function() tree.collapse_all { keep_buffers = true } end, 'Collapse All' },
+            ['W'] = { function() tree.collapse_all(true) end, 'Collapse All' },
             ['E'] = { tree.expand_all, 'Expand All' },
             ['gd'] = { tree.change_root_to_node, 'CD' },
             ['gu'] = { tree.change_root_to_parent, 'CD ..' },
