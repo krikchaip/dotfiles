@@ -7,7 +7,7 @@ return {
     dependencies = { 'web-devicons' },
     opts = {
       on_attach = function(bufnr)
-        local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+        -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
         local api = require 'nvim-tree.api'
 
