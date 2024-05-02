@@ -228,17 +228,17 @@ return {
         local mappings = {
           ['Explorer'] = {
             ['?'] = { tree.toggle_help, 'Help' },
-            ['R'] = { tree.reload, 'Refresh' },
             ['q'] = { tree.close, 'Close' },
+            ['<C-r>'] = { tree.reload, 'Refresh' },
           },
 
           ['Open'] = {
+            ['J'] = { node.open.edit, 'Edit' },
             ['<CR>'] = { node.open.edit, 'Edit' },
             ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
-            ['o'] = { node.open.edit, 'Edit' },
-            -- ['O'] = { node.open.no_window_picker, 'No Window Picker' },
-            -- ['<Tab>'] = { node.open.preview_no_picker, 'Preview' },
-            ['s'] = { node.run.system, 'System Default' },
+            ['<M-j>'] = { node.run.system, 'System Default' },
+            ['<M-RightMouse>'] = { node.run.system, 'System Default' },
+            -- ['<C-p>'] = { node.open.preview_no_picker, 'Preview' },
           },
 
           ['Split'] = {
@@ -249,11 +249,11 @@ return {
 
           ['Directory'] = {
             ['<BS>'] = { node.navigate.parent_close, 'Close Current' },
-            ['P'] = { node.navigate.parent, 'Goto Parent' },
-            ['W'] = { function() tree.collapse_all(true) end, 'Collapse All' },
-            ['E'] = { tree.expand_all, 'Expand All' },
-            ['gd'] = { tree.change_root_to_node, 'CD' },
-            ['gu'] = { tree.change_root_to_parent, 'CD ..' },
+            ['K'] = { node.navigate.parent, 'Goto Parent' },
+            ['H'] = { function() tree.collapse_all(true) end, 'Collapse All' },
+            ['L'] = { tree.expand_all, 'Expand All' },
+            ['gj'] = { tree.change_root_to_node, 'CD Into' },
+            ['gk'] = { tree.change_root_to_parent, 'CD Parent' },
           },
 
           ['Navigation'] = {
