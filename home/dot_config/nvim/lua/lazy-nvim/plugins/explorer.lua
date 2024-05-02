@@ -233,16 +233,16 @@ return {
           },
 
           ['Open'] = {
-            ['<CR>'] = { node.open.drop, 'Edit' },
-            ['<2-LeftMouse>'] = { node.open.drop, 'Edit' },
-            ['o'] = { node.open.drop, 'Edit' },
+            ['<CR>'] = { node.open.edit, 'Edit' },
+            ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
+            ['o'] = { node.open.edit, 'Edit' },
             -- ['O'] = { node.open.no_window_picker, 'No Window Picker' },
             -- ['<Tab>'] = { node.open.preview, 'Preview' },
             ['s'] = { node.run.system, 'System Default' },
           },
 
           ['Split'] = {
-            ['<C-t>'] = { node.open.tab_drop, 'New Tab' },
+            ['<C-t>'] = { node.open.tab, 'New Tab' },
             ['<C-v>'] = { node.open.vertical, 'Vertical' },
             ['<C-s>'] = { node.open.horizontal, 'Horizontal' },
           },
