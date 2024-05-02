@@ -195,10 +195,10 @@ return {
         sync = {
           -- Opens the tree automatically when switching tabpage or opening a new
           -- tabpage if the tree was previously open.
-          open = true,
+          open = false,
 
           -- Closes the tree across all tabpages when the tree is closed
-          close = true,
+          close = false,
         },
       },
 
@@ -237,7 +237,7 @@ return {
             ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
             ['o'] = { node.open.edit, 'Edit' },
             -- ['O'] = { node.open.no_window_picker, 'No Window Picker' },
-            -- ['<Tab>'] = { node.open.preview, 'Preview' },
+            -- ['<Tab>'] = { node.open.preview_no_picker, 'Preview' },
             ['s'] = { node.run.system, 'System Default' },
           },
 
