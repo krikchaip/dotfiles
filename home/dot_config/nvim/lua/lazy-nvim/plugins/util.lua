@@ -34,6 +34,7 @@ return {
   {
     '3rd/image.nvim',
     name = 'image',
+    event = { 'BufReadPre *.png, *.jpg, *.jpeg, *.svg, *.gif, *.webp' },
     opts = {
       -- toggles images when windows are overlapped
       window_overlap_clear_enabled = false,
