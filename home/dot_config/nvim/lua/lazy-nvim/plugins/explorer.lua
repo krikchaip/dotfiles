@@ -1,5 +1,12 @@
 return {
   {
+    'antosha417/nvim-lsp-file-operations',
+    name = 'lsp-file-operations',
+    dependencies = { 'plenary' },
+    opts = {},
+  },
+
+  {
     'nvim-tree/nvim-tree.lua',
     name = 'nvim-tree',
     version = '*',
@@ -366,6 +373,13 @@ return {
 
       -- enable 24-bit colour
       vim.opt.termguicolors    = true
+    end,
+    config = function(_, opts)
+      require('nvim-tree').setup(opts)
+
+      -- nvim-tree must load before nvim-lsp-file-operations for it to work
+      -- ref: https://github.com/antosha417/nvim-lsp-file-operations#for-nvim-tree-users-1
+      vim.cmd [[ silent Lazy load lsp-file-operations ]]
     end,
   },
 }
