@@ -4,6 +4,7 @@ return {
     name = 'nvim-tree',
     version = '*',
     lazy = false,
+    keys = {},
     dependencies = { 'web-devicons', 'image', 'statuscol' },
     opts = {
       -- Keeps the cursor on the first letter of the filename when moving in the tree
@@ -302,19 +303,18 @@ return {
           },
 
           ['Search'] = {
-            ['S'] = { tree.search_node, 'Exact' },
+            -- ['s'] = { tree.search_node, 'Exact' },
             ['f'] = { api.live_filter.start, 'Start Filter' },
             ['F'] = { api.live_filter.clear, 'Clear Filter' },
           },
 
           ['Toggle'] = {
-            -- ['L'] = { node.open.toggle_group_empty, 'Group Empty' },
-            ['M'] = { tree.toggle_no_bookmark_filter, 'Marks Filter' },
-            ['B'] = { tree.toggle_no_buffer_filter, 'Buffer Filter' },
-            ['C'] = { tree.toggle_git_clean_filter, 'Git Clean Filter' },
-            ['I'] = { tree.toggle_gitignore_filter, 'Git Ignore Filter' },
-            ['H'] = { tree.toggle_hidden_filter, 'Dotfiles Filter' },
-            ['U'] = { tree.toggle_custom_filter, 'Hidden Filter' },
+            ['tm'] = { tree.toggle_no_bookmark_filter, 'Marks Filter' },
+            ['tb'] = { tree.toggle_no_buffer_filter, 'Buffer Filter' },
+            ['tc'] = { tree.toggle_git_clean_filter, 'Git Clean Filter' },
+            ['ti'] = { tree.toggle_gitignore_filter, 'Git Ignore Filter' },
+            ['t.'] = { tree.toggle_hidden_filter, 'Dotfiles Filter' },
+            ['th'] = { tree.toggle_custom_filter, 'Hidden Filter' },
           },
 
           ['Marks'] = {
