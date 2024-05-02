@@ -285,10 +285,11 @@ return {
           },
 
           ['Rename'] = {
-            ['<C-r>'] = { fs.rename_sub, 'Omit Filename' },
-            ['r'] = { fs.rename, 'Filename' },
-            ['e'] = { fs.rename_basename, 'Basename' },
-            ['u'] = { fs.rename_full, 'Full Path' },
+            ['rr'] = { fs.rename, 'Filename' },
+            ['R'] = { fs.rename, 'Filename' },
+            ['rf'] = { fs.rename_sub, 'Full Name' },
+            ['ra'] = { fs.rename_full, 'Full Path' },
+            ['rb'] = { fs.rename_basename, 'Basename' },
           },
 
           ['Operation'] = {
