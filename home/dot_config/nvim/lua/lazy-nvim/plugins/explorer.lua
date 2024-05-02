@@ -7,6 +7,22 @@ return {
   },
 
   {
+    'b0o/nvim-tree-preview.lua',
+    name = 'nvim-tree-preview',
+    dependencies = { 'plenary', 'nvim-treesitter' },
+    opts = {
+      keymaps = {
+        ['<Esc>'] = { action = 'close', unwatch = true },
+        ['<Tab>'] = { action = 'toggle_focus' },
+        ['<CR>'] = { open = 'edit' },
+        ['<C-t>'] = { open = 'tab' },
+        ['<C-v>'] = { open = 'vertical' },
+        ['<C-s>'] = { open = 'horizontal' },
+      },
+    },
+  },
+
+  {
     'nvim-tree/nvim-tree.lua',
     name = 'nvim-tree',
     version = '*',
@@ -30,7 +46,12 @@ return {
         desc = '[R]eveal'
       },
     },
-    dependencies = { 'web-devicons', 'image', 'statuscol' },
+    dependencies = {
+      'web-devicons',
+      'statuscol',
+      'lsp-file-operations',
+      'nvim-tree-preview',
+    },
     opts = {
       -- Keeps the cursor on the first letter of the filename when moving in the tree
       hijack_cursor = false,
@@ -195,7 +216,7 @@ return {
 
         open_file = {
           -- Resizes the tree when opening a file
-          resize_window = true,
+          resize_window = false,
 
           window_picker = {
             -- If the feature is not enabled, files will open in
@@ -236,6 +257,7 @@ return {
 
       on_attach = function(bufnr)
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+        local preview = require 'nvim-tree-preview'
 
         local api = require 'nvim-tree.api'
 
@@ -273,7 +295,7 @@ return {
             ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
             ['<M-j>'] = { node.run.system, 'System Default' },
             ['<M-RightMouse>'] = { node.run.system, 'System Default' },
-            -- ['<C-p>'] = { node.open.preview_no_picker, 'Preview' },
+            ['P'] = { preview.watch, 'Preview' },
           },
 
           ['Split'] = {
@@ -373,13 +395,6 @@ return {
 
       -- enable 24-bit colour
       vim.opt.termguicolors    = true
-    end,
-    config = function(_, opts)
-      require('nvim-tree').setup(opts)
-
-      -- nvim-tree must load before nvim-lsp-file-operations for it to work
-      -- ref: https://github.com/antosha417/nvim-lsp-file-operations#for-nvim-tree-users-1
-      vim.cmd [[ silent Lazy load lsp-file-operations ]]
     end,
   },
 }
