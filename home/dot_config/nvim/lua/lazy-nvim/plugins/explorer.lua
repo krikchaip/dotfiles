@@ -29,7 +29,7 @@ return {
 
         -- Preserves window proportions when opening a file
         -- If `false`, the height and width of windows other than nvim-tree will be equalized.
-        preserve_window_proportions = false,
+        preserve_window_proportions = true,
 
         -- Value can be 'yes', 'auto', 'no'
         signcolumn = 'yes',
@@ -43,7 +43,7 @@ return {
 
       renderer = {
         -- Compact folders that only contain a single folder into one node
-        group_empty = true,
+        group_empty = false,
 
         -- Display excessive node name in a floating window
         full_name = true,
@@ -54,8 +54,13 @@ return {
         -- Number of spaces for an each tree nesting level
         indent_width = 1,
 
-        -- Display indent markers when folders are open
-        -- indent_markers = { enable = false },
+        indent_markers = {
+          -- Display indent markers when folders are open
+          enable = false,
+
+          -- Display folder arrows in the same column as indent marker
+          inline_arrows = false,
+        },
 
         -- A list of filenames that gets special highlighted
         -- special_files = { 'Cargo.toml', 'Makefile', 'README.md', 'readme.md' },
@@ -66,7 +71,7 @@ return {
 
         -- Enable highlight for diagnostics
         -- values: 'none', 'icon', 'name', 'all'
-        highlight_diagnostics = 'none',
+        highlight_diagnostics = 'name',
 
         -- Highlight icons and/or names for bufloded() files
         -- values: 'none', 'icon', 'name', 'all'
@@ -74,7 +79,7 @@ return {
 
         -- Highlight icons and/or names for modified files
         -- values: 'none', 'icon', 'name', 'all'
-        highlight_modified = 'icon',
+        highlight_modified = 'none',
 
         -- Highlight bookmarked nodes
         -- values: 'none', 'icon', 'name', 'all'
@@ -82,7 +87,7 @@ return {
 
         -- Enable highlight for clipboard items
         -- values: 'none', 'icon', 'name', 'all'
-        highlight_clipboard = 'none',
+        highlight_clipboard = 'name',
 
         icons = {
           web_devicons = {
@@ -144,7 +149,7 @@ return {
       -- Indicate which file have unsaved modification
       -- requires renderer.icons.show.modified = true
       --       OR renderer.highlight_modified = true
-      modified = { enable = true },
+      modified = { enable = false },
 
       live_filter = {
         -- Whether to filter folders or not
@@ -231,9 +236,9 @@ return {
             ['<CR>'] = { node.open.drop, 'Edit' },
             ['<2-LeftMouse>'] = { node.open.drop, 'Edit' },
             ['o'] = { node.open.drop, 'Edit' },
-            ['O'] = { node.open.no_window_picker, 'No Window Picker' },
-            ['<Tab>'] = { node.open.preview, 'Preview' },
-            ['s'] = { node.run.system, 'In System' },
+            -- ['O'] = { node.open.no_window_picker, 'No Window Picker' },
+            -- ['<Tab>'] = { node.open.preview, 'Preview' },
+            ['s'] = { node.run.system, 'System Default' },
           },
 
           ['Split'] = {
