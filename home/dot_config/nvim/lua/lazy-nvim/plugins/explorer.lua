@@ -218,6 +218,15 @@ return {
         local fs = api.fs
         local marks = api.marks
 
+        local collapse_all = function()
+          tree.collapse_all(true)
+        end
+
+        local clear_all = function()
+          marks.clear()
+          fs.clear_clipboard()
+        end
+
         local opts = {
           buffer = bufnr,
           silent = true,
@@ -250,7 +259,7 @@ return {
           ['Directory'] = {
             ['<BS>'] = { node.navigate.parent_close, 'Close Current' },
             ['K'] = { node.navigate.parent, 'Goto Parent' },
-            ['H'] = { function() tree.collapse_all(true) end, 'Collapse All' },
+            ['H'] = { collapse_all, 'Collapse All' },
             ['L'] = { tree.expand_all, 'Expand All' },
             ['gj'] = { tree.change_root_to_node, 'CD Into' },
             ['gk'] = { tree.change_root_to_parent, 'CD Parent' },
@@ -260,9 +269,6 @@ return {
             ['<'] = { node.navigate.sibling.prev, 'Previous Sibling' },
             ['>'] = { node.navigate.sibling.next, 'Next Sibling' },
 
-            ['J'] = { node.navigate.sibling.last, 'Last Sibling' },
-            ['K'] = { node.navigate.sibling.first, 'First Sibling' },
-
             ['[c'] = { node.navigate.git.prev_recursive, 'Prev Git' },
             [']c'] = { node.navigate.git.next_recursive, 'Next Git' },
 
@@ -271,11 +277,11 @@ return {
           },
 
           ['Copy'] = {
-            ['c'] = { fs.copy.node, 'Current Node' },
-            ['y'] = { fs.copy.filename, 'Filename' },
-            ['Y'] = { fs.copy.relative_path, 'Relative Path' },
-            ['gy'] = { fs.copy.absolute_path, 'Absolute Path' },
-            ['ge'] = { fs.copy.basename, 'Basename' },
+            ['yy'] = { fs.copy.filename, 'Filename' },
+            ['Y'] = { fs.copy.filename, 'Filename' },
+            ['yr'] = { fs.copy.relative_path, 'Relative Path' },
+            ['ya'] = { fs.copy.absolute_path, 'Absolute Path' },
+            ['yb'] = { fs.copy.basename, 'Basename' },
           },
 
           ['Rename'] = {
@@ -291,7 +297,6 @@ return {
             ['d'] = { fs.remove, 'Delete' },
             ['D'] = { fs.trash, 'Trash' }, -- requires the homebrew package `trash`
             ['p'] = { fs.paste, 'Paste' },
-            ['x'] = { fs.cut, 'Cut' },
             ['.'] = { node.run.cmd, 'Run Command' },
           },
 
@@ -312,11 +317,13 @@ return {
           },
 
           ['Marks'] = {
-            ['m'] = { marks.toggle, 'Toggle Current' },
-            ['bd'] = { marks.bulk.delete, 'Delete Selected' },
-            ['bt'] = { marks.bulk.trash, 'Trash Selected' },
-            ['bmv'] = { marks.bulk.move, 'Move Selected' },
-            ['bc'] = { marks.clear, 'Clear All' },
+            ['<Tab>'] = { marks.toggle, 'Toggle Current' },
+            ['c'] = { fs.copy.node, 'Toggle Copy Current' },
+            ['x'] = { fs.cut, 'Toggle Cut Current' },
+            ['mm'] = { clear_all, 'Clear All' },
+            ['md'] = { marks.bulk.delete, 'Delete Selected' },
+            ['mt'] = { marks.bulk.trash, 'Trash Selected' },
+            ['mp'] = { marks.bulk.move, 'Move Selected' },
           },
         }
 
