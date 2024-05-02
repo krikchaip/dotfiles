@@ -3,8 +3,26 @@ return {
     'nvim-tree/nvim-tree.lua',
     name = 'nvim-tree',
     version = '*',
-    lazy = false,
-    keys = {},
+    -- lazy = false,
+    keys = {
+      {
+        '<leader>ef',
+        function() require('nvim-tree.api').tree.open() end,
+        desc = '[F]ocus'
+      },
+
+      {
+        '<leader>ee',
+        function() require('nvim-tree.api').tree.toggle { focus = false } end,
+        desc = 'Toggl[e]'
+      },
+
+      {
+        '<leader>er',
+        function() require('nvim-tree.api').tree.find_file { focus = false, open = true } end,
+        desc = '[R]eveal'
+      },
+    },
     dependencies = { 'web-devicons', 'image', 'statuscol' },
     opts = {
       -- Keeps the cursor on the first letter of the filename when moving in the tree
@@ -349,24 +367,5 @@ return {
       -- enable 24-bit colour
       vim.opt.termguicolors    = true
     end,
-    config = function(_, opts)
-      local nvim_tree = require 'nvim-tree'
-      local api = require 'nvim-tree.api'
-
-      nvim_tree.setup(opts)
-
-      -- open nvim-tree after setup finished
-      -- api.tree.open()
-
-      vim.keymap.set('n', '<leader>ef', api.tree.open, { desc = '[f]ocus' })
-
-      vim.keymap.set('n', '<leader>ee', function()
-        api.tree.toggle { focus = false }
-      end, { desc = 'Toggl[e]' })
-
-      vim.keymap.set('n', '<leader>er', function()
-        api.tree.find_file { open = true, focus = false }
-      end, { desc = '[r]eveal' })
-    end
   },
 }
