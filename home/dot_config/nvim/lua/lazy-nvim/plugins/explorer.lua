@@ -295,9 +295,9 @@ return {
           ['Operation'] = {
             ['i'] = { node.show_info_popup, 'Info' },
             ['a'] = { fs.create, 'Add' },
-            ['d'] = { fs.remove, 'Delete' },
-            ['D'] = { fs.trash, 'Trash' }, -- requires the homebrew package `trash`
-            ['p'] = { fs.paste, 'Paste' },
+            ['D'] = { fs.remove, 'Delete' },
+            ['dd'] = { fs.remove, 'Delete' },
+            ['dt'] = { fs.trash, 'Trash' }, -- requires the homebrew package `trash`
             ['.'] = { node.run.cmd, 'Run Command' },
           },
 
@@ -321,10 +321,12 @@ return {
             ['<Tab>'] = { marks.toggle, 'Toggle Current' },
             ['c'] = { fs.copy.node, 'Toggle Copy Current' },
             ['x'] = { fs.cut, 'Toggle Cut Current' },
-            ['mm'] = { clear_all, 'Clear All' },
-            ['md'] = { marks.bulk.delete, 'Delete Selected' },
-            ['mt'] = { marks.bulk.trash, 'Trash Selected' },
+            ['p'] = { fs.paste, 'Paste Selected' },
             ['mp'] = { marks.bulk.move, 'Move Selected' },
+            ['md'] = { marks.bulk.delete, 'Delete Selected' },
+            ['mt'] = { marks.bulk.trash, 'Trash Selected' }, -- requires the homebrew package `trash`
+            ['mm'] = { clear_all, 'Clear All' },
+            ['M'] = { clear_all, 'Clear All' },
           },
         }
 
