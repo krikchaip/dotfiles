@@ -277,16 +277,16 @@ return {
           },
 
           ['Copy'] = {
-            ['yy'] = { fs.copy.filename, 'Filename' },
             ['Y'] = { fs.copy.filename, 'Filename' },
+            ['yy'] = { fs.copy.filename, 'Filename' },
             ['yr'] = { fs.copy.relative_path, 'Relative Path' },
             ['ya'] = { fs.copy.absolute_path, 'Absolute Path' },
             ['yb'] = { fs.copy.basename, 'Basename' },
           },
 
           ['Rename'] = {
-            ['rr'] = { fs.rename, 'Filename' },
             ['R'] = { fs.rename, 'Filename' },
+            ['rr'] = { fs.rename, 'Filename' },
             ['rf'] = { fs.rename_sub, 'Full Name' },
             ['ra'] = { fs.rename_full, 'Full Path' },
             ['rb'] = { fs.rename_basename, 'Basename' },
