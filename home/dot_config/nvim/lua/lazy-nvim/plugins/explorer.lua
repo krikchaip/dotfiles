@@ -309,6 +309,7 @@ return {
           },
 
           ['Toggle'] = {
+            ['tt'] = { tree.toggle_enable_filters, 'All Filters' },
             ['tm'] = { tree.toggle_no_bookmark_filter, 'Marks Filter' },
             ['tb'] = { tree.toggle_no_buffer_filter, 'Buffer Filter' },
             ['tc'] = { tree.toggle_git_clean_filter, 'Git Clean Filter' },
