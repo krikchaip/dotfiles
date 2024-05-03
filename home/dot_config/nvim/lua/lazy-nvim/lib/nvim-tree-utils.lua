@@ -87,4 +87,11 @@ function M.launch_find_files(opts)
   return launch_telescope('find_files', opts)
 end
 
+function M.change_root_to_global_cwd()
+  local api = require 'nvim-tree.api'
+  local global_cwd = vim.fn.getcwd(-1, -1)
+
+  api.tree.change_root(global_cwd)
+end
+
 return M

@@ -309,6 +309,7 @@ return {
             ['L'] = { tree.expand_all, 'Expand All' },
             ['gj'] = { tree.change_root_to_node, 'CD Into' },
             ['gk'] = { tree.change_root_to_parent, 'CD Parent' },
+            ['gK'] = { utils.change_root_to_global_cwd, 'CD Root' },
           },
 
           ['Navigation'] = {
