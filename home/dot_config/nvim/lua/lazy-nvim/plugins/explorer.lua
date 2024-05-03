@@ -76,7 +76,7 @@ return {
 
         -- Preserves window proportions when opening a file
         -- If `false`, the height and width of windows other than nvim-tree will be equalized.
-        preserve_window_proportions = false,
+        preserve_window_proportions = true,
 
         -- Value can be 'yes', 'auto', 'no'
         signcolumn = 'no',
@@ -264,6 +264,7 @@ return {
       on_attach = function(bufnr)
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
         local preview = require 'nvim-tree-preview'
+        local utils = require 'lazy-nvim.lib.nvim-tree-utils'
 
         local api = require 'nvim-tree.api'
 
@@ -271,15 +272,6 @@ return {
         local node = api.node
         local fs = api.fs
         local marks = api.marks
-
-        local collapse_all = function()
-          tree.collapse_all(true)
-        end
-
-        local clear_all = function()
-          marks.clear()
-          fs.clear_clipboard()
-        end
 
         local opts = {
           buffer = bufnr,
@@ -313,7 +305,7 @@ return {
           ['Directory'] = {
             ['<BS>'] = { node.navigate.parent_close, 'Close Current' },
             ['K'] = { node.navigate.parent, 'Goto Parent' },
-            ['H'] = { collapse_all, 'Collapse All' },
+            ['H'] = { utils.collapse_all, 'Collapse All' },
             ['L'] = { tree.expand_all, 'Expand All' },
             ['gj'] = { tree.change_root_to_node, 'CD Into' },
             ['gk'] = { tree.change_root_to_parent, 'CD Parent' },
@@ -357,6 +349,7 @@ return {
 
           ['Search'] = {
             -- ['s'] = { tree.search_node, 'Exact' },
+            ['s'] = { utils.launch_find_files, 'Find Files' },
             ['f'] = { api.live_filter.start, 'Start Filter' },
             ['F'] = { api.live_filter.clear, 'Clear Filter' },
           },
@@ -379,8 +372,8 @@ return {
             ['mp'] = { marks.bulk.move, 'Move Selected' },
             ['md'] = { marks.bulk.delete, 'Delete Selected' },
             ['mt'] = { marks.bulk.trash, 'Trash Selected' }, -- requires the homebrew package `trash`
-            ['mm'] = { clear_all, 'Clear All' },
-            ['M'] = { clear_all, 'Clear All' },
+            ['mm'] = { utils.clear_all, 'Clear All' },
+            ['M'] = { utils.clear_all, 'Clear All' },
           },
         }
 
