@@ -198,6 +198,12 @@ return {
       --       OR renderer.highlight_modified = true
       modified = { enable = false },
 
+      filters = {
+        -- Hide .git directory
+        -- ref: https://github.com/nvim-tree/nvim-tree.lua/wiki/Tips#hide-git-directory
+        custom = { '^.git$' },
+      },
+
       live_filter = {
         -- Whether to filter folders or not
         always_show_folders = false,
