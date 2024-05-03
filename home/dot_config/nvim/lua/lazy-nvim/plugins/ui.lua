@@ -170,6 +170,9 @@ return {
         -- whether to right-align the cursor line number with 'relativenumber' set
         relculright = false,
 
+        -- buftype' values for which 'statuscolumn' will be unset
+        bt_ignore = { 'help' },
+
         segments = {
           { text = { '%s' },                  click = 'v:lua.ScSa' },
           { text = { builtin.lnumfunc, ' ' }, click = 'v:lua.ScLa' },
