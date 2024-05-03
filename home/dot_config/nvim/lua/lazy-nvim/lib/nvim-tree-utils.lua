@@ -135,4 +135,18 @@ function M.sort_by_natural_cmp(nodes)
   table.sort(nodes, sorter)
 end
 
+function M.toggle_copy_single()
+  local fs = require 'nvim-tree.api'.fs
+
+  fs.clear_clipboard()
+  fs.copy.node()
+end
+
+function M.toggle_cut_single()
+  local fs = require 'nvim-tree.api'.fs
+
+  fs.clear_clipboard()
+  fs.cut()
+end
+
 return M
