@@ -262,6 +262,8 @@ return {
       },
 
       on_attach = function(bufnr)
+        require 'lazy-nvim.lib.nvim-tree-autocmd'
+
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
         local preview = require 'nvim-tree-preview'
         local utils = require 'lazy-nvim.lib.nvim-tree-utils'
