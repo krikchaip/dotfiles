@@ -53,7 +53,7 @@ return {
       { '<leader><leader>', '<cmd>Telescope resume<CR>',          desc = 'Resume last search' },
 
       -- [[ Explorer ]]
-      -- { '<leader>ef',       custom_pickers.find_files,            desc = '[e]xplorer find [f]iles' },
+      { '<leader>es',       custom_pickers.find_files,            desc = '[e]xplorer [s]earch files' },
 
       -- [[ Menus ]]
       { '<C-S-;>',          '<cmd>Telescope commands<CR>',        desc = 'Search custom commands' },
