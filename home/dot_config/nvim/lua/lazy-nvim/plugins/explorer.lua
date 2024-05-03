@@ -79,7 +79,7 @@ return {
         preserve_window_proportions = false,
 
         -- Value can be 'yes', 'auto', 'no'
-        signcolumn = 'yes',
+        signcolumn = 'no',
 
         -- Width of the window
         width = 25,
@@ -156,7 +156,7 @@ return {
 
           -- Place where the bookmarks icon will be rendered
           -- values: 'before', 'after', 'signcolumn'
-          bookmarks_placement = 'signcolumn',
+          bookmarks_placement = 'before',
 
           glyphs = {
             -- Glyphs for git status
