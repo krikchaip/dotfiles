@@ -80,7 +80,7 @@ local function preview_scroll(prompt_bufnr, direction)
   local status = require('telescope.state').get_status(prompt_bufnr)
 
   -- Check if we actually have a previewer and a preview window
-  if type(previewer) ~= "table" or previewer.scroll_fn == nil or status.preview_win == nil then
+  if type(previewer) ~= 'table' or previewer.scroll_fn == nil or status.preview_win == nil then
     return
   end
 
