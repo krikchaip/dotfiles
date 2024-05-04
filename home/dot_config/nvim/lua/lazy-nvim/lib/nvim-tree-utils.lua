@@ -15,7 +15,7 @@ local function view_selection(prompt_bufnr, _)
       filename = selection[1]
     end
 
-    openfile.fn('preview', filename)
+    openfile.fn('', filename)
   end)
 
   return true
@@ -40,7 +40,7 @@ local function launch_telescope(func_name, opts)
   opts = opts or {}
   opts.cwd = basedir
   opts.search_dirs = { basedir }
-  -- opts.attach_mappings = view_selection
+  opts.attach_mappings = view_selection
 
   return require('telescope.builtin')[func_name](opts)
 end
