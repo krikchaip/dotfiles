@@ -6,6 +6,17 @@ return {
     event = { 'BufReadPre', 'BufNewFile' },
   },
 
+  -- A better :bdelete and :bwipeout that doesn't destroy your windows/tabs layout
+  {
+    'moll/vim-bbye',
+    name = 'bbye',
+    cmd = { 'Bdelete', 'Bwipeout' },
+    keys = {
+      { '<leader>q',     '<cmd>Bdelete<CR>',  desc = 'Delete current buffer' },
+      { '<leader><S-q>', '<cmd>Bdelete!<CR>', desc = 'Force delete current buffer' },
+    },
+  },
+
   -- A minimalist auto brackets closer
   -- ref: https://github.com/m4xshen/autoclose.nvim
   -- {
