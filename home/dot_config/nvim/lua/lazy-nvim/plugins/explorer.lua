@@ -26,7 +26,6 @@ return {
     'nvim-tree/nvim-tree.lua',
     name = 'nvim-tree',
     version = '*',
-    -- lazy = false,
     keys = {
       {
         '<leader>ef',
@@ -46,12 +45,7 @@ return {
         desc = '[R]eveal'
       },
     },
-    dependencies = {
-      'web-devicons',
-      'statuscol',
-      'lsp-file-operations',
-      'nvim-tree-preview',
-    },
+    dependencies = { 'web-devicons', 'lsp-file-operations', 'nvim-tree-preview' },
     opts = {
       -- Keeps the cursor on the first letter of the filename when moving in the tree
       hijack_cursor = false,
