@@ -127,11 +127,11 @@ return {
           enable = true,
 
           swap_next = {
-            ['<leader>sa'] = { query = '@parameter.inner', desc = 'With next [a]rgument' },
+            ['<leader>sa'] = { query = '@parameter.inner', desc = '[S]wap with next [a]rgument' },
           },
 
           swap_previous = {
-            ['<leader>sA'] = { query = '@parameter.inner', desc = 'With previous [a]rgument' },
+            ['<leader>sA'] = { query = '@parameter.inner', desc = '[S]wap with previous [a]rgument' },
           },
         },
 

@@ -27,7 +27,7 @@ return {
         ['<leader>g']  = { name = 'Git', _ = 'which_key_ignore' },
         ['<leader>gc'] = { name = 'Git Change', _ = 'which_key_ignore' },
         ['<leader>l']  = { name = 'LSP', _ = 'which_key_ignore' },
-        ['<leader>s']  = { name = 'Swap', _ = 'which_key_ignore' },
+        ['<leader>s']  = { name = 'S...', _ = 'which_key_ignore' },
         ['<leader>t']  = { name = 'Tab', _ = 'which_key_ignore' },
       }
 
