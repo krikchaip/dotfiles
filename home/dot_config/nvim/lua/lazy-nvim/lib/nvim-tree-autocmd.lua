@@ -2,19 +2,19 @@
 
 -- Fix auto-session weird behaviour when saving sessions with nvim-tree open
 -- ref: https://github.com/nvim-tree/nvim-tree.lua/wiki/Recipes#workaround-when-using-rmagattiauto-session
-vim.api.nvim_create_autocmd('BufEnter', {
-  desc = 'Fix issue with restoring nvim-tree when using rmagatti/auto-session',
-  group = vim.api.nvim_create_augroup('nvim-tree-autosession', { clear = true }),
-  pattern = 'NvimTree*',
-  callback = function()
-    local api = require 'nvim-tree.api'
-    local view = require 'nvim-tree.view'
-
-    if not view.is_visible() then
-      api.tree.open()
-    end
-  end
-})
+-- vim.api.nvim_create_autocmd('BufEnter', {
+--   desc = 'Fix issue with restoring nvim-tree when using rmagatti/auto-session',
+--   group = vim.api.nvim_create_augroup('nvim-tree-autosession', { clear = true }),
+--   pattern = 'NvimTree*',
+--   callback = function()
+--     local api = require 'nvim-tree.api'
+--     local view = require 'nvim-tree.view'
+--
+--     if not view.is_visible() then
+--       api.tree.open()
+--     end
+--   end
+-- })
 
 -- Go to last used hidden buffer after deleting a buffer
 -- ref: https://github.com/nvim-tree/nvim-tree.lua/wiki/Recipes#go-to-last-used-hidden-buffer-when-deleting-a-buffer
