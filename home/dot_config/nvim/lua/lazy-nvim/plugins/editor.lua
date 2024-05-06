@@ -17,6 +17,26 @@ return {
     },
   },
 
+  -- Automatically save/restore nvim session, including buffers, window layouts and tabs
+  {
+    'rmagatti/auto-session',
+    name = 'auto-session',
+    lazy = false,
+    opts = {
+      -- Use the git branch to differentiate the session name
+      auto_session_use_git_branch = true,
+
+      -- Bypass auto save when only buffer open is one of these file types
+      -- bypass_session_save_file_types = {},
+
+      -- Disabled because we're gonna load the plugin manually through telescope extension
+      session_lens = { load_on_setup = false },
+    },
+    init = function()
+      vim.o.sessionoptions = 'blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions'
+    end,
+  },
+
   -- A minimalist auto brackets closer
   -- ref: https://github.com/m4xshen/autoclose.nvim
   -- {
