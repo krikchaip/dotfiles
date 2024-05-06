@@ -161,7 +161,7 @@ return {
   {
     'luukvbaal/statuscol.nvim',
     name = 'statuscol',
-    event = 'VeryLazy',
+    lazy = false,
     config = function()
       local statuscol = require 'statuscol'
       local builtin = require 'statuscol.builtin'
@@ -208,7 +208,7 @@ return {
       ufo.setup(opts)
 
       -- must reload `statuscol` because this plugin overwrites its value
-      vim.cmd [[ silent Lazy reload statuscol ]]
+      -- vim.cmd [[ silent Lazy reload statuscol ]]
 
       local next_closed_fold, prev_closed_fold = ts_repeat_move.make_repeatable_move_pair(
         ufo.goNextClosedFold,

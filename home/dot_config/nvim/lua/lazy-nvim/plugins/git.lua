@@ -128,7 +128,7 @@ return {
       require('scrollbar.handlers.gitsigns').setup()
 
       -- must reload `statuscol` because this plugin overwrites its value
-      vim.cmd [[ silent Lazy reload statuscol ]]
+      -- vim.cmd [[ silent Lazy reload statuscol ]]
     end
   },
 }
