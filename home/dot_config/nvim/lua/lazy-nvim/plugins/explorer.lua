@@ -26,6 +26,7 @@ return {
     'nvim-tree/nvim-tree.lua',
     name = 'nvim-tree',
     version = '*',
+    cmd = { 'NvimTreeOpen', 'NvimTreeToggle', 'NvimTreeFocus' },
     keys = {
       {
         '<leader>ef',
