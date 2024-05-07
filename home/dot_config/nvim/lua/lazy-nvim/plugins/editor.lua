@@ -39,6 +39,10 @@ return {
         -- Restore nvim-tree if possible after restoring another buffers
         -- nvim_tree_utils.restore_nvim_tree,
       },
+
+      session_lens = {
+        load_on_setup = false,
+      },
     },
     init = function()
       vim.opt.sessionoptions = {

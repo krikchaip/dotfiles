@@ -23,6 +23,17 @@ return {
     name = 'telescope.conflicts',
   },
 
+  {
+    'rmagatti/session-lens',
+    name = 'telescope.session-lens',
+    keys = {
+      { '<leader>ss', '<cmd>SearchSession<CR>', desc = '[S]ession [S]earch' },
+    },
+    dependencies = { 'auto-session', 'telescope' },
+    opts = {},
+    config = function(_, opts) require('session-lens').setup(opts) end,
+  },
+
   -- Fuzzy Finder (files, lsp, etc)
   -- ref: https://github.com/nvim-telescope/telescope.nvim
   {
