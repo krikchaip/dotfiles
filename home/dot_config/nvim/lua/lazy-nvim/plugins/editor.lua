@@ -14,7 +14,7 @@ return {
     name = 'bbye',
     cmd = { 'Bdelete', 'Bwipeout' },
     keys = {
-      { '<leader>q',     '<cmd>Bdelete<CR>',  desc = 'Delete current buffer' },
+      { '<leader>q', '<cmd>Bdelete<CR>', desc = 'Delete current buffer' },
       { '<leader><S-q>', '<cmd>Bdelete!<CR>', desc = 'Force delete current buffer' },
     },
   },
@@ -32,7 +32,7 @@ return {
       -- bypass_session_save_file_types = {},
 
       pre_save_cmds = {
-        nvim_tree_utils.close_all_nvim_tree
+        nvim_tree_utils.close_all_nvim_tree,
       },
 
       post_restore_cmds = {
@@ -75,11 +75,11 @@ return {
     name = 'autopairs',
     event = { 'InsertEnter' },
     opts = {
-      disable_filetype       = {},
+      disable_filetype = {},
       disable_in_visualblock = false, -- disable when insert after visual block mode
-      enable_afterquote      = true,  -- add bracket pairs after quote
-      break_undo             = true,  -- switch for basic rule break undo sequence
-      check_ts               = true,  -- use treesitter to check for a pair
+      enable_afterquote = true, -- add bracket pairs after quote
+      break_undo = true, -- switch for basic rule break undo sequence
+      check_ts = true, -- use treesitter to check for a pair
     },
   },
 
@@ -91,7 +91,7 @@ return {
     init = function()
       -- skip backwards compatibility routines and speed up loading
       vim.g.skip_ts_context_commentstring_module = true
-    end
+    end,
   },
 
   -- [[ Linewise ]]
@@ -142,21 +142,21 @@ return {
         '<C-/>',
         '<Plug>(comment_toggle_linewise_visual)',
         desc = 'Toggle comment on the selected region [linewise]',
-        mode = 'x'
+        mode = 'x',
       },
       {
         '<C-S-/>',
         '<Plug>(comment_toggle_blockwise_visual)',
         desc = 'Toggle comment on the selected region [blockwise]',
-        mode = 'x'
+        mode = 'x',
       },
     },
     config = function()
       require('Comment').setup {
         -- integrate with nvim-ts-context-commentstring
-        pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook()
+        pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
       }
-    end
+    end,
   },
 
   -- [[ Add Surround ]]
