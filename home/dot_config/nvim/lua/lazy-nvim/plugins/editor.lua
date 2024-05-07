@@ -1,3 +1,5 @@
+local nvim_tree_utils = require 'lazy-nvim.lib.nvim-tree-utils'
+
 return {
   -- Detect tabstop and shiftwidth automatically
   {
@@ -31,9 +33,28 @@ return {
 
       -- Disabled because we're gonna load the plugin manually through telescope extension
       session_lens = { load_on_setup = false },
+
+      post_restore_cmds = {
+        -- Restore nvim-tree if possible after restoring another buffers
+        nvim_tree_utils.restore_nvim_tree,
+      },
     },
     init = function()
-      vim.o.sessionoptions = 'blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions'
+      vim.opt.sessionoptions = {
+        -- When restoring plugin help pages (eg. telescope), it also requires the plugin to be loaded first.
+        -- Therefore, if the plugin is lazy loaded while having your session containing its help page.
+        -- There are times that restoring the session might fail.
+        -- 'help',
+
+        'blank',
+        'buffers',
+        'curdir',
+        'folds',
+        'tabpages',
+        'winsize',
+        'winpos',
+        'terminal',
+      }
     end,
   },
 

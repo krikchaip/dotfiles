@@ -149,4 +149,23 @@ function M.toggle_cut_single()
   fs.cut()
 end
 
+-- Restore nvim-tree by open it if its buffers are presenting in the session file
+function M.restore_nvim_tree()
+  for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+      local buf = vim.api.nvim_win_get_buf(win)
+      local bufname = vim.api.nvim_buf_get_name(buf)
+
+      if string.match(bufname, 'NvimTree') then
+        local api = require 'nvim-tree.api'
+        local view = require 'nvim-tree.view'
+
+        if not view.is_visible() then
+          api.tree.open()
+        end
+      end
+    end
+  end
+end
+
 return M
