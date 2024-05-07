@@ -34,9 +34,13 @@ return {
       -- Disabled because we're gonna load the plugin manually through telescope extension
       session_lens = { load_on_setup = false },
 
+      pre_save_cmds = {
+        nvim_tree_utils.close_all_nvim_tree
+      },
+
       post_restore_cmds = {
         -- Restore nvim-tree if possible after restoring another buffers
-        nvim_tree_utils.restore_nvim_tree,
+        -- nvim_tree_utils.restore_nvim_tree,
       },
     },
     init = function()

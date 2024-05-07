@@ -168,4 +168,9 @@ function M.restore_nvim_tree()
   end
 end
 
+function M.close_all_nvim_tree()
+  local api = require 'nvim-tree.api'
+  api.tree.close_in_all_tabs()
+end
+
 return M
