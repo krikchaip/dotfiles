@@ -1,0 +1,11 @@
+# see: https://github.com/JohnnyMorganz/StyLua for more info
+
+call_parentheses = "None"
+collapse_simple_statement = "Always"
+column_width = 120
+indent_type = "Spaces"
+indent_width = 2
+quote_style = "AutoPreferSingle"
+
+[sort_requires]
+enabled = true

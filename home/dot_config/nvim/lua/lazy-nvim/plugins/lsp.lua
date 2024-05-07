@@ -13,7 +13,7 @@ return {
         icons = {
           package_installed = '✓',
           package_pending = '➜',
-          package_uninstalled = '✗'
+          package_uninstalled = '✗',
         },
 
         -- see https://github.com/williamboman/mason.nvim?tab=readme-ov-file#default-configuration
@@ -24,7 +24,36 @@ return {
       require('mason').setup(opts)
 
       vim.keymap.set('n', '<C-S-l>', '<cmd>Mason<CR>', { desc = 'Open Mason popup window' })
-    end
+    end,
+  },
+
+  -- help managing Mason package installation and updates
+  -- ref: https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim
+  {
+    'WhoIsSethDaniel/mason-tool-installer.nvim',
+    name = 'mason-tool-installer',
+    lazy = false,
+    dependencies = { 'mason' },
+    opts = {
+      auto_update = true,
+
+      ensure_installed = {
+        -- [[ LSPs ]]
+        'lua_ls',
+        'html',
+        'cssls',
+        'tailwindcss',
+        'tsserver',
+        'jsonls',
+        'marksman',
+        'elixirls',
+
+        -- [[ Formatters ]]
+        'stylua',
+        'prettierd',
+        'prettier',
+      },
+    },
   },
 
   -- closes gaps that exist between mason.nvim and nvim-lspconfig
@@ -35,26 +64,8 @@ return {
     dependencies = { 'mason' },
     opts = {
       automatic_installation = true,
-
-      ensure_installed = {
-        'lua_ls',
-        'html', 'cssls', 'tailwindcss',
-        'tsserver',
-        'jsonls',
-        'marksman',
-        'elixirls',
-      },
     },
   },
-
-  -- help managing Mason package installation and updates
-  -- ref: https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim
-  -- {
-  --   'WhoIsSethDaniel/mason-tool-installer.nvim',
-  --   name = 'mason-tool-installer',
-  --   dependencies = { 'mason-lspconfig' },
-  --   opts = {},
-  -- },
 
   -- configures lua_ls for completion, annotations and signatures of Neovim apis
   -- ref: https://github.com/folke/neodev.nvim
@@ -108,12 +119,12 @@ return {
                   callSnippet = 'Replace',
                 },
                 diagnostics = {
-                  disable = { 'missing-fields' }
+                  disable = { 'missing-fields' },
                 },
-              }
+              },
             },
           }
-        end
+        end,
       }
 
       -- Global keymappings that doesn't require a buffer
@@ -135,10 +146,8 @@ return {
           local opts = { buffer = event.buf, silent = true }
 
           -- Diagnostics Navigation
-          local next_diagnostic, prev_diagnostic = ts_repeat_move.make_repeatable_move_pair(
-            vim.diagnostic.goto_next,
-            vim.diagnostic.goto_prev
-          )
+          local next_diagnostic, prev_diagnostic =
+              ts_repeat_move.make_repeatable_move_pair(vim.diagnostic.goto_next, vim.diagnostic.goto_prev)
 
           opts.desc = 'Next [d]iagnostic message'
           vim.keymap.set('n', ']d', next_diagnostic, opts)
@@ -198,13 +207,16 @@ return {
           -- ref: https://www.youtube.com/watch?v=DYaTzkw3zqQ
           if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
             opts.desc = 'Toggle inlay [h]ints'
-            vim.keymap.set('n', '<leader>lh', function()
-              vim.lsp.inlay_hint.enable(0, not vim.lsp.inlay_hint.is_enabled())
-            end, opts)
+            vim.keymap.set(
+              'n',
+              '<leader>lh',
+              function() vim.lsp.inlay_hint.enable(0, not vim.lsp.inlay_hint.is_enabled()) end,
+              opts
+            )
           end
-        end
+        end,
       })
-    end
+    end,
   },
 
   -- Status updates UI for LSP.
