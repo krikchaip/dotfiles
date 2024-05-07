@@ -70,6 +70,9 @@ return {
       { '<leader>gs',       '<cmd>Telescope git_status<CR>',      desc = 'Show Git [s]tatus' },
       { '<leader>gt',       '<cmd>Telescope git_stash<CR>',       desc = 'List s[t]ash items' },
       { '<leader>gm',       '<cmd>Telescope conflicts<CR>',       desc = 'Show [m]erge conflicts' },
+
+      -- [[ Auto-session Integration ]]
+      { '<leader>ss',       custom_pickers.search_session,        desc = '[S]ession [S]earch' },
     },
     dependencies = { 'plenary', 'web-devicons', 'nvim-treesitter' },
     config = function()
@@ -218,6 +221,7 @@ return {
       telescope.load_extension 'ui-select'
       telescope.load_extension 'conflicts'
       telescope.load_extension 'chezmoi'
+      telescope.load_extension 'session-lens'
 
       -- Custom Telescope auto commands
       require 'lazy-nvim.lib.telescope-autocmd'

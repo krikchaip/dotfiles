@@ -31,9 +31,6 @@ return {
       -- Bypass auto save when only buffer open is one of these file types
       -- bypass_session_save_file_types = {},
 
-      -- Disabled because we're gonna load the plugin manually through telescope extension
-      session_lens = { load_on_setup = false },
-
       pre_save_cmds = {
         nvim_tree_utils.close_all_nvim_tree
       },

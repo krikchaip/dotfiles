@@ -55,4 +55,8 @@ function M.workspace_fuzzy_find()
   }
 end
 
+function M.search_session()
+  require('auto-session.session-lens').search_session()
+end
+
 return M
