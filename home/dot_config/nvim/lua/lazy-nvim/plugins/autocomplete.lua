@@ -17,7 +17,7 @@ return {
   },
 
   -- Completion sources
-  { 'saadparwaiz1/cmp_luasnip', name = 'cmp.luasnip' },
+  { 'saadparwaiz1/cmp_luasnip', name = 'cmp.luasnip', dependencies = { 'luasnip' } },
 
   {
     'hrsh7th/nvim-cmp',
@@ -33,9 +33,8 @@ return {
           expand = function(args) luasnip.lsp_expand(args.body) end,
         },
 
-        window = {
-          -- completion = cmp.config.window.bordered(),
-          -- documentation = cmp.config.window.bordered(),
+        completion = {
+          completeopt = 'menu,menuone,preview,noinsert',
         },
 
         mapping = cmp.mapping.preset.insert {
