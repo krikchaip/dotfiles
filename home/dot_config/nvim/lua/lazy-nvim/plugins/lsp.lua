@@ -32,7 +32,7 @@ return {
   {
     'WhoIsSethDaniel/mason-tool-installer.nvim',
     name = 'mason-tool-installer',
-    lazy = false,
+    event = 'VeryLazy',
     dependencies = { 'mason' },
     opts = {
       auto_update = true,
