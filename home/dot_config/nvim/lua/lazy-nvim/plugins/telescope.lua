@@ -251,7 +251,6 @@ return {
       -- Enable Telescope extensions if they are installed
       telescope.load_extension 'fzf'
       telescope.load_extension 'ui-select'
-      telescope.load_extension 'chezmoi'
 
       -- Custom Telescope auto commands
       require 'lazy-nvim.lib.telescope-autocmd'
