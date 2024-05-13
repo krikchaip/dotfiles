@@ -21,6 +21,11 @@ return {
   {
     'Snikimonkd/telescope-git-conflicts.nvim',
     name = 'telescope.conflicts',
+    keys = {
+      { '<leader>gm', '<cmd>Telescope conflicts<CR>', desc = 'Show [m]erge conflicts' },
+    },
+    dependencies = { 'telescope' },
+    config = function() require('telescope').load_extension 'conflicts' end,
   },
 
   -- Telescope LuaSnip snippets picker
@@ -31,7 +36,7 @@ return {
       { '<leader>sl', '<cmd>Telescope luasnip<CR>', desc = '[S]earch [L]uaSnip Snippets' },
       { '<C-\\>', '<cmd>Telescope luasnip<CR>', desc = 'Search LuaSnip Snippets', mode = 'i' },
     },
-    dependencies = { 'luasnip', 'telescope' },
+    dependencies = { 'telescope', 'luasnip' },
     config = function() require('telescope').load_extension 'luasnip' end,
   },
 
@@ -42,9 +47,12 @@ return {
     keys = {
       { '<leader>ss', '<cmd>SearchSession<CR>', desc = '[S]ession [S]earch' },
     },
-    dependencies = { 'auto-session', 'telescope' },
+    dependencies = { 'telescope', 'auto-session' },
     opts = {},
-    config = function(_, opts) require('session-lens').setup(opts) end,
+    config = function(_, opts)
+      require('session-lens').setup(opts)
+      require('telescope').load_extension 'session-lens'
+    end,
   },
 
   -- Fuzzy Finder (files, lsp, etc)
@@ -93,7 +101,6 @@ return {
       { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Manage [b]ranches' },
       { '<leader>gs', '<cmd>Telescope git_status<CR>', desc = 'Show Git [s]tatus' },
       { '<leader>gt', '<cmd>Telescope git_stash<CR>', desc = 'List s[t]ash items' },
-      { '<leader>gm', '<cmd>Telescope conflicts<CR>', desc = 'Show [m]erge conflicts' },
     },
     dependencies = { 'plenary', 'web-devicons', 'nvim-treesitter' },
     config = function()
@@ -244,9 +251,7 @@ return {
       -- Enable Telescope extensions if they are installed
       telescope.load_extension 'fzf'
       telescope.load_extension 'ui-select'
-      telescope.load_extension 'conflicts'
       telescope.load_extension 'chezmoi'
-      telescope.load_extension 'session-lens'
 
       -- Custom Telescope auto commands
       require 'lazy-nvim.lib.telescope-autocmd'
