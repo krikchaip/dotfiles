@@ -23,6 +23,19 @@ return {
     name = 'telescope.conflicts',
   },
 
+  -- Telescope LuaSnip snippets picker
+  {
+    'benfowler/telescope-luasnip.nvim',
+    name = 'telescope.luasnip',
+    keys = {
+      { '<leader>sl', '<cmd>Telescope luasnip<CR>', desc = '[S]earch [L]uaSnip Snippets' },
+      { '<C-\\>', '<cmd>Telescope luasnip<CR>', desc = 'Search LuaSnip Snippets', mode = 'i' },
+    },
+    dependencies = { 'luasnip', 'telescope' },
+    config = function() require('telescope').load_extension 'luasnip' end,
+  },
+
+  -- Telescope session lens picker
   {
     'rmagatti/session-lens',
     name = 'telescope.session-lens',
