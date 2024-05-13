@@ -11,8 +11,6 @@ return {
     dependencies = { 'friendly-snippets' },
     opts = {},
     config = function(_, opts)
-      require('luasnip').config.setup(opts)
-
       -- Enable standardized comments snippets
       require('luasnip').filetype_extend('lua', { 'luadoc' })
       require('luasnip').filetype_extend('sh', { 'shelldoc' })
@@ -32,6 +30,8 @@ return {
       -- Otherwise the extended snippets won't get load.
       -- ref: https://www.reddit.com/r/neovim/comments/1ahfg53/luasnip_cant_use_javascript_snippets_in
       require('luasnip.loaders.from_vscode').lazy_load()
+
+      require('luasnip').config.setup(opts)
     end,
   },
 
