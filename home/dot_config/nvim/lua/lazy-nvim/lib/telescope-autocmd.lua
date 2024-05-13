@@ -5,13 +5,15 @@ vim.api.nvim_create_autocmd('User', {
   callback = function(args)
     vim.wo.number = true
 
-    local no_numbers = { help = true, netrw = true }
-    if no_numbers[args.data.filetype] then
-      vim.wo.number = false
-    end
+    local no_numbers = {
+      help = true,
+      netrw = true,
+    }
 
-    if args.data.bufname:match('*.csv') then
-      vim.wo.wrap = false
-    end
+    local filetype = args.data.filetype
+    local bufname = args.data.bufname
+
+    if filetype and no_numbers[filetype] then vim.wo.number = false end
+    if bufname and bufname:match '*.csv' then vim.wo.wrap = false end
   end,
 })
