@@ -61,8 +61,15 @@ return {
         },
 
         mapping = cmp.mapping.preset.insert {
-          ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-          ['<C-f>'] = cmp.mapping.scroll_docs(4),
+          -- Suggestion selection
+          ['<C-k>'] = cmp.mapping.select_prev_item(),
+          ['<C-j>'] = cmp.mapping.select_next_item(),
+
+          -- Doc-window Scrolling
+          ['<M-u>'] = cmp.mapping.scroll_docs(-4),
+          ['<M-d>'] = cmp.mapping.scroll_docs(4),
+
+          -- Manually open/close a completion menu
           ['<C-Space>'] = cmp.mapping.complete(),
           ['<C-e>'] = cmp.mapping.abort(),
 
