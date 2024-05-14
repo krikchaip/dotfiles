@@ -100,8 +100,9 @@ return {
         lineFoldingOnly = true,
       }
 
-      -- TODO: LSP autocomplete integration
-      -- capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
+      -- LSP autocomplete integration
+      -- ref: https://github.com/hrsh7th/cmp-nvim-lsp
+      capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
       -- [[ lspconfig-all, lspconfig-setup ]]
       mason_lspconfig.setup_handlers {
