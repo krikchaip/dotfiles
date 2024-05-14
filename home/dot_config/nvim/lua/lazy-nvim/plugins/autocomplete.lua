@@ -50,6 +50,7 @@ return {
     dependencies = { 'cmp.luasnip' },
     config = function()
       local cmp = require 'cmp'
+      local luasnip = require 'luasnip'
 
       cmp.setup {
         snippet = {
@@ -60,22 +61,55 @@ return {
           completeopt = 'menu,menuone,preview,noinsert',
         },
 
-        mapping = cmp.mapping.preset.insert {
+        mapping = {
           -- Suggestion selection
           ['<C-k>'] = cmp.mapping.select_prev_item(),
           ['<C-j>'] = cmp.mapping.select_next_item(),
 
           -- Doc-window Scrolling
-          ['<M-u>'] = cmp.mapping.scroll_docs(-4),
-          ['<M-d>'] = cmp.mapping.scroll_docs(4),
+          ['<M-k>'] = cmp.mapping.scroll_docs(-1),
+          ['<M-j>'] = cmp.mapping.scroll_docs(1),
+          ['<M-u>'] = cmp.mapping.scroll_docs(-8),
+          ['<M-d>'] = cmp.mapping.scroll_docs(8),
 
-          -- Manually open/close a completion menu
-          ['<C-Space>'] = cmp.mapping.complete(),
-          ['<C-e>'] = cmp.mapping.abort(),
+          -- Toggle the completion menu
+          ['<C-Space>'] = cmp.mapping(function()
+            if not cmp.visible() then
+              cmp.complete()
+            else
+              cmp.close()
+            end
+          end),
 
-          -- Accept currently selected item. Set `select` to `false`
-          -- to only confirm explicitly selected items.
-          ['<CR>'] = cmp.mapping.confirm { select = true },
+          -- Accept currently selected item
+          ['<CR>'] = cmp.mapping(function(fallback)
+            if not cmp.visible() then return fallback() end
+
+            -- Set `select` to `false` to only confirm explicitly selected items.
+            if not luasnip.expandable() then return cmp.confirm { select = true } end
+
+            luasnip.expand()
+          end),
+
+          -- VSCode like tab mapping
+          ['<Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              if not luasnip.expandable() then return cmp.confirm { select = true } end
+              return luasnip.expand()
+            end
+
+            if luasnip.locally_jumpable(1) then return luasnip.jump(1) end
+
+            fallback()
+          end, { 'i', 's' }),
+
+          ['<S-Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then return cmp.abort() end
+
+            if luasnip.locally_jumpable(-1) then return luasnip.jump(-1) end
+
+            fallback()
+          end, { 'i', 's' }),
         },
 
         sources = cmp.config.sources {
