@@ -1,16 +1,9 @@
 return {
   -- A Collection of VSCode snippets across many different programming languages
-  { 'rafamadriz/friendly-snippets', name = 'friendly-snippets' },
-
-  -- Snippet provider engine
   {
-    'L3MON4D3/LuaSnip',
-    name = 'luasnip',
-    version = 'v2.*',
-    build = vim.fn.has 'win32' ~= 0 and 'make install_jsregexp' or nil,
-    dependencies = { 'friendly-snippets' },
-    opts = {},
-    config = function(_, opts)
+    'rafamadriz/friendly-snippets',
+    name = 'friendly-snippets',
+    config = function()
       -- Enable standardized comments snippets
       require('luasnip').filetype_extend('lua', { 'luadoc' })
       require('luasnip').filetype_extend('sh', { 'shelldoc' })
@@ -30,13 +23,25 @@ return {
       -- Otherwise the extended snippets won't get load.
       -- ref: https://www.reddit.com/r/neovim/comments/1ahfg53/luasnip_cant_use_javascript_snippets_in
       require('luasnip.loaders.from_vscode').lazy_load()
-
-      require('luasnip').config.setup(opts)
     end,
   },
 
+  -- Snippet provider engine
+  {
+    'L3MON4D3/LuaSnip',
+    name = 'luasnip',
+    version = 'v2.*',
+    build = vim.fn.has 'win32' ~= 0 and 'make install_jsregexp' or nil,
+    dependencies = { 'friendly-snippets' },
+    opts = {},
+  },
+
   -- Completion sources
-  { 'saadparwaiz1/cmp_luasnip', name = 'cmp.luasnip', dependencies = { 'luasnip' } },
+  {
+    'saadparwaiz1/cmp_luasnip',
+    name = 'cmp.luasnip',
+    dependencies = { 'luasnip' },
+  },
 
   {
     'hrsh7th/nvim-cmp',
