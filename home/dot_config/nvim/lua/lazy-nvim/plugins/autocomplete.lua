@@ -39,12 +39,13 @@ return {
   -- Completion sources
   { 'saadparwaiz1/cmp_luasnip', name = 'cmp.luasnip', dependencies = { 'luasnip' } },
   { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
+  { 'hrsh7th/cmp-buffer', name = 'cmp.buffer' },
 
   {
     'hrsh7th/nvim-cmp',
     name = 'cmp',
     event = { 'InsertEnter', 'CmdlineEnter' },
-    dependencies = { 'cmp.luasnip', 'cmp.lsp' },
+    dependencies = { 'cmp.luasnip', 'cmp.lsp', 'cmp.buffer' },
     config = function()
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
@@ -112,6 +113,7 @@ return {
         sources = cmp.config.sources {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
+          { name = 'buffer' },
         },
       }
     end,
