@@ -143,7 +143,7 @@ return {
         callback = function(event)
           local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
-          setup_diagnostic_hover(event)
+          -- setup_diagnostic_hover(event)
           setup_highlight_references_hover(event)
 
           -- [[ Buffer local mappings ]]
@@ -162,7 +162,12 @@ return {
           -- Opens a popup that displays documentation about the word under your cursor
           -- See `:help K` for why this keymap.
           opts.desc = 'Hover Documentation'
-          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+          vim.keymap.set('n', 'K', function()
+            -- Show diagnostic at cursor position on hover
+            -- ref: https://neovim.discourse.group/t/how-to-show-diagnostics-on-hover/3830
+            local _, diagnostic_winid = vim.diagnostic.open_float(nil)
+            if not diagnostic_winid then vim.lsp.buf.hover() end
+          end, opts)
 
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
