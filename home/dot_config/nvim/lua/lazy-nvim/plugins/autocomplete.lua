@@ -90,18 +90,17 @@ return {
           ['<M-u>'] = ics(cmp.mapping.scroll_docs(-8)),
           ['<M-d>'] = ics(cmp.mapping.scroll_docs(8)),
 
-          -- Abort when accidentally press Escape
-          ['<Esc>'] = is(function(fallback)
-            if not cmp.visible() then return fallback() end
-
-            cmp.abort()
-          end),
+          -- ['<Esc>'] = is(function(fallback)
+          --   if not cmp.visible() then return fallback() end
+          --
+          --   cmp.abort()
+          -- end),
 
           -- Toggle the completion menu
           ['<C-Space>'] = ics(function()
             if not cmp.visible() then return cmp.complete() end
 
-            cmp.close()
+            cmp.abort()
           end),
 
           -- Accept currently selected item
@@ -150,7 +149,7 @@ return {
 
       cmp.setup.cmdline(':', {
         sources = cmp.config.sources({
-          { name = 'cmdline', option = { treat_trailing_slash = true } },
+          { name = 'cmdline' },
         }, {
           { name = 'path', option = { trailing_slash = true } },
         }, {
