@@ -65,6 +65,9 @@ return {
       -- Enable mapping in all modes
       local ics = function(mapping_fn) return cmp.mapping(mapping_fn, { 'i', 'c', 's' }) end
 
+      -- Enable mapping except command mode
+      local is = function(mapping_fn) return cmp.mapping(mapping_fn, { 'i', 's' }) end
+
       cmp.setup {
         snippet = {
           expand = function(args) require('luasnip').lsp_expand(args.body) end,
@@ -87,17 +90,22 @@ return {
           ['<M-u>'] = ics(cmp.mapping.scroll_docs(-8)),
           ['<M-d>'] = ics(cmp.mapping.scroll_docs(8)),
 
+          -- Abort when accidentally press Escape
+          ['<Esc>'] = is(function(fallback)
+            if not cmp.visible() then return fallback() end
+
+            cmp.abort()
+          end),
+
           -- Toggle the completion menu
           ['<C-Space>'] = ics(function()
-            if not cmp.visible() then
-              cmp.complete()
-            else
-              cmp.close()
-            end
+            if not cmp.visible() then return cmp.complete() end
+
+            cmp.close()
           end),
 
           -- Accept currently selected item
-          ['<CR>'] = ics(function(fallback)
+          ['<CR>'] = is(function(fallback)
             if not cmp.visible() then return fallback() end
 
             -- Set `select` to `false` to only confirm explicitly selected items.
@@ -142,9 +150,9 @@ return {
 
       cmp.setup.cmdline(':', {
         sources = cmp.config.sources({
-          { name = 'cmdline' },
+          { name = 'cmdline', option = { treat_trailing_slash = true } },
         }, {
-          { name = 'path' },
+          { name = 'path', option = { trailing_slash = true } },
         }, {
           { name = 'buffer' },
         }),
