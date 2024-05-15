@@ -8,12 +8,12 @@ require('lazy').setup('lazy-nvim.plugins', {
 
   install = {
     -- try to load one of these colorschemes when starting an installation during startup
-    colorscheme = { 'tokyonight', 'monokai-pro' }
+    colorscheme = { 'tokyonight', 'monokai-pro' },
   },
 
   checker = {
-    -- automatically check for plugin updates
-    enabled = true,
+    enabled = true, -- automatically check for plugin updates
+    notify = false, -- get a notification when new updates are found
   },
 
   ui = {

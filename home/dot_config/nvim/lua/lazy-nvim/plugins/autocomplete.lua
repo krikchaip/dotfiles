@@ -38,14 +38,22 @@ return {
 
   -- Completion sources
   { 'saadparwaiz1/cmp_luasnip', name = 'cmp.luasnip', dependencies = { 'luasnip' } },
-  { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
   { 'hrsh7th/cmp-buffer', name = 'cmp.buffer' },
+  { 'hrsh7th/cmp-calc', name = 'cmp.calc' },
+  { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
+  { 'hrsh7th/cmp-nvim-lsp-signature-help', name = 'cmp.lsp-signature' },
 
   {
     'hrsh7th/nvim-cmp',
     name = 'cmp',
     event = { 'InsertEnter', 'CmdlineEnter' },
-    dependencies = { 'cmp.luasnip', 'cmp.lsp', 'cmp.buffer' },
+    dependencies = {
+      'cmp.luasnip',
+      'cmp.buffer',
+      'cmp.calc',
+      'cmp.lsp',
+      'cmp.lsp-signature',
+    },
     config = function()
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
@@ -111,8 +119,10 @@ return {
         },
 
         sources = cmp.config.sources {
+          { name = 'nvim_lsp_signature_help' },
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
+          { name = 'calc' },
           { name = 'buffer' },
         },
       }
