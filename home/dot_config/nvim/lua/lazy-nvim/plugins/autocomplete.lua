@@ -62,6 +62,9 @@ return {
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
 
+      -- Enable mapping in all modes
+      local ics = function(mapping_fn) return cmp.mapping(mapping_fn, { 'i', 'c', 's' }) end
+
       cmp.setup {
         snippet = {
           expand = function(args) require('luasnip').lsp_expand(args.body) end,
@@ -73,17 +76,19 @@ return {
 
         mapping = {
           -- Suggestion selection
-          ['<C-k>'] = cmp.mapping.select_prev_item(),
-          ['<C-j>'] = cmp.mapping.select_next_item(),
+          ['<C-k>'] = ics(cmp.mapping.select_prev_item()),
+          ['<C-j>'] = ics(cmp.mapping.select_next_item()),
+          ['<Up>'] = ics(cmp.mapping.select_prev_item()),
+          ['<Down>'] = ics(cmp.mapping.select_next_item()),
 
           -- Doc-window Scrolling
-          ['<M-k>'] = cmp.mapping.scroll_docs(-1),
-          ['<M-j>'] = cmp.mapping.scroll_docs(1),
-          ['<M-u>'] = cmp.mapping.scroll_docs(-8),
-          ['<M-d>'] = cmp.mapping.scroll_docs(8),
+          ['<M-k>'] = ics(cmp.mapping.scroll_docs(-1)),
+          ['<M-j>'] = ics(cmp.mapping.scroll_docs(1)),
+          ['<M-u>'] = ics(cmp.mapping.scroll_docs(-8)),
+          ['<M-d>'] = ics(cmp.mapping.scroll_docs(8)),
 
           -- Toggle the completion menu
-          ['<C-Space>'] = cmp.mapping(function()
+          ['<C-Space>'] = ics(function()
             if not cmp.visible() then
               cmp.complete()
             else
@@ -92,7 +97,7 @@ return {
           end),
 
           -- Accept currently selected item
-          ['<CR>'] = cmp.mapping(function(fallback)
+          ['<CR>'] = ics(function(fallback)
             if not cmp.visible() then return fallback() end
 
             -- Set `select` to `false` to only confirm explicitly selected items.
@@ -102,7 +107,7 @@ return {
           end),
 
           -- VSCode like tab mapping
-          ['<Tab>'] = cmp.mapping(function(fallback)
+          ['<Tab>'] = ics(function(fallback)
             if cmp.visible() then
               if not luasnip.expandable() then return cmp.confirm { select = true } end
               return luasnip.expand()
@@ -111,26 +116,39 @@ return {
             if luasnip.locally_jumpable(1) then return luasnip.jump(1) end
 
             fallback()
-          end, { 'i', 's' }),
+          end),
 
-          ['<S-Tab>'] = cmp.mapping(function(fallback)
+          ['<S-Tab>'] = ics(function(fallback)
             if cmp.visible() then return cmp.abort() end
 
             if luasnip.locally_jumpable(-1) then return luasnip.jump(-1) end
 
             fallback()
-          end, { 'i', 's' }),
+          end),
         },
 
-        sources = cmp.config.sources {
+        sources = cmp.config.sources({
           { name = 'nvim_lsp_signature_help' },
           { name = 'nvim_lsp' },
+        }, {
           { name = 'luasnip' },
-          { name = 'calc' },
+        }, {
           { name = 'path' },
+        }, {
+          { name = 'calc' },
           { name = 'buffer' },
-        },
+        }),
       }
+
+      cmp.setup.cmdline(':', {
+        sources = cmp.config.sources({
+          { name = 'cmdline' },
+        }, {
+          { name = 'path' },
+        }, {
+          { name = 'buffer' },
+        }),
+      })
     end,
   },
 }
