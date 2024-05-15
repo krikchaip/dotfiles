@@ -42,6 +42,7 @@ return {
   { 'hrsh7th/cmp-calc', name = 'cmp.calc' },
   { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
   { 'hrsh7th/cmp-nvim-lsp-signature-help', name = 'cmp.lsp-signature' },
+  { 'hrsh7th/cmp-path', name = 'cmp.path' },
 
   {
     'hrsh7th/nvim-cmp',
@@ -53,6 +54,7 @@ return {
       'cmp.calc',
       'cmp.lsp',
       'cmp.lsp-signature',
+      'cmp.path',
     },
     config = function()
       local cmp = require 'cmp'
@@ -123,6 +125,7 @@ return {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
           { name = 'calc' },
+          { name = 'path' },
           { name = 'buffer' },
         },
       }
