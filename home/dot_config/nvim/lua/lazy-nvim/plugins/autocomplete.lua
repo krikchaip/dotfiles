@@ -156,6 +156,12 @@ return {
           { name = 'buffer' },
         }),
       })
+
+      cmp.setup.cmdline({ '/', '?' }, {
+        sources = cmp.config.sources {
+          { name = 'buffer' },
+        },
+      })
     end,
   },
 }
