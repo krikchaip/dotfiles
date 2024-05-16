@@ -76,7 +76,15 @@ return {
   {
     'folke/neodev.nvim',
     name = 'neodev',
-    opts = {},
+    opts = {
+      -- Fix lua_ls does not provide suggestions for nvim plugins
+      -- (only work with nvim-config lua projects)
+      -- ref: https://github.com/folke/neodev.nvim/issues/158
+      override = function(root_dir, library)
+        library.enabled = true
+        library.plugins = true
+      end,
+    },
   },
 
   -- actual configs and apis for the Nvim LSP client
@@ -120,9 +128,6 @@ return {
             capabilities = capabilities,
             settings = {
               Lua = {
-                completion = {
-                  callSnippet = 'Replace',
-                },
                 diagnostics = {
                   disable = { 'missing-fields' },
                 },
