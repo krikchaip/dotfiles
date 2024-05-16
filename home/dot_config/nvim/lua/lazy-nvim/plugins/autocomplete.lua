@@ -85,7 +85,7 @@ return {
         },
 
         view = {
-          docs = { auto_open = false },
+          docs = { auto_open = true },
         },
 
         completion = {
