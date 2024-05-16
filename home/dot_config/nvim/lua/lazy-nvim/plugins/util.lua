@@ -5,6 +5,13 @@ return {
     name = 'plenary',
   },
 
+  -- Neovim Throttle/Debounce function in Lua
+  -- ref: https://github.com/runiq/neovim-throttle-debounce
+  {
+    'runiq/neovim-throttle-debounce',
+    name = 'throttle-debounce',
+  },
+
   -- Useful for getting pretty icons, but requires a Nerd Font to be installed
   {
     'nvim-tree/nvim-web-devicons',
@@ -49,10 +56,8 @@ return {
       hijack_file_patterns = { '*.png', '*.jpg', '*.jpeg', '*.svg', '*.gif', '*.webp' },
     },
     init = function()
-      local home = vim.fn.expand('$HOME')
-      package.path = package.path
-          .. ';' .. home .. '/.luarocks/share/lua/5.1/?/init.lua'
-          .. ';' .. home .. '/.luarocks/share/lua/5.1/?.lua'
+      local home = vim.fn.expand '$HOME'
+      package.path = package.path .. ';' .. home .. '/.luarocks/share/lua/5.1/?/init.lua' .. ';' .. home .. '/.luarocks/share/lua/5.1/?.lua'
     end,
   },
 }
