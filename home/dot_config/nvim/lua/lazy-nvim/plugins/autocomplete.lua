@@ -58,6 +58,10 @@ return {
       'cmp.path',
       'cmp.cmdline',
     },
+    init = function()
+      -- Limit completion window max_height
+      vim.opt.pumheight = 20
+    end,
     config = function()
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
@@ -71,6 +75,13 @@ return {
       cmp.setup {
         snippet = {
           expand = function(args) require('luasnip').lsp_expand(args.body) end,
+        },
+
+        window = {
+          documentation = {
+            max_width = 60,
+            max_height = 20,
+          },
         },
 
         completion = {
