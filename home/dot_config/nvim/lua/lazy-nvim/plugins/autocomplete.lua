@@ -107,11 +107,18 @@ return {
           --   cmp.abort()
           -- end),
 
-          -- Toggle the completion menu
+          -- Toggle completion menu
           ['<C-Space>'] = ics(function()
             if not cmp.visible() then return cmp.complete() end
 
             cmp.abort()
+          end),
+
+          -- Toggle documentation menu
+          ['<C-S-Space>'] = ics(function()
+            if not cmp.visible_docs() then cmp.open_docs() end
+
+            cmp.close_docs()
           end),
 
           -- Accept currently selected item
