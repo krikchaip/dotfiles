@@ -84,6 +84,10 @@ return {
           },
         },
 
+        view = {
+          docs = { auto_open = false },
+        },
+
         completion = {
           completeopt = 'menu,menuone,preview,noinsert',
         },
@@ -111,7 +115,7 @@ return {
           end),
 
           -- Toggle documentation menu
-          ['<C-S-Space>'] = ics(function()
+          ['<C-i>'] = ics(function()
             if not cmp.visible_docs() then cmp.open_docs() end
 
             cmp.close_docs()
