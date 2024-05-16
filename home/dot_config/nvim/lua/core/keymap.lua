@@ -20,6 +20,10 @@ vim.keymap.set('x', 'y', 'ygv<Esc>')
 -- Clear search highlights on pressing <Esc> in normal mode
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+-- Make Increment/Decrement key more intuitive
+vim.keymap.set('n', '-', '<C-x>', { desc = 'Decrement number' })
+vim.keymap.set('n', '+', '<C-a>', { desc = 'Increment number' })
+
 -- Insert/Remove indentation with ease
 vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Remove one indent from this line' })
 vim.keymap.set('i', '<M-S-.>', '<C-t>', { desc = 'Insert one indent to this line' })
