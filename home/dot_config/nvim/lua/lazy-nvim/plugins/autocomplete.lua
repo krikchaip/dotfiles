@@ -90,22 +90,18 @@ return {
 
         mapping = {
           -- Suggestion selection
-          ['<C-k>'] = ics(cmp.mapping.select_prev_item()),
-          ['<C-j>'] = ics(cmp.mapping.select_next_item()),
           ['<Up>'] = ics(cmp.mapping.select_prev_item()),
           ['<Down>'] = ics(cmp.mapping.select_next_item()),
+          ['<C-k>'] = ics(cmp.mapping.select_prev_item()),
+          ['<C-j>'] = ics(cmp.mapping.select_next_item()),
+          ['<C-u>'] = ics(cmp.mapping.select_prev_item { count = 8 }),
+          ['<C-d>'] = ics(cmp.mapping.select_next_item { count = 8 }),
 
           -- Doc-window Scrolling
           ['<M-k>'] = ics(cmp.mapping.scroll_docs(-1)),
           ['<M-j>'] = ics(cmp.mapping.scroll_docs(1)),
           ['<M-u>'] = ics(cmp.mapping.scroll_docs(-8)),
           ['<M-d>'] = ics(cmp.mapping.scroll_docs(8)),
-
-          -- ['<Esc>'] = is(function(fallback)
-          --   if not cmp.visible() then return fallback() end
-          --
-          --   cmp.abort()
-          -- end),
 
           -- Toggle completion menu
           ['<C-Space>'] = ics(function()
