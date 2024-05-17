@@ -226,6 +226,23 @@ return {
     end,
   },
 
+  {
+    'pmizio/typescript-tools.nvim',
+    name = 'typescript-tools',
+    ft = {
+      'javascript',
+      'javascriptreact',
+      'javascript.jsx',
+      'typescript',
+      'typescriptreact',
+      'typescript.tsx',
+    },
+    dependencies = { 'plenary', 'lspconfig' },
+    opts = {
+      expose_as_code_action = 'all',
+    },
+  },
+
   -- Status updates UI for LSP.
   -- ref: https://github.com/j-hui/fidget.nvim
   -- {
