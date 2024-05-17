@@ -3,11 +3,11 @@ packages:
     formulae:
       - bat
       - fd
-      - homebrew/cask-fonts/font-fira-code
-      - homebrew/cask-fonts/font-ligature-symbols
-      - homebrew/cask-fonts/font-material-symbols
-      - homebrew/cask-fonts/font-powerline-symbols
-      - homebrew/cask-fonts/font-symbols-only-nerd-font
+      - homebrew/cask/font-fira-code
+      - homebrew/cask/font-ligature-symbols
+      - homebrew/cask/font-material-symbols
+      - homebrew/cask/font-powerline-symbols
+      - homebrew/cask/font-symbols-only-nerd-font
       - imagemagick
       - jq
       - koekeishiya/formulae/skhd
