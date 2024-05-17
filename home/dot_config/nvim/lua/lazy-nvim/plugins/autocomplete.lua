@@ -121,20 +121,18 @@ return {
 
           -- Accept currently selected item
           ['<CR>'] = is(function(fallback)
-            if not cmp.visible() then return fallback() end
+            if cmp.visible() then return cmp.confirm { select = true } end
 
-            -- Set `select` to `false` to only confirm explicitly selected items.
-            if not luasnip.expandable() then return cmp.confirm { select = true } end
+            if luasnip.expandable() then return luasnip.expand() end
 
-            luasnip.expand()
+            fallback()
           end),
 
           -- VSCode like tab mapping
           ['<Tab>'] = ics(function(fallback)
-            if cmp.visible() then
-              if not luasnip.expandable() then return cmp.confirm { select = true } end
-              return luasnip.expand()
-            end
+            if cmp.visible() then return cmp.confirm { select = true } end
+
+            if luasnip.expandable() then return luasnip.expand() end
 
             if luasnip.locally_jumpable(1) then return luasnip.jump(1) end
 
