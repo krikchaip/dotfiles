@@ -41,7 +41,6 @@ return {
   { 'hrsh7th/cmp-buffer', name = 'cmp.buffer' },
   { 'hrsh7th/cmp-calc', name = 'cmp.calc' },
   { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
-  { 'hrsh7th/cmp-nvim-lsp-signature-help', name = 'cmp.lsp-signature' },
   { 'hrsh7th/cmp-path', name = 'cmp.path' },
   { 'hrsh7th/cmp-cmdline', name = 'cmp.cmdline' },
 
@@ -54,7 +53,6 @@ return {
       'cmp.buffer',
       'cmp.calc',
       'cmp.lsp',
-      'cmp.lsp-signature',
       'cmp.path',
       'cmp.cmdline',
     },
@@ -153,7 +151,6 @@ return {
         },
 
         sources = cmp.config.sources({
-          { name = 'nvim_lsp_signature_help' },
           { name = 'nvim_lsp' },
         }, {
           { name = 'luasnip' },
