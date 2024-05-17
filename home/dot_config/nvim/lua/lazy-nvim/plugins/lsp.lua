@@ -128,6 +128,10 @@ return {
             if not diagnostic_winid then vim.lsp.buf.hover() end
           end, opts)
 
+          -- Suggest help for a function parameter under the cursor
+          opts.desc = 'Show function signature help'
+          vim.keymap.set('i', '<C-S-Space>', vim.lsp.buf.signature_help, opts)
+
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
           -- To jump back, press <C-t>.
@@ -149,16 +153,6 @@ return {
           opts.desc = 'Show [r]eferences'
           vim.keymap.set('n', 'gr', '<cmd>Telescope lsp_references<CR>', opts)
 
-          -- Fuzzy find all the symbols in your current document.
-          -- Symbols are things like variables, functions, types, etc.
-          opts.desc = 'Show document [s]ymbols'
-          vim.keymap.set('n', '<leader>ls', '<cmd>Telescope lsp_document_symbols<CR>', opts)
-
-          -- Fuzzy find all the symbols in your current workspace.
-          -- Similar to document symbols, except searches over your entire project.
-          opts.desc = 'Show workspace [S]ymbols'
-          vim.keymap.set('n', '<leader>lS', '<cmd>Telescope lsp_dynamic_workspace_symbols<CR>', opts)
-
           -- Rename the variable under your cursor.
           -- Most Language Servers support renaming across files, etc.
           opts.desc = '[R]ename variable'
@@ -169,13 +163,26 @@ return {
           opts.desc = 'Execute code [a]ction'
           vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, opts)
 
+          -- Fuzzy find all the symbols in your current document.
+          -- Symbols are things like variables, functions, types, etc.
+          opts.desc = 'Show document [s]ymbols'
+          vim.keymap.set('n', '<leader>ls', '<cmd>Telescope lsp_document_symbols<CR>', opts)
+
+          -- Fuzzy find all the symbols in your current workspace.
+          -- Similar to document symbols, except searches over your entire project.
+          opts.desc = 'Show workspace [S]ymbols'
+          vim.keymap.set('n', '<leader>lS', '<cmd>Telescope lsp_dynamic_workspace_symbols<CR>', opts)
+
           local client = vim.lsp.get_client_by_id(event.data.client_id)
 
           -- Enable inlay hints (for Nvim v0.10.0 and onwards)
           -- ref: https://www.youtube.com/watch?v=DYaTzkw3zqQ
           if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
             opts.desc = 'Toggle inlay [h]ints'
-            vim.keymap.set('n', '<leader>lh', function() vim.lsp.inlay_hint.enable(0, not vim.lsp.inlay_hint.is_enabled()) end, opts)
+            vim.keymap.set('n', '<leader>lh', function()
+              local is_enabled = vim.lsp.inlay_hint.is_enabled { 0 }
+              vim.lsp.inlay_hint.enable(not is_enabled, { 0 })
+            end, opts)
           end
         end,
       })
