@@ -9,6 +9,13 @@ def "restart touchbar" []: nothing -> nothing {
   sudo killall ControlStrip
 }
 
+# install/reinstall system packages
+def "packages install" []: nothing -> nothing {
+  open ~/.local/share/chezmoi/home/.chezmoiscripts/run_onchange_install-packages.sh.tmpl
+    | chezmoi execute-template
+    | bash
+}
+
 # apply system settings immediately without restarting the computer
 def "system-settings apply" []: nothing -> nothing {
   osascript -e 'tell application "System Preferences" to quit'
