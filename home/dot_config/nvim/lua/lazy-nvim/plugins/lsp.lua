@@ -64,25 +64,6 @@ return {
     'williamboman/mason-lspconfig.nvim',
     name = 'mason-lspconfig',
     dependencies = { 'mason' },
-    opts = {
-      automatic_installation = true,
-    },
-  },
-
-  -- configures lua_ls for completion, annotations and signatures of Neovim apis
-  -- ref: https://github.com/folke/neodev.nvim
-  {
-    'folke/neodev.nvim',
-    name = 'neodev',
-    opts = {
-      -- Fix lua_ls does not provide suggestions for nvim plugins
-      -- (only work with nvim-config lua projects)
-      -- ref: https://github.com/folke/neodev.nvim/issues/158
-      override = function(root_dir, library)
-        library.enabled = true
-        library.plugins = true
-      end,
-    },
   },
 
   -- actual configs and apis for the Nvim LSP client
@@ -91,53 +72,28 @@ return {
     'neovim/nvim-lspconfig',
     name = 'lspconfig',
     event = { 'BufReadPre', 'BufNewFile' },
-    dependencies = { 'mason-lspconfig', 'neodev' },
+    keys = {
+      { '<leader>li', '<cmd>LspInfo<CR>', desc = 'Show LSP [i]nfo for current buffer' },
+      { '<leader>lr', '<cmd>LspRestart<CR>', desc = '[r]estart running LSP for current buffer' },
+    },
+    dependencies = { 'mason-lspconfig' },
     config = function()
       local lspconfig = require 'lspconfig'
       local mason_lspconfig = require 'mason-lspconfig'
+      local utils = require 'lazy-nvim.lib.lspconfig-utils'
 
-      -- default Nvim LSP client capabilities
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-
-      -- setup LSP capability for nvim-ufo, as we're choosing LSP as its provider
-      -- ref: https://github.com/kevinhwang91/nvim-ufo?tab=readme-ov-file#minimal-configuration
-      capabilities.textDocument.foldingRange = {
-        dynamicRegistration = false,
-        lineFoldingOnly = true,
-      }
-
-      -- LSP autocomplete integration
-      -- ref: https://github.com/hrsh7th/cmp-nvim-lsp
-      capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
-
-      -- [[ lspconfig-all, lspconfig-setup ]]
       mason_lspconfig.setup_handlers {
         -- will be called for each installed server that doesn't have a dedicated handler
         function(server_name)
           lspconfig[server_name].setup {
             -- tell LSP servers what capabilities that the client (nvim) can handle
-            capabilities = capabilities,
+            capabilities = utils.make_capabilities(),
           }
         end,
 
-        -- ref: https://luals.github.io/wiki/settings
-        ['lua_ls'] = function()
-          lspconfig['lua_ls'].setup {
-            capabilities = capabilities,
-            settings = {
-              Lua = {
-                diagnostics = {
-                  disable = { 'missing-fields' },
-                },
-              },
-            },
-          }
-        end,
+        ['lua_ls'] = function() end, -- delegated to neodev plugin
+        ['tsserver'] = function() end, -- delegated to typescript-tools plugin
       }
-
-      -- Global keymappings that doesn't require a buffer
-      vim.keymap.set('n', '<leader>li', '<cmd>LspInfo<CR>', { desc = 'Show LSP [i]nfo for current buffer' })
-      vim.keymap.set('n', '<leader>lr', '<cmd>LspRestart<CR>', { desc = '[r]estart running LSP for current buffer' })
 
       -- will get run when an LSP attaches to a particular buffer
       vim.api.nvim_create_autocmd('LspAttach', {
@@ -223,6 +179,44 @@ return {
           end
         end,
       })
+    end,
+  },
+
+  -- configures lua_ls for completion, annotations and signatures of Neovim apis
+  -- ref: https://github.com/folke/neodev.nvim
+  {
+    'folke/neodev.nvim',
+    name = 'neodev',
+    ft = { 'lua' },
+    dependencies = { 'lspconfig' },
+    config = function()
+      local neodev = require 'neodev'
+      local lspconfig = require 'lspconfig'
+      local utils = require 'lazy-nvim.lib.lspconfig-utils'
+
+      neodev.setup {
+        -- Fix lua_ls does not provide suggestions for nvim plugins
+        -- (only work with nvim-config lua projects)
+        -- ref: https://github.com/folke/neodev.nvim/issues/158
+        override = function(root_dir, library)
+          library.enabled = true
+          library.plugins = true
+        end,
+      }
+
+      lspconfig.lua_ls.setup {
+        -- tell LSP servers what capabilities that the client (nvim) can handle
+        capabilities = utils.make_capabilities(),
+
+        -- For more info: https://luals.github.io/wiki/settings
+        settings = {
+          Lua = {
+            diagnostics = {
+              disable = { 'missing-fields' },
+            },
+          },
+        },
+      }
     end,
   },
 
