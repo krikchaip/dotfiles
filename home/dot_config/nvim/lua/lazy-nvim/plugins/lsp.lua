@@ -8,6 +8,9 @@ return {
     'williamboman/mason.nvim',
     name = 'mason',
     lazy = false,
+    keys = {
+      { '<C-S-l>', '<cmd>Mason<CR>', desc = 'Open Mason popup window' },
+    },
     opts = {
       ui = {
         icons = {
@@ -20,11 +23,6 @@ return {
         keymaps = {},
       },
     },
-    config = function(_, opts)
-      require('mason').setup(opts)
-
-      vim.keymap.set('n', '<C-S-l>', '<cmd>Mason<CR>', { desc = 'Open Mason popup window' })
-    end,
   },
 
   -- help managing Mason package installation and updates
