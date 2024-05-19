@@ -66,6 +66,63 @@ return {
     dependencies = { 'mason' },
   },
 
+  {
+    'ray-x/lsp_signature.nvim',
+    name = 'lsp-signature',
+    opts = {
+      -- max_width of signature floating_window
+      max_width = 60,
+
+      -- allow doc/signature text wrap inside floating_window
+      wrap = false,
+
+      -- close floating window after ms when laster parameter is entered
+      close_timeout = 4000,
+
+      -- characters that will trigger signature completion
+      extra_trigger_chars = { '(', ',' },
+
+      handler_opts = {
+        -- double, rounded, single, shadow, none, or a table of borders
+        border = 'single',
+      },
+
+      -- character to pad on left and right of signature can be ' ', or '|' etc
+      padding = ' ',
+
+      -- autoclose signature float win after x sec
+      -- auto_close_after = 1,
+
+      -- virtual hint enable
+      hint_enable = false,
+
+      -- toggle signature on and off in insert mode
+      toggle_key = '<M-x>',
+
+      -- whether to toggle floating_windows setting after toggle_key pressed
+      toggle_key_flip_floatwin_setting = true,
+
+      -- cycle to next signature in insert mode
+      select_signature_key = '<M-n>',
+
+      -- key to move cursor between current win and floating in insert mode
+      move_cursor_key = '<C-S-k>',
+    },
+  },
+
+  {
+    'echasnovski/mini.completion',
+    name = 'mini.completion',
+    version = false,
+    opts = {
+      delay = { completion = 10e7, info = 10e7, signature = 100 },
+      window = {
+        -- see `nvim_open_win()` for mor info
+        signature = { border = 'rounded' },
+      },
+    },
+  },
+
   -- actual configs and apis for the Nvim LSP client
   -- ref: https://github.com/neovim/nvim-lspconfig
   {
@@ -76,7 +133,11 @@ return {
       { '<leader>li', '<cmd>LspInfo<CR>', desc = 'Show LSP [i]nfo for current buffer' },
       { '<leader>lr', '<cmd>LspRestart<CR>', desc = '[r]estart running LSP for current buffer' },
     },
-    dependencies = { 'mason-lspconfig' },
+    dependencies = {
+      'mason-lspconfig',
+      -- 'lsp-signature',
+      'mini.completion',
+    },
     config = function()
       local lspconfig = require 'lspconfig'
       local mason_lspconfig = require 'mason-lspconfig'
