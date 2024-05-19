@@ -130,7 +130,7 @@ return {
 
           -- Suggest help for a function parameter under the cursor
           opts.desc = 'Show function signature help'
-          vim.keymap.set('i', '<C-S-Space>', vim.lsp.buf.signature_help, opts)
+          vim.keymap.set({ 'n', 'i' }, '<C-S-Space>', vim.lsp.buf.signature_help, opts)
 
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
