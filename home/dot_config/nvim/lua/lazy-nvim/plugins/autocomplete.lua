@@ -90,6 +90,10 @@ return {
           completeopt = 'menu,menuone,preview,noinsert',
         },
 
+        performance = {
+          max_view_entries = 100,
+        },
+
         mapping = {
           -- Suggestion selection
           ['<Up>'] = ics(cmp.mapping.select_prev_item()),
