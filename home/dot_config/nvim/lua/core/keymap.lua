@@ -17,18 +17,8 @@ vim.keymap.set('c', '"', '""<Left>')
 -- ref: https://stackoverflow.com/questions/3806629/yank-a-region-in-vim-without-the-cursor-moving-to-the-top-of-the-block
 vim.keymap.set('x', 'y', 'ygv<Esc>')
 
--- Clear search highlights on pressing <Esc> in normal mode
-vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
-
--- Make Increment/Decrement key more intuitive
-vim.keymap.set('n', '-', '<C-x>', { desc = 'Decrement number' })
-vim.keymap.set('n', '+', '<C-a>', { desc = 'Increment number' })
-
--- Horizontal Scrolling
-vim.keymap.set('n', '<M-h>', 'zH', { desc = 'Scroll half page left' })
-vim.keymap.set('n', '<M-l>', 'zL', { desc = 'Scroll half page right' })
-vim.keymap.set('n', '<M-S-h>', 'zh', { desc = 'Scroll left' })
-vim.keymap.set('n', '<M-S-l>', 'zl', { desc = 'Scroll right' })
+-- Substitute line while on insert mode (useful for inserting indentation on an empty line)
+vim.keymap.set('i', '<C-s>', '<cmd>normal S<CR>')
 
 -- Insert/Remove indentation with ease
 vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Remove one indent from this line' })
@@ -37,6 +27,19 @@ vim.keymap.set('x', '<M-S-,>', '<gv', { desc = 'Remove one indent from this regi
 vim.keymap.set('x', '<M-S-.>', '>gv', { desc = 'Insert one indent to this region' })
 vim.keymap.set('n', '<M-S-,>', '<<', { desc = 'Remove one indent from this line' })
 vim.keymap.set('n', '<M-S-.>', '>>', { desc = 'Insert one indent to this line' })
+
+-- Horizontal Scrolling
+vim.keymap.set('n', '<M-h>', 'zH', { desc = 'Scroll half page left' })
+vim.keymap.set('n', '<M-l>', 'zL', { desc = 'Scroll half page right' })
+vim.keymap.set('n', '<M-S-h>', 'zh', { desc = 'Scroll left' })
+vim.keymap.set('n', '<M-S-l>', 'zl', { desc = 'Scroll right' })
+
+-- Clear search highlights on pressing <Esc> in normal mode
+vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+
+-- Make Increment/Decrement key more intuitive
+vim.keymap.set('n', '-', '<C-x>', { desc = 'Decrement number' })
+vim.keymap.set('n', '+', '<C-a>', { desc = 'Increment number' })
 
 -- Exit terminal mode in the builtin terminal (default: <C-\><C-n>)
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
