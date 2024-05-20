@@ -39,6 +39,7 @@ return {
   -- Completion sources
   { 'saadparwaiz1/cmp_luasnip', name = 'cmp.luasnip', dependencies = { 'luasnip' } },
   { 'hrsh7th/cmp-buffer', name = 'cmp.buffer' },
+  { 'amarakon/nvim-cmp-buffer-lines', name = 'cmp.buffer-lines' },
   { 'hrsh7th/cmp-calc', name = 'cmp.calc' },
   { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
   { 'hrsh7th/cmp-path', name = 'cmp.path' },
@@ -51,6 +52,7 @@ return {
     dependencies = {
       'cmp.luasnip',
       'cmp.buffer',
+      'cmp.buffer-lines',
       'cmp.calc',
       'cmp.lsp',
       'cmp.path',
@@ -176,7 +178,21 @@ return {
 
       cmp.setup.cmdline({ '/', '?' }, {
         sources = cmp.config.sources {
-          { name = 'buffer' },
+          {
+            name = 'buffer',
+            option = {
+              -- use the `iskeyword` option for recognizing words
+              keyword_pattern = [[\k\+]],
+            },
+          },
+          {
+            name = 'buffer-lines',
+            option = {
+              line_numbers = true,
+              line_number_separator = ': ',
+              leading_whitespace = false,
+            },
+          },
         },
       })
     end,
