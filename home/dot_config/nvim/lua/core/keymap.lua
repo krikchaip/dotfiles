@@ -18,7 +18,7 @@ vim.keymap.set('c', '"', '""<Left>')
 vim.keymap.set('x', 'y', 'ygv<Esc>')
 
 -- Substitute line while on insert mode (useful for inserting indentation on an empty line)
-vim.keymap.set('i', '<C-s>', '<cmd>normal S<CR>')
+vim.keymap.set('i', '<C-s>', '<C-o>S')
 
 -- Insert/Remove indentation with ease
 vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Remove one indent from this line' })

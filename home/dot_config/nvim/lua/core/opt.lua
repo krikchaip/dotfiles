@@ -43,6 +43,9 @@ vim.opt.breakindent = true
 -- Save undo history
 vim.opt.undofile = true
 
+-- No swapfile. EVER 😠
+vim.opt.swapfile = false
+
 -- Case-insensitive searching UNLESS \C or one or more capital letters in the search term
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
@@ -87,10 +90,4 @@ vim.opt.hlsearch = true
 -- ref: https://github.com/neovim/neovim/issues/19648
 vim.opt.shell = 'nu'
 vim.opt.shelltemp = false
-vim.opt.shellcmdflag =
-    '--stdin '
-    .. '--config "'
-    .. vim.g.nu_config_path
-    .. '" --env-config "'
-    .. vim.g.nu_env_path
-    .. '" -c'
+vim.opt.shellcmdflag = '--stdin ' .. '--config "' .. vim.g.nu_config_path .. '" --env-config "' .. vim.g.nu_env_path .. '" -c'
