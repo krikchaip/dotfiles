@@ -24,6 +24,12 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '-', '<C-x>', { desc = 'Decrement number' })
 vim.keymap.set('n', '+', '<C-a>', { desc = 'Increment number' })
 
+-- Horizontal Scrolling
+vim.keymap.set('n', '<M-h>', 'zH', { desc = 'Scroll half page left' })
+vim.keymap.set('n', '<M-l>', 'zL', { desc = 'Scroll half page right' })
+vim.keymap.set('n', '<M-S-h>', 'zh', { desc = 'Scroll left' })
+vim.keymap.set('n', '<M-S-l>', 'zl', { desc = 'Scroll right' })
+
 -- Insert/Remove indentation with ease
 vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Remove one indent from this line' })
 vim.keymap.set('i', '<M-S-.>', '<C-t>', { desc = 'Insert one indent to this line' })
