@@ -52,8 +52,7 @@ vim.keymap.set('n', '-', '<C-x>', { desc = 'Decrement number' })
 vim.keymap.set('n', '+', '<C-a>', { desc = 'Increment number' })
 
 -- Saving buffers (files)
-vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Write current buffer (save file)' })
-vim.keymap.set('n', '<leader><S-w>', '<cmd>wall<CR>', { desc = 'Write all changed buffers (save all files)' })
+vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Write current buffer' })
 
 -- Delete current buffer
 vim.keymap.set('n', '<leader>q', '<cmd>bdelete<CR>', { desc = 'Delete current buffer' })
