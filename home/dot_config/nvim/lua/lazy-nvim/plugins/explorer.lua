@@ -288,7 +288,7 @@ return {
             ['J'] = { node.open.edit, 'Edit' },
             ['<CR>'] = { node.open.edit, 'Edit' },
             ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
-            ['<M-j>'] = { node.run.system, 'System Default' },
+            ['o'] = { node.run.system, 'System Default' },
             ['<M-RightMouse>'] = { node.run.system, 'System Default' },
             ['P'] = { preview.watch, 'Preview' },
           },
