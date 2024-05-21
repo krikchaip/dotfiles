@@ -162,8 +162,9 @@ return {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
         }, {
-          { name = 'rpncalc' },
           { name = 'buffer' },
+          { name = 'path' },
+          { name = 'rpncalc' },
         }),
       }
 
@@ -171,9 +172,8 @@ return {
         sources = cmp.config.sources({
           { name = 'cmdline' },
         }, {
-          { name = 'path', option = { trailing_slash = true } },
-        }, {
           { name = 'buffer' },
+          { name = 'path', option = { trailing_slash = true } },
         }),
       })
 
