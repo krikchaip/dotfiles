@@ -21,7 +21,9 @@ return {
     name = 'nvim-treesitter.autotag',
     event = 'InsertEnter',
     opts = {
-      enable_close_on_slash = true, -- Auto close on trailing </
+      opts = {
+        enable_close_on_slash = true, -- Auto close on trailing </
+      },
     },
   },
 
