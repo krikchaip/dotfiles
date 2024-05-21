@@ -42,6 +42,7 @@ return {
   { 'amarakon/nvim-cmp-buffer-lines', name = 'cmp.buffer-lines' },
   { 'PhilRunninger/cmp-rpncalc', name = 'cmp.rpncalc' },
   { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
+  { 'hrsh7th/cmp-nvim-lsp-signature-help', name = 'cmp.lsp-signature-help' },
   { 'hrsh7th/cmp-path', name = 'cmp.path' },
   { 'hrsh7th/cmp-cmdline', name = 'cmp.cmdline' },
 
@@ -55,6 +56,7 @@ return {
       'cmp.buffer-lines',
       'cmp.rpncalc',
       'cmp.lsp',
+      'cmp.lsp-signature-help',
       'cmp.path',
       'cmp.cmdline',
     },
@@ -155,6 +157,8 @@ return {
         },
 
         sources = cmp.config.sources({
+          { name = 'nvim_lsp_signature_help' },
+        }, {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
         }, {
