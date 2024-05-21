@@ -266,7 +266,7 @@ return {
         -- Fix lua_ls does not provide suggestions for nvim plugins
         -- (only work with nvim-config lua projects)
         -- ref: https://github.com/folke/neodev.nvim/issues/158
-        override = function(root_dir, library)
+        override = function(_, library)
           library.enabled = true
           library.plugins = true
         end,
