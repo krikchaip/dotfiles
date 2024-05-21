@@ -42,7 +42,6 @@ return {
   { 'amarakon/nvim-cmp-buffer-lines', name = 'cmp.buffer-lines' },
   { 'PhilRunninger/cmp-rpncalc', name = 'cmp.rpncalc' },
   { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
-  { 'hrsh7th/cmp-nvim-lsp-document-symbol', name = 'cmp.lsp-document-symbol' },
   { 'hrsh7th/cmp-path', name = 'cmp.path' },
   { 'hrsh7th/cmp-cmdline', name = 'cmp.cmdline' },
 
@@ -56,7 +55,6 @@ return {
       'cmp.buffer-lines',
       'cmp.rpncalc',
       'cmp.lsp',
-      'cmp.lsp-document-symbol',
       'cmp.path',
       'cmp.cmdline',
     },
@@ -176,9 +174,7 @@ return {
       })
 
       cmp.setup.cmdline({ '/', '?' }, {
-        sources = cmp.config.sources({
-          { name = 'nvim_lsp_document_symbol' },
-        }, {
+        sources = cmp.config.sources {
           {
             name = 'buffer',
             option = {
@@ -194,7 +190,7 @@ return {
               leading_whitespace = false,
             },
           },
-        }),
+        },
       })
     end,
   },
