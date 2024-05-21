@@ -208,6 +208,15 @@ return {
           },
         },
       })
+
+      -- Add parentheses after selecting function or method item
+      -- ref: https://github.com/hrsh7th/nvim-cmp/wiki/Advanced-techniques#add-parentheses-after-selecting-function-or-method-item
+      cmp.event:on('confirm_done', function(evt)
+        local aupairs_cmp = require 'nvim-autopairs.completion.cmp'
+        local confirm_done = aupairs_cmp.on_confirm_done()
+
+        return confirm_done(evt)
+      end)
     end,
   },
 }
