@@ -99,7 +99,12 @@ return {
         },
 
         performance = {
-          max_view_entries = 100,
+          debounce = 200, -- default: 60
+          throttle = 100, -- default: 30
+          fetching_timeout = 1000, -- default: 500
+          confirm_resolve_timeout = 160, -- default: 80
+          async_budget = 1, -- default: 1
+          max_view_entries = 100, -- default: 200
         },
 
         mapping = {
