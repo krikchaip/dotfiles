@@ -19,6 +19,10 @@ return {
   {
     'windwp/nvim-ts-autotag',
     name = 'nvim-treesitter.autotag',
+    event = 'InsertEnter',
+    opts = {
+      enable_close_on_slash = true, -- Auto close on trailing </
+    },
   },
 
   -- Highlight, edit, and code navigation
@@ -28,22 +32,24 @@ return {
     name = 'nvim-treesitter',
     build = ':TSUpdate',
     event = { 'BufReadPre', 'BufNewFile' },
-    dependencies = { 'nvim-treesitter.autotag' },
     opts = {
       auto_install = true, -- Autoinstall languages that are not installed
 
       ensure_installed = {
-        'lua', 'luadoc',
-        'vim', 'vimdoc',
-        'html', 'css',
-        'javascript', 'typescript', 'tsx',
-        'json', 'jsonc',
-        'markdown', 'markdown_inline',
+        'lua',
+        'luadoc',
+        'vim',
+        'vimdoc',
+        'html',
+        'css',
+        'javascript',
+        'typescript',
+        'tsx',
+        'json',
+        'jsonc',
+        'markdown',
+        'markdown_inline',
         'elixir',
-      },
-
-      autotag = {
-        enable = true,
       },
 
       highlight = {
@@ -61,10 +67,7 @@ return {
           local ignored_list = { 'json', 'jsonc', 'chezmoitmpl' }
 
           for _, ignored in ipairs(ignored_list) do
-            if string.find(lang, ignored)
-                or string.find(vim.bo.filetype, ignored) then
-              return true
-            end
+            if string.find(lang, ignored) or string.find(vim.bo.filetype, ignored) then return true end
           end
         end,
       },
@@ -76,7 +79,7 @@ return {
         -- NOTE: these are the names of the parsers and not the filetype.
         disable = {
           'ruby',
-        }
+        },
       },
 
       -- like `Expand Selection` feature in VSCode
@@ -192,42 +195,34 @@ return {
             ['[O'] = { query = '@loop.outer', desc = 'Previous [l]oop end' },
             ['[E'] = { query = '@return.outer', desc = 'Previous r[e]turn statement end' },
           },
-        }
+        },
       },
     },
     config = function(_, opts)
       local ts_configs = require 'nvim-treesitter.configs'
-      local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+      local ts_action = require 'nvim-treesitter.textobjects.repeatable_move'
 
       ts_configs.setup(opts)
 
       -- Repeat movement with ; and ,
       -- ensure ; goes forward and , goes backward regardless of the last direction
-      -- vim.keymap.set({ 'n', 'x', 'o' }, ';', function()
-      --   ts_repeat_move.repeat_last_move_next()
-      -- end, { desc = 'Repeat last move next' })
-      -- vim.keymap.set({ 'n', 'x', 'o' }, ',', function()
-      --   ts_repeat_move.repeat_last_move_previous()
-      -- end, { desc = 'Repeat last move previous' })
+      -- vim.keymap.set({ 'n', 'x', 'o' }, ';', function() ts_action.repeat_last_move_next() end, { desc = 'Repeat last move next' })
+      -- vim.keymap.set({ 'n', 'x', 'o' }, ',', function() ts_action.repeat_last_move_previous() end, { desc = 'Repeat last move previous' })
 
       -- vim way: ; goes to the direction you were moving.
-      vim.keymap.set({ 'n', 'x', 'o' }, ';', function()
-        ts_repeat_move.repeat_last_move()
-      end, { desc = 'Repeat last move' })
-      vim.keymap.set({ 'n', 'x', 'o' }, ',', function()
-        ts_repeat_move.repeat_last_move_opposite()
-      end, { desc = 'Repeat last move opposite' })
+      vim.keymap.set({ 'n', 'x', 'o' }, ';', function() ts_action.repeat_last_move() end, { desc = 'Repeat last move' })
+      vim.keymap.set({ 'n', 'x', 'o' }, ',', function() ts_action.repeat_last_move_opposite() end, { desc = 'Repeat last move opposite' })
 
       -- Optionally, make builtin f, F, t, T also repeatable with ; and ,
-      vim.keymap.set({ 'n', 'x', 'o' }, 'f', ts_repeat_move.builtin_f)
-      vim.keymap.set({ 'n', 'x', 'o' }, 'F', ts_repeat_move.builtin_F)
-      vim.keymap.set({ 'n', 'x', 'o' }, 't', ts_repeat_move.builtin_t)
-      vim.keymap.set({ 'n', 'x', 'o' }, 'T', ts_repeat_move.builtin_T)
+      vim.keymap.set({ 'n', 'x', 'o' }, 'f', ts_action.builtin_f)
+      vim.keymap.set({ 'n', 'x', 'o' }, 'F', ts_action.builtin_F)
+      vim.keymap.set({ 'n', 'x', 'o' }, 't', ts_action.builtin_t)
+      vim.keymap.set({ 'n', 'x', 'o' }, 'T', ts_action.builtin_T)
 
       -- enable tree-sitter based folding
       -- NOTE: This will respect your `foldminlines` and `foldnestmax` settings
       -- vim.cmd('set foldmethod=expr')
       -- vim.cmd('set foldexpr=nvim_treesitter#foldexpr()')
-    end
+    end,
   },
 }
