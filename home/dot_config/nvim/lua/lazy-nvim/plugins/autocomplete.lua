@@ -191,7 +191,7 @@ return {
         sources = cmp.config.sources({
           { name = 'nvim_lsp_signature_help' },
         }, {
-          { name = 'nvim_lsp' },
+          { name = 'nvim_lsp', max_item_count = 100 },
           { name = 'nvim_lua' },
           { name = 'luasnip' },
         }, {

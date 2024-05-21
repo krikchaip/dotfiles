@@ -40,7 +40,7 @@ return {
         'lua_ls',
         'html',
         'cssls',
-        'tailwindcss',
+        -- 'tailwindcss', -- had to disabled for now due to sluggish performance :(
         'tsserver',
         'jsonls',
         'marksman',
