@@ -77,7 +77,7 @@ return {
   {
     'windwp/nvim-autopairs',
     name = 'autopairs',
-    event = { 'InsertEnter' },
+    event = 'InsertEnter',
     opts = {
       disable_filetype = {},
       disable_in_visualblock = false, -- disable when insert after visual block mode
