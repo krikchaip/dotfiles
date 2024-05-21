@@ -45,6 +45,7 @@ return {
   { 'hrsh7th/cmp-nvim-lsp-signature-help', name = 'cmp.lsp-signature-help' },
   { 'hrsh7th/cmp-path', name = 'cmp.path' },
   { 'hrsh7th/cmp-cmdline', name = 'cmp.cmdline' },
+  { 'hrsh7th/cmp-nvim-lua', name = 'cmp.lua' },
 
   {
     'hrsh7th/nvim-cmp',
@@ -59,6 +60,7 @@ return {
       'cmp.lsp-signature-help',
       'cmp.path',
       'cmp.cmdline',
+      'cmp.lua',
     },
     init = function()
       -- Limit completion window max_height
@@ -161,6 +163,7 @@ return {
         }, {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
+          { name = 'nvim_lua' },
         }, {
           { name = 'buffer' },
           { name = 'path' },
