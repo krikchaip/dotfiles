@@ -226,21 +226,6 @@ return {
   },
 
   {
-    'anuvyklack/fold-preview.nvim',
-    name = 'fold-preview',
-    event = { 'BufReadPost', 'BufNewFile' },
-    dependencies = { 'keymap-amend' },
-    opts = {
-      -- Automatically open preview if cursor enters
-      -- and stays in folded line for specified number of milliseconds
-      auto = 1500,
-
-      -- To just only rely on the auto previewing feature
-      default_keybindings = false,
-    },
-  },
-
-  {
     url = 'https://gitlab.com/HiPhish/rainbow-delimiters.nvim.git',
     name = 'rainbow-delimiters',
     config = function()
