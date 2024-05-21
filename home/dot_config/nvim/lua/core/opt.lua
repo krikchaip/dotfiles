@@ -63,12 +63,19 @@ vim.opt.timeoutlen = 500
 vim.opt.splitright = true
 vim.opt.splitbelow = true
 
--- Disable initial folds by setting this value to a high number
--- ref: https://stackoverflow.com/questions/5784677/the-first-time-i-close-a-fold-it-closes-all-folds
-vim.opt.foldenable = true
+-- Folds will be enabled again by plugins
+vim.opt.foldenable = false
+
+-- Limit fold columns to just one (chevron icon)
 vim.opt.foldcolumn = '1'
+
+-- Open (expand) all folds by default
+-- ref: https://stackoverflow.com/questions/5784677/the-first-time-i-close-a-fold-it-closes-all-folds
 vim.opt.foldlevel = 999
 vim.opt.foldlevelstart = 999
+
+-- Prevent folds to accidentally open while moving horizontally
+vim.opt.foldopen:remove 'hor'
 
 -- Sets how neovim will display certain whitespace characters in the editor.
 vim.opt.list = true
