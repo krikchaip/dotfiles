@@ -1,15 +1,17 @@
+--- @diagnostic disable: param-type-mismatch
+
 local edit_file_cmd_map = {
-  vertical   = 'vsplit',
+  vertical = 'vsplit',
   horizontal = 'split',
-  tab        = 'tabedit',
-  default    = 'edit',
+  tab = 'tabedit',
+  default = 'edit',
 }
 
 local edit_buf_cmd_map = {
-  vertical   = 'vert sbuffer',
+  vertical = 'vert sbuffer',
   horizontal = 'sbuffer',
-  tab        = 'tab sbuffer',
-  default    = 'buffer',
+  tab = 'tab sbuffer',
+  default = 'buffer',
 }
 
 -- ref: https://github.com/nvim-telescope/telescope.nvim/issues/1048#issuecomment-1227591722
@@ -33,9 +35,7 @@ local function select_one_or_multi(method, prompt_bufnr)
         local value = entry.value
         if not value then return end
 
-        if type(value) == 'table' then
-          value = entry.display
-        end
+        if type(value) == 'table' then value = entry.display end
 
         local sections = vim.split(value, ':')
 
@@ -47,8 +47,8 @@ local function select_one_or_multi(method, prompt_bufnr)
       local entry_bufnr = entry.bufnr
 
       if entry_bufnr then
-        if not vim.api.nvim_buf_get_option(entry_bufnr, 'buflisted') then
-          vim.api.nvim_buf_set_option(entry_bufnr, 'buflisted', true)
+        if not vim.api.nvim_get_option_value('buflisted', { buf = entry_bufnr }) then
+          vim.api.nvim_set_option_value('buflisted', true, { buf = entry_bufnr })
         end
 
         -- local command = i == 1 and 'buffer' or edit_buf_cmd_map[method]
@@ -65,9 +65,7 @@ local function select_one_or_multi(method, prompt_bufnr)
         end
       end
 
-      if row and col then
-        pcall(vim.api.nvim_win_set_cursor, 0, { row, col - 1 })
-      end
+      if row and col then pcall(vim.api.nvim_win_set_cursor, 0, { row, col - 1 }) end
     end
   else
     require('telescope.actions')['select_' .. method](prompt_bufnr)
@@ -80,37 +78,23 @@ local function preview_scroll(prompt_bufnr, direction)
   local status = require('telescope.state').get_status(prompt_bufnr)
 
   -- Check if we actually have a previewer and a preview window
-  if type(previewer) ~= 'table' or previewer.scroll_fn == nil or status.preview_win == nil then
-    return
-  end
+  if type(previewer) ~= 'table' or previewer.scroll_fn == nil or status.preview_win == nil then return end
 
   previewer:scroll_fn(1 * direction)
 end
 
 local M = {}
 
-function M.select_vertical_or_multi(prompt_bufnr)
-  select_one_or_multi('vertical', prompt_bufnr)
-end
+function M.select_vertical_or_multi(prompt_bufnr) select_one_or_multi('vertical', prompt_bufnr) end
 
-function M.select_horizontal_or_multi(prompt_bufnr)
-  select_one_or_multi('horizontal', prompt_bufnr)
-end
+function M.select_horizontal_or_multi(prompt_bufnr) select_one_or_multi('horizontal', prompt_bufnr) end
 
-function M.select_tab_or_multi(prompt_bufnr)
-  select_one_or_multi('tab', prompt_bufnr)
-end
+function M.select_tab_or_multi(prompt_bufnr) select_one_or_multi('tab', prompt_bufnr) end
 
-function M.select_one_or_multi(prompt_bufnr)
-  select_one_or_multi('default', prompt_bufnr)
-end
+function M.select_one_or_multi(prompt_bufnr) select_one_or_multi('default', prompt_bufnr) end
 
-function M.preview_scrolling_next(prompt_bufnr)
-  preview_scroll(prompt_bufnr, 1)
-end
+function M.preview_scrolling_next(prompt_bufnr) preview_scroll(prompt_bufnr, 1) end
 
-function M.preview_scrolling_previous(prompt_bufnr)
-  preview_scroll(prompt_bufnr, -1)
-end
+function M.preview_scrolling_previous(prompt_bufnr) preview_scroll(prompt_bufnr, -1) end
 
 return M
