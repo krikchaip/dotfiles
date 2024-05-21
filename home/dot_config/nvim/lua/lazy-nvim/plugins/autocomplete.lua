@@ -40,7 +40,7 @@ return {
   { 'saadparwaiz1/cmp_luasnip', name = 'cmp.luasnip', dependencies = { 'luasnip' } },
   { 'hrsh7th/cmp-buffer', name = 'cmp.buffer' },
   { 'amarakon/nvim-cmp-buffer-lines', name = 'cmp.buffer-lines' },
-  { 'hrsh7th/cmp-calc', name = 'cmp.calc' },
+  { 'PhilRunninger/cmp-rpncalc', name = 'cmp.rpncalc' },
   { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
   { 'hrsh7th/cmp-path', name = 'cmp.path' },
   { 'hrsh7th/cmp-cmdline', name = 'cmp.cmdline' },
@@ -53,7 +53,7 @@ return {
       'cmp.luasnip',
       'cmp.buffer',
       'cmp.buffer-lines',
-      'cmp.calc',
+      'cmp.rpncalc',
       'cmp.lsp',
       'cmp.path',
       'cmp.cmdline',
@@ -155,13 +155,10 @@ return {
         },
 
         sources = cmp.config.sources({
-          { name = 'nvim_lsp' },
-        }, {
+          { name = 'nvim_lsp', max_item_count = 40 },
           { name = 'luasnip' },
         }, {
-          { name = 'path' },
-        }, {
-          { name = 'calc' },
+          { name = 'rpncalc' },
           { name = 'buffer' },
         }),
       }
