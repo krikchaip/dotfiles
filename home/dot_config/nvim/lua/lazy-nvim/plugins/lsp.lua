@@ -136,7 +136,7 @@ return {
     dependencies = {
       'mason-lspconfig',
       -- 'lsp-signature',
-      'mini.completion',
+      -- 'mini.completion',
     },
     config = function()
       local lspconfig = require 'lspconfig'
