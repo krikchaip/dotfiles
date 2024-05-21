@@ -48,6 +48,9 @@ return {
   { 'hrsh7th/cmp-nvim-lua', name = 'cmp.lua' },
   { 'SergioRibera/cmp-dotenv', name = 'cmp.dotenv' },
 
+  -- Entries formatter
+  { 'onsails/lspkind.nvim', name = 'lspkind' },
+
   {
     'hrsh7th/nvim-cmp',
     name = 'cmp',
@@ -71,6 +74,7 @@ return {
     config = function()
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
+      local lspkind = require 'lspkind'
 
       -- Enable mapping in all modes
       local ics = function(mapping_fn) return cmp.mapping(mapping_fn, { 'i', 'c', 's' }) end
@@ -105,6 +109,25 @@ return {
           -- confirm_resolve_timeout = 160, -- default: 80
           -- async_budget = 1, -- default: 1
           max_view_entries = 100, -- default: 200
+        },
+
+        formatting = {
+          format = lspkind.cmp_format {
+            mode = 'symbol_text', -- 'text', 'text_symbol', 'symbol_text', 'symbol'
+            maxwidth = 40,
+            show_labelDetails = false,
+            menu = {
+              buffer = '[Buffer]',
+              cmdline = '[Command]',
+              dotenv = '[ENV]',
+              luasnip = '[LuaSnip]',
+              nvim_lsp = '[LSP]',
+              nvim_lsp_signature_help = '[Signature]',
+              nvim_lua = '[Lua]',
+              path = '[Path]',
+              rpncalc = '[Calc]',
+            },
+          },
         },
 
         mapping = {
