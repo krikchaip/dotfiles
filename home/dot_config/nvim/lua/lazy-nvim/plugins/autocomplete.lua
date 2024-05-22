@@ -16,7 +16,7 @@ return {
       require('luasnip').filetype_extend('typescript', { 'javascript' })
       require('luasnip').filetype_extend('typescriptreact', { 'javascript' })
 
-      -- There're times we write React code in normal Typescript files
+      -- There're times that we write React code in normal Typescript files
       require('luasnip').filetype_extend('typescript', { 'typescriptreact' })
 
       -- You MUST call filetype_extends before calling lazy_load,

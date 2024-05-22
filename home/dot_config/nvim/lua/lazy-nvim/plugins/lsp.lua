@@ -40,6 +40,7 @@ return {
         'lua_ls',
         'html',
         'cssls',
+        'emmet-language-server',
         -- 'tailwindcss', -- had to disabled for now due to sluggish performance :(
         'tsserver',
         'jsonls',
