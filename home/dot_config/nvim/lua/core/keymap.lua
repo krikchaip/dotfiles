@@ -55,8 +55,8 @@ vim.keymap.set('n', '+', '<C-a>', { desc = 'Increment number' })
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Write current buffer' })
 
 -- Delete current buffer
-vim.keymap.set('n', '<leader>q', '<cmd>bdelete<CR>', { desc = 'Delete current buffer' })
-vim.keymap.set('n', '<leader><S-q>', '<cmd>bdelete!<CR>', { desc = 'Force delete current buffer' })
+vim.keymap.set('n', '<leader>q', '<cmd>bdelete | silent tabprevious<CR>', { desc = 'Delete current buffer' })
+vim.keymap.set('n', '<leader><S-q>', '<cmd>bdelete! | silent tabprevious<CR>', { desc = 'Force delete current buffer' })
 
 -- Window Navigation
 vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
