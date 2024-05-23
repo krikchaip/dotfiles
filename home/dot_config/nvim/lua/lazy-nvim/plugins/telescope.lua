@@ -180,7 +180,6 @@ return {
               ['<C-s>'] = custom_actions.select_horizontal_or_multi,
               ['<C-v>'] = custom_actions.select_vertical_or_multi,
               ['<C-t>'] = custom_actions.select_tab_or_multi,
-              ['<CR>'] = custom_actions.select_one_or_multi,
 
               -- cycle through Git previewers
               -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#mapping-c-sc-a-to-cycle-previewer-for-git-commits-to-show-full-message
@@ -215,12 +214,19 @@ return {
             -- `hidden = true` will still show the inside of `.git/` as it's not `.gitignore`.
             -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
             find_command = { 'rg', '--files', '--hidden', '--glob', '!**/.git/*' },
+
+            mappings = {
+              i = {
+                ['<CR>'] = actions.select_tab_drop,
+              },
+            },
           },
 
           buffers = {
             mappings = {
               i = {
                 ['<C-c>'] = actions.delete_buffer,
+                ['<CR>'] = actions.select_tab_drop,
               },
             },
           },
