@@ -112,6 +112,7 @@ return {
 
           -- flip prompt bar position and initial result highlight
           sorting_strategy = 'ascending',
+
           layout_strategy = 'horizontal',
           layout_config = {
             prompt_position = 'top',
