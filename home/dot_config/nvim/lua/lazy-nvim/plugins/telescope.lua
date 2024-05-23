@@ -110,13 +110,8 @@ return {
           -- don't cycle results when scrolling past the last/first item
           -- scroll_strategy = 'limit',
 
-          -- flip prompt bar position and initial result highlight
+          -- flip prompt bar position and initial result highlight ('horizontal' | 'vertical')
           sorting_strategy = 'ascending',
-
-          layout_strategy = 'horizontal',
-          layout_config = {
-            prompt_position = 'top',
-          },
 
           -- these args will be used for `live_grep` and `grep_string`
           vimgrep_arguments = {
