@@ -135,9 +135,15 @@ return {
           local api = require 'Comment.api'
           local config = require('Comment.config'):get()
 
+          if vim.fn.mode() == 'n' then return api.insert.linewise.eol(config) end
+
+          -- has to stop insert mode before executing the command
+          vim.cmd 'stopinsert'
           api.insert.linewise.eol(config)
+          vim.cmd 'startinsert!'
         end,
         desc = 'Insert comment at the end of line [linewise]',
+        mode = { 'n', 'i' },
       },
 
       {
