@@ -109,16 +109,18 @@ return {
           -- don't cycle results when scrolling past the last/first item
           -- scroll_strategy = 'limit',
 
-          -- flip prompt bar position and initial result highlight ('horizontal' | 'vertical')
+          -- determine where should the selection starts (top/bottom)
+          -- values: 'descending' | 'ascending'
           sorting_strategy = 'ascending',
 
           layout_strategy = 'vertical',
-
           layout_config = {
-            prompt_position = 'top',
-            width = { 0.8, max = 90 },
-            height = { 0.8, max = 37 },
-            preview_height = { 0, min = 20 },
+            vertical = {
+              prompt_position = 'top',
+              width = { 0.8, max = 90 },
+              height = { 0.8, max = 37 },
+              preview_height = { 0, min = 20 },
+            },
           },
 
           -- these args will be used for `live_grep` and `grep_string`
