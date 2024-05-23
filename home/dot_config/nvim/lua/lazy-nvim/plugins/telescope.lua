@@ -223,6 +223,14 @@ return {
             },
           },
 
+          oldfiles = {
+            mappings = {
+              i = {
+                ['<CR>'] = actions.select_tab_drop,
+              },
+            },
+          },
+
           buffers = {
             mappings = {
               i = {
