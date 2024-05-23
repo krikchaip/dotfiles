@@ -203,7 +203,13 @@ return {
     version = '*', -- use for stability; omit to use `main` branch for the latest features
     event = 'VeryLazy',
     opts = {
-      move_cursor = false, -- keep the cursor position after performing a surround action
+      -- keep the cursor position after performing a surround action
+      move_cursor = false,
+
+      keymaps = {
+        insert = '<C-g>',
+        insert_line = '<C-Enter>',
+      },
     },
   },
 }
