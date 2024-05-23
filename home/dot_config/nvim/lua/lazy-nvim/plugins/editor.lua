@@ -130,16 +130,25 @@ return {
       { 'gb', desc = 'Comment toggle blockwise' },
 
       {
+        '<M-/>',
+        function()
+          local api = require 'Comment.api'
+          local config = require('Comment.config'):get()
+
+          api.insert.linewise.eol(config)
+        end,
+        desc = 'Insert comment at the end of line [linewise]',
+      },
+
+      {
         '<C-/>',
-        function() require('Comment.api').toggle.linewise.current() end,
+        '<Plug>(comment_toggle_linewise_current)',
         desc = 'Toggle comment on the current line [linewise]',
-        mode = { 'n', 'i' },
       },
       {
         '<C-S-/>',
-        function() require('Comment.api').toggle.blockwise.current() end,
+        '<Plug>(comment_toggle_blockwise_current)',
         desc = 'Toggle comment on the current line [blockwise]',
-        mode = { 'n', 'i' },
       },
 
       {
