@@ -80,17 +80,17 @@ vim.keymap.set('n', '<leader>tq', '<cmd>tabclose<CR>', { desc = 'Close the curre
 vim.keymap.set('n', '<leader>to', '<cmd>tabonly<CR>', { desc = 'Close all other tab pages' })
 
 -- Tabpage Navigation
-vim.keymap.set('n', '<C-left>', '<cmd>tabprevious<CR>', { desc = 'Go to previous tab' })
-vim.keymap.set('n', '<C-right>', '<cmd>tabnext<CR>', { desc = 'Go to next tab' })
-vim.keymap.set('n', '<C-1>', '<cmd>1tabnext<CR>', { desc = 'Go to tab #1' })
-vim.keymap.set('n', '<C-2>', '<cmd>2tabnext<CR>', { desc = 'Go to tab #2' })
-vim.keymap.set('n', '<C-3>', '<cmd>3tabnext<CR>', { desc = 'Go to tab #3' })
-vim.keymap.set('n', '<C-4>', '<cmd>4tabnext<CR>', { desc = 'Go to tab #4' })
-vim.keymap.set('n', '<C-5>', '<cmd>5tabnext<CR>', { desc = 'Go to tab #5' })
-vim.keymap.set('n', '<C-6>', '<cmd>6tabnext<CR>', { desc = 'Go to tab #6' })
-vim.keymap.set('n', '<C-7>', '<cmd>7tabnext<CR>', { desc = 'Go to tab #7' })
-vim.keymap.set('n', '<C-8>', '<cmd>8tabnext<CR>', { desc = 'Go to tab #8' })
-vim.keymap.set('n', '<C-9>', '<cmd>9tabnext<CR>', { desc = 'Go to tab #9' })
+vim.keymap.set('n', '<leader>[', '<cmd>tabprevious<CR>', { desc = 'Go to previous tab' })
+vim.keymap.set('n', '<leader>]', '<cmd>tabnext<CR>', { desc = 'Go to next tab' })
+vim.keymap.set('n', '<leader>1', '<cmd>1tabnext<CR>', { desc = 'Go to tab #1' })
+vim.keymap.set('n', '<leader>2', '<cmd>2tabnext<CR>', { desc = 'Go to tab #2' })
+vim.keymap.set('n', '<leader>3', '<cmd>3tabnext<CR>', { desc = 'Go to tab #3' })
+vim.keymap.set('n', '<leader>4', '<cmd>4tabnext<CR>', { desc = 'Go to tab #4' })
+vim.keymap.set('n', '<leader>5', '<cmd>5tabnext<CR>', { desc = 'Go to tab #5' })
+vim.keymap.set('n', '<leader>6', '<cmd>6tabnext<CR>', { desc = 'Go to tab #6' })
+vim.keymap.set('n', '<leader>7', '<cmd>7tabnext<CR>', { desc = 'Go to tab #7' })
+vim.keymap.set('n', '<leader>8', '<cmd>8tabnext<CR>', { desc = 'Go to tab #8' })
+vim.keymap.set('n', '<leader>9', '<cmd>9tabnext<CR>', { desc = 'Go to tab #9' })
 
 -- Exit NeoVim
 vim.keymap.set('n', '<C-q>', '<cmd>qall<CR>', { desc = 'Quit all buffers (soft quit NeoVim)' })
