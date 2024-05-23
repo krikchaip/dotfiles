@@ -148,13 +148,25 @@ return {
 
       {
         '<C-/>',
-        '<Plug>(comment_toggle_linewise_current)',
+        function()
+          local api = require 'Comment.api'
+          local config = require('Comment.config'):get()
+
+          api.toggle.linewise.current(config)
+        end,
         desc = 'Toggle comment on the current line [linewise]',
+        mode = { 'n', 'i' },
       },
       {
         '<C-S-/>',
-        '<Plug>(comment_toggle_blockwise_current)',
+        function()
+          local api = require 'Comment.api'
+          local config = require('Comment.config'):get()
+
+          api.toggle.blockwise.current(config)
+        end,
         desc = 'Toggle comment on the current line [blockwise]',
+        mode = { 'n', 'i' },
       },
 
       {
