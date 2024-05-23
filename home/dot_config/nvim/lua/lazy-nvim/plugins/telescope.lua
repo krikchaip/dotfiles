@@ -101,7 +101,6 @@ return {
     config = function()
       local telescope = require 'telescope'
       local actions = require 'telescope.actions'
-      local themes = require 'telescope.themes'
 
       local custom_actions = require 'lazy-nvim.lib.telescope-actions'
 
@@ -112,6 +111,15 @@ return {
 
           -- flip prompt bar position and initial result highlight ('horizontal' | 'vertical')
           sorting_strategy = 'ascending',
+
+          layout_strategy = 'vertical',
+
+          layout_config = {
+            prompt_position = 'top',
+            width = { 0.8, max = 90 },
+            height = { 0.8, max = 37 },
+            preview_height = { 0, min = 20 },
+          },
 
           -- these args will be used for `live_grep` and `grep_string`
           vimgrep_arguments = {
