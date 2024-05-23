@@ -11,12 +11,6 @@ return {
     end,
   },
 
-  -- Telescope UI selecter extension
-  {
-    'nvim-telescope/telescope-ui-select.nvim',
-    name = 'telescope.ui-select',
-  },
-
   -- Telescope merge conflicts picker
   {
     'Snikimonkd/telescope-git-conflicts.nvim',
@@ -243,15 +237,10 @@ return {
             },
           },
         },
-
-        extensions = {
-          ['ui-select'] = { themes.get_dropdown() },
-        },
       }
 
       -- Enable Telescope extensions if they are installed
       telescope.load_extension 'fzf'
-      telescope.load_extension 'ui-select'
 
       -- Custom Telescope auto commands
       require 'lazy-nvim.lib.telescope-autocmd'
