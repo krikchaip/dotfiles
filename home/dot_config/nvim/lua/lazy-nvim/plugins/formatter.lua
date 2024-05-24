@@ -6,7 +6,7 @@ return {
     cmd = { 'ConformInfo' },
     keys = {
       {
-        '<leader>W',
+        '<leader>w',
         function()
           require('conform').format({ async = false, lsp_fallback = true }, function(err, _)
             if err then return vim.notify(err, vim.log.levels.ERROR) end
@@ -15,6 +15,9 @@ return {
         end,
         desc = 'Format and write current buffer',
       },
+
+      { '<leader>W', '<cmd>w<CR>', desc = 'Write current buffer' },
+
       {
         '<leader>=',
         function() require('conform').format { async = true, lsp_fallback = true } end,
