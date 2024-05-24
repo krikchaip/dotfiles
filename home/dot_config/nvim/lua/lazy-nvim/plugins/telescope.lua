@@ -117,6 +117,7 @@ return {
           layout_config = {
             vertical = {
               prompt_position = 'top',
+              mirror = true,
               width = { 0.8, max = 90 },
               height = { 0.8, max = 37 },
               preview_height = { 0, min = 20 },
