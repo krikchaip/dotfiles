@@ -237,6 +237,9 @@ return {
           },
 
           buffers = {
+            ignore_current_buffer = true,
+            sort_lastused = true,
+
             mappings = {
               i = {
                 ['<C-c>'] = actions.delete_buffer,
