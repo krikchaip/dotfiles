@@ -45,7 +45,6 @@ return {
   { 'hrsh7th/cmp-nvim-lsp-signature-help', name = 'cmp.lsp-signature-help' },
   { 'hrsh7th/cmp-path', name = 'cmp.path' },
   { 'hrsh7th/cmp-cmdline', name = 'cmp.cmdline' },
-  { 'hrsh7th/cmp-nvim-lua', name = 'cmp.lua' },
   { 'SergioRibera/cmp-dotenv', name = 'cmp.dotenv' },
 
   -- Entries formatter
@@ -64,7 +63,6 @@ return {
       'cmp.lsp-signature-help',
       'cmp.path',
       'cmp.cmdline',
-      'cmp.lua',
       'cmp.dotenv',
     },
     init = function()
@@ -123,7 +121,6 @@ return {
               luasnip = '[LuaSnip]',
               nvim_lsp = '[LSP]',
               nvim_lsp_signature_help = '[Signature]',
-              nvim_lua = '[Lua]',
               path = '[Path]',
               rpncalc = '[Calc]',
             },
@@ -192,7 +189,6 @@ return {
           { name = 'nvim_lsp_signature_help' },
         }, {
           { name = 'nvim_lsp', max_item_count = 100 },
-          { name = 'nvim_lua' },
           { name = 'luasnip' },
         }, {
           { name = 'buffer' },
