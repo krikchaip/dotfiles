@@ -59,10 +59,11 @@ vim.keymap.set('n', '<leader>q', '<cmd>bdelete | silent tabprevious<CR>', { desc
 vim.keymap.set('n', '<leader><S-q>', '<cmd>bdelete! | silent tabprevious<CR>', { desc = 'Force delete current buffer' })
 
 -- Window Navigation
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Move focus to the left window' })
+vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Move focus to the right window' })
+vim.keymap.set('n', '<C-j>', '<C-w>j', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<Tab>', '<C-w>p', { desc = 'Move focus to the previously active window' })
 
 -- `<C-w>w` doesn't work when there's more than 2 windows in a tab
 -- ref: https://www.reddit.com/r/neovim/comments/pibo9c/how_to_focus_an_opened_floating_window
