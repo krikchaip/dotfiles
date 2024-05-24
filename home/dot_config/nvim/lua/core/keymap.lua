@@ -80,8 +80,8 @@ vim.keymap.set('n', '<leader>tq', '<cmd>tabclose<CR>', { desc = 'Close the curre
 vim.keymap.set('n', '<leader>to', '<cmd>tabonly<CR>', { desc = 'Close all other tab pages' })
 
 -- Tabpage Navigation
-vim.keymap.set('n', '[t', '<cmd>tabprevious<CR>', { desc = 'Previous tab' })
-vim.keymap.set('n', ']t', '<cmd>tabnext<CR>', { desc = 'Next tab' })
+vim.keymap.set('n', '<C-Left>', '<cmd>tabprevious<CR>', { desc = 'Go to previous tab' })
+vim.keymap.set('n', '<C-Right>', '<cmd>tabnext<CR>', { desc = 'Go to next tab' })
 vim.keymap.set('n', '<leader>1', '<cmd>1tabnext<CR>', { desc = 'Go to tab #1' })
 vim.keymap.set('n', '<leader>2', '<cmd>2tabnext<CR>', { desc = 'Go to tab #2' })
 vim.keymap.set('n', '<leader>3', '<cmd>3tabnext<CR>', { desc = 'Go to tab #3' })
