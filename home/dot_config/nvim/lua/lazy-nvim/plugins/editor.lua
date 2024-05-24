@@ -137,10 +137,15 @@ return {
 
           if vim.fn.mode() == 'n' then return api.insert.linewise.eol(config) end
 
-          -- has to stop insert mode before executing the command
+          -- (assuming insert mode) stop insert mode before executing the command
           vim.cmd 'stopinsert'
+
+          -- doesn't add <Space> to the end
           api.insert.linewise.eol(config)
-          vim.cmd 'startinsert!'
+
+          -- so we need to add <Space> character manually
+          local space = vim.api.nvim_replace_termcodes('<Space>', true, false, true)
+          vim.api.nvim_feedkeys(space, 'n', false)
         end,
         desc = 'Insert comment at the end of line [linewise]',
         mode = { 'n', 'i' },
