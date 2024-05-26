@@ -66,7 +66,7 @@ return {
       { '<C-,>o', '<cmd>Telescope vim_options<CR>', desc = 'Set nvim [o]ptions' },
       { '<C-,>a', '<cmd>Telescope autocommands<CR>', desc = 'List nvim [a]utocommands' },
       { '<C-,>k', '<cmd>Telescope keymaps<CR>', desc = 'List [k]eymappings' },
-      { '<C-S-,>', custom_pickers.find_chezmoi_files, desc = 'Search Chezmoi files' },
+      { '<C-,>,', custom_pickers.find_chezmoi_files, desc = 'Search Chezmoi files' },
 
       -- [[ Histories ]]
       { '<leader>|', '<cmd>Telescope oldfiles<CR>', desc = 'Buffer history' },
@@ -257,6 +257,32 @@ return {
               renamed = '➡',
               unmerged = '‡',
               untracked = '?',
+            },
+          },
+
+          lsp_definitions = { jump_type = 'tab drop', reuse_win = true },
+          lsp_type_definitions = { jump_type = 'tab drop', reuse_win = true },
+          lsp_implementations = { jump_type = 'tab drop', reuse_win = true },
+
+          lsp_references = {
+            jump_type = 'tab drop',
+            include_declaration = false,
+            include_current_line = true,
+          },
+
+          lsp_document_symbols = {
+            mappings = {
+              i = {
+                ['<C-Space>'] = actions.complete_tag,
+              },
+            },
+          },
+
+          lsp_workspace_symbols = {
+            mappings = {
+              i = {
+                ['<C-Space>'] = actions.complete_tag,
+              },
             },
           },
         },

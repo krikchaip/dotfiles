@@ -233,7 +233,7 @@ return {
           -- Fuzzy find all the symbols in your current workspace.
           -- Similar to document symbols, except searches over your entire project.
           opts.desc = 'Show workspace [S]ymbols'
-          vim.keymap.set('n', '<leader>lS', '<cmd>Telescope lsp_dynamic_workspace_symbols<CR>', opts)
+          vim.keymap.set('n', '<leader>lS', '<cmd>Telescope lsp_workspace_symbols<CR>', opts)
 
           local client = vim.lsp.get_client_by_id(event.data.client_id)
 
