@@ -26,24 +26,23 @@ return {
     'nvim-tree/nvim-tree.lua',
     name = 'nvim-tree',
     version = '*',
-    cmd = { 'NvimTreeOpen', 'NvimTreeToggle', 'NvimTreeFocus' },
     keys = {
       {
         '<leader>ef',
         function() require('nvim-tree.api').tree.open() end,
-        desc = '[F]ocus'
+        desc = '[F]ocus',
       },
 
       {
         '<leader>ee',
         function() require('nvim-tree.api').tree.toggle { focus = false } end,
-        desc = 'Toggl[e]'
+        desc = 'Toggl[e]',
       },
 
       {
         '<leader>er',
         function() require('nvim-tree.api').tree.find_file { focus = false, open = true } end,
-        desc = '[R]eveal'
+        desc = '[R]eveal',
       },
     },
     dependencies = { 'web-devicons', 'lsp-file-operations', 'nvim-tree-preview' },
@@ -156,13 +155,13 @@ return {
           glyphs = {
             -- Glyphs for git status
             git = {
-              unstaged  = '✗',
-              staged    = '✓',
-              unmerged  = '',
-              renamed   = '➜',
+              unstaged = '✗',
+              staged = '✓',
+              unmerged = '',
+              renamed = '➜',
               untracked = '★',
-              deleted   = '',
-              ignored   = '◌',
+              deleted = '',
+              ignored = '◌',
             },
           },
         },
@@ -181,10 +180,10 @@ return {
 
         -- Icons for diagnostic severity
         icons = {
-          error   = '',
+          error = '',
           warning = '',
-          hint    = '',
-          info    = '',
+          hint = '',
+          info = '',
         },
       },
 
@@ -387,11 +386,11 @@ return {
     },
     init = function()
       -- disable netrw at the very start of the plugin
-      vim.g.loaded_netrw       = 1
+      vim.g.loaded_netrw = 1
       vim.g.loaded_netrwPlugin = 1
 
       -- enable 24-bit colour
-      vim.opt.termguicolors    = true
+      vim.opt.termguicolors = true
     end,
   },
 }
