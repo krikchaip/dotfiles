@@ -41,11 +41,46 @@ end
 
 local M = {}
 
-function M.collapse_all() require('nvim-tree.api').tree.collapse_all(true) end
+-- Sometimes, we only want to open a tab,
+-- but don't want to jump to that tab immediately
+function M.open_tab_silent(node)
+  local api = require 'nvim-tree.api'
+
+  api.node.open.tab(node)
+  vim.cmd.tabprev()
+end
+
+function M.launch_live_grep(opts) return launch_telescope('live_grep', opts) end
+
+function M.launch_find_files(opts) return launch_telescope('find_files', opts) end
+
+function M.collapse_all()
+  -- `true` is to keep folders containing open buffers expand
+  require('nvim-tree.api').tree.collapse_all(true)
+end
 
 function M.clear_all()
   require('nvim-tree.api').marks.clear()
   require('nvim-tree.api').fs.clear_clipboard()
+end
+
+function M.close_all_nvim_tree()
+  local api = require 'nvim-tree.api'
+  api.tree.close_in_all_tabs()
+end
+
+function M.toggle_copy_single()
+  local fs = require('nvim-tree.api').fs
+
+  fs.clear_clipboard()
+  fs.copy.node()
+end
+
+function M.toggle_cut_single()
+  local fs = require('nvim-tree.api').fs
+
+  fs.clear_clipboard()
+  fs.cut()
 end
 
 -- Stage git file/folder. If it's already staged, it will instead be unstaged
@@ -71,24 +106,11 @@ function M.git_add_toggle()
   api.tree.reload()
 end
 
-function M.launch_live_grep(opts) return launch_telescope('live_grep', opts) end
-
-function M.launch_find_files(opts) return launch_telescope('find_files', opts) end
-
 function M.change_root_to_global_cwd()
   local api = require 'nvim-tree.api'
   local global_cwd = vim.fn.getcwd(-1, -1)
 
   api.tree.change_root(global_cwd)
-end
-
--- Sometimes, we only want to open a tab,
--- but don't want to jump to that tab immediately
-function M.open_tab_silent(node)
-  local api = require 'nvim-tree.api'
-
-  api.node.open.tab(node)
-  vim.cmd.tabprev()
 end
 
 -- Sorting files naturally (respecting numbers within files names)
@@ -118,20 +140,6 @@ function M.sort_by_natural_cmp(nodes)
   table.sort(nodes, sorter)
 end
 
-function M.toggle_copy_single()
-  local fs = require('nvim-tree.api').fs
-
-  fs.clear_clipboard()
-  fs.copy.node()
-end
-
-function M.toggle_cut_single()
-  local fs = require('nvim-tree.api').fs
-
-  fs.clear_clipboard()
-  fs.cut()
-end
-
 -- Restore nvim-tree by open it if its buffers are presenting in the session file
 function M.restore_nvim_tree()
   for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
@@ -147,11 +155,6 @@ function M.restore_nvim_tree()
       end
     end
   end
-end
-
-function M.close_all_nvim_tree()
-  local api = require 'nvim-tree.api'
-  api.tree.close_in_all_tabs()
 end
 
 return M
