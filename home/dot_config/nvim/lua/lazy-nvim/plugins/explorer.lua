@@ -281,7 +281,7 @@ return {
           },
 
           ['Open'] = {
-            ['J'] = { node.open.edit, 'Edit' },
+            ['l'] = { node.open.edit, 'Edit' },
             ['<CR>'] = { node.open.edit, 'Edit' },
             ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
             ['o'] = { node.run.system, 'System Default' },
@@ -290,19 +290,19 @@ return {
           },
 
           ['Split'] = {
-            ['<C-t>'] = { node.open.tab, 'New Tab' },
-            ['<C-v>'] = { node.open.vertical, 'Vertical' },
-            ['<C-s>'] = { node.open.horizontal, 'Horizontal' },
+            ['T'] = { node.open.tab, 'New Tab' },
+            ['V'] = { node.open.vertical, 'Vertical' },
+            ['S'] = { node.open.horizontal, 'Horizontal' },
           },
 
           ['Directory'] = {
+            ['h'] = { node.navigate.parent, 'Goto Parent' },
             ['<BS>'] = { node.navigate.parent_close, 'Close Current' },
-            ['K'] = { node.navigate.parent, 'Goto Parent' },
-            ['H'] = { utils.collapse_all, 'Collapse All' },
+            ['<S-BS>'] = { utils.collapse_all, 'Collapse All' },
             ['L'] = { tree.expand_all, 'Expand All' },
-            ['gj'] = { tree.change_root_to_node, 'CD Into' },
-            ['gk'] = { tree.change_root_to_parent, 'CD Parent' },
-            ['gK'] = { utils.change_root_to_global_cwd, 'CD Root' },
+            ['gl'] = { tree.change_root_to_node, 'CD Into' },
+            ['gh'] = { tree.change_root_to_parent, 'CD Parent' },
+            ['gH'] = { utils.change_root_to_global_cwd, 'CD Root' },
           },
 
           ['Navigation'] = {
@@ -349,17 +349,17 @@ return {
           },
 
           ['Toggle'] = {
-            ['tt'] = { tree.toggle_enable_filters, 'All Filters' },
-            ['tm'] = { tree.toggle_no_bookmark_filter, 'Marks Filter' },
-            ['tb'] = { tree.toggle_no_buffer_filter, 'Buffer Filter' },
-            ['tc'] = { tree.toggle_git_clean_filter, 'Git Clean Filter' },
-            ['ti'] = { tree.toggle_gitignore_filter, 'Git Ignore Filter' },
-            ['t.'] = { tree.toggle_hidden_filter, 'Dotfiles Filter' },
-            ['th'] = { tree.toggle_custom_filter, 'Hidden Filter' },
+            ['\\a'] = { tree.toggle_enable_filters, 'All Filters' },
+            ['\\m'] = { tree.toggle_no_bookmark_filter, 'Marks Filter' },
+            ['\\b'] = { tree.toggle_no_buffer_filter, 'Buffer Filter' },
+            ['\\c'] = { tree.toggle_git_clean_filter, 'Git Clean Filter' },
+            ['\\i'] = { tree.toggle_gitignore_filter, 'Git Ignore Filter' },
+            ['\\.'] = { tree.toggle_hidden_filter, 'Dotfiles Filter' },
+            ['\\h'] = { tree.toggle_custom_filter, 'Hidden Filter' },
           },
 
           ['Marks'] = {
-            ['<Tab>'] = { marks.toggle, 'Toggle Current' },
+            ['v'] = { marks.toggle, 'Toggle Current' },
             ['c'] = { fs.copy.node, 'Toggle Copy Current' },
             ['x'] = { fs.cut, 'Toggle Cut Current' },
             ['p'] = { fs.paste, 'Paste Selected' },
