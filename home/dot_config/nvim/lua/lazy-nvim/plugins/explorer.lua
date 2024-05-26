@@ -38,23 +38,17 @@ return {
         function() require('nvim-tree.api').tree.toggle { focus = false } end,
         desc = 'Toggl[e]',
       },
-
-      {
-        '<leader>er',
-        function() require('nvim-tree.api').tree.find_file { focus = false, open = true } end,
-        desc = '[R]eveal',
-      },
     },
     dependencies = { 'web-devicons', 'lsp-file-operations', 'nvim-tree-preview' },
     opts = {
       -- Keeps the cursor on the first letter of the filename when moving in the tree
-      hijack_cursor = false,
+      hijack_cursor = true,
 
       -- Completely disable netrw
       disable_netrw = true,
 
       -- Necessary when using a UI prompt decorator such as dressing.nvim or telescope-ui-select.nvim
-      select_prompts = false,
+      select_prompts = true,
 
       sort = {
         -- Changes how files within the same directory are sorted.
@@ -242,10 +236,13 @@ return {
         sync = {
           -- Opens the tree automatically when switching tabpage or opening a new
           -- tabpage if the tree was previously open.
-          open = false,
+          open = true,
 
           -- Closes the tree across all tabpages when the tree is closed
-          close = false,
+          close = true,
+
+          -- List of filetypes or buffer names on new tab that will prevent nvim tree to open
+          ignore = { 'help' },
         },
       },
 
