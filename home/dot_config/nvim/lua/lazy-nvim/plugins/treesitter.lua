@@ -132,11 +132,11 @@ return {
           enable = true,
 
           swap_next = {
-            ['<leader>sa'] = { query = '@parameter.inner', desc = '[S]wap with next [a]rgument' },
+            ['ga'] = { query = '@parameter.inner', desc = 'Swap: Next [a]rgument' },
           },
 
           swap_previous = {
-            ['<leader>sA'] = { query = '@parameter.inner', desc = '[S]wap with previous [a]rgument' },
+            ['gA'] = { query = '@parameter.inner', desc = 'Swap: Previous [a]rgument' },
           },
         },
 

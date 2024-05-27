@@ -37,9 +37,7 @@ return {
   {
     'rmagatti/session-lens',
     name = 'telescope.session-lens',
-    keys = {
-      { '<leader>ss', '<cmd>SearchSession<CR>', desc = '[S]ession [S]earch' },
-    },
+    cmd = { 'SearchSession' },
     dependencies = { 'telescope', 'auto-session' },
     opts = {},
     config = function(_, opts)
