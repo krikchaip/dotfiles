@@ -12,8 +12,8 @@ return {
     dependencies = { 'plenary', 'nvim-treesitter' },
     opts = {
       keymaps = {
-        ['<Esc>'] = { action = 'close', unwatch = true },
-        ['<Tab>'] = { action = 'toggle_focus' },
+        ['q'] = { action = 'close', unwatch = true },
+        ['P'] = { action = 'toggle_focus' },
         ['<CR>'] = { open = 'edit' },
         ['<C-t>'] = { open = 'tab' },
         ['<C-v>'] = { open = 'vertical' },
@@ -60,7 +60,7 @@ return {
       view = {
         -- When entering nvim-tree, reposition the view
         -- so that the current node is initially centralized, like pressing `zz`
-        centralize_selection = false,
+        centralize_selection = true,
 
         -- Preserves window proportions when opening a file
         -- If `false`, the height and width of windows other than nvim-tree will be equalized.
@@ -256,7 +256,6 @@ return {
         require 'lazy-nvim.lib.nvim-tree-autocmd'
 
         -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
-        local preview = require 'nvim-tree-preview'
         local utils = require 'lazy-nvim.lib.nvim-tree-utils'
 
         local api = require 'nvim-tree.api'
@@ -286,7 +285,7 @@ return {
             ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
             ['o'] = { node.run.system, 'System Default' },
             ['<M-RightMouse>'] = { node.run.system, 'System Default' },
-            ['P'] = { preview.watch, 'Preview' },
+            ['P'] = { utils.preview_current_node, 'Preview' },
           },
 
           ['Split'] = {
