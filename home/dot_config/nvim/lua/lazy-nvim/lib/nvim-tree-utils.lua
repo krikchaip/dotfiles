@@ -54,6 +54,13 @@ function M.launch_live_grep(opts) return launch_telescope('live_grep', opts) end
 
 function M.launch_find_files(opts) return launch_telescope('find_files', opts) end
 
+function M.preview_current_node()
+  local preview = require 'nvim-tree-preview'
+
+  if not preview.is_watching() then return preview.watch() end
+  preview.node_under_cursor()
+end
+
 function M.collapse_all()
   -- `true` is to keep folders containing open buffers expand
   require('nvim-tree.api').tree.collapse_all(true)
