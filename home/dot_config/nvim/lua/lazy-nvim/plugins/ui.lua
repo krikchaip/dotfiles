@@ -13,26 +13,24 @@ return {
       which_key.setup {
         icons = {
           breadcrumb = '»', -- symbol used in the command line area that shows your active key combo
-          separator = '>',  -- symbol used between a key and it's label
-          group = '+',      -- symbol prepended to a group
+          separator = '>', -- symbol used between a key and it's label
+          group = '+', -- symbol prepended to a group
         },
       }
 
       -- Document existing key chains
       -- see: https://github.com/folke/which-key.nvim?tab=readme-ov-file#-setup
       which_key.register {
-        ['<C-,>']      = { name = 'Nvim Settings', _ = 'which_key_ignore' },
-        ['<leader>']   = { name = 'Special', _ = 'which_key_ignore' },
-        ['<leader>e']  = { name = 'Explorer', _ = 'which_key_ignore' },
-        ['<leader>g']  = { name = 'Git', _ = 'which_key_ignore' },
+        ['<C-,>'] = { name = 'Nvim Settings', _ = 'which_key_ignore' },
+        ['<leader>'] = { name = 'Special', _ = 'which_key_ignore' },
+        ['<leader>g'] = { name = 'Git', _ = 'which_key_ignore' },
         ['<leader>gc'] = { name = 'Git Change', _ = 'which_key_ignore' },
-        ['<leader>l']  = { name = 'LSP', _ = 'which_key_ignore' },
-        ['<leader>s']  = { name = 'S...', _ = 'which_key_ignore' },
-        ['<leader>t']  = { name = 'Tab', _ = 'which_key_ignore' },
+        ['<leader>l'] = { name = 'LSP', _ = 'which_key_ignore' },
+        ['<leader>t'] = { name = 'Tab', _ = 'which_key_ignore' },
       }
 
       which_key.register({
-        ['<leader>g']  = { name = 'Git', _ = 'which_key_ignore' },
+        ['<leader>g'] = { name = 'Git', _ = 'which_key_ignore' },
         ['<leader>gc'] = { name = 'Git Change', _ = 'which_key_ignore' },
       }, { mode = 'x' })
     end,
@@ -76,7 +74,7 @@ return {
           Misc = { color = colors.purple },
         },
       }
-    end
+    end,
   },
 
   {
@@ -91,12 +89,10 @@ return {
       local opts = { noremap = true, silent = true }
 
       opts.desc = 'Jump to the next match'
-      vim.api.nvim_set_keymap('n', 'n',
-        [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]], opts)
+      vim.api.nvim_set_keymap('n', 'n', [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]], opts)
 
       opts.desc = 'Jump to the previous match'
-      vim.api.nvim_set_keymap('n', 'N',
-        [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]], opts)
+      vim.api.nvim_set_keymap('n', 'N', [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]], opts)
 
       opts.desc = 'Jump to the next match under cursor'
       vim.api.nvim_set_keymap('n', '*', [[*<Cmd>lua require('hlslens').start()<CR>]], opts)
@@ -106,7 +102,7 @@ return {
 
       -- vim.api.nvim_set_keymap('n', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], opts)
       -- vim.api.nvim_set_keymap('n', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], opts)
-    end
+    end,
   },
 
   -- context sticky scroll
@@ -126,13 +122,10 @@ return {
 
       ts_context.setup(opts)
 
-      local _, ctx_upward = ts_repeat_move.make_repeatable_move_pair(
-        function() end,
-        function() ts_context.go_to_context(vim.v.count1) end
-      )
+      local _, ctx_upward = ts_repeat_move.make_repeatable_move_pair(function() end, function() ts_context.go_to_context(vim.v.count1) end)
 
       vim.keymap.set('n', '[C', ctx_upward, { desc = 'Jump to [C]ontext upwards' })
-    end
+    end,
   },
 
   -- Enable super zen mode by dims inactive portions of the code 👍🏻
@@ -141,7 +134,7 @@ return {
     'folke/twilight.nvim',
     name = 'twilight',
     keys = {
-      { '<leader>z', '<cmd>Twilight<CR>', desc = 'Toggle [z]en mode 🧘🏼' }
+      { '<leader>z', '<cmd>Twilight<CR>', desc = 'Toggle [z]en mode 🧘' },
     },
     config = function()
       require('twilight').setup {
@@ -153,7 +146,7 @@ return {
         -- amount of lines we will try to show around the current line
         context = 10,
       }
-    end
+    end,
   },
 
   -- 'statuscolumn' made easy
@@ -174,12 +167,12 @@ return {
         bt_ignore = { 'help' },
 
         segments = {
-          { text = { '%s' },                  click = 'v:lua.ScSa' },
+          { text = { '%s' }, click = 'v:lua.ScSa' },
           { text = { builtin.lnumfunc, ' ' }, click = 'v:lua.ScLa' },
           { text = { builtin.foldfunc, ' ' }, click = 'v:lua.ScFa' },
-        }
+        },
       }
-    end
+    end,
   },
 
   -- Make Nvim's fold look much prettier & modern
@@ -194,10 +187,10 @@ return {
     },
     init = function()
       vim.opt.fillchars = {
-        eob       = ' ',
-        fold      = ' ',
-        foldsep   = ' ',
-        foldopen  = '',
+        eob = ' ',
+        fold = ' ',
+        foldsep = ' ',
+        foldopen = '',
         foldclose = '',
       }
     end,
@@ -210,10 +203,7 @@ return {
       -- must reload `statuscol` because this plugin overwrites its value
       -- vim.cmd [[ silent Lazy reload statuscol ]]
 
-      local next_closed_fold, prev_closed_fold = ts_repeat_move.make_repeatable_move_pair(
-        ufo.goNextClosedFold,
-        ufo.goPreviousClosedFold
-      )
+      local next_closed_fold, prev_closed_fold = ts_repeat_move.make_repeatable_move_pair(ufo.goNextClosedFold, ufo.goPreviousClosedFold)
 
       vim.keymap.set('n', ']z', next_closed_fold, { desc = 'Next closed fold region' })
       vim.keymap.set('n', '[z', prev_closed_fold, { desc = 'Preview closed fold region' })
@@ -222,7 +212,7 @@ return {
       --   local fold_preview_win = ufo.peekFoldedLinesUnderCursor()
       --   if not fold_preview_win then vim.lsp.buf.hover() end
       -- end, { desc = 'Hover Documentation / Preview Folded Lines' })
-    end
+    end,
   },
 
   {
@@ -237,7 +227,7 @@ return {
           [''] = 10,
         },
       }
-    end
+    end,
   },
 
   {
@@ -251,18 +241,16 @@ return {
       local hooks = require 'ibl.hooks'
 
       local custom_highlight = {
-        { hl = 'RainbowDelimiterRed',    fg = '#E06C75' },
+        { hl = 'RainbowDelimiterRed', fg = '#E06C75' },
         { hl = 'RainbowDelimiterYellow', fg = '#E5C07B' },
-        { hl = 'RainbowDelimiterBlue',   fg = '#61AFEF' },
+        { hl = 'RainbowDelimiterBlue', fg = '#61AFEF' },
         { hl = 'RainbowDelimiterOrange', fg = '#D19A66' },
-        { hl = 'RainbowDelimiterGreen',  fg = '#98C379' },
+        { hl = 'RainbowDelimiterGreen', fg = '#98C379' },
         { hl = 'RainbowDelimiterViolet', fg = '#C678DD' },
-        { hl = 'RainbowDelimiterCyan',   fg = '#56B6C2' },
+        { hl = 'RainbowDelimiterCyan', fg = '#56B6C2' },
       }
 
-      local hls = vim.tbl_map(function(chl)
-        return chl.hl
-      end, custom_highlight)
+      local hls = vim.tbl_map(function(chl) return chl.hl end, custom_highlight)
 
       -- create the highlight groups in the highlight setup hook, so they are reset
       -- every time the colorscheme changes
@@ -273,10 +261,7 @@ return {
       end)
 
       -- This is to be used to get a reliable sync with 'rainbow-delimiters' plugin
-      hooks.register(
-        hooks.type.SCOPE_HIGHLIGHT,
-        hooks.builtin.scope_highlight_from_extmark
-      )
+      hooks.register(hooks.type.SCOPE_HIGHLIGHT, hooks.builtin.scope_highlight_from_extmark)
 
       ibl.setup {
         indent = {
@@ -291,9 +276,9 @@ return {
           -- priority = 1024, -- scope char virt-text priority
 
           show_start = false, -- show underline at the start of scope
-          show_end = false,   -- show underline at the end of scope
+          show_end = false, -- show underline at the end of scope
 
-          highlight = hls,    -- set highlight group for scope char
+          highlight = hls, -- set highlight group for scope char
         },
 
         exclude = {
