@@ -289,9 +289,9 @@ return {
           },
 
           ['Split'] = {
-            ['T'] = { node.open.tab, 'New Tab' },
-            ['V'] = { node.open.vertical, 'Vertical' },
-            ['S'] = { node.open.horizontal, 'Horizontal' },
+            ['<C-t>'] = { node.open.tab, 'New Tab' },
+            ['<C-v>'] = { node.open.vertical, 'Vertical' },
+            ['<C-s>'] = { node.open.horizontal, 'Horizontal' },
           },
 
           ['Directory'] = {
