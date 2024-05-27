@@ -285,7 +285,11 @@ return {
             ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
             ['o'] = { node.run.system, 'System Default' },
             ['<M-RightMouse>'] = { node.run.system, 'System Default' },
-            ['P'] = { utils.preview_current_node, 'Preview' },
+          },
+
+          ['Preview'] = {
+            ['P'] = { utils.preview_current_node, 'Current Node' },
+            ['<ESC>'] = { utils.close_preview, 'Close' },
           },
 
           ['Split'] = {
@@ -341,8 +345,8 @@ return {
           },
 
           ['Search'] = {
-            -- ['s'] = { tree.search_node, 'Exact' },
-            ['s'] = { utils.launch_find_files, 'Find Files' },
+            -- ['S'] = { tree.search_node, 'Exact' },
+            ['S'] = { utils.launch_find_files, 'Find Files (Current Directory)' },
             ['f'] = { api.live_filter.start, 'Start Filter' },
             ['F'] = { api.live_filter.clear, 'Clear Filter' },
           },
