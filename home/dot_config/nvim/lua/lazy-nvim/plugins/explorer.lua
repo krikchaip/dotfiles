@@ -27,17 +27,8 @@ return {
     name = 'nvim-tree',
     version = '*',
     keys = {
-      {
-        '<leader>ef',
-        function() require('nvim-tree.api').tree.open() end,
-        desc = '[F]ocus',
-      },
-
-      {
-        '<leader>ee',
-        function() require('nvim-tree.api').tree.toggle { focus = false } end,
-        desc = 'Toggl[e]',
-      },
+      { '<leader>e', '<cmd>NvimTreeFocus<CR>', desc = 'Explorer Open' },
+      { '<leader>E', '<cmd>NvimTreeClose<CR>', desc = 'Explorer Close' },
     },
     dependencies = { 'web-devicons', 'lsp-file-operations', 'nvim-tree-preview' },
     opts = {
@@ -346,7 +337,7 @@ return {
 
           ['Search'] = {
             -- ['S'] = { tree.search_node, 'Exact' },
-            ['S'] = { utils.launch_find_files, 'Find Files (Current Directory)' },
+            ['s'] = { utils.launch_find_files, 'Find Files' },
             ['f'] = { api.live_filter.start, 'Start Filter' },
             ['F'] = { api.live_filter.clear, 'Clear Filter' },
           },
