@@ -174,15 +174,15 @@ return {
           local next_diagnostic, prev_diagnostic =
             ts_repeat_move.make_repeatable_move_pair(vim.diagnostic.goto_next, vim.diagnostic.goto_prev)
 
-          opts.desc = 'Next [d]iagnostic message'
+          opts.desc = 'Next Diagnostic'
           vim.keymap.set('n', ']d', next_diagnostic, opts)
 
-          opts.desc = 'Previous [d]iagnostic message'
+          opts.desc = 'Previous Diagnostic'
           vim.keymap.set('n', '[d', prev_diagnostic, opts)
 
           -- Opens a popup that displays documentation about the word under your cursor
           -- See `:help K` for why this keymap.
-          opts.desc = 'Hover Documentation'
+          opts.desc = 'LSP: Hover Documentation'
           vim.keymap.set('n', 'K', function()
             -- Show diagnostic at cursor position on hover
             -- ref: https://neovim.discourse.group/t/how-to-show-diagnostics-on-hover/3830
@@ -191,56 +191,56 @@ return {
           end, opts)
 
           -- Suggest help for a function parameter under the cursor
-          opts.desc = 'Show function signature help'
+          opts.desc = 'LSP: Show Function Signature Help'
           vim.keymap.set({ 'n', 'i' }, '<C-S-Space>', vim.lsp.buf.signature_help, opts)
 
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
           -- To jump back, press <C-t>.
-          opts.desc = 'Jump to [d]efinition'
+          opts.desc = 'LSP: Jump to Definition'
           vim.keymap.set('n', 'gd', '<cmd>Telescope lsp_definitions<CR>', opts)
 
           -- Jump to the type of the word under your cursor.
           -- Useful when you're not sure what type a variable is and you want to see
           -- the definition of its *type*, not where it was *defined*.
-          opts.desc = 'Jump to type [D]efinition'
+          opts.desc = 'LSP: Jump to Typedef'
           vim.keymap.set('n', 'gD', '<cmd>Telescope lsp_type_definitions<CR>', opts)
 
           -- Jump to the implementation of the word under your cursor.
           -- Useful when your language has ways of declaring types without an actual implementation.
-          opts.desc = 'Jump to [I]mplementation'
+          opts.desc = 'LSP: Jump to Implementation'
           vim.keymap.set('n', 'gI', '<cmd>Telescope lsp_implementations<CR>', opts)
 
           -- Find all references for the word under your cursor.
-          opts.desc = 'Show [r]eferences'
+          opts.desc = 'LSP: Show References'
           vim.keymap.set('n', 'gr', '<cmd>Telescope lsp_references<CR>', opts)
 
           -- Rename the variable under your cursor.
           -- Most Language Servers support renaming across files, etc.
-          opts.desc = '[R]ename variable'
+          opts.desc = 'LSP: Rename Variable'
           vim.keymap.set('n', 'gR', vim.lsp.buf.rename, opts)
 
           -- Execute a code action, usually your cursor needs to be on top of an error
           -- or a suggestion from your LSP for this to activate.
-          opts.desc = 'Execute code [a]ction'
-          vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, opts)
+          opts.desc = 'LSP: Execute Code Action'
+          vim.keymap.set('n', '<C-.>', vim.lsp.buf.code_action, opts)
 
           -- Fuzzy find all the symbols in your current document.
           -- Symbols are things like variables, functions, types, etc.
-          opts.desc = 'Show document [s]ymbols'
-          vim.keymap.set('n', '<leader>ls', '<cmd>Telescope lsp_document_symbols<CR>', opts)
+          opts.desc = 'LSP: Show Document Symbols'
+          vim.keymap.set('n', '<leader>o', '<cmd>Telescope lsp_document_symbols<CR>', opts)
 
           -- Fuzzy find all the symbols in your current workspace.
           -- Similar to document symbols, except searches over your entire project.
-          opts.desc = 'Show workspace [S]ymbols'
-          vim.keymap.set('n', '<leader>lS', '<cmd>Telescope lsp_workspace_symbols<CR>', opts)
+          opts.desc = 'LSP: Show Workspace Symbols'
+          vim.keymap.set('n', '<leader>O', '<cmd>Telescope lsp_workspace_symbols<CR>', opts)
 
           local client = vim.lsp.get_client_by_id(event.data.client_id)
 
           -- Enable inlay hints (for Nvim v0.10.0 and onwards)
           -- ref: https://www.youtube.com/watch?v=DYaTzkw3zqQ
           if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
-            opts.desc = 'Toggle inlay [h]ints'
+            opts.desc = 'LSP: Toggle Inlay Hints'
             vim.keymap.set('n', '<leader>lh', function()
               local is_enabled = vim.lsp.inlay_hint.is_enabled { 0 }
               vim.lsp.inlay_hint.enable(not is_enabled, { 0 })
