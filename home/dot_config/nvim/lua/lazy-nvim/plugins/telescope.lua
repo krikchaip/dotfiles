@@ -55,16 +55,18 @@ return {
     commit = '4d4ade7', -- pinned until `autocmd` feature is fixed in the next version
     cmd = { 'Telescope' },
     keys = {
-      -- [[ Documentations ]]
+      -- [[ Menus ]]
+      { '<C-S-b>', '<cmd>Telescope builtin<CR>', desc = 'Search builtin pickers' },
       { '<C-S-h>', '<cmd>Telescope help_tags<CR>', desc = 'Search nvim help pages' },
       { '<C-S-m>', '<cmd>Telescope man_pages<CR>', desc = 'Search man pages' },
+      { '<C-S-;>', '<cmd>Telescope commands<CR>', desc = 'Search custom commands' },
 
       -- [[ NVim settings ]]
       { '<C-,>c', '<cmd>Telescope colorscheme<CR>', desc = 'Change [c]olorscheme' },
       { '<C-,>o', '<cmd>Telescope vim_options<CR>', desc = 'Set nvim [o]ptions' },
       { '<C-,>a', '<cmd>Telescope autocommands<CR>', desc = 'List nvim [a]utocommands' },
       { '<C-,>k', '<cmd>Telescope keymaps<CR>', desc = 'List [k]eymappings' },
-      { '<C-,>,', custom_pickers.find_chezmoi_files, desc = 'Search Chezmoi files' },
+      { '<C-,>,', custom_pickers.find_chezmoi_files, desc = 'Search Chezmoi Files' },
 
       -- [[ Histories ]]
       { '<leader>|', '<cmd>Telescope oldfiles<CR>', desc = 'Buffer history' },
@@ -72,20 +74,14 @@ return {
       { '<leader>:', '<cmd>Telescope command_history<CR>', desc = 'Command history' },
 
       -- [[ Navigation ]]
+      { '<leader><leader>', '<cmd>Telescope resume<CR>', desc = 'Resume last picker' },
       { '<leader>\\', '<cmd>Telescope buffers<CR>', desc = 'Search open buffers' },
-      { '<leader>a', '<cmd>Telescope builtin<CR>', desc = 'Search [a]ll pickers' },
-      { '<leader><leader>', '<cmd>Telescope resume<CR>', desc = 'Resume last search' },
-
-      -- [[ Explorer ]]
-      { '<leader>es', custom_pickers.find_files, desc = '[S]earch Files' },
-
-      -- [[ Menus ]]
-      { '<C-S-;>', '<cmd>Telescope commands<CR>', desc = 'Search custom commands' },
+      { '<leader>f', custom_pickers.find_files, desc = 'Search [f]iles' },
 
       -- [[ Full-text search ]]
       { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search current word in workspace', mode = { 'n', 'x' } },
       { '<leader>/', custom_pickers.local_fuzzy_find, desc = 'Fuzzily search in current buffer' },
-      { '<C-S-f>', custom_pickers.workspace_fuzzy_find, desc = 'Search text in current workspace' },
+      { '<leader>F', custom_pickers.workspace_fuzzy_find, desc = 'Search text in current workspace' },
 
       -- [[ Git Integration ]]
       { '<leader>gl', '<cmd>Telescope git_commits<CR>', desc = 'Show Git repo [l]ogs' },
