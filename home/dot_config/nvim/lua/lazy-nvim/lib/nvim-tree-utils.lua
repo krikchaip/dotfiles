@@ -71,6 +71,11 @@ function M.clear_all()
   require('nvim-tree.api').fs.clear_clipboard()
 end
 
+function M.close_preview()
+  local preview = require 'nvim-tree-preview'
+  preview.unwatch()
+end
+
 function M.close_all_nvim_tree()
   local api = require 'nvim-tree.api'
   api.tree.close_in_all_tabs()
