@@ -201,7 +201,7 @@ return {
 
         open_file = {
           -- Resizes the tree when opening a file
-          resize_window = false,
+          resize_window = true,
 
           window_picker = {
             -- If the feature is not enabled, files will open in
