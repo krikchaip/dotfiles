@@ -131,8 +131,8 @@ return {
     name = 'lspconfig',
     event = { 'BufReadPre', 'BufNewFile' },
     keys = {
-      { '<leader>li', '<cmd>LspInfo<CR>', desc = 'Show LSP [i]nfo for current buffer' },
-      { '<leader>lr', '<cmd>LspRestart<CR>', desc = '[r]estart running LSP for current buffer' },
+      { '<leader>li', '<cmd>LspInfo<CR>', desc = 'LSP: Show Info' },
+      { '<leader>lr', '<cmd>LspRestart<CR>', desc = 'LSP: Restart Current' },
     },
     dependencies = {
       'mason-lspconfig',
