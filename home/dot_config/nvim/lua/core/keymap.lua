@@ -7,16 +7,18 @@ vim.keymap.set({ 'i', 'c' }, '<C-a>', '<Home>')
 vim.keymap.set({ 'i', 'c' }, '<C-e>', '<End>')
 
 -- Horizontal Scrolling
-vim.keymap.set('n', '<M-h>', 'zH', { desc = 'Scroll half page left' })
-vim.keymap.set('n', '<M-l>', 'zL', { desc = 'Scroll half page right' })
-vim.keymap.set('n', '<M-S-h>', 'zh', { desc = 'Scroll left' })
-vim.keymap.set('n', '<M-S-l>', 'zl', { desc = 'Scroll right' })
+vim.keymap.set('n', 'H', 'zH', { desc = 'Scroll half page left' })
+vim.keymap.set('n', 'L', 'zL', { desc = 'Scroll half page right' })
+vim.keymap.set('n', '<M-h>', 'zh', { desc = 'Scroll left' })
+vim.keymap.set('n', '<M-l>', 'zl', { desc = 'Scroll right' })
 
 -- Vertical Scrolling
-vim.keymap.set('n', '<C-d>', '<C-d>zz', { desc = 'Scroll half page down' })
-vim.keymap.set('n', '<C-u>', '<C-u>zz', { desc = 'Scroll half page up' })
-vim.keymap.set('n', '<C-e>', 'jzz', { desc = 'Scroll down' })
-vim.keymap.set('n', '<C-y>', 'kzz', { desc = 'Scroll up' })
+vim.keymap.set('n', '<C-Down>', '<PageDown>M', { desc = 'Scroll full page down' })
+vim.keymap.set('n', '<C-Up>', '<PageUp>M', { desc = 'Scroll full page up' })
+vim.keymap.set('n', '<S-Down>', '<C-d>M', { desc = 'Scroll half page down' })
+vim.keymap.set('n', '<S-Up>', '<C-u>M', { desc = 'Scroll half page up' })
+vim.keymap.set('n', '<Down>', 'jzz', { desc = 'Scroll down' })
+vim.keymap.set('n', '<Up>', 'kzz', { desc = 'Scroll up' })
 
 -- Exit terminal mode in the builtin terminal (default: <C-\><C-n>)
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
