@@ -1,44 +1,3 @@
----@diagnostic disable: undefined-global, unused-local, unused-function
-
-local function view_selection(prompt_bufnr, _)
-  local actions = require 'telescope.actions'
-  local openfile = require 'nvim-tree.actions.node.open-file'
-  local action_state = require 'telescope.actions.state'
-
-  actions.select_default:replace(function()
-    actions.close(prompt_bufnr)
-
-    local selection = action_state.get_selected_entry()
-    local filename = selection.filename
-
-    if filename == nil then filename = selection[1] end
-
-    openfile.fn('', filename)
-  end)
-
-  return true
-end
-
-local function launch_telescope(func_name, opts)
-  local api = require 'nvim-tree.api'
-  local telescope_status_ok, _ = pcall(require, 'telescope')
-
-  if not telescope_status_ok then return end
-
-  local node = api.tree.get_node_under_cursor()
-  local is_folder = node.fs_stat and node.fs_stat.type == 'directory' or false
-  local basedir = is_folder and node.absolute_path or vim.fn.fnamemodify(node.absolute_path, ':h')
-
-  if node.name == '..' and TreeExplorer ~= nil then basedir = TreeExplorer.cwd end
-
-  opts = opts or {}
-  opts.cwd = basedir
-  opts.search_dirs = { basedir }
-  opts.attach_mappings = view_selection
-
-  return require('telescope.builtin')[func_name](opts)
-end
-
 local M = {}
 
 -- Sometimes, we only want to open a tab,
@@ -50,9 +9,33 @@ function M.open_tab_silent(node)
   vim.cmd.tabprev()
 end
 
-function M.launch_live_grep(opts) return launch_telescope('live_grep', opts) end
+-- Search and focus for a file or folder in the tree with Telescope
+function M.search_node()
+  local api = require 'nvim-tree.api'
+  local builtin = require 'telescope.builtin'
+  local actions = require 'telescope.actions'
+  local action_state = require 'telescope.actions.state'
 
-function M.launch_find_files(opts) return launch_telescope('find_files', opts) end
+  local opts = {}
+
+  opts.prompt_title = 'Search Node'
+  opts.cwd = vim.fn.getcwd()
+  opts.attach_mappings = function(_, map)
+    map('i', '<CR>', function(prompt_bufnr)
+      actions.close(prompt_bufnr)
+
+      local selection = action_state.get_selected_entry()
+      local filename = selection.value or selection.filename or selection[1]
+      local filepath = vim.fs.joinpath(selection.cwd, filename)
+
+      api.tree.find_file { buf = filepath }
+    end, { desc = 'reveal_node_in_tree' })
+
+    return true
+  end
+
+  return builtin.find_files(opts)
+end
 
 function M.preview_current_node()
   local preview = require 'nvim-tree-preview'

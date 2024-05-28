@@ -336,8 +336,7 @@ return {
           },
 
           ['Search'] = {
-            -- ['S'] = { tree.search_node, 'Exact' },
-            ['s'] = { utils.launch_find_files, 'Find Files' },
+            ['s'] = { utils.search_node, 'Reveal Node' },
             ['f'] = { api.live_filter.start, 'Start Filter' },
             ['F'] = { api.live_filter.clear, 'Clear Filter' },
           },
