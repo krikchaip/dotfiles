@@ -59,7 +59,8 @@ vim.keymap.set('n', '<leader>q', function()
   if #vim.api.nvim_tabpage_list_wins(0) > 1 then
     vim.cmd [[bdelete | wincmd p]]
   else
-    vim.cmd [[bdelete | silent tabprevious]]
+    local last_buf = tostring(vim.api.nvim_get_current_buf())
+    vim.cmd('silent! tabnext # | bdelete ' .. last_buf)
   end
 end, { desc = 'Delete current buffer' })
 
@@ -67,7 +68,8 @@ vim.keymap.set('n', '<leader><S-q>', function()
   if #vim.api.nvim_tabpage_list_wins(0) > 1 then
     vim.cmd [[bdelete! | wincmd p]]
   else
-    vim.cmd [[bdelete! | silent tabprevious]]
+    local last_buf = tostring(vim.api.nvim_get_current_buf())
+    vim.cmd('silent! tabnext # | bdelete! ' .. last_buf)
   end
 end, { desc = 'Force delete current buffer' })
 
