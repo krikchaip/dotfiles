@@ -25,6 +25,11 @@ vim.keymap.set('n', '<C-y>', 'kzz', { desc = 'Scroll up' })
 -- Clear search highlights on pressing <Esc> in normal mode
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+-- Highlighting a search term without moving the cursor
+-- ref: https://superuser.com/questions/255024/highlighting-a-search-term-without-moving-the-cursor
+vim.keymap.set('n', 'g*', '<cmd>let @/ = "\\\\<" . expand("<cword>") . "\\\\>" | set hls<CR>')
+vim.keymap.set('n', 'g#', '<cmd>let @/ = "\\\\<" . expand("<cword>") . "\\\\>" | set hls<CR>')
+
 -- Fix visual mode yank region cursor moving back to the top
 -- ref: https://stackoverflow.com/questions/3806629/yank-a-region-in-vim-without-the-cursor-moving-to-the-top-of-the-block
 vim.keymap.set('x', 'y', 'ygv<Esc>')
