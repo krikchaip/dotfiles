@@ -14,8 +14,8 @@ return {
     name = 'bbye',
     cmd = { 'Bdelete', 'Bwipeout' },
     keys = {
-      { '<M-q>', '<cmd>Bdelete<CR>', desc = 'Delete current buffer (preserve window)' },
-      { '<M-S-q>', '<cmd>Bdelete!<CR>', desc = 'Force delete current buffer (preserve window)' },
+      { '<leader>x', '<cmd>Bdelete<CR>', desc = 'Delete current buffer (preserve window)' },
+      { '<leader>X', '<cmd>Bdelete!<CR>', desc = 'Force delete current buffer (preserve window)' },
     },
   },
 
