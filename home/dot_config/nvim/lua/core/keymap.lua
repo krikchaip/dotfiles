@@ -31,8 +31,13 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Highlighting a search term without moving the cursor
 -- ref: https://superuser.com/questions/255024/highlighting-a-search-term-without-moving-the-cursor
-vim.keymap.set('n', 'g*', '<cmd>let @/ = "\\\\<" . expand("<cword>") . "\\\\>" | set hls<CR>')
-vim.keymap.set('n', 'g#', '<cmd>let @/ = "\\\\<" . expand("<cword>") . "\\\\>" | set hls<CR>')
+local highlight_inplace_n = '<cmd>let @/ = "\\\\<" . expand("<cword>") . "\\\\>" | set hls<CR>'
+local highlight_inplace_x = '"hygv<cmd>let @/ = "\\\\<" . @h . "\\\\>" | let @h = @_ | set hls<CR>'
+
+vim.keymap.set('n', 'g*', highlight_inplace_n, { desc = 'Highlight current word in place' })
+vim.keymap.set('n', 'g#', highlight_inplace_n, { desc = 'Highlight current word in place' })
+vim.keymap.set('x', 'g*', highlight_inplace_x, { desc = 'Highlight selection in place' })
+vim.keymap.set('x', 'g#', highlight_inplace_x, { desc = 'Highlight selection in place' })
 
 -- Fix visual mode yank region cursor moving back to the top
 -- ref: https://stackoverflow.com/questions/3806629/yank-a-region-in-vim-without-the-cursor-moving-to-the-top-of-the-block
@@ -54,7 +59,7 @@ vim.keymap.set('c', "'", "''<Left>")
 vim.keymap.set('c', '"', '""<Left>')
 
 -- Substitute line while on insert mode (useful for inserting indentation on an empty line)
-vim.keymap.set('i', '<M-s>', '<C-o>S')
+vim.keymap.set('i', '<M-s>', '<C-o>S', { desc = 'Substitute line' })
 
 -- Insert/Remove indentation with ease
 vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Remove one indent from this line' })
