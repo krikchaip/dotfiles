@@ -5,6 +5,8 @@ vim.keymap.set({ 'i', 'c' }, '<C-d>', '<Down>')
 vim.keymap.set({ 'i', 'c' }, '<C-u>', '<Up>')
 vim.keymap.set({ 'i', 'c' }, '<C-a>', '<Home>')
 vim.keymap.set({ 'i', 'c' }, '<C-e>', '<End>')
+vim.keymap.set({ 'i', 'c' }, '<M-Left>', '<S-Left>')
+vim.keymap.set({ 'i', 'c' }, '<M-Right>', '<S-Right>')
 
 -- Horizontal Scrolling
 vim.keymap.set('n', 'H', 'zH', { desc = 'Scroll half page left' })
@@ -35,6 +37,12 @@ vim.keymap.set('n', 'g#', '<cmd>let @/ = "\\\\<" . expand("<cword>") . "\\\\>" |
 -- Fix visual mode yank region cursor moving back to the top
 -- ref: https://stackoverflow.com/questions/3806629/yank-a-region-in-vim-without-the-cursor-moving-to-the-top-of-the-block
 vim.keymap.set('x', 'y', 'ygv<Esc>')
+
+-- Start visual highlighting right from the insert mode
+vim.keymap.set('i', '<S-Left>', '<Esc>v')
+vim.keymap.set('i', '<S-Right>', '<Esc><Right>v')
+vim.keymap.set('i', '<S-Up>', '<Esc>v<Up>')
+vim.keymap.set('i', '<S-Down>', '<Esc><Right>v<Down>')
 
 -- Simple autoclose in command mode
 vim.keymap.set('c', '{', '{}<Left>')
