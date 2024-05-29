@@ -43,6 +43,8 @@ vim.keymap.set('i', '<S-Left>', '<Esc>v')
 vim.keymap.set('i', '<S-Right>', '<Esc><Right>v')
 vim.keymap.set('i', '<S-Up>', '<Esc>v<Up>')
 vim.keymap.set('i', '<S-Down>', '<Esc><Right>v<Down>')
+vim.keymap.set('x', '<S-Up>', '<Up>')
+vim.keymap.set('x', '<S-Down>', '<Down>')
 
 -- Simple autoclose in command mode
 vim.keymap.set('c', '{', '{}<Left>')
