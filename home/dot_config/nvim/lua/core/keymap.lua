@@ -15,8 +15,8 @@ vim.keymap.set('n', '<M-l>', 'zl', { desc = 'Scroll right' })
 -- Vertical Scrolling
 vim.keymap.set('n', '<C-Down>', '<PageDown>M', { desc = 'Scroll full page down' })
 vim.keymap.set('n', '<C-Up>', '<PageUp>M', { desc = 'Scroll full page up' })
-vim.keymap.set('n', '<S-Down>', '<C-d>M', { desc = 'Scroll half page down' })
-vim.keymap.set('n', '<S-Up>', '<C-u>M', { desc = 'Scroll half page up' })
+vim.keymap.set('n', '<S-Down>', '<C-d>zz', { desc = 'Scroll half page down' })
+vim.keymap.set('n', '<S-Up>', '<C-u>zz', { desc = 'Scroll half page up' })
 vim.keymap.set('n', '<Down>', 'jzz', { desc = 'Scroll down' })
 vim.keymap.set('n', '<Up>', 'kzz', { desc = 'Scroll up' })
 
