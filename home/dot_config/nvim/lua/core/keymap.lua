@@ -114,7 +114,7 @@ vim.keymap.set('n', '<C-n>', '<cmd>tabnew<CR>', { desc = 'Create a new empty tab
 -- Tabpage Manipulation
 vim.keymap.set('n', '<C-S-left>', '<cmd>-tabmove<CR>', { desc = 'Move the current tab backward' })
 vim.keymap.set('n', '<C-S-right>', '<cmd>+tabmove<CR>', { desc = 'Move the current tab forward' })
-vim.keymap.set('n', '<leader>tq', '<cmd>tabclose<CR>', { desc = 'Close the current tab' })
+vim.keymap.set('n', '<leader>tq', '<cmd>tabnext# | tabclose#<CR>', { desc = 'Close the current tab' })
 vim.keymap.set('n', '<leader>to', '<cmd>tabonly<CR>', { desc = 'Close all other tab pages' })
 
 -- Tabpage Navigation
