@@ -233,7 +233,7 @@ return {
           close = true,
 
           -- List of filetypes or buffer names on new tab that will prevent nvim tree to open
-          ignore = { 'help' },
+          ignore = { 'help', 'DiffviewFiles', 'DiffviewFileHistory' },
         },
       },
 
