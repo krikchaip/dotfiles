@@ -76,24 +76,27 @@ vim.keymap.set('n', '+', '<C-a>', { desc = 'Increment number' })
 -- Saving buffers (files)
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Write current buffer' })
 
--- Delete current buffer
-vim.keymap.set('n', '<leader>q', function()
-  if #vim.api.nvim_tabpage_list_wins(0) > 1 then
-    vim.cmd [[bdelete | wincmd p]]
-  else
-    local last_buf = tostring(vim.api.nvim_get_current_buf())
-    vim.cmd('silent! tabnext # | bdelete ' .. last_buf)
-  end
-end, { desc = 'Delete current buffer' })
+-- Smart delete current buffer
+-- Window:  switch to the last accessed when there's more than one
+-- Tabpage: switch to the last accessed when there're no more windows left
+local function smart_delete_buffer(bang)
+  return function()
+    bang = bang or false
 
-vim.keymap.set('n', '<leader><S-q>', function()
-  if #vim.api.nvim_tabpage_list_wins(0) > 1 then
-    vim.cmd [[bdelete! | wincmd p]]
-  else
     local last_buf = tostring(vim.api.nvim_get_current_buf())
-    vim.cmd('silent! tabnext # | bdelete! ' .. last_buf)
+
+    if #vim.api.nvim_tabpage_list_wins(0) > 1 then
+      vim.cmd.bdelete { bang = bang }
+      vim.cmd.wincmd 'p'
+    else
+      vim.cmd [[silent! tabnext #]]
+      vim.cmd.bdelete { last_buf, bang = bang }
+    end
   end
-end, { desc = 'Force delete current buffer' })
+end
+
+vim.keymap.set('n', '<leader>q', smart_delete_buffer(), { desc = 'Delete current buffer' })
+vim.keymap.set('n', '<leader><S-q>', smart_delete_buffer(true), { desc = 'Force delete current buffer' })
 
 -- Window Navigation
 vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Move focus to the left window' })
