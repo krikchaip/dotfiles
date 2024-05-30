@@ -51,8 +51,7 @@ return {
   {
     'nvim-telescope/telescope.nvim',
     name = 'telescope',
-    -- branch = '0.1.x',
-    commit = '4d4ade7', -- pinned until `autocmd` feature is fixed in the next version
+    -- commit = '4d4ade7', -- pinned until `autocmd` feature is fixed in the next version
     cmd = { 'Telescope' },
     keys = {
       -- [[ Menus ]]
