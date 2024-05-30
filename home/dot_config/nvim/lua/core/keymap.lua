@@ -1,26 +1,28 @@
--- Emacs style movement keys for insert/command mode
+---@diagnostic disable: param-type-mismatch
+
+-- Emacs style movement keys
 vim.keymap.set({ 'i', 'c' }, '<C-f>', '<Right>')
 vim.keymap.set({ 'i', 'c' }, '<C-b>', '<Left>')
 vim.keymap.set({ 'i', 'c' }, '<C-d>', '<Down>')
 vim.keymap.set({ 'i', 'c' }, '<C-u>', '<Up>')
 vim.keymap.set({ 'i', 'c' }, '<C-a>', '<Home>')
 vim.keymap.set({ 'i', 'c' }, '<C-e>', '<End>')
-vim.keymap.set({ 'i', 'c' }, '<M-Left>', '<S-Left>')
-vim.keymap.set({ 'i', 'c' }, '<M-Right>', '<S-Right>')
+vim.keymap.set({ 'i', 'c', 'n' }, '<M-Left>', '<S-Left>')
+vim.keymap.set({ 'i', 'c', 'n' }, '<M-Right>', '<S-Right>')
 
 -- Horizontal Scrolling
-vim.keymap.set('n', 'H', 'zH', { desc = 'Scroll half page left' })
-vim.keymap.set('n', 'L', 'zL', { desc = 'Scroll half page right' })
-vim.keymap.set('n', '<M-h>', 'zh', { desc = 'Scroll left' })
-vim.keymap.set('n', '<M-l>', 'zl', { desc = 'Scroll right' })
+vim.keymap.set('n', 'H', 'zH', { desc = 'Scroll: Half Page Left' })
+vim.keymap.set('n', 'L', 'zL', { desc = 'Scroll: Half Page Right' })
+vim.keymap.set('n', '<M-h>', 'zh', { desc = 'Scroll: Left' })
+vim.keymap.set('n', '<M-l>', 'zl', { desc = 'Scroll: Right' })
 
 -- Vertical Scrolling
-vim.keymap.set('n', '<C-Down>', '<PageDown>M', { desc = 'Scroll full page down' })
-vim.keymap.set('n', '<C-Up>', '<PageUp>M', { desc = 'Scroll full page up' })
-vim.keymap.set('n', '<S-Down>', '<C-d>zz', { desc = 'Scroll half page down' })
-vim.keymap.set('n', '<S-Up>', '<C-u>zz', { desc = 'Scroll half page up' })
-vim.keymap.set('n', '<Down>', 'jzz', { desc = 'Scroll down' })
-vim.keymap.set('n', '<Up>', 'kzz', { desc = 'Scroll up' })
+vim.keymap.set('n', '<C-Down>', '<PageDown>M', { desc = 'Scroll: Full Page Down' })
+vim.keymap.set('n', '<C-Up>', '<PageUp>M', { desc = 'Scroll: Full Page Up' })
+vim.keymap.set('n', '<S-Down>', '<C-d>zz', { desc = 'Scroll: Half Page Down' })
+vim.keymap.set('n', '<S-Up>', '<C-u>zz', { desc = 'Scroll: Half Page Up' })
+vim.keymap.set('n', '<Down>', 'jzz', { desc = 'Scroll: Down' })
+vim.keymap.set('n', '<Up>', 'kzz', { desc = 'Scroll: Up' })
 
 -- Exit terminal mode in the builtin terminal (default: <C-\><C-n>)
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
@@ -34,10 +36,10 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 local highlight_inplace_n = '<cmd>let @/ = "\\\\<" . expand("<cword>") . "\\\\>" | set hls<CR>'
 local highlight_inplace_x = '"hygv<cmd>let @/ = "\\\\<" . @h . "\\\\>" | let @h = @_ | set hls<CR>'
 
-vim.keymap.set('n', 'g*', highlight_inplace_n, { desc = 'Highlight current word in place' })
-vim.keymap.set('n', 'g#', highlight_inplace_n, { desc = 'Highlight current word in place' })
-vim.keymap.set('x', 'g*', highlight_inplace_x, { desc = 'Highlight selection in place' })
-vim.keymap.set('x', 'g#', highlight_inplace_x, { desc = 'Highlight selection in place' })
+vim.keymap.set('n', 'g*', highlight_inplace_n, { desc = 'Highlight: Current Word in Place' })
+vim.keymap.set('n', 'g#', highlight_inplace_n, { desc = 'Highlight: Current Word in Place' })
+vim.keymap.set('x', 'g*', highlight_inplace_x, { desc = 'Highlight: Selection in Place' })
+vim.keymap.set('x', 'g#', highlight_inplace_x, { desc = 'Highlight: Selection in Place' })
 
 -- Fix visual mode yank region cursor moving back to the top
 -- ref: https://stackoverflow.com/questions/3806629/yank-a-region-in-vim-without-the-cursor-moving-to-the-top-of-the-block
@@ -62,19 +64,19 @@ vim.keymap.set('c', '"', '""<Left>')
 vim.keymap.set('i', '<M-s>', '<C-o>S', { desc = 'Substitute line' })
 
 -- Insert/Remove indentation with ease
-vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Remove one indent from this line' })
-vim.keymap.set('i', '<M-S-.>', '<C-t>', { desc = 'Insert one indent to this line' })
-vim.keymap.set('x', '<M-S-,>', '<gv', { desc = 'Remove one indent from this region' })
-vim.keymap.set('x', '<M-S-.>', '>gv', { desc = 'Insert one indent to this region' })
-vim.keymap.set('n', '<M-S-,>', '<<', { desc = 'Remove one indent from this line' })
-vim.keymap.set('n', '<M-S-.>', '>>', { desc = 'Insert one indent to this line' })
+vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Indent: Current Line Remove One' })
+vim.keymap.set('i', '<M-S-.>', '<C-t>', { desc = 'Indent: Current Line Insert One' })
+vim.keymap.set('x', '<M-S-,>', '<gv', { desc = 'Indent: Highlighted Remove One' })
+vim.keymap.set('x', '<M-S-.>', '>gv', { desc = 'Indent: Highlighted Insert One' })
+vim.keymap.set('n', '<M-S-,>', '<<', { desc = 'Indent: Current Line Remove One' })
+vim.keymap.set('n', '<M-S-.>', '>>', { desc = 'Indent: Current Line Insert One' })
 
 -- Make Increment/Decrement key more intuitive
-vim.keymap.set('n', '-', '<C-x>', { desc = 'Decrement number' })
-vim.keymap.set('n', '+', '<C-a>', { desc = 'Increment number' })
+vim.keymap.set('n', '-', '<C-x>', { desc = 'Number: Decrement' })
+vim.keymap.set('n', '+', '<C-a>', { desc = 'Number: Increment' })
 
 -- Saving buffers (files)
-vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Write current buffer' })
+vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Buffer: Write Current' })
 
 -- Smart delete current buffer
 -- Window:  switch to the last accessed when there's more than one
@@ -95,30 +97,33 @@ local function smart_delete_buffer(bang)
   end
 end
 
-vim.keymap.set('n', '<leader>q', smart_delete_buffer(), { desc = 'Delete current buffer' })
-vim.keymap.set('n', '<leader><S-q>', smart_delete_buffer(true), { desc = 'Force delete current buffer' })
+vim.keymap.set('n', '<leader>q', smart_delete_buffer(), { desc = 'Buffer: Delete Current' })
+vim.keymap.set('n', '<leader><S-q>', smart_delete_buffer(true), { desc = 'Buffer: Force Delete Current' })
 
 -- Window Navigation
-vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w>j', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Move focus to the upper window' })
-vim.keymap.set('n', '<Tab>', '<C-w>p', { desc = 'Move focus to the previously active window' })
+vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Window: Focus Left' })
+vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Window: Focus Right' })
+vim.keymap.set('n', '<C-j>', '<C-w>j', { desc = 'Window: Focus Lower' })
+vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Window: Focus Upper' })
+vim.keymap.set('n', '<Tab>', '<C-w>p', { desc = 'Window: Focus Previously Active' })
 
 -- `<C-w>w` doesn't work when there's more than 2 windows in a tab
 -- ref: https://www.reddit.com/r/neovim/comments/pibo9c/how_to_focus_an_opened_floating_window
-vim.keymap.set('n', '<C-S-k>', '999<C-w>w', { desc = 'Move focus to the floating window' })
+vim.keymap.set('n', '<C-S-k>', '999<C-w>w', { desc = 'Window: Focus Floating' })
 
--- Create a new empty window/tab
-vim.keymap.set('n', '<C-w>n', '<cmd>vnew<CR>', { desc = 'Split a new empty window vertically' })
-vim.keymap.set('n', '<C-w>N', '<cmd>new<CR>', { desc = 'Split a new empty window horizontally' })
-vim.keymap.set('n', '<C-n>', '<cmd>tabnew<CR>', { desc = 'Create a new empty tab' })
+-- Create new empty window
+vim.keymap.set('n', '<C-w>n', '<cmd>vnew<CR>', { desc = 'Window: Split Empty Vertically' })
+vim.keymap.set('n', '<C-w>N', '<cmd>new<CR>', { desc = 'Window: Split Empty Horizontally' })
 
 -- Tabpage Manipulation
 vim.keymap.set('n', '<C-S-left>', '<cmd>-tabmove<CR>', { desc = 'Tab: Move Backward' })
 vim.keymap.set('n', '<C-S-right>', '<cmd>+tabmove<CR>', { desc = 'Tab: Move Forward' })
-vim.keymap.set('n', '<leader>tq', '<cmd>tabnext# | tabclose#<CR>', { desc = 'Tab: Close Current' })
 vim.keymap.set('n', '<leader>to', '<cmd>tabonly<CR>', { desc = 'Tab: Close All Others' })
+vim.keymap.set('n', '<C-n>', '<cmd>tabnew<CR>', { desc = 'Tab: Create Empty' })
+vim.keymap.set('n', '<leader>tq', function()
+  local ok, _ = pcall(vim.cmd, 'tabnext# | tabclose#')
+  if not ok then vim.cmd [[tabclose]] end
+end, { desc = 'Tab: Close Current' })
 
 -- Tabpage Navigation
 vim.keymap.set('n', '<C-Left>', '<cmd>tabprevious<CR>', { desc = 'Tab: Go to Previous' })
@@ -134,5 +139,5 @@ vim.keymap.set('n', '<leader>8', '<cmd>8tabnext<CR>', { desc = 'Tab: Jump to #8'
 vim.keymap.set('n', '<leader>9', '<cmd>9tabnext<CR>', { desc = 'Tab: Jump to #9' })
 
 -- Exit NeoVim
-vim.keymap.set('n', '<C-q>', '<cmd>qall<CR>', { desc = 'Quit all buffers (soft quit NeoVim)' })
-vim.keymap.set('n', '<C-S-q>', '<cmd>qall!<CR>', { desc = 'Force quit NeoVim' })
+vim.keymap.set('n', '<C-q>', '<cmd>qall<CR>', { desc = 'Quit: Soft' })
+vim.keymap.set('n', '<C-S-q>', '<cmd>qall!<CR>', { desc = 'Quit: Force' })
