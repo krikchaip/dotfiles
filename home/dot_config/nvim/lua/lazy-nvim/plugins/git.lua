@@ -100,6 +100,19 @@ return {
       require('scrollbar.handlers.gitsigns').setup()
     end,
   },
+
+  {
+    'sindrets/diffview.nvim',
+    name = 'diffview',
+    cmd = { 'DiffviewOpen', 'DiffviewFileHistory' },
+    keys = {
+      { '<leader>gd', '<cmd>DiffviewOpen<CR>', desc = 'Git: Open Diffview' },
+    },
+    opts = {},
+    config = function(_, opts)
+      local actions = require 'diffview.actions'
+
+      require('diffview').setup(opts)
     end,
   },
 }
