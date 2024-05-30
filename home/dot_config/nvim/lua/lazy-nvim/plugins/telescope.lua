@@ -72,11 +72,8 @@ return {
       { '<leader>F', custom_pickers.workspace_fuzzy_find, desc = 'Search text in current workspace' },
 
       -- [[ Git Integration ]]
-      { '<leader>gl', '<cmd>Telescope git_commits<CR>', desc = 'Show Git repo [l]ogs' },
-      { '<leader>gf', '<cmd>Telescope git_bcommits<CR>', desc = 'Show [f]ile commits' },
-      { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Manage [b]ranches' },
-      { '<leader>gs', '<cmd>Telescope git_status<CR>', desc = 'Show Git [s]tatus' },
-      { '<leader>gt', '<cmd>Telescope git_stash<CR>', desc = 'List s[t]ash items' },
+      { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Git: Manage Branches' },
+      { '<leader>gs', '<cmd>Telescope git_status<CR>', desc = 'Git: Show Status' },
     },
     dependencies = { 'plenary', 'web-devicons', 'nvim-treesitter' },
     config = function()
