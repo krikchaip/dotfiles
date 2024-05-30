@@ -16,7 +16,7 @@ return {
     'benfowler/telescope-luasnip.nvim',
     name = 'telescope.luasnip',
     keys = {
-      { '<C-\\>', '<cmd>Telescope luasnip<CR>', desc = 'Search LuaSnip Snippets', mode = { 'n', 'i' } },
+      { '<C-\\>', '<cmd>Telescope luasnip<CR>', desc = 'Search: LuaSnip Snippets', mode = { 'n', 'i' } },
     },
     dependencies = { 'telescope', 'luasnip' },
     config = function() require('telescope').load_extension 'luasnip' end,
