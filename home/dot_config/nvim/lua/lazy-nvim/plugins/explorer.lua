@@ -27,8 +27,8 @@ return {
     name = 'nvim-tree',
     version = '*',
     keys = {
-      { '<leader>e', '<cmd>NvimTreeFocus<CR>', desc = 'Explorer Open' },
-      { '<leader>E', '<cmd>NvimTreeClose<CR>', desc = 'Explorer Close' },
+      { '<leader>e', '<cmd>NvimTreeFocus<CR>', desc = 'Explorer: Open' },
+      { '<leader>E', '<cmd>NvimTreeClose<CR>', desc = 'Explorer: Close' },
     },
     dependencies = { 'web-devicons', 'lsp-file-operations', 'nvim-tree-preview' },
     opts = {

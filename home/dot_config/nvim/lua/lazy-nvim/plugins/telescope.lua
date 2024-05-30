@@ -44,32 +44,32 @@ return {
     cmd = { 'Telescope' },
     keys = {
       -- [[ Menus ]]
-      { '<C-S-b>', '<cmd>Telescope builtin<CR>', desc = 'Search builtin pickers' },
-      { '<C-S-h>', '<cmd>Telescope help_tags<CR>', desc = 'Search nvim help pages' },
-      { '<C-S-m>', '<cmd>Telescope man_pages<CR>', desc = 'Search man pages' },
-      { '<C-S-;>', '<cmd>Telescope commands<CR>', desc = 'Search custom commands' },
+      { '<C-S-b>', '<cmd>Telescope builtin<CR>', desc = 'Search: Builtin Pickers' },
+      { '<C-S-h>', '<cmd>Telescope help_tags<CR>', desc = 'Search: Help Pages' },
+      { '<C-S-m>', '<cmd>Telescope man_pages<CR>', desc = 'Search: Man Pages' },
+      { '<C-S-;>', '<cmd>Telescope commands<CR>', desc = 'Search: Plugin Commands' },
 
       -- [[ NVim settings ]]
-      { '<C-,>c', '<cmd>Telescope colorscheme<CR>', desc = 'Change [c]olorscheme' },
-      { '<C-,>o', '<cmd>Telescope vim_options<CR>', desc = 'Set nvim [o]ptions' },
-      { '<C-,>a', '<cmd>Telescope autocommands<CR>', desc = 'List nvim [a]utocommands' },
-      { '<C-,>k', '<cmd>Telescope keymaps<CR>', desc = 'List [k]eymappings' },
-      { '<C-,>,', custom_pickers.find_chezmoi_files, desc = 'Search Chezmoi Files' },
+      { '<C-,>c', '<cmd>Telescope colorscheme<CR>', desc = 'Settings: Colorscheme' },
+      { '<C-,>o', '<cmd>Telescope vim_options<CR>', desc = 'Settings: Vim Options' },
+      { '<C-,>a', '<cmd>Telescope autocommands<CR>', desc = 'Settings: Autocommands' },
+      { '<C-,>k', '<cmd>Telescope keymaps<CR>', desc = 'Settings: Keymappings' },
+      { '<C-,>,', custom_pickers.find_chezmoi_files, desc = 'Settings: Dot Files' },
 
       -- [[ Histories ]]
-      { '<leader>|', '<cmd>Telescope oldfiles<CR>', desc = 'Buffer history' },
-      { '<leader>?', '<cmd>Telescope search_history<CR>', desc = 'Search history' },
-      { '<leader>:', '<cmd>Telescope command_history<CR>', desc = 'Command history' },
+      { '<leader>|', '<cmd>Telescope oldfiles<CR>', desc = 'Search: Buffer History' },
+      { '<leader>?', '<cmd>Telescope search_history<CR>', desc = 'Search: Search History' },
+      { '<leader>:', '<cmd>Telescope command_history<CR>', desc = 'Search: Command History' },
 
       -- [[ Navigation ]]
-      { '<leader><leader>', '<cmd>Telescope resume<CR>', desc = 'Resume last picker' },
-      { '<leader>\\', '<cmd>Telescope buffers<CR>', desc = 'Search open buffers' },
-      { '<leader>f', custom_pickers.find_files, desc = 'Search [f]iles' },
+      { '<leader><leader>', '<cmd>Telescope resume<CR>', desc = 'Picker: Resume Last' },
+      { '<leader>\\', '<cmd>Telescope buffers<CR>', desc = 'Buffer: List Open' },
+      { '<leader>f', custom_pickers.find_files, desc = 'Explorer: List Files' },
 
       -- [[ Full-text search ]]
-      { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search current word in workspace', mode = { 'n', 'x' } },
-      { '<leader>/', custom_pickers.local_fuzzy_find, desc = 'Fuzzily search in current buffer' },
-      { '<leader>F', custom_pickers.workspace_fuzzy_find, desc = 'Search text in current workspace' },
+      { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search: Workspace <cword>', mode = { 'n', 'x' } },
+      { '<leader>/', custom_pickers.local_fuzzy_find, desc = 'Search: Current Buffer' },
+      { '<leader>F', custom_pickers.workspace_fuzzy_find, desc = 'Search: Current Workspace' },
 
       -- [[ Git Integration ]]
       { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Git: Manage Branches' },
