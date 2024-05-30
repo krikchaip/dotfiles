@@ -139,7 +139,7 @@ return {
             '!**/package-lock.json',
 
             -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#ripgrep-remove-indentation
-            '--trim',
+            -- '--trim',
           },
 
           mappings = {
@@ -208,6 +208,10 @@ return {
 
           colorscheme = {
             enable_preview = true,
+          },
+
+          grep_string = {
+            path_display = { 'tail' },
           },
 
           find_files = {
