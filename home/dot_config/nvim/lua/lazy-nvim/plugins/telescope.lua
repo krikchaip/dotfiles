@@ -11,17 +11,6 @@ return {
     end,
   },
 
-  -- Telescope merge conflicts picker
-  {
-    'Snikimonkd/telescope-git-conflicts.nvim',
-    name = 'telescope.conflicts',
-    keys = {
-      { '<leader>gm', '<cmd>Telescope conflicts<CR>', desc = 'Show [m]erge conflicts' },
-    },
-    dependencies = { 'telescope' },
-    config = function() require('telescope').load_extension 'conflicts' end,
-  },
-
   -- Telescope LuaSnip snippets picker
   {
     'benfowler/telescope-luasnip.nvim',
