@@ -60,66 +60,46 @@ return {
           end
         end)
 
-        kopts.desc = 'Next unstaged [c]hange'
+        kopts.desc = 'Git: Next unstaged hunk'
         vim.keymap.set('n', ']c', next_hunk, kopts)
 
-        kopts.desc = 'Previous unstaged [c]hange'
+        kopts.desc = 'Git: Previous unstaged hunk'
         vim.keymap.set('n', '[c', prev_hunk, kopts)
 
         -- [[ Menus ]]
 
-        kopts.desc = 'Show [d]iff against staged changes'
-        vim.keymap.set('n', '<leader>gd', function() gitsigns.diffthis() end, kopts)
-
-        kopts.desc = 'Show [D]iff against last commit'
-        vim.keymap.set('n', '<leader>gD', function() gitsigns.diffthis '~' end, kopts)
-
-        kopts.desc = 'Show line [i]nfo'
+        kopts.desc = 'Git: Show line info'
         vim.keymap.set('n', '<leader>gi', function() gitsigns.blame_line { full = true } end, kopts)
 
         -- [[ Actions ]]
 
-        kopts.desc = '[s]tage change at the cursor position'
-        vim.keymap.set('n', '<leader>gcs', function() gitsigns.stage_hunk() end, kopts)
+        kopts.desc = 'Git: Stage hunk under cursor'
+        vim.keymap.set('n', '<leader>ghs', function() gitsigns.stage_hunk() end, kopts)
 
-        kopts.desc = '[s]tage selected range'
-        vim.keymap.set('v', '<leader>gcs', function() gitsigns.stage_hunk { vim.fn.line '.', vim.fn.line 'v' } end, kopts)
+        kopts.desc = 'Git: Stage highlighted hunk'
+        vim.keymap.set('v', '<leader>ghs', function() gitsigns.stage_hunk { vim.fn.line '.', vim.fn.line 'v' } end, kopts)
 
-        kopts.desc = '[S]tage all changes'
-        vim.keymap.set('n', '<leader>gcS', function() gitsigns.stage_buffer() end, kopts)
+        kopts.desc = 'Git: Stage all hunks'
+        vim.keymap.set('n', '<leader>ghS', function() gitsigns.stage_buffer() end, kopts)
 
-        kopts.desc = '[u]ndo the last staged change'
-        vim.keymap.set('n', '<leader>gcu', function() gitsigns.undo_stage_hunk() end, kopts)
+        kopts.desc = 'Git: Unstage all hunks'
+        vim.keymap.set('n', '<leader>ghU', function() gitsigns.reset_buffer_index() end, kopts)
 
-        kopts.desc = '[U]ndo all staged changes'
-        vim.keymap.set('n', '<leader>gcU', function() gitsigns.reset_buffer_index() end, kopts)
+        kopts.desc = 'Git: Reset hunk under cursor to staged'
+        vim.keymap.set('n', '<leader>ghr', function() gitsigns.reset_hunk() end, kopts)
 
-        kopts.desc = '[r]eset change at the cursor position to staged'
-        vim.keymap.set('n', '<leader>gcr', function() gitsigns.reset_hunk() end, kopts)
+        kopts.desc = 'Git: Reset highlighted hunk to staged'
+        vim.keymap.set('v', '<leader>ghr', function() gitsigns.reset_hunk { vim.fn.line '.', vim.fn.line 'v' } end, kopts)
 
-        kopts.desc = '[r]eset selected range to staged'
-        vim.keymap.set('v', '<leader>gcr', function() gitsigns.reset_hunk { vim.fn.line '.', vim.fn.line 'v' } end, kopts)
-
-        kopts.desc = '[R]eset all changes to staged'
-        vim.keymap.set('n', '<leader>gcR', function() gitsigns.reset_buffer() end, kopts)
-
-        -- [[ Text objects ]]
-        -- 'o' stands for 'Operator-pending' mode
-        -- 'x' stands for 'Visual-only' mode
-
-        kopts.desc = 'the change under cursor'
-        vim.keymap.set({ 'o', 'x' }, 'ic', '<cmd>Gitsigns select_hunk<CR>', kopts)
-
-        kopts.desc = 'the change under cursor'
-        vim.keymap.set({ 'o', 'x' }, 'ac', '<cmd>Gitsigns select_hunk<CR>', kopts)
+        kopts.desc = 'Git: Reset all hunks to staged'
+        vim.keymap.set('n', '<leader>ghR', function() gitsigns.reset_buffer() end, kopts)
       end,
     },
     config = function(_, opts)
       require('gitsigns').setup(opts)
       require('scrollbar.handlers.gitsigns').setup()
-
-      -- must reload `statuscol` because this plugin overwrites its value
-      -- vim.cmd [[ silent Lazy reload statuscol ]]
+    end,
+  },
     end,
   },
 }

@@ -24,14 +24,14 @@ return {
         ['<C-,>'] = { name = 'Nvim Settings', _ = 'which_key_ignore' },
         ['<leader>'] = { name = 'Special', _ = 'which_key_ignore' },
         ['<leader>g'] = { name = 'Git', _ = 'which_key_ignore' },
-        ['<leader>gc'] = { name = 'Git Change', _ = 'which_key_ignore' },
+        ['<leader>gh'] = { name = 'Git Hunk', _ = 'which_key_ignore' },
         ['<leader>l'] = { name = 'LSP', _ = 'which_key_ignore' },
         ['<leader>t'] = { name = 'Tab', _ = 'which_key_ignore' },
       }
 
       which_key.register({
         ['<leader>g'] = { name = 'Git', _ = 'which_key_ignore' },
-        ['<leader>gc'] = { name = 'Git Change', _ = 'which_key_ignore' },
+        ['<leader>gh'] = { name = 'Git Hunk', _ = 'which_key_ignore' },
       }, { mode = 'x' })
     end,
   },
