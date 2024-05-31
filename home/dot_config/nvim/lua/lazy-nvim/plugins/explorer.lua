@@ -61,7 +61,7 @@ return {
         signcolumn = 'no',
 
         -- Width of the window
-        width = 25,
+        width = 30,
 
         -- Use nvim-tree in a floating window
         -- float = { enable = true },

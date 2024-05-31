@@ -125,7 +125,7 @@ return {
         listing_style = 'list',
 
         -- Has to match nvim-tree window width
-        win_config = { width = 25 },
+        win_config = { width = 30 },
       },
     },
     config = function(_, opts)
