@@ -59,6 +59,8 @@ return {
 
           -- custom values
           'NvimTree',
+          'DiffviewFiles',
+          'DiffviewFileHistory',
         },
 
         handle = {

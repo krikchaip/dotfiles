@@ -111,9 +111,66 @@ return {
       { '<leader>gl', '<cmd>DiffviewFileHistory<CR>', desc = 'Git: Show Logs' },
       { '<leader>gS', '<cmd>DiffviewFileHistory -g --range=stash<CR>', desc = 'Git: Stash' },
     },
-    opts = {},
+    opts = {
+      -- makes add/delete lines highlight more subtly
+      enhanced_diff_hl = true,
+
+      view = {
+        -- left / right and bottom layout
+        merge_tool = { layout = 'diff3_mixed' },
+      },
+
+      file_panel = {
+        -- like with VSCode's
+        listing_style = 'list',
+
+        -- Has to match nvim-tree window width
+        win_config = { width = 25 },
+      },
+    },
     config = function(_, opts)
       local actions = require 'diffview.actions'
+
+      opts.keymaps = { disable_defaults = true }
+
+      opts.keymaps.help_panel = {
+        { 'n', 'q', actions.close, { desc = 'Help: Close' } },
+      }
+
+      opts.keymaps.option_panel = {
+        { 'n', 'q', actions.close, { desc = 'Option: Close' } },
+        { 'n', '?', actions.help 'option_panel', { desc = 'Option: Help' } },
+        { 'n', '<Tab>', actions.select_entry, { desc = 'Option: Select' } },
+      }
+
+      -- opts.keymaps.commit_log_panel = {}
+
+      opts.keymaps.file_panel = {
+        { 'n', 'q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
+        { 'n', '<C-r>', actions.refresh_files, { desc = 'Diffview: Refresh' } },
+
+        { 'n', '?', actions.help 'file_panel', { desc = 'Panel: Help' } },
+        { 'n', 'l', actions.focus_entry, { desc = 'Panel: Focus Right Diff' } },
+        { 'n', 'e', actions.goto_file_tab, { desc = 'Panel: Go to File' } },
+        { 'n', 'L', actions.open_commit_log, { desc = 'Panel: Commit Log' } },
+
+        { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
+        { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
+      }
+
+      opts.keymaps.view = {
+        { 'n', '<leader>q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
+
+        { 'n', 'g?', actions.help 'view', { desc = 'View: Help' } },
+        { 'n', '<leader>e', actions.focus_files, { desc = 'View: Focus Panel' } },
+        { 'n', 'gf', actions.goto_file_tab, { desc = 'View: Go to File' } },
+        { 'n', 'gl', actions.open_commit_log, { desc = 'View: Commit Log' } },
+
+        { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
+        { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
+      }
+
+      -- { 'n', 'y', actions.copy_hash, { desc = 'Panel: Copy Commit Hash' } },
 
       require('diffview').setup(opts)
     end,
