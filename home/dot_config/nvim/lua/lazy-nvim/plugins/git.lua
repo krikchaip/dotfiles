@@ -140,7 +140,9 @@ return {
         { 'n', '<leader>e', actions.focus_files, { desc = 'View: Focus Panel' } },
         { 'n', 'gf', actions.goto_file_tab, { desc = 'View: Go to File' } },
         { 'n', 'gl', actions.open_commit_log, { desc = 'View: Commit Log' } },
+      }
 
+      opts.keymaps.diff_view = {
         { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
         { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
       }
@@ -156,6 +158,8 @@ return {
 
         { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
         { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
+
+        { 'n', 'X', actions.restore_entry, { desc = 'Entry: Revert Changes' } },
       }
 
       opts.keymaps.file_history_panel = {
@@ -168,10 +172,9 @@ return {
         { 'n', 'e', actions.goto_file_tab, { desc = 'Panel: Go to File' } },
         { 'n', 'L', actions.open_commit_log, { desc = 'Panel: Commit Log' } },
 
-        { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
-        { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
-
         { 'n', 'y', actions.copy_hash, { desc = 'Panel: Copy Commit Hash' } },
+
+        { 'n', 'X', actions.restore_entry, { desc = 'Entry: Revert Changes' } },
       }
 
       opts.keymaps.option_panel = {
