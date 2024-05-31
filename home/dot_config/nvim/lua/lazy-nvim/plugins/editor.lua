@@ -126,8 +126,8 @@ return {
     'numToStr/Comment.nvim',
     name = 'comment',
     keys = {
-      { 'gc', desc = 'Comment toggle linewise' },
-      { 'gb', desc = 'Comment toggle blockwise' },
+      { 'gc', desc = 'Comment: Linewise ...' },
+      { 'gb', desc = 'Comment: Blockwise ...' },
 
       {
         '<M-/>',
@@ -147,7 +147,7 @@ return {
           local space = vim.api.nvim_replace_termcodes('<Space>', true, false, true)
           vim.api.nvim_feedkeys(space, 'n', false)
         end,
-        desc = 'Insert comment at the end of line [linewise]',
+        desc = 'Comment: Insert Linewise at EOL',
         mode = { 'n', 'i' },
       },
 
@@ -159,7 +159,7 @@ return {
 
           api.toggle.linewise.current(config)
         end,
-        desc = 'Toggle comment on the current line [linewise]',
+        desc = 'Comment: Toggle Linewise Current Line',
         mode = { 'n', 'i' },
       },
       {
@@ -170,20 +170,20 @@ return {
 
           api.toggle.blockwise.current(config)
         end,
-        desc = 'Toggle comment on the current line [blockwise]',
+        desc = 'Comment: Toggle Blockwise Current Line',
         mode = { 'n', 'i' },
       },
 
       {
         '<C-/>',
         '<Plug>(comment_toggle_linewise_visual)',
-        desc = 'Toggle comment on the selected region [linewise]',
+        desc = 'Comment: Toggle Linewise Highlighted',
         mode = 'x',
       },
       {
         '<C-S-/>',
         '<Plug>(comment_toggle_blockwise_visual)',
-        desc = 'Toggle comment on the selected region [blockwise]',
+        desc = 'Comment: Toggle Blockwise Highlighted',
         mode = 'x',
       },
     },
