@@ -133,17 +133,17 @@ return {
 
       opts.keymaps = { disable_defaults = true }
 
-      opts.keymaps.help_panel = {
-        { 'n', 'q', actions.close, { desc = 'Help: Close' } },
-      }
+      opts.keymaps.view = {
+        { 'n', '<leader>q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
 
-      opts.keymaps.option_panel = {
-        { 'n', 'q', actions.close, { desc = 'Option: Close' } },
-        { 'n', '?', actions.help 'option_panel', { desc = 'Option: Help' } },
-        { 'n', '<Tab>', actions.select_entry, { desc = 'Option: Select' } },
-      }
+        { 'n', 'g?', actions.help 'view', { desc = 'View: Help' } },
+        { 'n', '<leader>e', actions.focus_files, { desc = 'View: Focus Panel' } },
+        { 'n', 'gf', actions.goto_file_tab, { desc = 'View: Go to File' } },
+        { 'n', 'gl', actions.open_commit_log, { desc = 'View: Commit Log' } },
 
-      -- opts.keymaps.commit_log_panel = {}
+        { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
+        { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
+      }
 
       opts.keymaps.file_panel = {
         { 'n', 'q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
@@ -158,19 +158,31 @@ return {
         { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
       }
 
-      opts.keymaps.view = {
-        { 'n', '<leader>q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
+      opts.keymaps.file_history_panel = {
+        { 'n', 'q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
+        { 'n', '<C-r>', actions.refresh_files, { desc = 'Diffview: Refresh' } },
+        { 'n', '!', actions.options, { desc = 'Diffview: Open Option Panel' } },
 
-        { 'n', 'g?', actions.help 'view', { desc = 'View: Help' } },
-        { 'n', '<leader>e', actions.focus_files, { desc = 'View: Focus Panel' } },
-        { 'n', 'gf', actions.goto_file_tab, { desc = 'View: Go to File' } },
-        { 'n', 'gl', actions.open_commit_log, { desc = 'View: Commit Log' } },
+        { 'n', '?', actions.help 'file_history_panel', { desc = 'Panel: Help' } },
+        { 'n', 'l', actions.focus_entry, { desc = 'Panel: Focus Right Diff' } },
+        { 'n', 'e', actions.goto_file_tab, { desc = 'Panel: Go to File' } },
+        { 'n', 'L', actions.open_commit_log, { desc = 'Panel: Commit Log' } },
 
         { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
         { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
+
+        { 'n', 'y', actions.copy_hash, { desc = 'Panel: Copy Commit Hash' } },
       }
 
-      -- { 'n', 'y', actions.copy_hash, { desc = 'Panel: Copy Commit Hash' } },
+      opts.keymaps.option_panel = {
+        { 'n', 'q', actions.close, { desc = 'Option: Close' } },
+        { 'n', '?', actions.help 'option_panel', { desc = 'Option: Help' } },
+        { 'n', '<Tab>', actions.select_entry, { desc = 'Option: Select' } },
+      }
+
+      opts.keymaps.help_panel = {
+        { 'n', 'q', actions.close, { desc = 'Help: Close' } },
+      }
 
       require('diffview').setup(opts)
     end,
