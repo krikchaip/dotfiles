@@ -156,6 +156,11 @@ return {
         { 'n', 'e', actions.goto_file_tab, { desc = 'Panel: Go to File' } },
         { 'n', 'L', actions.open_commit_log, { desc = 'Panel: Commit Log' } },
 
+        { 'n', '<M-d>', actions.scroll_view(0.25), { desc = 'View: Scroll Down Half Page' } },
+        { 'n', '<M-u>', actions.scroll_view(-0.25), { desc = 'View: Scroll Up Half Page' } },
+        { 'n', '<M-j>', actions.scroll_view(1), { desc = 'View: Scroll Down' } },
+        { 'n', '<M-k>', actions.scroll_view(-1), { desc = 'View: Scroll Up' } },
+
         { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
         { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
 
@@ -171,6 +176,11 @@ return {
         { 'n', 'l', actions.focus_entry, { desc = 'Panel: Focus Right Diff' } },
         { 'n', 'e', actions.goto_file_tab, { desc = 'Panel: Go to File' } },
         { 'n', 'L', actions.open_commit_log, { desc = 'Panel: Commit Log' } },
+
+        { 'n', '<M-d>', actions.scroll_view(0.25), { desc = 'View: Scroll Down Half Page' } },
+        { 'n', '<M-u>', actions.scroll_view(-0.25), { desc = 'View: Scroll Up Half Page' } },
+        { 'n', '<M-j>', actions.scroll_view(1), { desc = 'View: Scroll Down' } },
+        { 'n', '<M-k>', actions.scroll_view(-1), { desc = 'View: Scroll Up' } },
 
         { 'n', 'y', actions.copy_hash, { desc = 'Panel: Copy Commit Hash' } },
 
