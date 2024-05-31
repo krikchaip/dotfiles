@@ -140,6 +140,9 @@ return {
         { 'n', '<leader>e', actions.focus_files, { desc = 'View: Focus Panel' } },
         { 'n', 'gf', actions.goto_file_tab, { desc = 'View: Go to File' } },
         { 'n', 'gl', actions.open_commit_log, { desc = 'View: Commit Log' } },
+
+        { 'n', '<Tab>', actions.select_next_entry, { desc = 'Entry: Select Next' } },
+        { 'n', '<S-Tab>', actions.select_prev_entry, { desc = 'Entry: Select Previous' } },
       }
 
       opts.keymaps.diff_view = {
@@ -164,6 +167,9 @@ return {
         { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
         { 'n', ']x', actions.next_conflict, { desc = 'Merge: Next Conflict' } },
 
+        { 'n', '<CR>', actions.select_entry, { desc = 'Entry: Select Current' } },
+        { 'n', 'j', actions.select_next_entry, { desc = 'Entry: Select Next' } },
+        { 'n', 'k', actions.select_prev_entry, { desc = 'Entry: Select Previous' } },
         { 'n', 'X', actions.restore_entry, { desc = 'Entry: Revert Changes' } },
       }
 
@@ -184,6 +190,9 @@ return {
 
         { 'n', 'y', actions.copy_hash, { desc = 'Panel: Copy Commit Hash' } },
 
+        { 'n', '<CR>', actions.select_entry, { desc = 'Entry: Select Current' } },
+        { 'n', 'j', actions.select_next_entry, { desc = 'Entry: Select Next' } },
+        { 'n', 'k', actions.select_prev_entry, { desc = 'Entry: Select Previous' } },
         { 'n', 'X', actions.restore_entry, { desc = 'Entry: Revert Changes' } },
       }
 
