@@ -136,7 +136,7 @@ return {
     'folke/twilight.nvim',
     name = 'twilight',
     keys = {
-      { '<leader>z', '<cmd>Twilight<CR>', desc = 'Toggle [z]en mode 🧘' },
+      { '<leader>z', '<cmd>Twilight<CR>', desc = 'Zenmode: Toggle 🧘' },
     },
     config = function()
       require('twilight').setup {

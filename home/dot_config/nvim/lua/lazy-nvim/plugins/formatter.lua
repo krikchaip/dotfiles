@@ -13,15 +13,15 @@ return {
             vim.cmd [[write]]
           end)
         end,
-        desc = 'Format and write current buffer',
+        desc = 'Buffer: Format and Write Current',
       },
 
-      { '<leader>W', '<cmd>w<CR>', desc = 'Write current buffer' },
+      { '<leader>W', '<cmd>w<CR>', desc = 'Buffer: Write Current' },
 
       {
         '<leader>=',
         function() require('conform').format { async = true, lsp_fallback = true } end,
-        desc = 'Format current buffer or selected range',
+        desc = 'Format: Current Context',
         mode = { 'n', 'x' },
       },
     },
