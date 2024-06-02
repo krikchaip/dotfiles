@@ -75,28 +75,8 @@ vim.keymap.set('n', '<M-S-.>', '>>', { desc = 'Indent: Current Line Insert One' 
 vim.keymap.set('n', '-', '<C-x>', { desc = 'Number: Decrement' })
 vim.keymap.set('n', '+', '<C-a>', { desc = 'Number: Increment' })
 
--- Saving buffers (files)
+-- Buffer Management
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Buffer: Write Current' })
-
--- Smart delete current buffer
--- Window:  switch to the last accessed when there's more than one
--- Tabpage: switch to the last accessed when there're no more windows left
-local function smart_delete_buffer(bang)
-  return function()
-    bang = bang or false
-
-    local last_buf = tostring(vim.api.nvim_get_current_buf())
-
-    if #vim.api.nvim_tabpage_list_wins(0) > 1 then
-      vim.cmd.bdelete { bang = bang }
-      vim.cmd.wincmd 'p'
-    else
-      vim.cmd [[silent! tabnext #]]
-      vim.cmd.bdelete { last_buf, bang = bang }
-    end
-  end
-end
-
 vim.keymap.set('n', '<leader>q', smart_delete_buffer(), { desc = 'Buffer: Delete Current' })
 vim.keymap.set('n', '<leader><S-q>', smart_delete_buffer(true), { desc = 'Buffer: Force Delete Current' })
 
@@ -120,10 +100,7 @@ vim.keymap.set('n', '<C-S-left>', '<cmd>-tabmove<CR>', { desc = 'Tab: Move Backw
 vim.keymap.set('n', '<C-S-right>', '<cmd>+tabmove<CR>', { desc = 'Tab: Move Forward' })
 vim.keymap.set('n', '<leader>to', '<cmd>tabonly<CR>', { desc = 'Tab: Close All Others' })
 vim.keymap.set('n', '<C-n>', '<cmd>tabnew<CR>', { desc = 'Tab: Create Empty' })
-vim.keymap.set('n', '<leader>tq', function()
-  local ok, _ = pcall(vim.cmd, 'tabnext# | tabclose#')
-  if not ok then vim.cmd [[tabclose]] end
-end, { desc = 'Tab: Close Current' })
+vim.keymap.set('n', '<leader>tq', smart_close_tabpage, { desc = 'Tab: Close Current' })
 
 -- Tabpage Navigation
 vim.keymap.set('n', '<C-Left>', '<cmd>tabprevious<CR>', { desc = 'Tab: Go to Previous' })
