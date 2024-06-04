@@ -134,7 +134,7 @@ return {
       opts.keymaps = { disable_defaults = true }
 
       opts.keymaps.view = {
-        { 'n', '<leader>q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
+        { 'n', '<leader>q', smart_close_tabpage, { desc = 'Diffview: Close' } },
 
         { 'n', 'g?', actions.help 'view', { desc = 'View: Help' } },
         { 'n', '<leader>e', actions.focus_files, { desc = 'View: Focus Panel' } },
@@ -151,7 +151,7 @@ return {
       }
 
       opts.keymaps.file_panel = {
-        { 'n', 'q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
+        { 'n', 'q', smart_close_tabpage, { desc = 'Diffview: Close' } },
         { 'n', '<C-r>', actions.refresh_files, { desc = 'Diffview: Refresh' } },
 
         { 'n', '?', actions.help 'file_panel', { desc = 'Panel: Help' } },
@@ -174,7 +174,7 @@ return {
       }
 
       opts.keymaps.file_history_panel = {
-        { 'n', 'q', '<cmd>DiffviewClose<CR>', { desc = 'Diffview: Close' } },
+        { 'n', 'q', smart_close_tabpage, { desc = 'Diffview: Close' } },
         { 'n', '<C-r>', actions.refresh_files, { desc = 'Diffview: Refresh' } },
         { 'n', '!', actions.options, { desc = 'Diffview: Open Option Panel' } },
 
