@@ -67,7 +67,8 @@ return {
       { '<leader>f', custom_pickers.find_files, desc = 'Explorer: List Files' },
 
       -- [[ Full-text search ]]
-      { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search: Workspace <cword>', mode = { 'n', 'x' } },
+      { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search: Workspace <cword>' },
+      { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search: Workspace Current Highlighted', mode = 'x' },
       { '<leader>/', custom_pickers.local_fuzzy_find, desc = 'Search: Current Buffer' },
       { '<leader>F', custom_pickers.workspace_fuzzy_find, desc = 'Search: Current Workspace' },
 
