@@ -108,6 +108,7 @@ return {
     keys = {
       { '<leader>gd', '<cmd>DiffviewOpen<CR>', desc = 'Git: Open Diffview' },
       { '<leader>gf', '<cmd>DiffviewFileHistory %<CR>', desc = 'Git: Open File History' },
+      { '<leader>gf', ':DiffviewFileHistory<CR>', desc = 'Git: Open Line History', mode = 'x' },
       { '<leader>gl', '<cmd>DiffviewFileHistory<CR>', desc = 'Git: Show Logs' },
       { '<leader>gS', '<cmd>DiffviewFileHistory -g --range=stash<CR>', desc = 'Git: Stash' },
     },
