@@ -68,7 +68,7 @@ return {
 
         -- [[ Menus ]]
 
-        kopts.desc = 'Git: Show line info'
+        kopts.desc = 'Git: Show Line Info'
         vim.keymap.set('n', '<leader>gi', function() gitsigns.blame_line { full = true } end, kopts)
 
         -- [[ Actions ]]
