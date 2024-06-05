@@ -135,7 +135,7 @@ return {
       opts.keymaps = { disable_defaults = true }
 
       opts.keymaps.view = {
-        { 'n', '<leader>q', smart_close_tabpage, { desc = 'Diffview: Close' } },
+        { 'n', 'q', smart_close_tabpage, { desc = 'Diffview: Close' } },
 
         { 'n', 'g?', actions.help 'view', { desc = 'View: Help' } },
         { 'n', '<leader>e', actions.focus_files, { desc = 'View: Focus Panel' } },

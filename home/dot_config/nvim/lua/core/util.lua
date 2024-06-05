@@ -48,3 +48,13 @@ function smart_close_tabpage()
   local ok, _ = pcall(vim.cmd, 'tabnext# | tabclose#')
   if not ok then vim.cmd [[tabclose]] end
 end
+
+function macro_start_stop()
+  if vim.fn.reg_recording() ~= '' then
+    -- if still recording, then stop
+    return 'q'
+  else
+    -- otherwise, start new recording
+    return 'qq'
+  end
+end
