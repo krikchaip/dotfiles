@@ -75,6 +75,10 @@ vim.keymap.set('n', '<M-S-.>', '>>', { desc = 'Indent: Current Line Insert One' 
 vim.keymap.set('n', '-', '<C-x>', { desc = 'Number: Decrement' })
 vim.keymap.set('n', '+', '<C-a>', { desc = 'Number: Increment' })
 
+-- Remap macro keys to prevent accidentally pressing of q's
+vim.keymap.set('n', '<leader>m', 'qq', { desc = 'Macro: Start Recording' })
+vim.keymap.set('n', '<leader>M', 'Q', { desc = 'Macro: Replay Last Recording' })
+
 -- Buffer Management
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Buffer: Write Current' })
 vim.keymap.set('n', 'q', smart_delete_buffer(), { desc = 'Buffer: Delete Current' })
