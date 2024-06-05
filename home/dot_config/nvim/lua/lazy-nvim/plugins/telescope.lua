@@ -197,6 +197,12 @@ return {
 
           grep_string = {
             path_display = { 'tail' },
+
+            mappings = {
+              i = {
+                ['<CR>'] = actions.select_tab_drop,
+              },
+            },
           },
 
           find_files = {
