@@ -77,8 +77,8 @@ vim.keymap.set('n', '+', '<C-a>', { desc = 'Number: Increment' })
 
 -- Buffer Management
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Buffer: Write Current' })
-vim.keymap.set('n', '<leader>q', smart_delete_buffer(), { desc = 'Buffer: Delete Current' })
-vim.keymap.set('n', '<leader><S-q>', smart_delete_buffer(true), { desc = 'Buffer: Force Delete Current' })
+vim.keymap.set('n', 'q', smart_delete_buffer(), { desc = 'Buffer: Delete Current' })
+vim.keymap.set('n', 'Q', smart_delete_buffer(true), { desc = 'Buffer: Force Delete Current' })
 
 -- Window Navigation
 vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Window: Focus Left' })
