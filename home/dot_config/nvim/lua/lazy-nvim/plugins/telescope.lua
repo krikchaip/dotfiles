@@ -74,7 +74,6 @@ return {
 
       -- [[ Git Integration ]]
       { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Git: Manage Branches' },
-      { '<leader>gs', '<cmd>Telescope git_status<CR>', desc = 'Git: Show Status' },
     },
     dependencies = { 'plenary', 'web-devicons', 'nvim-treesitter' },
     config = function()
@@ -229,18 +228,6 @@ return {
                 ['<C-c>'] = actions.delete_buffer,
                 ['<CR>'] = actions.select_tab_drop,
               },
-            },
-          },
-
-          git_status = {
-            git_icons = {
-              added = '+',
-              changed = '~',
-              copied = '>',
-              deleted = '-',
-              renamed = '➡',
-              unmerged = '‡',
-              untracked = '?',
             },
           },
 
