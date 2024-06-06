@@ -136,6 +136,8 @@ return {
     },
     dependencies = {
       'mason-lspconfig',
+
+      -- Function Signature Previewer (pick one or none)
       -- 'lsp-signature',
       -- 'mini.completion',
     },
