@@ -124,6 +124,52 @@ return {
     },
   },
 
+  -- To show LSP query results in a floating window instead of usual splits/tabs
+  -- ref: https://github.com/rmagatti/goto-preview
+  {
+    'rmagatti/goto-preview',
+    name = 'goto-preview',
+    opts = {
+      width = 80,
+      height = 20,
+
+      references = {
+        -- Use telescope's default layout configs
+        telescope = {},
+      },
+
+      post_open_hook = function(bufnr, winnr)
+        local utils = require 'lazy-nvim.lib.goto-preview-utils'
+        local open_preview = utils.create_open_preview(winnr)
+
+        local opts = { buffer = bufnr }
+
+        opts.desc = 'Preview: Close Current Window'
+        vim.keymap.set('n', 'q', '<cmd>wincmd q<CR>', opts)
+
+        opts.desc = 'Preview: Close All Windows'
+        vim.keymap.set('n', 'Q', "<cmd>lua require('goto-preview').close_all_win()<CR>", opts)
+
+        opts.desc = 'Preview: Replace Parent Window'
+        vim.keymap.set('n', '<CR>', open_preview 'default', opts)
+
+        opts.desc = 'Preview: Split Horizontally'
+        vim.keymap.set('n', '<C-s>', open_preview 'horizontal', opts)
+
+        opts.desc = 'Preview: Split Vertically'
+        vim.keymap.set('n', '<C-v>', open_preview 'vertical', opts)
+
+        opts.desc = 'Preview: Open in New Tab'
+        vim.keymap.set('n', '<C-t>', open_preview 'tab', opts)
+      end,
+
+      post_close_hook = function(bufnr, _)
+        local utils = require 'lazy-nvim.lib.goto-preview-utils'
+        utils.clear_buffer_keymaps(bufnr)
+      end,
+    },
+  },
+
   -- actual configs and apis for the Nvim LSP client
   -- ref: https://github.com/neovim/nvim-lspconfig
   {
