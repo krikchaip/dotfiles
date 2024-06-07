@@ -160,7 +160,7 @@ return {
         { 'n', 'e', actions.goto_file_tab, { desc = 'Panel: Go to File' } },
         { 'n', 'L', actions.open_commit_log, { desc = 'Panel: Commit Log' } },
         { 'n', 'S', actions.stage_all, { desc = 'Panel: Stage All Entries' } },
-        { 'n', 'S', actions.unstage_all, { desc = 'Panel: Unstage All Entries' } },
+        { 'n', 'U', actions.unstage_all, { desc = 'Panel: Unstage All Entries' } },
 
         { 'n', 'j', actions.select_next_entry, { desc = 'Entry: Select Next' } },
         { 'n', 'k', actions.select_prev_entry, { desc = 'Entry: Select Previous' } },
