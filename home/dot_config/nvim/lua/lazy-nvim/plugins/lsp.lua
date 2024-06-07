@@ -128,7 +128,7 @@ return {
   -- ref: https://github.com/neovim/nvim-lspconfig
   {
     'neovim/nvim-lspconfig',
-    name = 'nvim-lspconfig',
+    name = 'lspconfig',
     event = { 'BufReadPre', 'BufNewFile' },
     keys = {
       { '<leader>li', '<cmd>LspInfo<CR>', desc = 'LSP: Show Info' },
@@ -259,7 +259,7 @@ return {
     name = 'lazydev',
     enabled = false,
     ft = { 'lua' },
-    dependencies = { 'nvim-lspconfig' },
+    dependencies = { 'lspconfig' },
     opts = {},
   },
 
@@ -267,7 +267,7 @@ return {
     'folke/neodev.nvim',
     name = 'neodev',
     ft = { 'lua' },
-    dependencies = { 'nvim-lspconfig' },
+    dependencies = { 'lspconfig' },
     config = function()
       local neodev = require 'neodev'
       local lspconfig = require 'lspconfig'
@@ -310,7 +310,7 @@ return {
       'typescriptreact',
       'typescript.tsx',
     },
-    dependencies = { 'plenary', 'nvim-lspconfig' },
+    dependencies = { 'plenary', 'lspconfig' },
     opts = {
       expose_as_code_action = 'all',
     },
