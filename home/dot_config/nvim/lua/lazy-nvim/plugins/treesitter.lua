@@ -208,18 +208,18 @@ return {
 
       -- Repeat movement with ; and ,
       -- ensure ; goes forward and , goes backward regardless of the last direction
-      vim.keymap.set({ 'n', 'x', 'o' }, ';', function() ts_action.repeat_last_move_next() end, { desc = 'Repeat last move next' })
-      vim.keymap.set({ 'n', 'x', 'o' }, ',', function() ts_action.repeat_last_move_previous() end, { desc = 'Repeat last move previous' })
+      vim.keymap.set({ 'n', 'x', 'o' }, ';', ts_action.repeat_last_move_next, { desc = 'Repeat last move next' })
+      vim.keymap.set({ 'n', 'x', 'o' }, ',', ts_action.repeat_last_move_previous, { desc = 'Repeat last move previous' })
 
       -- vim way: ; goes to the direction you were moving.
-      -- vim.keymap.set({ 'n', 'x', 'o' }, ';', function() ts_action.repeat_last_move() end, { desc = 'Repeat last move' })
-      -- vim.keymap.set({ 'n', 'x', 'o' }, ',', function() ts_action.repeat_last_move_opposite() end, { desc = 'Repeat last move opposite' })
+      -- vim.keymap.set({ 'n', 'x', 'o' }, ';', ts_action.repeat_last_move, { desc = 'Repeat last move' })
+      -- vim.keymap.set({ 'n', 'x', 'o' }, ',', ts_action.repeat_last_move_opposite, { desc = 'Repeat last move opposite' })
 
       -- Optionally, make builtin f, F, t, T also repeatable with ; and ,
-      vim.keymap.set({ 'n', 'x', 'o' }, 'f', ts_action.builtin_f)
-      vim.keymap.set({ 'n', 'x', 'o' }, 'F', ts_action.builtin_F)
-      vim.keymap.set({ 'n', 'x', 'o' }, 't', ts_action.builtin_t)
-      vim.keymap.set({ 'n', 'x', 'o' }, 'T', ts_action.builtin_T)
+      vim.keymap.set({ 'n', 'x', 'o' }, 'f', ts_action.builtin_f_expr, { expr = true })
+      vim.keymap.set({ 'n', 'x', 'o' }, 'F', ts_action.builtin_F_expr, { expr = true })
+      vim.keymap.set({ 'n', 'x', 'o' }, 't', ts_action.builtin_t_expr, { expr = true })
+      vim.keymap.set({ 'n', 'x', 'o' }, 'T', ts_action.builtin_T_expr, { expr = true })
 
       -- enable tree-sitter based folding
       -- NOTE: This will respect your `foldminlines` and `foldnestmax` settings
