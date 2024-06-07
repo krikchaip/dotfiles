@@ -200,22 +200,22 @@ return {
           -- This is where a variable was first declared, or where a function is defined, etc.
           -- To jump back, press <C-t>.
           opts.desc = 'LSP: Jump to Definition'
-          vim.keymap.set('n', 'gd', '<cmd>Telescope lsp_definitions<CR>', opts)
+          vim.keymap.set('n', 'gd', "<cmd>lua require('goto-preview').goto_preview_definition()<CR>", opts)
 
           -- Jump to the type of the word under your cursor.
           -- Useful when you're not sure what type a variable is and you want to see
           -- the definition of its *type*, not where it was *defined*.
           opts.desc = 'LSP: Jump to Typedef'
-          vim.keymap.set('n', 'gD', '<cmd>Telescope lsp_type_definitions<CR>', opts)
+          vim.keymap.set('n', 'gD', "<cmd>lua require('goto-preview').goto_preview_type_definition()<CR>", opts)
 
           -- Jump to the implementation of the word under your cursor.
           -- Useful when your language has ways of declaring types without an actual implementation.
           opts.desc = 'LSP: Jump to Implementation'
-          vim.keymap.set('n', 'gI', '<cmd>Telescope lsp_implementations<CR>', opts)
+          vim.keymap.set('n', 'gI', "<cmd>lua require('goto-preview').goto_preview_implementation()<CR>", opts)
 
           -- Find all references for the word under your cursor.
           opts.desc = 'LSP: Show References'
-          vim.keymap.set('n', 'gr', '<cmd>Telescope lsp_references<CR>', opts)
+          vim.keymap.set('n', 'gr', "<cmd>lua require('goto-preview').goto_preview_references()<CR>", opts)
 
           -- Rename the variable under your cursor.
           -- Most Language Servers support renaming across files, etc.
