@@ -56,7 +56,7 @@ return {
         -- Preserves window proportions when opening a file
         -- If `false`, the height and width of windows other than nvim-tree will be automatically equalized.
         -- If `true`, the height and width of windows other than nvim-tree will be preserved.
-        preserve_window_proportions = true,
+        preserve_window_proportions = false,
 
         -- Value can be 'yes', 'auto', 'no'
         signcolumn = 'no',
