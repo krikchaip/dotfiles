@@ -1,5 +1,14 @@
 ---@diagnostic disable: lowercase-global, param-type-mismatch
 
+-- Global Vim utility functions
+vim.cmd [[
+  " Escape Vim regexp characters
+  " ref: https://stackoverflow.com/questions/11311431/how-to-escape-search-patterns-or-regular-expressions-in-vimscript
+  function! EscapeVimRegexp(str)
+    return escape(a:str, '^$.*?/\[]~')
+  endfunction
+]]
+
 function is_git_repo()
   vim.fn.system 'git rev-parse --is-inside-work-tree'
   return vim.v.shell_error == 0
