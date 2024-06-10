@@ -35,13 +35,11 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- ref: https://superuser.com/questions/255024/highlighting-a-search-term-without-moving-the-cursor
 local highlight_inplace_n = '<cmd>let @/ = EscapeVimRegexp(expand("<cword>")) | set hls<CR>'
 local highlight_inplace_x = '"hygv<cmd>let @/ = EscapeVimRegexp(@h) | let @h = @_ | set hls<CR>'
-local highlight_inplace_exact_n = '<cmd>let @/ = "\\\\<" . EscapeVimRegexp(expand("<cword>")) . "\\\\>" | set hls<CR>'
-local highlight_inplace_exact_x = '"hygv<cmd>let @/ = "\\\\<" . EscapeVimRegexp(@h) . "\\\\>" | let @h = @_ | set hls<CR>'
 
 vim.keymap.set('n', 'g*', highlight_inplace_n, { desc = 'Highlight: Current Word in Place' })
 vim.keymap.set('x', 'g*', highlight_inplace_x, { desc = 'Highlight: Selection in Place' })
-vim.keymap.set('n', 'g#', highlight_inplace_exact_n, { desc = 'Highlight: Exact Current Word in Place' })
-vim.keymap.set('x', 'g#', highlight_inplace_exact_x, { desc = 'Highlight: Exact Selection in Place' })
+vim.keymap.set('n', 'g#', highlight_inplace_n, { desc = 'Highlight: Current Word in Place' })
+vim.keymap.set('x', 'g#', highlight_inplace_x, { desc = 'Highlight: Selection in Place' })
 
 -- Fix visual mode yank region cursor moving back to the top
 -- ref: https://stackoverflow.com/questions/3806629/yank-a-region-in-vim-without-the-cursor-moving-to-the-top-of-the-block
