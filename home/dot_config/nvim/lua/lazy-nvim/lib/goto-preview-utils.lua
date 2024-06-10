@@ -9,7 +9,25 @@ local select_to_edit_map = {
 
 local M = {}
 
-function M.create_open_preview(winnr)
+function M.create_key_mapper(bufnr)
+  return function(keymaps)
+    -- Clear existing floating window keymaps after executing one of them
+    local function unmap_keys()
+      for _, km in ipairs(keymaps) do
+        vim.api.nvim_buf_del_keymap(bufnr, 'n', km[1])
+      end
+    end
+
+    for _, km in ipairs(keymaps) do
+      vim.keymap.set('n', km[1], function()
+        km[2]()
+        unmap_keys()
+      end, { buffer = bufnr, desc = km[3] })
+    end
+  end
+end
+
+function M.create_open_previewer(winnr)
   return function(layout)
     return function()
       local gtp = require 'goto-preview'
@@ -28,16 +46,6 @@ function M.create_open_preview(winnr)
       vim.api.nvim_win_set_cursor(0, cursor_position)
     end
   end
-end
-
--- Clear existing floating window keymaps
-function M.clear_buffer_keymaps(bufnr)
-  vim.api.nvim_buf_del_keymap(bufnr, 'n', 'q')
-  vim.api.nvim_buf_del_keymap(bufnr, 'n', 'Q')
-  vim.api.nvim_buf_del_keymap(bufnr, 'n', '<CR>')
-  vim.api.nvim_buf_del_keymap(bufnr, 'n', '<C-s>')
-  vim.api.nvim_buf_del_keymap(bufnr, 'n', '<C-v>')
-  vim.api.nvim_buf_del_keymap(bufnr, 'n', '<C-t>')
 end
 
 return M

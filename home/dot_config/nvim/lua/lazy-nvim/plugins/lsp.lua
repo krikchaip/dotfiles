@@ -140,32 +140,18 @@ return {
 
       post_open_hook = function(bufnr, winnr)
         local utils = require 'lazy-nvim.lib.goto-preview-utils'
-        local open_preview = utils.create_open_preview(winnr)
 
-        local opts = { buffer = bufnr }
+        local map = utils.create_key_mapper(bufnr)
+        local open_preview = utils.create_open_previewer(winnr)
 
-        opts.desc = 'Preview: Close Current Window'
-        vim.keymap.set('n', 'q', '<cmd>wincmd q<CR>', opts)
-
-        opts.desc = 'Preview: Close All Windows'
-        vim.keymap.set('n', 'Q', "<cmd>lua require('goto-preview').close_all_win()<CR>", opts)
-
-        opts.desc = 'Preview: Replace Parent Window'
-        vim.keymap.set('n', '<CR>', open_preview 'default', opts)
-
-        opts.desc = 'Preview: Split Horizontally'
-        vim.keymap.set('n', '<C-s>', open_preview 'horizontal', opts)
-
-        opts.desc = 'Preview: Split Vertically'
-        vim.keymap.set('n', '<C-v>', open_preview 'vertical', opts)
-
-        opts.desc = 'Preview: Open in New Tab'
-        vim.keymap.set('n', '<C-t>', open_preview 'tab', opts)
-      end,
-
-      post_close_hook = function(bufnr, _)
-        local utils = require 'lazy-nvim.lib.goto-preview-utils'
-        utils.clear_buffer_keymaps(bufnr)
+        map {
+          { 'q', function() vim.cmd.wincmd 'q' end, 'Preview: Close Current Window' },
+          { 'Q', function() require('goto-preview').close_all_win() end, 'Preview: Close All Windows' },
+          { '<CR>', open_preview 'default', 'Preview: Replace Parent Window' },
+          { '<C-s>', open_preview 'horizontal', 'Preview: Split Horizontally' },
+          { '<C-v>', open_preview 'vertical', 'Preview: Split Vertically' },
+          { '<C-t>', open_preview 'tab', 'Preview: Open in New Tab' },
+        }
       end,
     },
   },
