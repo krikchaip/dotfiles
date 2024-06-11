@@ -109,6 +109,8 @@ return {
     end,
   },
 
+  -- TODO: git log sub commands (`glx`, `gly`). eg. one git log command for neogit, another for diffview
+  -- TODO: merge conflict keymappings
   {
     'sindrets/diffview.nvim',
     name = 'diffview',
