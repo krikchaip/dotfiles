@@ -60,10 +60,10 @@ return {
           end
         end)
 
-        kopts.desc = 'Git: Next unstaged hunk'
+        kopts.desc = 'Git: Unstaged Hunk'
         vim.keymap.set('n', ']c', next_hunk, kopts)
 
-        kopts.desc = 'Git: Previous unstaged hunk'
+        kopts.desc = 'Git: Unstaged Hunk'
         vim.keymap.set('n', '[c', prev_hunk, kopts)
 
         -- [[ Menus ]]
