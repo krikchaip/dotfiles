@@ -245,12 +245,8 @@ return {
       },
 
       on_attach = function(bufnr)
-        require 'lazy-nvim.lib.nvim-tree-autocmd'
-
-        -- local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
-        local utils = require 'lazy-nvim.lib.nvim-tree-utils'
-
         local api = require 'nvim-tree.api'
+        local utils = require 'lazy-nvim.lib.nvim-tree-utils'
 
         local tree = api.tree
         local node = api.node
@@ -382,6 +378,10 @@ return {
 
       -- enable 24-bit colour
       vim.opt.termguicolors = true
+    end,
+    config = function(_, opts)
+      require('nvim-tree').setup(opts)
+      require 'lazy-nvim.lib.nvim-tree-autocmd'
     end,
   },
 }
