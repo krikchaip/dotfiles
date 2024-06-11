@@ -27,9 +27,6 @@ return {
     },
   },
 
-  -- TODO: refactor descriptions
-  -- TODO: change assignment key mapping
-
   -- Highlight, edit, and code navigation
   -- ref: https://github.com/nvim-treesitter/nvim-treesitter
   {
@@ -112,7 +109,7 @@ return {
             ['af'] = { query = '@function.outer', desc = 'Treesitter: Function' },
             ['al'] = { query = '@assignment.lhs', desc = 'Treesitter: Left Assignment' },
             ['ar'] = { query = '@assignment.rhs', desc = 'Treesitter: Right Assignment' },
-            ['a.'] = { query = '@assignment.outer', desc = 'Treesitter: Assignment' },
+            ['a='] = { query = '@assignment.outer', desc = 'Treesitter: Assignment' },
             ['ax'] = { query = '@call.outer', desc = 'Treesitter: Function Call' },
             ['ai'] = { query = '@conditional.outer', desc = 'Treesitter: If Statement' },
             ['ao'] = { query = '@loop.outer', desc = 'Treesitter: Loop' },
@@ -123,7 +120,7 @@ return {
             ['if'] = { query = '@function.inner', desc = 'Treesitter: Function' },
             ['il'] = { query = '@assignment.lhs', desc = 'Treesitter: Left Assignment' },
             ['ir'] = { query = '@assignment.rhs', desc = 'Treesitter: Right Assignment' },
-            ['i.'] = { query = '@assignment.inner', desc = 'Treesitter: Assignment' },
+            ['i='] = { query = '@assignment.inner', desc = 'Treesitter: Assignment' },
             ['ix'] = { query = '@call.inner', desc = 'Treesitter: Function Call' },
             ['ii'] = { query = '@conditional.inner', desc = 'Treesitter: If Statement' },
             ['io'] = { query = '@loop.inner', desc = 'Treesitter: Loop' },
@@ -155,7 +152,7 @@ return {
             [']f'] = { query = '@function.outer', desc = 'Treesitter: Function Start' },
             [']l'] = { query = '@assignment.lhs', desc = 'Treesitter: Left Assignment Start' },
             [']r'] = { query = '@assignment.rhs', desc = 'Treesitter: Right Assignment Start' },
-            ['].'] = { query = '@assignment.outer', desc = 'Treesitter: Assignment Start' },
+            [']='] = { query = '@assignment.outer', desc = 'Treesitter: Assignment Start' },
             [']x'] = { query = '@call.outer', desc = 'Treesitter: Function Call Start' },
             [']i'] = { query = '@conditional.outer', desc = 'Treesitter: If Statement Start' },
             [']o'] = { query = '@loop.outer', desc = 'Treesitter: Loop Start' },
@@ -168,7 +165,7 @@ return {
             [']F'] = { query = '@function.outer', desc = 'Treesitter: Function End' },
             [']L'] = { query = '@assignment.lhs', desc = 'Treesitter: Left Assignment End' },
             [']R'] = { query = '@assignment.rhs', desc = 'Treesitter: Right Assignment End' },
-            [']>'] = { query = '@assignment.outer', desc = 'Treesitter: Assignment End' },
+            [']+'] = { query = '@assignment.outer', desc = 'Treesitter: Assignment End' },
             [']X'] = { query = '@call.outer', desc = 'Treesitter: Function Call End' },
             [']I'] = { query = '@conditional.outer', desc = 'Treesitter: If Statement End' },
             [']O'] = { query = '@loop.outer', desc = 'Treesitter: Loop End' },
@@ -181,7 +178,7 @@ return {
             ['[f'] = { query = '@function.outer', desc = 'Treesitter: Function Start' },
             ['[l'] = { query = '@assignment.lhs', desc = 'Treesitter: Left Assignment Start' },
             ['[r'] = { query = '@assignment.rhs', desc = 'Treesitter: Right Assignment Start' },
-            ['[.'] = { query = '@assignment.outer', desc = 'Treesitter: Assignment Start' },
+            ['[='] = { query = '@assignment.outer', desc = 'Treesitter: Assignment Start' },
             ['[x'] = { query = '@call.outer', desc = 'Treesitter: Function Call Start' },
             ['[i'] = { query = '@conditional.outer', desc = 'Treesitter: If Statement Start' },
             ['[o'] = { query = '@loop.outer', desc = 'Treesitter: Loop Start' },
@@ -194,7 +191,7 @@ return {
             ['[F'] = { query = '@function.outer', desc = 'Treesitter: Function End' },
             ['[L'] = { query = '@assignment.lhs', desc = 'Treesitter: Left Assignment End' },
             ['[R'] = { query = '@assignment.rhs', desc = 'Treesitter: Right Assignment End' },
-            ['[>'] = { query = '@assignment.outer', desc = 'Treesitter: Assignment End' },
+            ['[+'] = { query = '@assignment.outer', desc = 'Treesitter: Assignment End' },
             ['[X'] = { query = '@call.outer', desc = 'Treesitter: Function Call End' },
             ['[I'] = { query = '@conditional.outer', desc = 'Treesitter: If Statement End' },
             ['[O'] = { query = '@loop.outer', desc = 'Treesitter: Loop End' },
