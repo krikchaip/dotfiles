@@ -93,6 +93,14 @@ return {
 
         kopts.desc = 'Git: Reset all hunks to staged'
         vim.keymap.set('n', '<leader>ghR', function() gitsigns.reset_buffer() end, kopts)
+
+        -- [[ Text Objects ]]
+
+        kopts.desc = 'Git: Hunk under cursor'
+        vim.keymap.set({ 'o', 'x' }, 'ic', function() gitsigns.select_hunk() end, kopts)
+
+        kopts.desc = 'Git: Hunk under cursor'
+        vim.keymap.set({ 'o', 'x' }, 'ac', function() gitsigns.select_hunk() end, kopts)
       end,
     },
     config = function(_, opts)
