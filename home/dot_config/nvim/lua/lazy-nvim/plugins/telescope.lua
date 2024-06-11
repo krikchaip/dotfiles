@@ -64,13 +64,13 @@ return {
       -- [[ Navigation ]]
       { '<leader><leader>', '<cmd>Telescope resume<CR>', desc = 'Picker: Resume Last' },
       { '<leader>\\', '<cmd>Telescope buffers<CR>', desc = 'Buffer: List Open' },
-      { '<leader>f', custom_pickers.find_files, desc = 'Explorer: List Files' },
+      { '<leader>p', custom_pickers.find_files, desc = 'Explorer: List Files' },
 
       -- [[ Full-text search ]]
       { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search: Workspace <cword>' },
       { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search: Workspace Current Highlighted', mode = 'x' },
       { '<leader>/', custom_pickers.local_fuzzy_find, desc = 'Search: Current Buffer' },
-      { '<leader>F', custom_pickers.workspace_fuzzy_find, desc = 'Search: Current Workspace' },
+      { '<leader>f', custom_pickers.workspace_fuzzy_find, desc = 'Search: Current Workspace' },
 
       -- [[ Git Integration ]]
       { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Git: Manage Branches' },
