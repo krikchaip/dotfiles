@@ -160,15 +160,11 @@ return {
           ['<CR>'] = is(function(fallback)
             if cmp.visible() then return cmp.confirm { select = true } end
 
-            if luasnip.expandable() then return luasnip.expand() end
-
             fallback()
           end),
 
           -- VSCode like tab mapping
-          ['<Tab>'] = ics(function(fallback)
-            if cmp.visible() then return cmp.confirm { select = true } end
-
+          ['<Tab>'] = is(function(fallback)
             if luasnip.expandable() then return luasnip.expand() end
 
             if luasnip.locally_jumpable(1) then return luasnip.jump(1) end
@@ -176,9 +172,7 @@ return {
             fallback()
           end),
 
-          ['<S-Tab>'] = ics(function(fallback)
-            if cmp.visible() then return cmp.abort() end
-
+          ['<S-Tab>'] = is(function(fallback)
             if luasnip.locally_jumpable(-1) then return luasnip.jump(-1) end
 
             fallback()
