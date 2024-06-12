@@ -142,7 +142,7 @@ return {
 
       local _, ctx_upward = ts_repeat_move.make_repeatable_move_pair(function() end, function() ts_context.go_to_context(vim.v.count1) end)
 
-      vim.keymap.set('n', '[C', ctx_upward, { desc = 'Jump to [C]ontext upwards' })
+      vim.keymap.set('n', '[C', ctx_upward, { desc = 'Treesitter: Parent Context' })
     end,
   },
 
@@ -223,8 +223,8 @@ return {
 
       local next_closed_fold, prev_closed_fold = ts_repeat_move.make_repeatable_move_pair(ufo.goNextClosedFold, ufo.goPreviousClosedFold)
 
-      vim.keymap.set('n', ']z', next_closed_fold, { desc = 'Next closed fold region' })
-      vim.keymap.set('n', '[z', prev_closed_fold, { desc = 'Preview closed fold region' })
+      vim.keymap.set('n', ']z', next_closed_fold, { desc = 'UFO: Fold Region' })
+      vim.keymap.set('n', '[z', prev_closed_fold, { desc = 'UFO: Fold Region' })
 
       -- vim.keymap.set('n', 'K', function()
       --   local fold_preview_win = ufo.peekFoldedLinesUnderCursor()

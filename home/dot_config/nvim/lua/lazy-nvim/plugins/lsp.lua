@@ -208,10 +208,10 @@ return {
           local next_diagnostic, prev_diagnostic =
             ts_repeat_move.make_repeatable_move_pair(vim.diagnostic.goto_next, vim.diagnostic.goto_prev)
 
-          opts.desc = 'Next Diagnostic'
+          opts.desc = 'LSP: Diagnostic'
           vim.keymap.set('n', ']d', next_diagnostic, opts)
 
-          opts.desc = 'Previous Diagnostic'
+          opts.desc = 'LSP: Diagnostic'
           vim.keymap.set('n', '[d', prev_diagnostic, opts)
 
           -- Opens a popup that displays documentation about the word under your cursor
