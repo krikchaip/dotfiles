@@ -115,4 +115,18 @@ function M.preview_scrolling_previous(prompt_bufnr)
   preview_scroll(prompt_bufnr, -1)
 end
 
+function M.reveal_in_nvim_tree(prompt_bufnr)
+  local api = require 'nvim-tree.api'
+  local actions = require 'telescope.actions'
+  local action_state = require 'telescope.actions.state'
+
+  local selection = action_state.get_selected_entry()
+  local filename = selection.value or selection.filename or selection[1]
+  local filepath = vim.fs.joinpath(selection.cwd, filename)
+
+  actions.close(prompt_bufnr)
+
+  api.tree.find_file { buf = filepath, open = true, focus = true }
+end
+
 return M

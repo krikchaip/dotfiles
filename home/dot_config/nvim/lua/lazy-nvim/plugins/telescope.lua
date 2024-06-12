@@ -213,6 +213,7 @@ return {
             mappings = {
               i = {
                 ['<CR>'] = actions.select_tab_drop,
+                ['<M-r>'] = custom_actions.reveal_in_nvim_tree,
               },
             },
           },
