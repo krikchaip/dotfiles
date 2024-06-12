@@ -80,6 +80,9 @@ return {
       -- Enable mapping except command mode
       local is = function(mapping_fn) return cmp.mapping(mapping_fn, { 'i', 's' }) end
 
+      -- Enable mapping for only command mode
+      local c = function(mapping_fn) return cmp.mapping(mapping_fn, { 'c' }) end
+
       cmp.setup {
         snippet = {
           expand = function(args) require('luasnip').lsp_expand(args.body) end,
@@ -202,6 +205,24 @@ return {
       }
 
       cmp.setup.cmdline(':', {
+        mapping = {
+          ['<Tab>'] = c(function(fallback)
+            if cmp.visible() then
+              cmp.confirm { select = true }
+            else
+              fallback()
+            end
+          end),
+
+          ['<S-Tab>'] = c(function(fallback)
+            if cmp.visible() then
+              cmp.abort()
+            else
+              fallback()
+            end
+          end),
+        },
+
         sources = cmp.config.sources({
           { name = 'cmdline' },
         }, {
@@ -212,6 +233,24 @@ return {
       })
 
       cmp.setup.cmdline({ '/', '?' }, {
+        mapping = {
+          ['<Tab>'] = c(function(fallback)
+            if cmp.visible() then
+              cmp.confirm { select = true }
+            else
+              fallback()
+            end
+          end),
+
+          ['<S-Tab>'] = c(function(fallback)
+            if cmp.visible() then
+              cmp.abort()
+            else
+              fallback()
+            end
+          end),
+        },
+
         sources = cmp.config.sources {
           {
             name = 'buffer-lines',
