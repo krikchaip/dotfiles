@@ -191,11 +191,10 @@ return {
           { name = 'nvim_lsp', max_item_count = 100 },
           -- { name = 'lazydev' },
           { name = 'luasnip' },
-        }, {
-          { name = 'buffer' },
           { name = 'dotenv', keyword_length = 3 },
           { name = 'path' },
           { name = 'rpncalc' },
+          { name = 'buffer' },
         }),
       }
 
@@ -203,27 +202,27 @@ return {
         sources = cmp.config.sources({
           { name = 'cmdline' },
         }, {
-          { name = 'buffer' },
           { name = 'dotenv', keyword_length = 3 },
           { name = 'path', option = { trailing_slash = true } },
+          { name = 'buffer' },
         }),
       })
 
       cmp.setup.cmdline({ '/', '?' }, {
         sources = cmp.config.sources {
           {
-            name = 'buffer',
-            option = {
-              -- use the `iskeyword` option for recognizing words
-              keyword_pattern = [[\k\+]],
-            },
-          },
-          {
             name = 'buffer-lines',
             option = {
               line_numbers = true,
               line_number_separator = ': ',
               leading_whitespace = false,
+            },
+          },
+          {
+            name = 'buffer',
+            option = {
+              -- use the `iskeyword` option for recognizing words
+              keyword_pattern = [[\k\+]],
             },
           },
         },
