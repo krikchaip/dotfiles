@@ -38,10 +38,18 @@ return {
       auto_install = true, -- Autoinstall languages that are not installed
 
       ensure_installed = {
+        'git_config',
+        'git_rebase',
+        'gitattributes',
+        'gitcommit',
+        'gitignore',
+
         'lua',
         'luadoc',
+
         'vim',
         'vimdoc',
+
         'html',
         'css',
         'javascript',
@@ -49,8 +57,10 @@ return {
         'tsx',
         'json',
         'jsonc',
+
         'markdown',
         'markdown_inline',
+
         'elixir',
       },
 
