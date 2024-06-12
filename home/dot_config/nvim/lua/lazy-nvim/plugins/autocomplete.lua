@@ -115,6 +115,7 @@ return {
             maxwidth = 40,
             show_labelDetails = false,
             menu = {
+              ['buffer-lines'] = '[Buffer]',
               buffer = '[Buffer]',
               cmdline = '[Command]',
               dotenv = '[ENV]',
@@ -144,23 +145,29 @@ return {
 
           -- Toggle completion menu
           ['<C-Space>'] = ics(function()
-            if not cmp.visible() then return cmp.complete() end
-
-            cmp.abort()
+            if not cmp.visible() then
+              cmp.complete()
+            else
+              cmp.abort()
+            end
           end),
 
           -- Toggle documentation menu
           ['<C-i>'] = ics(function()
-            if not cmp.visible_docs() then cmp.open_docs() end
-
-            cmp.close_docs()
+            if not cmp.visible_docs() then
+              cmp.open_docs()
+            else
+              cmp.close_docs()
+            end
           end),
 
           -- Accept currently selected item
           ['<CR>'] = is(function(fallback)
-            if cmp.visible() then return cmp.confirm { select = true } end
-
-            fallback()
+            if cmp.visible() then
+              cmp.confirm { select = true }
+            else
+              fallback()
+            end
           end),
 
           -- VSCode like tab mapping
@@ -173,9 +180,11 @@ return {
           end),
 
           ['<S-Tab>'] = is(function(fallback)
-            if luasnip.locally_jumpable(-1) then return luasnip.jump(-1) end
-
-            fallback()
+            if luasnip.locally_jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
           end),
         },
 
