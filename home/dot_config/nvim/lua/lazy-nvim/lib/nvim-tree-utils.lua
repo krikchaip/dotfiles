@@ -20,6 +20,18 @@ function M.search_node()
 
   opts.prompt_title = 'Search Node'
   opts.cwd = vim.fn.getcwd()
+
+  opts.find_command = {
+    'fd',
+    '--type',
+    'file',
+    '--type',
+    'directory',
+    '--hidden', -- to show dot files and folders
+    '--exclude',
+    '**/.git/*',
+  }
+
   opts.attach_mappings = function(_, map)
     map('i', '<CR>', function(prompt_bufnr)
       actions.close(prompt_bufnr)

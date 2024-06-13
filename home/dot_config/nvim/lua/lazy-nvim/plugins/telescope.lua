@@ -208,9 +208,16 @@ return {
           },
 
           find_files = {
-            -- `hidden = true` will still show the inside of `.git/` as it's not `.gitignore`.
+            -- `hidden = true` will still show the inside of `.git/` as it's not specified in `.gitignore`.
             -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
-            find_command = { 'rg', '--files', '--hidden', '--glob', '!**/.git/*' },
+            find_command = {
+              'fd',
+              '--type',
+              'file',
+              '--hidden', -- to show dot files and folders
+              '--exclude',
+              '**/.git/*',
+            },
 
             mappings = {
               i = {
