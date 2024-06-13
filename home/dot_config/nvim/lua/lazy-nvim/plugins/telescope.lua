@@ -114,6 +114,8 @@ return {
 
             -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
             '--hidden',
+
+            -- Exclude some search results in these files
             '--glob',
             '!**/.git/*',
             '--glob',

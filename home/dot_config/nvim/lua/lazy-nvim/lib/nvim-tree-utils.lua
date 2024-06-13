@@ -9,7 +9,7 @@ function M.open_tab_silent(node)
   vim.cmd.tabprev()
 end
 
--- Search and focus for a file or folder in the tree with Telescope
+-- Search for a file and folder then highlights it in the tree using Telescope
 function M.search_node()
   local api = require 'nvim-tree.api'
   local builtin = require 'telescope.builtin'
