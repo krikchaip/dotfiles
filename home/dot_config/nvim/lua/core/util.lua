@@ -36,18 +36,18 @@ end
 -- Window:  switch to the last accessed when there's more than one
 -- Tabpage: switch to the last accessed when there're no more windows left
 function smart_delete_buffer(bang)
-  return function()
-    bang = bang or false
+  bang = bang or false
 
+  return function()
     local last_buf = tostring(vim.api.nvim_get_current_buf())
 
     if #vim.api.nvim_tabpage_list_wins(0) > 1 then
-      vim.cmd.bdelete { bang = bang }
       vim.cmd.wincmd 'p'
     else
       vim.cmd [[silent! tabnext #]]
-      vim.cmd.bdelete { last_buf, bang = bang }
     end
+
+    vim.cmd.bdelete { last_buf, bang = bang }
   end
 end
 
