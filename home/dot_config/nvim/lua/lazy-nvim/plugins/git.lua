@@ -169,14 +169,15 @@ return {
         { 'n', 'l', actions.focus_entry, { desc = 'Panel: Focus Right Diff' } },
         { 'n', 'e', actions.goto_file_tab, { desc = 'Panel: Go to File' } },
         { 'n', 'L', actions.open_commit_log, { desc = 'Panel: Commit Log' } },
-        { 'n', 'S', actions.stage_all, { desc = 'Panel: Stage All Entries' } },
-        { 'n', 'U', actions.unstage_all, { desc = 'Panel: Unstage All Entries' } },
+        { 'n', 'c', '<cmd>Neogit commit<CR>', { desc = 'Panel: Commit Popup' } },
 
         { 'n', 'j', actions.select_next_entry, { desc = 'Entry: Select Next' } },
         { 'n', 'k', actions.select_prev_entry, { desc = 'Entry: Select Previous' } },
         { 'n', '<CR>', actions.select_entry, { desc = 'Entry: Select Current' } },
         { 'n', 'X', actions.restore_entry, { desc = 'Entry: Revert Changes' } },
         { 'n', 's', actions.toggle_stage_entry, { desc = 'Entry: Stage / Unstage Current' } },
+        { 'n', 'S', actions.stage_all, { desc = 'Entry: Stage All' } },
+        { 'n', 'U', actions.unstage_all, { desc = 'Entry: Unstage All' } },
 
         { 'n', '<M-d>', actions.scroll_view(0.25), { desc = 'View: Scroll Down Half Page' } },
         { 'n', '<M-u>', actions.scroll_view(-0.25), { desc = 'View: Scroll Up Half Page' } },
