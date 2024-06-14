@@ -143,16 +143,7 @@ return {
           bookmarks_placement = 'before',
 
           glyphs = {
-            -- Glyphs for git status
-            git = {
-              unstaged = '✗',
-              staged = '✓',
-              unmerged = '',
-              renamed = '➜',
-              untracked = '★',
-              deleted = '',
-              ignored = '◌',
-            },
+            bookmark = '⌖', -- fix icon missing somehow?
           },
         },
       },
