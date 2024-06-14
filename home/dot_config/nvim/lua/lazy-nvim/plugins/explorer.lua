@@ -9,6 +9,7 @@ return {
   {
     'b0o/nvim-tree-preview.lua',
     name = 'nvim-tree-preview',
+    commit = 'e968df0', -- pinned until displaying filename as floating window title is fixed
     dependencies = { 'plenary', 'nvim-treesitter' },
     opts = {
       keymaps = {
