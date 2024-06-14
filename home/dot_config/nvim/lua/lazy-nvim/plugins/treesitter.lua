@@ -4,7 +4,7 @@ return {
   {
     'nushell/tree-sitter-nu',
     name = 'nvim-treesitter.nushell',
-    event = { 'BufReadPre *.nu', 'BufNewFile *.nu' },
+    ft = 'nu',
   },
 
   -- extended text objects (di*, da*, ci*, ca*, etc.)
