@@ -381,6 +381,7 @@ return {
     end,
     config = function(_, opts)
       require('nvim-tree').setup(opts)
+
       require 'lazy-nvim.lib.nvim-tree-autocmd'
     end,
   },
