@@ -39,7 +39,8 @@ function smart_delete_buffer(bang)
   bang = bang or false
 
   return function()
-    local last_buf = tostring(vim.api.nvim_get_current_buf())
+    local last_buf = vim.api.nvim_get_current_buf()
+    local last_win = vim.api.nvim_get_current_win()
 
     if #vim.api.nvim_tabpage_list_wins(0) > 1 then
       vim.cmd.wincmd 'p'
@@ -47,7 +48,11 @@ function smart_delete_buffer(bang)
       vim.cmd [[silent! tabnext #]]
     end
 
-    vim.cmd.bdelete { last_buf, bang = bang }
+    if #vim.fn.win_findbuf(last_buf) > 1 then
+      vim.api.nvim_win_close(last_win, false)
+    else
+      vim.cmd.bdelete { last_buf, bang = bang }
+    end
   end
 end
 
