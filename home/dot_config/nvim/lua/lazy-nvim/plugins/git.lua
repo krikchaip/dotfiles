@@ -199,6 +199,8 @@ return {
         { 'n', 'k', actions.select_prev_entry, { desc = 'Entry: Select Previous' } },
         { 'n', '<CR>', actions.select_entry, { desc = 'Entry: Select Current' } },
         { 'n', 'X', actions.restore_entry, { desc = 'Entry: Revert Changes' } },
+        { 'n', 'J', actions.select_next_commit, { desc = 'Entry: Select Next Commit' } },
+        { 'n', 'K', actions.select_prev_commit, { desc = 'Entry: Select Previous Commit' } },
 
         { 'n', '<M-d>', actions.scroll_view(0.25), { desc = 'View: Scroll Down Half Page' } },
         { 'n', '<M-u>', actions.scroll_view(-0.25), { desc = 'View: Scroll Up Half Page' } },
