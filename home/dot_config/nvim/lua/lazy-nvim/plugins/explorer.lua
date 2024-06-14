@@ -229,10 +229,10 @@ return {
         sync = {
           -- Opens the tree automatically when switching tabpage or opening a new
           -- tabpage if the tree was previously open.
-          open = true,
+          open = false,
 
           -- Closes the tree across all tabpages when the tree is closed
-          close = true,
+          close = false,
 
           -- List of filetypes or buffer names on new tab that will prevent nvim tree to open
           ignore = { 'help', 'DiffviewFiles', 'DiffviewFileHistory' },
