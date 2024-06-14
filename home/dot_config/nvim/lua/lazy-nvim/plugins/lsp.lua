@@ -133,6 +133,9 @@ return {
       width = 80,
       height = 20,
 
+      -- Whether to set the preview window title as the filename
+      preview_window_title = { position = 'center' },
+
       references = {
         -- Use telescope's default layout configs
         telescope = {},
