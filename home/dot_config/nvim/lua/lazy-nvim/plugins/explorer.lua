@@ -383,7 +383,10 @@ return {
     config = function(_, opts)
       require('nvim-tree').setup(opts)
 
-      require 'lazy-nvim.lib.nvim-tree-autocmd'
+      local utils = require 'lazy-nvim.lib.nvim-tree-utils'
+
+      vim.keymap.amend('n', 'q', utils.close_tree_if_last, { desc = 'Buffer: Delete Current' })
+      vim.keymap.amend('n', 'Q', utils.close_tree_if_last, { desc = 'Buffer: Force Delete Current' })
     end,
   },
 }
