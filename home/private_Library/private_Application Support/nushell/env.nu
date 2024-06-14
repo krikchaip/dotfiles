@@ -36,4 +36,5 @@ $env.PNPM_HOME = ($env.HOME | path join "Library" "pnpm")
 # homebrew installs imagemagick and its dependencies somewhere that
 # image.nvim couldn't reach. we have to tell the plugin to find those libs from this path
 # ref: https://github.com/3rd/image.nvim#installing-imagemagick
-$env.DYLD_LIBRARY_PATH = (brew --prefix | to text | path join "lib")
+let brew_prefix = (brew --prefix | to text)
+$env.DYLD_LIBRARY_PATH = ($brew_prefix | path join "lib")
