@@ -9,7 +9,7 @@ return {
         '<leader>w',
         function()
           require('conform').format({ async = false, lsp_fallback = true }, function(err, _)
-            if err then return vim.notify(err, vim.log.levels.ERROR) end
+            if err then vim.notify_once(err, vim.log.levels.ERROR) end
             vim.cmd [[write]]
           end)
         end,
@@ -29,6 +29,7 @@ return {
       formatters_by_ft = {
         ['_'] = { { 'prettierd', 'prettier' } },
         lua = { 'stylua' },
+        nu = {},
       },
 
       -- Uncomment this to enable format on save
