@@ -194,6 +194,9 @@ return {
         ['tsserver'] = function() end, -- delegated to typescript-tools plugin
       }
 
+      -- manually setup nushell LSP server because there's no official version found on mason
+      lspconfig.nushell.setup { capabilities = utils.make_capabilities() }
+
       -- will get run when an LSP attaches to a particular buffer
       vim.api.nvim_create_autocmd('LspAttach', {
         desc = 'Configure hover UIs and map keybindings when an LSP attached to a buffer',
