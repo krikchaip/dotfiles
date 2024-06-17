@@ -274,6 +274,9 @@ return {
           lsp_workspace_symbols = {
             mappings = {
               i = {
+                ['<CR>'] = actions.select_tab_drop,
+                ['<S-CR>'] = actions.select_default,
+
                 ['<C-Space>'] = actions.complete_tag,
               },
             },
