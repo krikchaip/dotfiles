@@ -207,8 +207,7 @@ return {
             -- string 'default' or a function returning
             -- the window id that will open the node, or 'nil'
             -- if an invalid window is picked or user cancelled the action
-            -- picker = 'default',
-            -- picker = require('window-picker').pick_window
+            picker = require('window-picker').pick_window,
           },
         },
 

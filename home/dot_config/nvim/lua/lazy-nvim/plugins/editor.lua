@@ -1,4 +1,5 @@
 local nvim_tree_utils = require 'lazy-nvim.lib.nvim-tree-utils'
+local window_picker_utils = require 'lazy-nvim.lib.window-picker-utils'
 
 return {
   -- Detect tabstop and shiftwidth automatically
@@ -239,7 +240,6 @@ return {
   {
     'sindrets/winshift.nvim',
     name = 'winshift',
-    lazy = false,
     keys = {
       { '<C-w><C-m>', '<Cmd>WinShift<CR>', desc = 'Window: Start Win-Move Mode' },
       { '<C-w>m', '<Cmd>WinShift<CR>', desc = 'Window: Start Win-Move Mode' },
@@ -258,6 +258,38 @@ return {
 
       { '<C-w><C-l>', '<Cmd>WinShift right<CR>', desc = 'Window: Move Current Rightward' },
       { '<C-w>l', '<Cmd>WinShift right<CR>', desc = 'Window: Move Current Rightward' },
+    },
+    opts = {
+      -- a function that should prompt the user to select a window to be swapped.
+      window_picker = function() return require('window-picker').pick_window() end,
+    },
+  },
+
+  {
+    's1n7ax/nvim-window-picker',
+    name = 'window-picker',
+    version = '2.*',
+    keys = {
+      { '<C-w><C-w>', window_picker_utils.pick_window, desc = 'Window: Switch to Selection' },
+      { '<C-w>w', window_picker_utils.pick_window, desc = 'Window: Switch to Selection' },
+    },
+    opts = {
+      -- available options: 'statusline-winbar' | 'floating-big-letter'
+      hint = 'floating-big-letter',
+
+      -- whether to show 'Pick window:' prompt
+      show_prompt = false,
+
+      -- when you go to window selection mode, status bar will show one of
+      -- following letters on them so you can use that letter to select the window
+      selection_chars = 'ASDFGHJKLQWERTYUIOP',
+
+      filter_rules = {
+        -- exclude windows using window options
+        wo = {
+          winhl = { 'NormalFloat:TreesitterContext', 'NormalFloat:TreesitterContextLineNumber' },
+        },
+      },
     },
   },
 }
