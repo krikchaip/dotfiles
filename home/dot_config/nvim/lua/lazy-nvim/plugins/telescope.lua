@@ -203,6 +203,7 @@ return {
             mappings = {
               i = {
                 ['<CR>'] = actions.select_tab_drop,
+                ['<S-CR>'] = actions.select_default,
               },
             },
           },
@@ -222,6 +223,8 @@ return {
             mappings = {
               i = {
                 ['<CR>'] = actions.select_tab_drop,
+                ['<S-CR>'] = actions.select_default,
+
                 ['<M-r>'] = custom_actions.reveal_in_nvim_tree,
               },
             },
@@ -231,6 +234,7 @@ return {
             mappings = {
               i = {
                 ['<CR>'] = actions.select_tab_drop,
+                ['<S-CR>'] = actions.select_default,
               },
             },
           },
@@ -241,8 +245,10 @@ return {
 
             mappings = {
               i = {
-                ['<C-c>'] = actions.delete_buffer,
                 ['<CR>'] = actions.select_tab_drop,
+                ['<S-CR>'] = actions.select_default,
+
+                ['<C-c>'] = actions.delete_buffer,
               },
             },
           },
