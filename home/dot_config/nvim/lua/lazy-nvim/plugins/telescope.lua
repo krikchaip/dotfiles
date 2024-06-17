@@ -271,7 +271,7 @@ return {
             },
           },
 
-          lsp_workspace_symbols = {
+          lsp_dynamic_workspace_symbols = {
             mappings = {
               i = {
                 ['<CR>'] = actions.select_tab_drop,
