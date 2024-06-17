@@ -170,6 +170,7 @@ return {
         { 'n', 'e', actions.goto_file_tab, { desc = 'Panel: Go to File' } },
         { 'n', 'L', actions.open_commit_log, { desc = 'Panel: Commit Log' } },
         { 'n', 'c', '<cmd>Neogit commit<CR>', { desc = 'Panel: Commit Popup' } },
+        { 'n', 'n', '<cmd>Neogit<CR>', { desc = 'Panel: Neogit Popup' } },
 
         { 'n', 'j', actions.select_next_entry, { desc = 'Entry: Select Next' } },
         { 'n', 'k', actions.select_prev_entry, { desc = 'Entry: Select Previous' } },
