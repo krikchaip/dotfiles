@@ -329,14 +329,14 @@ return {
     name = 'trouble',
     cmd = 'Trouble',
     keys = {
-      { '<leader>d', trouble_utils.show_panel 'diagnostics', desc = 'Trouble: Show Diagnostics' },
-      { '<leader>D', '<cmd>Trouble diagnostics close<CR>', desc = 'Trouble: Hide Diagnostics' },
+      { '<leader>d', trouble_utils.show_panel 'diag', desc = 'Trouble: Show Diagnostics' },
+      { '<leader>D', '<cmd>Trouble diag close<CR>', desc = 'Trouble: Hide Diagnostics' },
 
       { '<leader>s', trouble_utils.show_panel 'docsym', desc = 'Trouble: Show Document Symbols' },
       { '<leader>S', '<cmd>Trouble docsym close<CR>', desc = 'Trouble: Hide Document Symbols' },
 
-      { '<leader>q', trouble_utils.show_panel 'quickfix', desc = 'Trouble: Show Quickfix List' },
-      { '<leader>Q', '<cmd>Trouble quickfix close<CR>', desc = 'Trouble: Hide Quickfix List' },
+      { '<leader>q', trouble_utils.show_panel 'qf', desc = 'Trouble: Show Quickfix List' },
+      { '<leader>Q', '<cmd>Trouble qf close<CR>', desc = 'Trouble: Hide Quickfix List' },
 
       { '<leader>.', trouble_utils.show_panel 'loclist', desc = 'Trouble: Show Location List' },
       { '<leader>>', '<cmd>Trouble loclist close<CR>', desc = 'Trouble: Hide Location List' },
@@ -348,14 +348,30 @@ return {
 
       -- user-defined modes
       modes = {
+        diag = {
+          mode = 'diagnostics',
+          preview = {
+            type = 'split',
+            relative = 'win',
+            position = 'right',
+            size = 0.4,
+          },
+        },
+
         docsym = {
-          desc = 'document symbols',
           mode = 'lsp_document_symbols',
-
-          -- limit number of items that can be displayed per section
           max_items = 10e7,
-
           win = { position = 'right', size = 35 },
+        },
+
+        qf = {
+          mode = 'quickfix',
+          preview = {
+            type = 'split',
+            relative = 'win',
+            position = 'right',
+            size = 0.4,
+          },
         },
       },
     },
