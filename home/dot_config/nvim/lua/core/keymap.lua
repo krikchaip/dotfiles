@@ -97,14 +97,18 @@ vim.keymap.set('n', '<C-S-k>', '999<C-w>w', { desc = 'Window: Focus Floating' })
 
 -- Create new empty window
 vim.keymap.set('n', '<C-w>n', '<cmd>vnew<CR>', { desc = 'Window: Split Empty Vertically' })
+vim.keymap.set('n', '<C-w><C-n>', '<cmd>vnew<CR>', { desc = 'Window: Split Empty Vertically' })
 vim.keymap.set('n', '<C-w>N', '<cmd>new<CR>', { desc = 'Window: Split Empty Horizontally' })
 
 -- Tabpage Manipulation
 vim.keymap.set('n', '<C-S-left>', '<cmd>-tabmove<CR>', { desc = 'Tab: Move Backward' })
 vim.keymap.set('n', '<C-S-right>', '<cmd>+tabmove<CR>', { desc = 'Tab: Move Forward' })
-vim.keymap.set('n', '<leader>to', '<cmd>tabonly<CR>', { desc = 'Tab: Close All Others' })
-vim.keymap.set('n', '<C-n>', '<cmd>tabnew<CR>', { desc = 'Tab: Create Empty' })
-vim.keymap.set('n', '<leader>tq', smart_close_tabpage, { desc = 'Tab: Close Current' })
+vim.keymap.set('n', '<C-t>n', '<cmd>tabnew<CR>', { desc = 'Tab: Create Empty' })
+vim.keymap.set('n', '<C-t><C-n>', '<cmd>tabnew<CR>', { desc = 'Tab: Create Empty' })
+vim.keymap.set('n', '<C-t>o', '<cmd>tabonly<CR>', { desc = 'Tab: Close All Others' })
+vim.keymap.set('n', '<C-t><C-o>', '<cmd>tabonly<CR>', { desc = 'Tab: Close All Others' })
+vim.keymap.set('n', '<C-t>q', smart_close_tabpage, { desc = 'Tab: Close Current' })
+vim.keymap.set('n', '<C-t><C-q>', smart_close_tabpage, { desc = 'Tab: Close Current' })
 
 -- Tabpage Navigation
 vim.keymap.set('n', '<C-Left>', '<cmd>tabprevious<CR>', { desc = 'Tab: Go to Previous' })
