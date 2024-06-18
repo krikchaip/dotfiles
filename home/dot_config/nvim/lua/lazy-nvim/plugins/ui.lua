@@ -1,3 +1,4 @@
+local trouble_utils = require 'lazy-nvim.lib.trouble-utils'
 local ufo_utils = require 'lazy-nvim.lib.ufo-utils'
 
 return {
@@ -321,5 +322,36 @@ return {
         },
       }
     end,
+  },
+
+  {
+    'folke/trouble.nvim',
+    name = 'trouble',
+    cmd = 'Trouble',
+    keys = {
+      { '<leader>d', trouble_utils.show_panel 'diagnostics', desc = 'Trouble: Show Diagnostics' },
+      { '<leader>D', '<cmd>Trouble diagnostics close<CR>', desc = 'Trouble: Hide Diagnostics' },
+
+      { '<leader>s', trouble_utils.show_panel 'document_symbols', desc = 'Trouble: Show Document Symbols' },
+      { '<leader>S', '<cmd>Trouble document_symbols close<CR>', desc = 'Trouble: Hide Document Symbols' },
+    },
+    dependencies = { 'lspconfig', 'web-devicons' },
+    opts = {
+      -- show a warning when there are no results
+      warn_no_results = false,
+
+      -- user-defined modes
+      modes = {
+        document_symbols = {
+          desc = 'document symbols',
+          mode = 'lsp_document_symbols',
+
+          -- limit number of items that can be displayed per section
+          max_items = 10e7,
+
+          win = { position = 'right', size = 35 },
+        },
+      },
+    },
   },
 }
