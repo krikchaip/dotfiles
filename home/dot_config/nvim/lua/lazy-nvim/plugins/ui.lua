@@ -359,5 +359,6 @@ return {
         },
       },
     },
+    init = function() require 'lazy-nvim.lib.trouble-autocmd' end,
   },
 }
