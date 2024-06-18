@@ -334,6 +334,12 @@ return {
 
       { '<leader>s', trouble_utils.show_panel 'document_symbols', desc = 'Trouble: Show Document Symbols' },
       { '<leader>S', '<cmd>Trouble document_symbols close<CR>', desc = 'Trouble: Hide Document Symbols' },
+
+      { '<leader>q', trouble_utils.show_panel 'quickfix', desc = 'Trouble: Show Quickfix List' },
+      { '<leader>Q', '<cmd>Trouble quickfix close<CR>', desc = 'Trouble: Hide Quickfix List' },
+
+      { '<leader>.', trouble_utils.show_panel 'loclist', desc = 'Trouble: Show Location List' },
+      { '<leader>>', '<cmd>Trouble loclist close<CR>', desc = 'Trouble: Hide Location List' },
     },
     dependencies = { 'lspconfig', 'web-devicons' },
     opts = {
