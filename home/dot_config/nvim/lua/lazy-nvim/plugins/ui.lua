@@ -332,8 +332,8 @@ return {
       { '<leader>d', trouble_utils.show_panel 'diagnostics', desc = 'Trouble: Show Diagnostics' },
       { '<leader>D', '<cmd>Trouble diagnostics close<CR>', desc = 'Trouble: Hide Diagnostics' },
 
-      { '<leader>s', trouble_utils.show_panel 'document_symbols', desc = 'Trouble: Show Document Symbols' },
-      { '<leader>S', '<cmd>Trouble document_symbols close<CR>', desc = 'Trouble: Hide Document Symbols' },
+      { '<leader>s', trouble_utils.show_panel 'docsym', desc = 'Trouble: Show Document Symbols' },
+      { '<leader>S', '<cmd>Trouble docsym close<CR>', desc = 'Trouble: Hide Document Symbols' },
 
       { '<leader>q', trouble_utils.show_panel 'quickfix', desc = 'Trouble: Show Quickfix List' },
       { '<leader>Q', '<cmd>Trouble quickfix close<CR>', desc = 'Trouble: Hide Quickfix List' },
@@ -348,7 +348,7 @@ return {
 
       -- user-defined modes
       modes = {
-        document_symbols = {
+        docsym = {
           desc = 'document symbols',
           mode = 'lsp_document_symbols',
 
