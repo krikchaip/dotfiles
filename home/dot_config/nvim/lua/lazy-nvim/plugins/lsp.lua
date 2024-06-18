@@ -267,12 +267,12 @@ return {
 
           -- Fuzzy find all the symbols in your current document.
           -- Symbols are things like variables, functions, types, etc.
-          opts.desc = 'LSP: Show Document Symbols'
+          opts.desc = 'LSP: Search Document Symbols'
           vim.keymap.set('n', '<leader>o', '<cmd>Telescope lsp_document_symbols<CR>', opts)
 
           -- Fuzzy find all the symbols in your current workspace.
           -- Similar to document symbols, except searches over your entire project.
-          opts.desc = 'LSP: Show Workspace Symbols'
+          opts.desc = 'LSP: Search Workspace Symbols'
           vim.keymap.set('n', '<leader>O', '<cmd>Telescope lsp_dynamic_workspace_symbols<CR>', opts)
 
           local client = vim.lsp.get_client_by_id(event.data.client_id)
