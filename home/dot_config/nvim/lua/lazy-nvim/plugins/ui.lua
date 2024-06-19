@@ -377,4 +377,28 @@ return {
     },
     init = function() require 'lazy-nvim.lib.trouble-autocmd' end,
   },
+
+  {
+    'folke/todo-comments.nvim',
+    name = 'todo-comments',
+    cmd = { 'TodoQuickFix', 'TodoLocList', 'TodoTelescope' },
+    dependencies = { 'plenary', 'trouble', 'telescope' },
+    opts = {
+      highlight = {
+        -- lua pattern to match the next multiline from the start of the matched keyword
+        multiline_pattern = '^%s+',
+      },
+    },
+    config = function(_, opts)
+      local todo_comments = require 'todo-comments'
+      local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+
+      todo_comments.setup(opts)
+
+      local next_todo, prev_todo = ts_repeat_move.make_repeatable_move_pair(todo_comments.jump_next, todo_comments.jump_prev)
+
+      vim.keymap.set('n', ']t', next_todo, { desc = 'Todo: Comment' })
+      vim.keymap.set('n', '[t', prev_todo, { desc = 'Todo: Comment' })
+    end,
+  },
 }
