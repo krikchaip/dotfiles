@@ -338,25 +338,20 @@ return {
       { '<leader>q', trouble_utils.show_panel 'qf', desc = 'Trouble: Show Quickfix List' },
       { '<leader>Q', '<cmd>Trouble qf close<CR>', desc = 'Trouble: Hide Quickfix List' },
 
-      { '<leader>.', trouble_utils.show_panel 'loclist', desc = 'Trouble: Show Location List' },
-      { '<leader>>', '<cmd>Trouble loclist close<CR>', desc = 'Trouble: Hide Location List' },
+      { '<leader>.', trouble_utils.show_panel 'll', desc = 'Trouble: Show Location List' },
+      { '<leader>>', '<cmd>Trouble ll close<CR>', desc = 'Trouble: Hide Location List' },
+
+      { '<leader>t', trouble_utils.show_panel 'todolist', desc = 'Trouble: Show Todo List' },
+      { '<leader>T', '<cmd>Trouble todolist close<CR>', desc = 'Trouble: Hide Todo List' },
     },
-    dependencies = { 'lspconfig', 'web-devicons' },
+    dependencies = { 'lspconfig', 'web-devicons', 'todo-comments' },
     opts = {
       -- show a warning when there are no results
       warn_no_results = false,
 
       -- user-defined modes
       modes = {
-        diag = {
-          mode = 'diagnostics',
-          preview = {
-            type = 'split',
-            relative = 'win',
-            position = 'right',
-            size = 0.4,
-          },
-        },
+        diag = { mode = 'diagnostics', preview = trouble_utils.split_preview },
 
         docsym = {
           mode = 'lsp_document_symbols',
@@ -364,15 +359,11 @@ return {
           win = { position = 'right', size = 35 },
         },
 
-        qf = {
-          mode = 'quickfix',
-          preview = {
-            type = 'split',
-            relative = 'win',
-            position = 'right',
-            size = 0.4,
-          },
-        },
+        qf = { mode = 'quickfix', preview = trouble_utils.split_preview },
+
+        ll = { mode = 'loclist', preview = trouble_utils.split_preview },
+
+        todolist = { mode = 'todo', preview = trouble_utils.split_preview },
       },
     },
     init = function() require 'lazy-nvim.lib.trouble-autocmd' end,

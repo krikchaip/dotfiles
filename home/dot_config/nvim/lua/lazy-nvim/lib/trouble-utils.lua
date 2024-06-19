@@ -1,6 +1,13 @@
 ---@diagnostic disable: missing-parameter
----
+
 local M = {}
+
+M.split_preview = {
+  type = 'split',
+  relative = 'win',
+  position = 'right',
+  size = 0.4,
+}
 
 function M.show_panel(name)
   return function()
