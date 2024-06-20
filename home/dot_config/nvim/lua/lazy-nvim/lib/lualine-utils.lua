@@ -21,7 +21,25 @@ M.diagnostics = {
   on_click = function() require('trouble').focus { mode = 'diag', filter = { buf = 0 } } end,
 }
 
-M.filename = { 'filename', on_click = function() custom_pickers.find_files() end }
+M.filename = {
+  'filename',
+
+  -- 0: Just the filename
+  -- 1: Relative path
+  -- 2: Absolute path
+  -- 3: Absolute path, with tilde as the home directory
+  -- 4: Filename and parent dir, with tilde as the home directory
+  path = 4,
+
+  symbols = {
+    modified = '',
+    readonly = '',
+    unnamed = 'Untitled',
+    newfile = '', -- Text to show for newly created file before first write
+  },
+
+  on_click = function() custom_pickers.find_files() end,
+}
 
 M.filetype = { 'filetype', on_click = function() require('telescope.builtin').filetypes() end }
 
