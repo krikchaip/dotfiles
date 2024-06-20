@@ -417,8 +417,8 @@ return {
 
       sections = {
         lualine_a = { 'mode' },
-        lualine_b = { 'branch', 'diff', 'diagnostics' },
-        lualine_c = { 'filename' },
+        lualine_b = { lualine_utils.branch, 'diff', 'diagnostics' },
+        lualine_c = { lualine_utils.filename },
         lualine_x = { 'encoding', 'fileformat', lualine_utils.filetype },
         lualine_y = { 'progress' },
         lualine_z = { 'location' },
