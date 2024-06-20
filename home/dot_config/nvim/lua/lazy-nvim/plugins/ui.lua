@@ -426,9 +426,9 @@ return {
         lualine_a = { 'mode' },
         lualine_b = { lualine_utils.branch, 'diff', lualine_utils.diagnostics },
         lualine_c = { lualine_utils.filename },
-        lualine_x = { 'encoding', 'fileformat', lualine_utils.filetype },
-        lualine_y = { 'progress' },
-        lualine_z = { 'location' },
+        lualine_x = { 'encoding', 'fileformat' },
+        lualine_y = { lualine_utils.filetype, 'searchcount' },
+        lualine_z = { 'selectioncount', 'location' },
       },
       inactive_sections = {
         lualine_a = {},
