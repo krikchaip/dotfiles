@@ -173,6 +173,7 @@ return {
   {
     'luukvbaal/statuscol.nvim',
     name = 'statuscol',
+    priority = 900,
     lazy = false,
     config = function()
       local statuscol = require 'statuscol'
@@ -391,5 +392,14 @@ return {
       vim.keymap.set('n', ']t', next_todo, { desc = 'Todo: Comment' })
       vim.keymap.set('n', '[t', prev_todo, { desc = 'Todo: Comment' })
     end,
+  },
+
+  {
+    'nvim-lualine/lualine.nvim',
+    name = 'lualine',
+    priority = 900,
+    lazy = false,
+    dependencies = { 'web-devicons' },
+    opts = {},
   },
 }
