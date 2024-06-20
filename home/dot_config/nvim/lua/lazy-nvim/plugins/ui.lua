@@ -402,12 +402,16 @@ return {
     dependencies = { 'web-devicons' },
     opts = {
       options = {
+        -- set `true` to have a single statusline at bottom of instead of one for every window
+        globalstatus = false,
+
         disabled_filetypes = {
-          statusline = {},
+          statusline = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble' },
           winbar = {},
         },
 
-        ignore_focus = {},
+        -- which filetypes to always be drawn as inactive statusline
+        ignore_focus = { 'help' },
       },
 
       sections = {
