@@ -422,6 +422,8 @@ return {
         ignore_focus = { 'help' },
       },
 
+      extensions = {},
+
       sections = {
         lualine_a = { 'mode' },
         lualine_b = { lualine_utils.branch, 'diff', lualine_utils.diagnostics },
