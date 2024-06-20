@@ -406,6 +406,13 @@ return {
         -- set `true` to have a single statusline at bottom of instead of one for every window
         globalstatus = false,
 
+        -- sets how often lualine should refresh it's contents (in ms)
+        refresh = {
+          statusline = 250,
+          tabline = 250,
+          winbar = 250,
+        },
+
         disabled_filetypes = {
           statusline = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble' },
           winbar = {},
