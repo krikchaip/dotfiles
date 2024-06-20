@@ -4,7 +4,10 @@ local custom_pickers = require 'lazy-nvim.lib.telescope-pickers'
 
 local M = {}
 
-M.branch = { 'branch', on_click = function() require('telescope.builtin').git_branches() end }
+M.branch = {
+  'branch',
+  on_click = function() require('telescope.builtin').git_branches() end,
+}
 
 M.diagnostics = {
   'diagnostics',
@@ -41,6 +44,9 @@ M.filename = {
   on_click = function() custom_pickers.find_files() end,
 }
 
-M.filetype = { 'filetype', on_click = function() require('telescope.builtin').filetypes() end }
+M.filetype = {
+  'filetype',
+  on_click = function() require('telescope.builtin').filetypes() end,
+}
 
 return M
