@@ -68,17 +68,6 @@ M.filetype = {
   on_click = function() require('telescope.builtin').filetypes() end,
 }
 
-M.lsp_progress = {
-  'lsp_progress',
-
-  colors = { use = true },
-
-  -- spinner_symbols = { '▙', '▛', '▜', '▟' },
-  spinner_symbols = { '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘' },
-
-  display_components = { 'spinner', { 'title', 'percentage' } },
-}
-
 M.navic = {
   'navic',
 
@@ -86,7 +75,7 @@ M.navic = {
   navic_opts = {
     highlight = true,
     click = true,
-    depth_limit = 4,
+    depth_limit = 3,
   },
 
   -- "static" -> perform an adjustment once when the component is being setup.

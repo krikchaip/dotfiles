@@ -395,15 +395,22 @@ return {
     end,
   },
 
-  -- Lualine extensions
-  { 'arkav/lualine-lsp-progress', name = 'lualine.lsp-progress' },
-
   {
-    'SmiteshP/nvim-navic',
-    name = 'lualine.navic',
-    dependencies = { 'lspconfig' },
-    opts = { lsp = { auto_attach = true } },
-    config = function(_, opts) require('nvim-navic').setup(opts) end,
+    'j-hui/fidget.nvim',
+    name = 'fidget',
+    tag = 'v1.4.5',
+    event = 'VeryLazy',
+    opts = {
+      progress = {
+        -- Ignore new tasks that don't contain a message
+        ignore_empty_message = true,
+      },
+
+      notification = {
+        -- Automatically override vim.notify() with Fidget
+        override_vim_notify = false,
+      },
+    },
   },
 
   {
@@ -440,7 +447,7 @@ return {
         lualine_b = { lualine_utils.branch, 'diff', lualine_utils.diagnostics },
         lualine_c = { lualine_utils.filename },
         lualine_x = { 'encoding', 'fileformat' },
-        lualine_y = { lualine_utils.filetype, lualine_utils.lsp_progress },
+        lualine_y = { lualine_utils.filetype },
         lualine_z = { 'searchcount', 'selectioncount', 'location' },
       },
       inactive_sections = {
@@ -457,5 +464,13 @@ return {
 
       tabline = {},
     },
+  },
+
+  {
+    'SmiteshP/nvim-navic',
+    name = 'lualine.navic',
+    dependencies = { 'lspconfig' },
+    opts = { lsp = { auto_attach = true } },
+    config = function(_, opts) require('nvim-navic').setup(opts) end,
   },
 }
