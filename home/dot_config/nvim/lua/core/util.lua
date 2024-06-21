@@ -48,6 +48,9 @@ function smart_delete_buffer(bang)
       vim.cmd [[silent! tabnext #]]
     end
 
+    -- close loclist window if present
+    vim.cmd [[lclose]]
+
     if #vim.fn.win_findbuf(last_buf) > 1 then
       vim.api.nvim_win_close(last_win, false)
     else
