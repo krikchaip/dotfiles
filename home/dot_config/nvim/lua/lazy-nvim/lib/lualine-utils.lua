@@ -23,6 +23,42 @@ end
 
 local M = {}
 
+M.blame_line = {
+  (function()
+    local blame_line_cache = ''
+
+    return function()
+      local utils = require 'gitsigns.util'
+
+      local gitsigns = vim.b.gitsigns_blame_line_dict
+
+      if not gitsigns then return blame_line_cache end
+
+      local author = ''
+      local time = ''
+
+      if gitsigns.author then author = gitsigns.author end
+      if gitsigns.author_time then time = utils.get_relative_time(gitsigns.author_time) end
+
+      local result
+
+      if author == 'Not Commited Yet' then
+        result = author
+      else
+        result = author .. ', ' .. time
+      end
+
+      blame_line_cache = result
+
+      return result
+    end
+  end)(),
+
+  icon = '',
+
+  on_click = function() require('gitsigns').blame_line { full = true } end,
+}
+
 M.branch = {
   -- 'branch',
 
@@ -59,8 +95,6 @@ M.diff = {
       removed = gitsigns.removed,
     } end
   end,
-
-  icon = '',
 
   on_click = function() vim.cmd [[ DiffviewOpen ]] end,
 }
