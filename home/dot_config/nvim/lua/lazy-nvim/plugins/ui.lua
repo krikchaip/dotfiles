@@ -399,6 +399,14 @@ return {
   { 'arkav/lualine-lsp-progress', name = 'lualine.lsp-progress' },
 
   {
+    'SmiteshP/nvim-navic',
+    name = 'lualine.navic',
+    dependencies = { 'lspconfig' },
+    opts = { lsp = { auto_attach = true } },
+    config = function(_, opts) require('nvim-navic').setup(opts) end,
+  },
+
+  {
     'nvim-lualine/lualine.nvim',
     name = 'lualine',
     priority = 900,
