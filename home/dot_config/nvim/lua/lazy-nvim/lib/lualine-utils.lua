@@ -79,4 +79,21 @@ M.lsp_progress = {
   display_components = { 'spinner', { 'title', 'percentage' } },
 }
 
+M.navic = {
+  'navic',
+
+  -- All options except "lsp" options take effect when set here
+  navic_opts = {
+    highlight = true,
+    click = true,
+    depth_limit = 4,
+  },
+
+  -- "static" -> perform an adjustment once when the component is being setup.
+  --   This should be enough when the lualine section isn't changing colors based on the mode.
+  -- "dynamic" -> keep updating the highlights according to the current modes colors
+  --   for the current section.
+  color_correction = 'dynamic',
+}
+
 return M
