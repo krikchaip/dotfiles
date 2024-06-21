@@ -406,6 +406,10 @@ return {
         ignore_empty_message = true,
       },
 
+      display = {
+        done_icon = '✓',
+      },
+
       notification = {
         -- Automatically override vim.notify() with Fidget
         override_vim_notify = false,
