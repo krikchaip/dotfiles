@@ -395,6 +395,9 @@ return {
     end,
   },
 
+  -- Lualine extensions
+  { 'arkav/lualine-lsp-progress', name = 'lualine.lsp-progress' },
+
   {
     'nvim-lualine/lualine.nvim',
     name = 'lualine',
@@ -429,7 +432,7 @@ return {
         lualine_b = { lualine_utils.branch, 'diff', lualine_utils.diagnostics },
         lualine_c = { lualine_utils.filename },
         lualine_x = { 'encoding', 'fileformat' },
-        lualine_y = { lualine_utils.filetype },
+        lualine_y = { lualine_utils.filetype, lualine_utils.lsp_progress },
         lualine_z = { 'searchcount', 'selectioncount', 'location' },
       },
       inactive_sections = {

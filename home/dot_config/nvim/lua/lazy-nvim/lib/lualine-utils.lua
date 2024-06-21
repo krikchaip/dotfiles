@@ -68,4 +68,15 @@ M.filetype = {
   on_click = function() require('telescope.builtin').filetypes() end,
 }
 
+M.lsp_progress = {
+  'lsp_progress',
+
+  colors = { use = true },
+
+  -- spinner_symbols = { '▙', '▛', '▜', '▟' },
+  spinner_symbols = { '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘' },
+
+  display_components = { 'spinner', { 'title', 'percentage' } },
+}
+
 return M
