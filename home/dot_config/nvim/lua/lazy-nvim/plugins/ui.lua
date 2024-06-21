@@ -404,10 +404,9 @@ return {
       progress = {
         -- Ignore new tasks that don't contain a message
         ignore_empty_message = true,
-      },
 
-      display = {
-        done_icon = '✓',
+        -- Icon shown when all LSP progress tasks are complete
+        display = { done_icon = '✓' },
       },
 
       notification = {
