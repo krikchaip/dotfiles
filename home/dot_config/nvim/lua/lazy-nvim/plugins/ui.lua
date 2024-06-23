@@ -79,6 +79,7 @@ return {
           'NvimTree',
           'DiffviewFiles',
           'DiffviewFileHistory',
+          'Navbuddy',
         },
 
         handle = {
@@ -334,9 +335,6 @@ return {
       { '<leader>d', trouble_utils.show_panel 'diag', desc = 'Trouble: Show Diagnostics' },
       { '<leader>D', '<cmd>Trouble diag close<CR>', desc = 'Trouble: Hide Diagnostics' },
 
-      { '<leader>s', trouble_utils.show_panel 'docsym', desc = 'Trouble: Show Document Symbols' },
-      { '<leader>S', '<cmd>Trouble docsym close<CR>', desc = 'Trouble: Hide Document Symbols' },
-
       { '<leader>q', trouble_utils.show_panel 'qf', desc = 'Trouble: Show Quickfix List' },
       { '<leader>Q', '<cmd>Trouble qf close<CR>', desc = 'Trouble: Hide Quickfix List' },
 
@@ -354,12 +352,6 @@ return {
       -- user-defined modes
       modes = {
         diag = { mode = 'diagnostics', preview = trouble_utils.split_preview },
-
-        docsym = {
-          mode = 'lsp_document_symbols',
-          max_items = 10e7,
-          win = { position = 'right', size = 35 },
-        },
 
         qf = { mode = 'quickfix', preview = trouble_utils.split_preview },
 
@@ -488,7 +480,9 @@ return {
     'SmiteshP/nvim-navic',
     name = 'lualine.navic',
     dependencies = { 'lspconfig' },
-    opts = { lsp = { auto_attach = true } },
+    opts = {
+      lsp = { auto_attach = true },
+    },
     config = function(_, opts) require('nvim-navic').setup(opts) end,
   },
 }
