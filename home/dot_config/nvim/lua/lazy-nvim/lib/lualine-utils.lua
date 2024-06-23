@@ -139,6 +139,9 @@ M.navic = {
   -- "dynamic" -> keep updating the highlights according to the current modes colors
   --   for the current section.
   color_correction = 'dynamic',
+
+  -- uncomment this line when you put navic into lualine_a or lualine_b
+  -- padding = { left = 1, right = 0 },
 }
 
 return M
