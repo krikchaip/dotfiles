@@ -435,8 +435,8 @@ return {
         },
 
         disabled_filetypes = {
+          winbar = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble' },
           statusline = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble' },
-          winbar = {},
         },
 
         -- which filetypes to always be drawn as inactive statusline

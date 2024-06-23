@@ -35,7 +35,7 @@ function M.adjust_dynamic_highlights()
       'Separator',
     }
 
-    local lualineHl = vim.api.nvim_get_hl(0, { name = 'lualine_b_inactive' })
+    local lualineHl = vim.api.nvim_get_hl(0, { name = 'lualine_c_inactive' })
     local bg = lualineHl.bg and ('#%06x'):format(lualineHl.bg)
 
     for _, hlName in ipairs(navicHls) do

@@ -26,14 +26,16 @@ local M = {}
 
 M.blame_line = {
   (function()
-    local blame_line_cache = ''
+    local blame_line_cache = {}
 
     return function()
       local utils = require 'gitsigns.util'
 
+      local buf = vim.api.nvim_get_current_buf()
       local gitsigns = vim.b.gitsigns_blame_line_dict
 
-      if not gitsigns then return blame_line_cache end
+      if not blame_line_cache[buf] then blame_line_cache[buf] = '' end
+      if not gitsigns then return blame_line_cache[buf] end
 
       local author = ''
       local time = ''
@@ -49,7 +51,7 @@ M.blame_line = {
         result = author .. ', ' .. time
       end
 
-      blame_line_cache = result
+      blame_line_cache[buf] = result
 
       return result
     end
@@ -58,6 +60,8 @@ M.blame_line = {
   icon = '',
 
   on_click = function() require('gitsigns').blame_line { full = true } end,
+
+  fmt = trunc(nil, nil, 60),
 }
 
 M.branch = {
