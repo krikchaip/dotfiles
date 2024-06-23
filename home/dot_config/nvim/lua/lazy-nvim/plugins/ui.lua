@@ -441,32 +441,46 @@ return {
         },
 
         -- which filetypes to always be drawn as inactive statusline
-        ignore_focus = { 'help' },
+        -- ignore_focus = { 'help' },
       },
 
       extensions = {},
 
+      tabline = {},
+
+      winbar = {
+        lualine_a = {},
+        lualine_b = { lualine_utils.filename },
+        lualine_c = { lualine_utils.navic },
+        lualine_x = {},
+        lualine_y = { lualine_utils.diagnostics },
+        lualine_z = {},
+      },
+      inactive_winbar = {
+        lualine_a = {},
+        lualine_b = { lualine_utils.filename },
+        lualine_c = {},
+        lualine_x = {},
+        lualine_y = { lualine_utils.diagnostics },
+        lualine_z = {},
+      },
+
       sections = {
         lualine_a = { 'mode' },
-        lualine_b = { lualine_utils.branch, 'diff', lualine_utils.diagnostics },
-        lualine_c = { lualine_utils.filename },
+        lualine_b = { lualine_utils.branch },
+        lualine_c = { lualine_utils.blame_line },
         lualine_x = { 'encoding', 'fileformat' },
         lualine_y = { lualine_utils.filetype },
         lualine_z = { 'searchcount', 'selectioncount', 'location' },
       },
       inactive_sections = {
         lualine_a = {},
-        lualine_b = {},
-        lualine_c = { lualine_utils.filename },
-        lualine_x = { 'location' },
-        lualine_y = {},
-        lualine_z = {},
+        lualine_b = { lualine_utils.branch },
+        lualine_c = { lualine_utils.blame_line },
+        lualine_x = {},
+        lualine_y = { lualine_utils.filetype },
+        lualine_z = { 'location' },
       },
-
-      winbar = {},
-      inactive_winbar = {},
-
-      tabline = {},
     },
   },
 
