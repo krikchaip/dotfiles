@@ -42,7 +42,7 @@ M.blame_line = {
 
       local result
 
-      if author == 'Not Commited Yet' then
+      if author == 'Not Committed Yet' then
         result = author
       else
         result = author .. ', ' .. time
