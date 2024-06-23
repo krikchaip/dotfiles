@@ -485,4 +485,95 @@ return {
     },
     config = function(_, opts) require('nvim-navic').setup(opts) end,
   },
+
+  {
+    'SmiteshP/nvim-navbuddy',
+    name = 'navbuddy',
+    keys = {
+      { '<leader>n', '<cmd>lua require("nvim-navbuddy").open()<CR>', desc = 'NavBuddy: Open Popup' },
+    },
+    dependencies = { 'lspconfig', 'lualine.navic', 'nui', 'comment', 'telescope' },
+    opts = {
+      lsp = { auto_attach = true },
+
+      window = {
+        border = 'rounded', -- "single", "rounded", "double", "solid", "none"
+
+        -- Or table format example: { height = "40%", width = "100%" }
+        -- ref: https://github.com/MunifTanjim/nui.nvim/tree/main/lua/nui/layout#size
+        size = { width = '60%', height = 37 },
+
+        -- Or table format example: { row = "100%", col = "0%" }
+        -- ref: https://github.com/MunifTanjim/nui.nvim/tree/main/lua/nui/layout#position
+        position = { row = '50%', col = '50%' },
+
+        sections = {
+          left = { size = '25%' },
+          mid = { size = '25%' },
+          right = { preview = 'always' }, -- "leaf", "always" or "never"
+        },
+      },
+
+      node_markers = {
+        icons = {
+          branch = '  ',
+        },
+      },
+
+      source_buffer = {
+        reorient = 'mid', -- "smart", "top", "mid" or "none"
+      },
+    },
+    config = function(_, opts)
+      local navbuddy = require 'nvim-navbuddy'
+      local actions = require 'nvim-navbuddy.actions'
+
+      opts.use_default_mappings = false
+      opts.mappings = {
+        ['?'] = actions.help(),
+        ['<esc>'] = actions.close(),
+        ['q'] = actions.close(),
+
+        ['<enter>'] = actions.select(),
+        ['o'] = actions.select(),
+        ['<C-s>'] = actions.hsplit(),
+        ['<C-v>'] = actions.vsplit(),
+
+        ['h'] = actions.parent(),
+        ['j'] = actions.next_sibling(),
+        ['k'] = actions.previous_sibling(),
+        ['l'] = actions.children(),
+
+        ['0'] = actions.root(),
+
+        ['v'] = actions.visual_name(),
+        ['V'] = actions.visual_scope(),
+
+        ['y'] = actions.yank_name(),
+        ['Y'] = actions.yank_scope(),
+
+        ['i'] = actions.insert_name(),
+        ['I'] = actions.insert_scope(),
+
+        ['a'] = actions.append_name(),
+        ['A'] = actions.append_scope(),
+
+        ['r'] = actions.rename(),
+        ['d'] = actions.delete(),
+
+        ['z'] = actions.fold_create(),
+        ['Z'] = actions.fold_delete(),
+
+        ['c'] = actions.comment(),
+
+        ['J'] = actions.move_down(),
+        ['K'] = actions.move_up(),
+
+        ['p'] = actions.toggle_preview(),
+        ['f'] = actions.telescope {},
+      }
+
+      navbuddy.setup(opts)
+    end,
+  },
 }
