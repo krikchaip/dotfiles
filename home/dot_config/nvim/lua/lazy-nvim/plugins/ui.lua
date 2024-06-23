@@ -374,6 +374,7 @@ return {
   {
     'folke/todo-comments.nvim',
     name = 'todo-comments',
+    event = 'VeryLazy',
     cmd = { 'TodoQuickFix', 'TodoLocList', 'TodoTelescope' },
     dependencies = { 'plenary', 'trouble', 'telescope' },
     opts = {
