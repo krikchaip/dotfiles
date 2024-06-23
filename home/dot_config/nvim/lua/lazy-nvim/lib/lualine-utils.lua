@@ -1,6 +1,7 @@
 ---@diagnostic disable: missing-parameter, param-type-mismatch, unused-local, unused-function
 
 local custom_pickers = require 'lazy-nvim.lib.telescope-pickers'
+local navic_utils = require 'lazy-nvim.lib.navic-utils'
 
 --- @param trunc_width number trunctates component when screen width is less then trunc_width
 --- @param trunc_len number truncates component to trunc_len number of chars
@@ -141,7 +142,10 @@ M.navic = {
   color_correction = 'dynamic',
 
   -- uncomment this line when you put navic into lualine_a or lualine_b
+  -- ref: https://github.com/SmiteshP/nvim-navic/issues/115
   -- padding = { left = 1, right = 0 },
+
+  fmt = navic_utils.adjust_dynamic_highlights(),
 }
 
 return M
