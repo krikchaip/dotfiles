@@ -284,8 +284,12 @@ return {
       -- following letters on them so you can use that letter to select the window
       selection_chars = 'ASDFGHJKLQWERTYUIOP',
 
+      -- exclude buffers/windows with the following options
       filter_rules = {
-        -- exclude windows using window options
+        bo = {
+          filetype = { 'fidget' },
+        },
+
         wo = {
           winhl = { 'NormalFloat:TreesitterContext', 'NormalFloat:TreesitterContextLineNumber' },
         },
