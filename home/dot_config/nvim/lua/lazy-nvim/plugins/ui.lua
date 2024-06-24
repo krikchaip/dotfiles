@@ -583,10 +583,18 @@ return {
       { '<C-t>r', ':Tabby rename_tab ', desc = 'Tab: Rename Current' },
       { '<C-t><C-r>', ':Tabby rename_tab ', desc = 'Tab: Rename Current' },
 
+      -- TODO: create a new telescope picker for this one to replace `builtin.buffers`
+      --       or wait until https://github.com/nanozuki/tabby.nvim/issues/143 is finished
       { '<C-t>p', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
       { '<C-t><C-p>', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
     },
     dependencies = { 'web-devicons' },
-    opts = {},
+    opts = {
+      preset = 'tab_only',
+      option = {
+        lualine_theme = 'auto',
+        buf_name = { mode = 'unique' },
+      },
+    },
   },
 }
