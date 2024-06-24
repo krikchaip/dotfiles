@@ -440,7 +440,7 @@ return {
 
       winbar = {
         lualine_a = {},
-        lualine_b = { lualine_utils.filename },
+        lualine_b = { unpack(lualine_utils.filetype_with_icon()) },
         lualine_c = { lualine_utils.navic },
         lualine_x = {},
         lualine_y = { lualine_utils.diagnostics },
@@ -448,7 +448,7 @@ return {
       },
       inactive_winbar = {
         lualine_a = {},
-        lualine_b = { lualine_utils.filename },
+        lualine_b = { unpack(lualine_utils.filetype_with_icon()) },
         lualine_c = {},
         lualine_x = {},
         lualine_y = { lualine_utils.diagnostics },

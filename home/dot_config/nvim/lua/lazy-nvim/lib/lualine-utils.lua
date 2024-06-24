@@ -129,6 +129,22 @@ M.filetype = {
   on_click = function() require('telescope.builtin').filetypes() end,
 }
 
+M.filetype_with_icon = function()
+  return {
+    {
+      'filetype',
+      colored = true,
+      icon_only = true,
+      separator = '',
+      padding = { left = 1, right = 0 },
+    },
+    vim.tbl_extend('force', M.filename, {
+      padding = { left = 0, right = 1 },
+      on_click = function() end,
+    }),
+  }
+end
+
 M.navic = {
   'navic',
 
