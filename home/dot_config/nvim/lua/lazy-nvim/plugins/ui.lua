@@ -574,4 +574,19 @@ return {
       navbuddy.setup(opts)
     end,
   },
+
+  {
+    'nanozuki/tabby.nvim',
+    name = 'tabby',
+    event = 'VimEnter',
+    keys = {
+      { '<C-t>r', ':Tabby rename_tab ', desc = 'Tab: Rename Current' },
+      { '<C-t><C-r>', ':Tabby rename_tab ', desc = 'Tab: Rename Current' },
+
+      { '<C-t>p', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
+      { '<C-t><C-p>', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
+    },
+    dependencies = { 'web-devicons' },
+    opts = {},
+  },
 }
