@@ -175,8 +175,7 @@ return {
   {
     'luukvbaal/statuscol.nvim',
     name = 'statuscol',
-    priority = 900,
-    lazy = false,
+    event = 'VimEnter',
     config = function()
       local statuscol = require 'statuscol'
       local builtin = require 'statuscol.builtin'
@@ -412,8 +411,7 @@ return {
   {
     'nvim-lualine/lualine.nvim',
     name = 'lualine',
-    priority = 900,
-    lazy = false,
+    event = 'VimEnter',
     dependencies = { 'web-devicons' },
     opts = {
       options = {
