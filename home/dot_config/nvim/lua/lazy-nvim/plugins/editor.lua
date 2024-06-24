@@ -56,6 +56,7 @@ return {
         'buffers',
         'curdir',
         'folds',
+        'globals',
         'tabpages',
         'terminal',
         'winpos',
