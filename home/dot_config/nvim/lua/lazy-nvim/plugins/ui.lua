@@ -1,4 +1,5 @@
 local lualine_utils = require 'lazy-nvim.lib.lualine-utils'
+local tabby_utils = require 'lazy-nvim.lib.tabby-utils'
 local trouble_utils = require 'lazy-nvim.lib.trouble-utils'
 local ufo_utils = require 'lazy-nvim.lib.ufo-utils'
 
@@ -589,12 +590,13 @@ return {
       { '<C-t><C-p>', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
     },
     dependencies = { 'web-devicons' },
-    opts = {
-      preset = 'tab_only',
-      option = {
-        lualine_theme = 'auto',
-        buf_name = { mode = 'unique' },
-      },
-    },
+    config = function()
+      local theme = tabby_utils.setup_theme 'auto'
+
+      require('tabby').setup {
+        line = tabby_utils.custom_tabline(theme),
+        option = { buf_name = { mode = 'unique' } },
+      }
+    end,
   },
 }
