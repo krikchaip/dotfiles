@@ -54,6 +54,7 @@ return {
       { '<C-,>o', '<cmd>Telescope vim_options<CR>', desc = 'Settings: Vim Options' },
       { '<C-,>a', '<cmd>Telescope autocommands<CR>', desc = 'Settings: Autocommands' },
       { '<C-,>k', '<cmd>Telescope keymaps<CR>', desc = 'Settings: Keymappings' },
+      { '<C-,>h', '<cmd>Telescope highlights<CR>', desc = 'Settings: Highlights' },
       { '<C-,>,', custom_pickers.find_chezmoi_files, desc = 'Settings: Dot Files' },
 
       -- [[ Histories ]]
