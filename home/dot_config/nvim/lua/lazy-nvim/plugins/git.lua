@@ -251,10 +251,10 @@ return {
       graph_style = 'unicode',
 
       -- Changes what mode the Commit Editor starts in.
-      -- `true` will leave nvim in normal mode,
-      -- `false` will change nvim to insert mode, and
-      -- `"auto"` will change nvim to insert mode IF the commit message is empty, otherwise leaving it in normal mode.
-      disable_insert_on_commit = true,
+      -- `true` will leave nvim in normal mode
+      -- `false` will change nvim to insert mode
+      -- `"auto"` will change nvim to insert mode IF the commit message is empty, otherwise leaving it in normal mode
+      disable_insert_on_commit = false,
 
       -- Change the default way of opening Neogit status window
       -- values: 'tab' (default), 'split', 'vsplit', 'floating'
