@@ -1,9 +1,9 @@
 -- Change the Diagnostic symbols in the sign column (gutter)
 local signs = {
   Error = '',
-  Warn  = '',
-  Hint  = '',
-  Info  = '',
+  Warn = '',
+  Hint = '',
+  Info = '',
 }
 
 for type, icon in pairs(signs) do
@@ -13,13 +13,13 @@ for type, icon in pairs(signs) do
   vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = '' })
 end
 
-vim.diagnostic.config({
+vim.diagnostic.config {
   virtual_text = false,
-  update_in_insert = true,
+  update_in_insert = false,
   float = {
     -- [[ vim.lsp.util.open_floating_preview() ]]
     focus = false, -- disable initial focus
-    wrap = true,   -- wrap long lines
+    wrap = true, -- wrap long lines
     -- wrap_at = 80,  -- character to wrap at for computing height when enabled
     max_width = 80,
     close_events = {
@@ -34,6 +34,6 @@ vim.diagnostic.config({
     },
 
     -- [[ vim.diagnostic.open_float() ]]
-    scope = 'cursor' -- cursor, line, buffer
+    scope = 'cursor', -- cursor, line, buffer
   },
-})
+}
