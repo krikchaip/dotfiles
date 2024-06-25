@@ -44,11 +44,15 @@ return {
         'gitcommit',
         'gitignore',
 
+        'bash',
+
         'lua',
         'luadoc',
 
         'vim',
         'vimdoc',
+
+        'regex',
 
         'html',
         'css',
