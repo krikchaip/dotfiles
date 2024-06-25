@@ -38,11 +38,11 @@ function M.custom_tabline(theme)
 
       line.tabs().foreach(function(tab)
         local hl = tab.is_current() and theme.current_tab or theme.tab
-        local status_icon = { '', '󰆣' }
+        -- local status_icon = { '', '󰆣' }
 
         return {
           line.sep(LEFT_SEP, hl, theme.fill),
-          tab.is_current() and status_icon[1] or status_icon[2],
+          -- tab.is_current() and status_icon[1] or status_icon[2],
           tab.number(),
           tab.name(),
           tab.close_btn '',
