@@ -137,19 +137,16 @@ M.filetype_with_icon = function()
       icon_only = true,
       separator = '',
       padding = { left = 1, right = 0 },
+
+      fmt = function(text)
+        if text == '' then return ' ' end
+        return text
+      end,
     },
     vim.tbl_extend('force', M.filename, {
       padding = { left = 0, right = 1 },
 
       on_click = function() end,
-
-      fmt = function(text)
-        if text == 'Untitled' then
-          return ' ' .. text
-        else
-          return text
-        end
-      end,
     }),
   }
 end
