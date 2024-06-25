@@ -51,11 +51,17 @@ return {
 
       -- [[ NVim settings ]]
       { '<C-,>c', '<cmd>Telescope colorscheme<CR>', desc = 'Settings: Colorscheme' },
+      { '<C-,><C-c>', '<cmd>Telescope colorscheme<CR>', desc = 'Settings: Colorscheme' },
       { '<C-,>o', '<cmd>Telescope vim_options<CR>', desc = 'Settings: Vim Options' },
+      { '<C-,><C-o>', '<cmd>Telescope vim_options<CR>', desc = 'Settings: Vim Options' },
       { '<C-,>a', '<cmd>Telescope autocommands<CR>', desc = 'Settings: Autocommands' },
+      { '<C-,><C-a>', '<cmd>Telescope autocommands<CR>', desc = 'Settings: Autocommands' },
       { '<C-,>k', '<cmd>Telescope keymaps<CR>', desc = 'Settings: Keymappings' },
+      { '<C-,><C-k>', '<cmd>Telescope keymaps<CR>', desc = 'Settings: Keymappings' },
       { '<C-,>h', '<cmd>Telescope highlights<CR>', desc = 'Settings: Highlights' },
+      { '<C-,><C-h>', '<cmd>Telescope highlights<CR>', desc = 'Settings: Highlights' },
       { '<C-,>,', custom_pickers.find_chezmoi_files, desc = 'Settings: Dot Files' },
+      { '<C-,><C-,>', custom_pickers.find_chezmoi_files, desc = 'Settings: Dot Files' },
 
       -- [[ Histories ]]
       { '<leader>|', '<cmd>Telescope oldfiles<CR>', desc = 'Search: Buffer History' },
