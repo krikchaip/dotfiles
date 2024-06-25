@@ -599,4 +599,26 @@ return {
       }
     end,
   },
+
+  {
+    'rcarriga/nvim-notify',
+    name = 'notify',
+    event = 'VeryLazy',
+    opts = {
+      -- 'default', 'minimal', 'simple', 'compact', 'wrapped-compact'
+      -- ref: https://github.com/rcarriga/nvim-notify?tab=readme-ov-file#render-style
+      render = 'default',
+
+      -- 'fade_in_slide_out', 'fade', 'slide', 'static'
+      -- ref: https://github.com/rcarriga/nvim-notify?tab=readme-ov-file#animation-style
+      stages = 'fade_in_slide_out',
+
+      timeout = 3000,
+      top_down = true,
+
+      minimum_width = 50,
+      -- max_width = nil, -- `(number|function)` Max number of columns for messages
+      -- max_height = nil, -- `(number|function)` Max number of lines for a message
+    },
+  },
 }
