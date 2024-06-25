@@ -369,9 +369,6 @@ return {
       -- disable netrw at the very start of the plugin
       vim.g.loaded_netrw = 1
       vim.g.loaded_netrwPlugin = 1
-
-      -- enable 24-bit colour
-      vim.opt.termguicolors = true
     end,
     config = function(_, opts)
       require('nvim-tree').setup(opts)

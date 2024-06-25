@@ -1,5 +1,4 @@
 -- Set <space> as the leader key
--- NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
@@ -44,7 +43,6 @@ vim.opt.showmode = false
 vim.opt.showtabline = 2
 
 -- Sync clipboard between OS and Neovim.
--- NOTE: remove this option if you want your OS clipboard to remain independent.
 vim.opt.clipboard = 'unnamedplus'
 
 -- Enable break indent
@@ -96,3 +94,6 @@ vim.opt.foldopen:remove 'hor'
 -- Sets how neovim will display certain whitespace characters in the editor.
 vim.opt.list = true
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+
+-- enable 24-bit colour
+vim.opt.termguicolors = true
