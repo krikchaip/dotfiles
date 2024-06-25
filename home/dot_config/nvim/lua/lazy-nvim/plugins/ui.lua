@@ -449,7 +449,7 @@ return {
       },
       inactive_winbar = {
         lualine_a = {},
-        lualine_b = { unpack(lualine_utils.filetype_with_icon()) },
+        lualine_b = { unpack(lualine_utils.filetype_with_icon(true)) },
         lualine_c = {},
         lualine_x = {},
         lualine_y = { lualine_utils.diagnostics },

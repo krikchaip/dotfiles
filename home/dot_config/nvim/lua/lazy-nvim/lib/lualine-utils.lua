@@ -129,7 +129,10 @@ M.filetype = {
   on_click = function() require('telescope.builtin').filetypes() end,
 }
 
-M.filetype_with_icon = function()
+--- @param inactive? boolean
+M.filetype_with_icon = function(inactive)
+  inactive = inactive or false
+
   return {
     {
       'filetype',
@@ -144,10 +147,25 @@ M.filetype_with_icon = function()
       end,
     },
     vim.tbl_extend('force', M.filename, {
-      padding = { left = 0, right = 1 },
-
+      padding = 0,
+      separator = '',
+      symbols = vim.tbl_extend('force', M.filename.symbols, { modified = '' }),
       on_click = function() end,
     }),
+    {
+      function() return vim.bo.modified and '● ' or ' ' end,
+      padding = { left = 0 },
+      color = function()
+        if not inactive then return nil end
+
+        local utils = require 'lualine.utils.utils'
+
+        local fg = utils.extract_highlight_colors('lualine_b_visual', 'fg')
+        local bg = utils.extract_highlight_colors('lualine_c_inactive', 'bg')
+
+        return { fg = fg, bg = bg }
+      end,
+    },
   }
 end
 
