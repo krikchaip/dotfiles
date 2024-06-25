@@ -616,8 +616,8 @@ return {
       timeout = 3000,
       top_down = true,
 
-      minimum_width = 50,
-      -- max_width = nil, -- `(number|function)` Max number of columns for messages
+      minimum_width = 30,
+      max_width = 50, -- `(number|function)` Max number of columns for messages
       -- max_height = nil, -- `(number|function)` Max number of lines for a message
     },
   },
