@@ -98,10 +98,8 @@ return {
         },
 
         completion = {
-          completeopt = 'menu,menuone,preview,noinsert,noselect',
+          completeopt = 'menu,menuone,preview',
         },
-
-        preselect = cmp.PreselectMode.None,
 
         performance = {
           -- debounce = 200, -- default: 60
