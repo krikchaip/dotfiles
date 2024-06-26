@@ -42,7 +42,6 @@ return {
   { 'amarakon/nvim-cmp-buffer-lines', name = 'cmp.buffer-lines' },
   { 'PhilRunninger/cmp-rpncalc', name = 'cmp.rpncalc' },
   { 'hrsh7th/cmp-nvim-lsp', name = 'cmp.lsp' },
-  { 'hrsh7th/cmp-nvim-lsp-signature-help', name = 'cmp.lsp-signature-help' },
   { 'hrsh7th/cmp-path', name = 'cmp.path' },
   { 'hrsh7th/cmp-cmdline', name = 'cmp.cmdline' },
   { 'SergioRibera/cmp-dotenv', name = 'cmp.dotenv' },
@@ -60,7 +59,6 @@ return {
       'cmp.buffer-lines',
       'cmp.rpncalc',
       'cmp.lsp',
-      'cmp.lsp-signature-help',
       'cmp.path',
       'cmp.cmdline',
       'cmp.dotenv',
@@ -100,8 +98,10 @@ return {
         },
 
         completion = {
-          completeopt = 'menu,menuone,preview,noinsert',
+          completeopt = 'menu,menuone,preview,noinsert,noselect',
         },
+
+        preselect = cmp.PreselectMode.None,
 
         performance = {
           -- debounce = 200, -- default: 60
@@ -124,7 +124,6 @@ return {
               dotenv = '[ENV]',
               luasnip = '[LuaSnip]',
               nvim_lsp = '[LSP]',
-              nvim_lsp_signature_help = '[Signature]',
               path = '[Path]',
               rpncalc = '[Calc]',
             },
@@ -191,9 +190,7 @@ return {
           end),
         },
 
-        sources = cmp.config.sources({
-          { name = 'nvim_lsp_signature_help' },
-        }, {
+        sources = cmp.config.sources {
           { name = 'nvim_lsp', max_item_count = 100 },
           -- { name = 'lazydev' },
           { name = 'luasnip' },
@@ -201,7 +198,7 @@ return {
           { name = 'path' },
           { name = 'rpncalc' },
           { name = 'buffer' },
-        }),
+        },
       }
 
       cmp.setup.cmdline(':', {
