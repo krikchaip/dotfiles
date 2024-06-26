@@ -8,6 +8,9 @@ return {
       require('tokyonight').setup {
         style = 'storm',
         transparent = false,
+        styles = {
+          floats = 'transparent',
+        },
       }
 
       vim.cmd [[colorscheme tokyonight]]

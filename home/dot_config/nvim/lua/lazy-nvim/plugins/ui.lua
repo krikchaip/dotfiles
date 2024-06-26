@@ -261,15 +261,16 @@ return {
     config = function()
       local ibl = require 'ibl'
       local hooks = require 'ibl.hooks'
+      local colors = require('tokyonight.colors').setup()
 
       local custom_highlight = {
-        { hl = 'RainbowDelimiterRed', fg = '#E06C75' },
-        { hl = 'RainbowDelimiterYellow', fg = '#E5C07B' },
-        { hl = 'RainbowDelimiterBlue', fg = '#61AFEF' },
-        { hl = 'RainbowDelimiterOrange', fg = '#D19A66' },
-        { hl = 'RainbowDelimiterGreen', fg = '#98C379' },
-        { hl = 'RainbowDelimiterViolet', fg = '#C678DD' },
-        { hl = 'RainbowDelimiterCyan', fg = '#56B6C2' },
+        { hl = 'RainbowDelimiterRed', fg = colors.red },
+        { hl = 'RainbowDelimiterYellow', fg = colors.yellow },
+        { hl = 'RainbowDelimiterBlue', fg = colors.blue },
+        { hl = 'RainbowDelimiterOrange', fg = colors.orange },
+        { hl = 'RainbowDelimiterGreen', fg = colors.green },
+        { hl = 'RainbowDelimiterViolet', fg = colors.purple },
+        { hl = 'RainbowDelimiterCyan', fg = colors.cyan },
       }
 
       local hls = vim.tbl_map(function(chl) return chl.hl end, custom_highlight)
