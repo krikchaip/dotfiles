@@ -57,9 +57,5 @@ return {
       -- render image files as images when opened
       hijack_file_patterns = { '*.png', '*.jpg', '*.jpeg', '*.svg', '*.gif', '*.webp' },
     },
-    init = function()
-      local home = vim.fn.expand '$HOME'
-      package.path = package.path .. ';' .. home .. '/.luarocks/share/lua/5.1/?/init.lua' .. ';' .. home .. '/.luarocks/share/lua/5.1/?.lua'
-    end,
   },
 }

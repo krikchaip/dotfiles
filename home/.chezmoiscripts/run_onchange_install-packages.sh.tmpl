@@ -23,10 +23,6 @@ mise use --global {{ . }}
 nu -c 'pnpm add --global {{ . }}'
 {{- end }}
 
-# install magick manually via luarocks
-# ref: https://github.com/3rd/image.nvim#installing-the-plugin--rock
-luarocks --local --lua-version=5.1 install magick
-
 # launch yabai & skhd in the background
 if pgrep yabai; then yabai --restart-service; else yabai --start-service; fi
 if pgrep skhd; then skhd --restart-service; else skhd --start-service; fi

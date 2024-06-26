@@ -32,9 +32,3 @@ $env.NU_LIB_DIRS = [
 # to fix the ERR_PNPM_NO_GLOBAL_BIN_DIR issue
 # ref: https://github.com/pnpm/pnpm/issues/4658
 $env.PNPM_HOME = ($env.HOME | path join "Library" "pnpm")
-
-# homebrew installs imagemagick and its dependencies somewhere that
-# image.nvim couldn't reach. we have to tell the plugin to find those libs from this path
-# ref: https://github.com/3rd/image.nvim#installing-imagemagick
-let brew_prefix = (brew --prefix | to text)
-$env.DYLD_LIBRARY_PATH = ($brew_prefix | path join "lib")
