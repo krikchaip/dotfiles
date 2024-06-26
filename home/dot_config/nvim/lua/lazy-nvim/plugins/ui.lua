@@ -631,7 +631,7 @@ return {
       top_down = true,
 
       minimum_width = 30,
-      max_width = 50, -- `(number|function)` Max number of columns for messages
+      max_width = 60, -- `(number|function)` Max number of columns for messages
       -- max_height = nil, -- `(number|function)` Max number of lines for a message
     },
   },
