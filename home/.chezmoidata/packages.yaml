@@ -35,6 +35,7 @@ packages:
   mise:
     - elixir
     - erlang
+    - lua@5.1
     - nodejs
     - pnpm
 
