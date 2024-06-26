@@ -1,4 +1,5 @@
 local lualine_utils = require 'lazy-nvim.lib.lualine-utils'
+local noice_utils = require 'lazy-nvim.lib.noice-utils'
 local tabby_utils = require 'lazy-nvim.lib.tabby-utils'
 local trouble_utils = require 'lazy-nvim.lib.trouble-utils'
 local ufo_utils = require 'lazy-nvim.lib.ufo-utils'
@@ -647,7 +648,10 @@ return {
         },
       },
 
-      status = {},
+      routes = {
+        noice_utils.skip_written_messages,
+        noice_utils.skip_search_messages,
+      },
 
       format = {
         lsp_progress_done = {
