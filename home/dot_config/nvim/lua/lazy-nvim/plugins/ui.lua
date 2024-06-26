@@ -651,6 +651,7 @@ return {
       routes = {
         noice_utils.skip_written_messages,
         noice_utils.skip_search_messages,
+        noice_utils.skip_luals_progress_messages,
       },
 
       format = {
