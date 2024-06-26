@@ -639,7 +639,15 @@ return {
         hover = {
           silent = true, -- set to true to not show a message if hover is not available
         },
+
+        documentation = {
+          opts = {
+            size = { max_width = 60, max_height = 20 },
+          },
+        },
       },
+
+      status = {},
 
       format = {
         lsp_progress_done = {
