@@ -56,3 +56,19 @@ function setup_highlight_references_hover(event)
     })
   end
 end
+
+-- Enable lsp inlay hints (for Nvim v0.10.0 and onwards)
+-- ref: https://www.youtube.com/watch?v=DYaTzkw3zqQ
+function setup_inlay_hints(event)
+  local client = vim.lsp.get_client_by_id(event.data.client_id)
+
+  if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
+    local opts = { buffer = event.buf, silent = true }
+
+    opts.desc = 'LSP: Toggle Inlay Hints'
+    vim.keymap.set('n', '<leader>lh', function()
+      local is_enabled = vim.lsp.inlay_hint.is_enabled { 0 }
+      vim.lsp.inlay_hint.enable(not is_enabled, { 0 })
+    end, opts)
+  end
+end

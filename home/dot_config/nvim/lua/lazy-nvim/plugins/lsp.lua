@@ -141,8 +141,9 @@ return {
         callback = function(event)
           local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
-          -- setup_diagnostic_hover(event)
+          -- Setup lsp autocommands
           setup_highlight_references_hover(event)
+          setup_inlay_hints(event)
 
           -- [[ Buffer local mappings ]]
           local opts = { buffer = event.buf, silent = true }
@@ -211,18 +212,6 @@ return {
           -- Similar to document symbols, except searches over your entire project.
           opts.desc = 'LSP: Search Workspace Symbols'
           vim.keymap.set('n', '<leader>O', '<cmd>Telescope lsp_dynamic_workspace_symbols<CR>', opts)
-
-          local client = vim.lsp.get_client_by_id(event.data.client_id)
-
-          -- Enable inlay hints (for Nvim v0.10.0 and onwards)
-          -- ref: https://www.youtube.com/watch?v=DYaTzkw3zqQ
-          if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
-            opts.desc = 'LSP: Toggle Inlay Hints'
-            vim.keymap.set('n', '<leader>lh', function()
-              local is_enabled = vim.lsp.inlay_hint.is_enabled { 0 }
-              vim.lsp.inlay_hint.enable(not is_enabled, { 0 })
-            end, opts)
-          end
         end,
       })
     end,
