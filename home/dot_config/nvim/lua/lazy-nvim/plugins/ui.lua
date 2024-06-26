@@ -171,7 +171,10 @@ return {
     end,
   },
 
-  -- 'statuscolumn' made easy
+  -- TODO: fix statuscol disappear after update plugins by utilizing lazy's life cycle events
+  --       ref: https://lazy.folke.io/usage#-user-events
+
+  -- 'statuscolumn' made EASY(?)
   -- ref: https://github.com/luukvbaal/statuscol.nvim
   {
     'luukvbaal/statuscol.nvim',
@@ -617,7 +620,7 @@ return {
 
   {
     'folke/noice.nvim',
-    name = 'noice',
+    -- name = 'noice', -- had to commment this due to some bug occured
     event = 'VeryLazy',
     dependencies = { 'nui', 'notify', 'nvim-treesitter' },
     opts = {

@@ -67,63 +67,6 @@ return {
     dependencies = { 'mason' },
   },
 
-  {
-    'ray-x/lsp_signature.nvim',
-    name = 'lsp-signature',
-    opts = {
-      -- max_width of signature floating_window
-      max_width = 60,
-
-      -- allow doc/signature text wrap inside floating_window
-      wrap = false,
-
-      -- close floating window after ms when laster parameter is entered
-      close_timeout = 4000,
-
-      -- characters that will trigger signature completion
-      extra_trigger_chars = { '(', ',' },
-
-      handler_opts = {
-        -- double, rounded, single, shadow, none, or a table of borders
-        border = 'single',
-      },
-
-      -- character to pad on left and right of signature can be ' ', or '|' etc
-      padding = ' ',
-
-      -- autoclose signature float win after x sec
-      -- auto_close_after = 1,
-
-      -- virtual hint enable
-      hint_enable = false,
-
-      -- toggle signature on and off in insert mode
-      toggle_key = '<M-x>',
-
-      -- whether to toggle floating_windows setting after toggle_key pressed
-      toggle_key_flip_floatwin_setting = true,
-
-      -- cycle to next signature in insert mode
-      select_signature_key = '<M-n>',
-
-      -- key to move cursor between current win and floating in insert mode
-      move_cursor_key = '<C-S-k>',
-    },
-  },
-
-  {
-    'echasnovski/mini.completion',
-    name = 'mini.completion',
-    version = false,
-    opts = {
-      delay = { completion = 10e7, info = 10e7, signature = 100 },
-      window = {
-        -- see `nvim_open_win()` for mor info
-        signature = { border = 'rounded' },
-      },
-    },
-  },
-
   -- To show LSP query results in a floating window instead of usual splits/tabs
   -- ref: https://github.com/rmagatti/goto-preview
   {
@@ -169,13 +112,7 @@ return {
       { '<leader>li', '<cmd>LspInfo<CR>', desc = 'LSP: Show Info' },
       { '<leader>lr', '<cmd>LspRestart<CR>', desc = 'LSP: Restart Current' },
     },
-    dependencies = {
-      'mason-lspconfig',
-
-      -- Function Signature Previewer (pick one or none)
-      -- 'lsp-signature',
-      -- 'mini.completion',
-    },
+    dependencies = { 'mason-lspconfig' },
     config = function()
       local lspconfig = require 'lspconfig'
       local mason_lspconfig = require 'mason-lspconfig'
@@ -200,7 +137,7 @@ return {
       -- will get run when an LSP attaches to a particular buffer
       vim.api.nvim_create_autocmd('LspAttach', {
         desc = 'Configure hover UIs and map keybindings when an LSP attached to a buffer',
-        group = vim.api.nvim_create_augroup('lsp-attach-config', { clear = false }),
+        group = vim.api.nvim_create_augroup('lsp-attach-config', { clear = true }),
         callback = function(event)
           local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
