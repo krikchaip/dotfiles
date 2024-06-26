@@ -6,9 +6,7 @@
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('highlight-yank', { clear = true }),
-  callback = function()
-    vim.highlight.on_yank()
-  end,
+  callback = function() vim.highlight.on_yank() end,
 })
 
 -- Show diagnostics automatically in hover window
@@ -20,9 +18,7 @@ function setup_diagnostic_hover(event)
     desc = 'Display diagnostics on hover',
     group = vim.api.nvim_create_augroup('diagnostic-hover', { clear = true }),
     buffer = event.buf,
-    callback = function()
-      vim.diagnostic.open_float(nil)
-    end
+    callback = function() vim.diagnostic.open_float(nil) end,
   })
 end
 
@@ -32,9 +28,12 @@ function setup_highlight_references_hover(event)
   local client = vim.lsp.get_client_by_id(event.data.client_id)
 
   if client and client.server_capabilities.documentHighlightProvider then
+    local hl_group = vim.api.nvim_create_augroup('highlight-references-hover', { clear = false })
+    local detach_group = vim.api.nvim_create_augroup('highlight-references-detach', { clear = true })
+
     vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
       desc = 'Highlight references of the word under the cursor',
-      group = vim.api.nvim_create_augroup('highlight-references-hover', { clear = false }),
+      group = hl_group,
       buffer = event.buf,
       callback = vim.lsp.buf.document_highlight,
     })
@@ -42,9 +41,18 @@ function setup_highlight_references_hover(event)
     -- when you move your cursor, the highlights will be cleared
     vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
       desc = 'Clear reference highlights when moving the cursor away',
-      group = vim.api.nvim_create_augroup('highlight-references-clear', { clear = false }),
+      group = hl_group,
       buffer = event.buf,
       callback = vim.lsp.buf.clear_references,
+    })
+
+    vim.api.nvim_create_autocmd('LspDetach', {
+      desc = 'Clear reference highlights on LSP detach',
+      group = detach_group,
+      callback = function(detach_event)
+        vim.lsp.buf.clear_references()
+        vim.api.nvim_clear_autocmds { group = hl_group, buffer = detach_event.buf }
+      end,
     })
   end
 end
