@@ -403,27 +403,6 @@ return {
   },
 
   {
-    'j-hui/fidget.nvim',
-    name = 'fidget',
-    tag = 'v1.4.5',
-    event = 'VeryLazy',
-    opts = {
-      progress = {
-        -- Ignore new tasks that don't contain a message
-        ignore_empty_message = true,
-
-        -- Icon shown when all LSP progress tasks are complete
-        display = { done_icon = '✓' },
-      },
-
-      notification = {
-        -- Automatically override vim.notify() with Fidget
-        override_vim_notify = false,
-      },
-    },
-  },
-
-  {
     'nvim-lualine/lualine.nvim',
     name = 'lualine',
     event = 'VimEnter',
@@ -633,6 +612,39 @@ return {
       minimum_width = 30,
       max_width = 60, -- `(number|function)` Max number of columns for messages
       -- max_height = nil, -- `(number|function)` Max number of lines for a message
+    },
+  },
+
+  {
+    'folke/noice.nvim',
+    name = 'noice',
+    event = 'VeryLazy',
+    dependencies = { 'nui', 'notify', 'nvim-treesitter' },
+    opts = {
+      messages = {
+        view_search = false, -- use `hlslens` instead
+      },
+
+      lsp = {
+        -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+        override = {
+          ['vim.lsp.util.convert_input_to_markdown_lines'] = true,
+          ['vim.lsp.util.stylize_markdown'] = true,
+          ['cmp.entry.get_documentation'] = true, -- requires hrsh7th/nvim-cmp
+        },
+
+        hover = {
+          silent = true, -- set to true to not show a message if hover is not available
+        },
+      },
+
+      format = {
+        lsp_progress_done = {
+          { '✓ ', hl_group = 'NoiceLspProgressSpinner' },
+          { '{data.progress.title} ', hl_group = 'NoiceLspProgressTitle' },
+          { '{data.progress.client} ', hl_group = 'NoiceLspProgressClient' },
+        },
+      },
     },
   },
 }
