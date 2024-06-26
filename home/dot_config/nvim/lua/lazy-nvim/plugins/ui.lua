@@ -352,13 +352,26 @@ return {
 
       -- user-defined modes
       modes = {
-        diag = { mode = 'diagnostics', preview = trouble_utils.split_preview },
+        diag = {
+          mode = 'diagnostics',
+          preview = trouble_utils.split_preview,
+        },
 
-        qf = { mode = 'quickfix', preview = trouble_utils.split_preview },
+        qf = {
+          mode = 'quickfix',
+          preview = trouble_utils.split_preview,
+        },
 
-        ll = { mode = 'loclist', preview = trouble_utils.split_preview },
+        ll = {
+          mode = 'loclist',
+          preview = trouble_utils.split_preview,
+        },
 
-        todolist = { mode = 'todo', preview = trouble_utils.split_preview },
+        todolist = {
+          mode = 'todo',
+          preview = trouble_utils.split_preview,
+          filter = { tag = { 'TODO', 'FIX', 'FIXME' } },
+        },
       },
     },
     init = function() require 'lazy-nvim.lib.trouble-autocmd' end,
