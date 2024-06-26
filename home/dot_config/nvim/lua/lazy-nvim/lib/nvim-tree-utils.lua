@@ -75,7 +75,7 @@ function M.close_tree_if_last(original)
   local api = require 'nvim-tree.api'
 
   if not api.tree.is_visible() then return original() end
-  if #vim.api.nvim_tabpage_list_wins(0) > 2 then return original() end
+  if #tabpage_list_normal_wins() > 2 then return original() end
 
   api.tree.close_in_this_tab()
 

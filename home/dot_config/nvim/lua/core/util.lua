@@ -32,6 +32,18 @@ function get_git_root()
   return vim.fn.fnamemodify(dot_git_path, ':h')
 end
 
+--- @param tabpage? integer
+function tabpage_list_normal_wins(tabpage)
+  tabpage = tabpage or 0
+
+  local winids = vim.api.nvim_tabpage_list_wins(tabpage)
+
+  return vim.tbl_filter(function(id)
+    -- excludes floating window
+    return vim.api.nvim_win_get_config(id).relative == ''
+  end, winids)
+end
+
 -- Smart delete current buffer
 -- Window:  switch to the last accessed when there's more than one
 -- Tabpage: switch to the last accessed when there're no more windows left
