@@ -454,7 +454,7 @@ return {
       },
 
       sections = {
-        lualine_a = { 'mode' },
+        lualine_a = { 'mode', lualine_utils.macro_recording },
         lualine_b = { lualine_utils.branch },
         lualine_c = { lualine_utils.blame_line },
         lualine_x = { 'encoding', 'fileformat' },

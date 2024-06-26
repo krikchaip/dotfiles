@@ -1,4 +1,4 @@
----@diagnostic disable: missing-parameter, param-type-mismatch, unused-local, unused-function
+---@diagnostic disable: missing-parameter, param-type-mismatch, unused-local, unused-function, undefined-field
 
 local custom_pickers = require 'lazy-nvim.lib.telescope-pickers'
 local navic_utils = require 'lazy-nvim.lib.navic-utils'
@@ -190,6 +190,16 @@ M.navic = {
   -- padding = { left = 1, right = 0 },
 
   fmt = navic_utils.adjust_dynamic_highlights(),
+}
+
+M.macro_recording = {
+  function() return require('noice').api.status.mode.get() end,
+  cond = function() return require('noice').api.status.mode.has() end,
+}
+
+M.keystrokes = {
+  function() return require('noice').api.status.command.get() end,
+  cond = function() return require('noice').api.status.command.has() end,
 }
 
 return M
