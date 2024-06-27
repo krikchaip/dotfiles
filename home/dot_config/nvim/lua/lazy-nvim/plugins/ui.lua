@@ -78,10 +78,11 @@ return {
           '',
 
           -- custom values
-          'NvimTree',
-          'DiffviewFiles',
           'DiffviewFileHistory',
+          'DiffviewFiles',
+          'DressingInput',
           'Navbuddy',
+          'NvimTree',
         },
 
         handle = {
@@ -517,7 +518,7 @@ return {
       },
 
       source_buffer = {
-        reorient = 'mid', -- "smart", "top", "mid" or "none"
+        reorient = 'smart', -- "smart", "top", "mid" or "none"
       },
     },
     config = function(_, opts)
@@ -583,6 +584,7 @@ return {
 
       -- TODO: create a new telescope picker for this one to replace `builtin.buffers`
       --       or wait until https://github.com/nanozuki/tabby.nvim/issues/143 is finished
+      --       ref: https://github.com/nanozuki/tabby.nvim/blob/main/lua/tabby/feature/win_picker.lua#L16
       { '<C-t>p', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
       { '<C-t><C-p>', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
     },
@@ -665,5 +667,11 @@ return {
         },
       },
     },
+  },
+
+  {
+    'stevearc/dressing.nvim',
+    event = 'VeryLazy',
+    opts = {},
   },
 }
