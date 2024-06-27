@@ -648,6 +648,10 @@ return {
         },
       },
 
+      presets = {
+        lsp_doc_border = true, -- add a border to hover docs and signature help
+      },
+
       routes = {
         noice_utils.skip_written_messages,
         noice_utils.skip_search_messages,
