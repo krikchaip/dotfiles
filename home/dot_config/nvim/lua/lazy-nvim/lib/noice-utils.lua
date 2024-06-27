@@ -4,23 +4,16 @@ M.skip_annoying_messages = {
   filter = {
     any = {
       -- written messages
-      {
-        event = 'msg_show',
-        kind = '',
-        find = 'written',
-      },
+      { event = 'msg_show', kind = '', find = 'written' },
 
       -- search messages
-      {
-        event = 'msg_show',
-        kind = 'search_count',
-      },
+      { event = 'msg_show', kind = 'search_count' },
+
+      -- readonly messages
+      { event = 'msg_show', kind = 'emsg', find = 'E21' },
 
       -- etc.
-      {
-        event = 'msg_show',
-        kind = '',
-      },
+      { event = 'msg_show', kind = '' },
     },
   },
   opts = { skip = true },
