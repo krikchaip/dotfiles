@@ -32,6 +32,18 @@ function get_git_root()
   return vim.fn.fnamemodify(dot_git_path, ':h')
 end
 
+--- @param path string? target path. default to `cwd`
+--- @return string branch current branch name
+function get_git_current_branch(path)
+  local cmd = { 'git', 'branch', '--show-current' }
+  local opts = path and { cwd = path, text = true } or { text = true }
+
+  local result = vim.system(cmd, opts):wait()
+
+  if result.code ~= 0 then vim.notify(result.stderr, vim.log.levels.ERROR) end
+  return result.stdout
+end
+
 --- @param tabpage? integer
 function tabpage_list_normal_wins(tabpage)
   tabpage = tabpage or 0
