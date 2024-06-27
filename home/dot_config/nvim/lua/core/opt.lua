@@ -95,5 +95,8 @@ vim.opt.foldopen:remove 'hor'
 vim.opt.list = true
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
--- enable 24-bit colour
+-- Enable 24-bit colour
 vim.opt.termguicolors = true
+
+-- Disable Nvim intro message
+vim.opt.shortmess:append 'I'
