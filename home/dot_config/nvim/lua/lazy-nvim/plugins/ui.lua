@@ -228,7 +228,8 @@ return {
       ufo.setup(opts)
 
       -- must reload `statuscol` because this plugin overwrites its value
-      -- vim.cmd [[silent Lazy reload statuscol]]
+      ---@diagnostic disable-next-line: param-type-mismatch
+      pcall(vim.cmd, [[silent Lazy reload statuscol]])
 
       local next_closed_fold, prev_closed_fold = ts_repeat_move.make_repeatable_move_pair(ufo.goNextClosedFold, ufo.goPreviousClosedFold)
 

@@ -103,6 +103,10 @@ return {
     config = function(_, opts)
       require('gitsigns').setup(opts)
       require('scrollbar.handlers.gitsigns').setup()
+
+      -- must reload `statuscol` because this plugin overwrites its value
+      ---@diagnostic disable-next-line: param-type-mismatch
+      pcall(vim.cmd, [[silent Lazy reload statuscol]])
     end,
   },
 
