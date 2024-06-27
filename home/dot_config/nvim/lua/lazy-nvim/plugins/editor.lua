@@ -24,13 +24,28 @@ return {
   {
     'rmagatti/auto-session',
     name = 'auto-session',
-    lazy = false,
+    cmd = {
+      'SessionSave',
+      'SessionRestore',
+      'SessionDelete',
+      'SessionPurgeOrphaned',
+      'Autosession',
+    },
     opts = {
+      -- Enables/disables the plugin's auto save and restore features
+      auto_session_enabled = false,
+
+      -- Enables/disables auto saving
+      auto_save_enabled = true,
+
+      -- Enables/disables auto restoring
+      auto_restore_enabled = false,
+
       -- Use the git branch to differentiate the session name
       auto_session_use_git_branch = true,
 
       -- Bypass auto save when only buffer open is one of these file types
-      -- bypass_session_save_file_types = {},
+      bypass_session_save_file_types = { 'dashboard', 'NvimTree' },
 
       pre_save_cmds = {
         nvim_tree_utils.close_all_nvim_tree,

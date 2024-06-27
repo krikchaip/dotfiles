@@ -711,7 +711,7 @@ return {
       config = dashboard_utils.theme.hyper,
 
       -- 'letter', 'number'
-      shortcut_type = 'letter',
+      shortcut_type = 'number',
 
       -- for open file in hyper mru. it will change to the root of vcs
       change_to_vcs_root = true,
