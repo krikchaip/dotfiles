@@ -263,6 +263,7 @@ return {
 
           ['Open'] = {
             ['l'] = { node.open.tab_drop, 'Tab Drop' },
+            ['<Right>'] = { node.open.tab_drop, 'Tab Drop' },
             ['<CR>'] = { node.open.tab_drop, 'Tab Drop' },
             ['<2-LeftMouse>'] = { node.open.tab_drop, 'Tab Drop' },
             ['<S-CR>'] = { node.open.edit, 'Replace' },
@@ -283,6 +284,7 @@ return {
 
           ['Directory'] = {
             ['h'] = { node.navigate.parent, 'Goto Parent' },
+            ['<Left>'] = { node.navigate.parent, 'Goto Parent' },
             ['<BS>'] = { node.navigate.parent_close, 'Close Current' },
             ['<S-BS>'] = { utils.collapse_all, 'Collapse All' },
             ['L'] = { tree.expand_all, 'Expand All' },
