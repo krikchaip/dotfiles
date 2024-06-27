@@ -262,9 +262,10 @@ return {
           },
 
           ['Open'] = {
-            ['l'] = { node.open.edit, 'Edit' },
-            ['<CR>'] = { node.open.edit, 'Edit' },
-            ['<2-LeftMouse>'] = { node.open.edit, 'Edit' },
+            ['l'] = { node.open.tab_drop, 'Tab Drop' },
+            ['<CR>'] = { node.open.tab_drop, 'Tab Drop' },
+            ['<2-LeftMouse>'] = { node.open.tab_drop, 'Tab Drop' },
+            ['<S-CR>'] = { node.open.edit, 'Replace' },
             ['o'] = { node.run.system, 'System Default' },
             ['<M-RightMouse>'] = { node.run.system, 'System Default' },
           },

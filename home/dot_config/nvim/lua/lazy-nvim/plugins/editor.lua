@@ -286,7 +286,7 @@ return {
 
       -- when you go to window selection mode, status bar will show one of
       -- following letters on them so you can use that letter to select the window
-      selection_chars = 'HJKLUIOPNM',
+      selection_chars = 'JKLIMOP',
 
       -- exclude buffers/windows with the following options
       filter_rules = {
