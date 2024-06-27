@@ -514,6 +514,7 @@ return {
 
       node_markers = {
         icons = {
+          leaf_selected = '',
           branch = '  ',
         },
       },
@@ -536,6 +537,9 @@ return {
         ['o'] = actions.select(),
         ['<C-s>'] = actions.hsplit(),
         ['<C-v>'] = actions.vsplit(),
+
+        ['<Left>'] = actions.parent(),
+        ['<Right>'] = actions.children(),
 
         ['h'] = actions.parent(),
         ['j'] = actions.next_sibling(),
