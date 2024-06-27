@@ -444,7 +444,7 @@ return {
         lualine_c = { lualine_utils.navic },
         lualine_x = {},
         lualine_y = { lualine_utils.diagnostics },
-        lualine_z = {},
+        lualine_z = { lualine_utils.macro_recording },
       },
       inactive_winbar = {
         lualine_a = {},
@@ -456,7 +456,7 @@ return {
       },
 
       sections = {
-        lualine_a = { 'mode', lualine_utils.macro_recording },
+        lualine_a = { 'mode' },
         lualine_b = { lualine_utils.branch },
         lualine_c = { lualine_utils.blame_line },
         lualine_x = { 'encoding', 'fileformat' },
