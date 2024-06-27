@@ -13,7 +13,7 @@ M.skip_annoying_messages = {
       { event = 'msg_show', kind = 'emsg', find = 'E21' },
 
       -- etc.
-      { event = 'msg_show', kind = '' },
+      -- { event = 'msg_show', kind = '' },
     },
   },
   opts = { skip = true },
