@@ -291,7 +291,7 @@ return {
       -- exclude buffers/windows with the following options
       filter_rules = {
         bo = {
-          filetype = { 'fidget' },
+          filetype = { 'fidget', 'noice' },
         },
 
         wo = {
