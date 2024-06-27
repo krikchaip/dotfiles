@@ -677,6 +677,22 @@ return {
   {
     'stevearc/dressing.nvim',
     event = 'VeryLazy',
-    opts = {},
+    opts = {
+      input = {
+        mappings = {
+          i = {
+            ['<C-c>'] = false, -- press this key to exit insert mode instead
+            ['<Esc>'] = 'Close',
+          },
+        },
+      },
+
+      select = {
+        -- Options for telescope selector
+        -- These are passed into the telescope picker directly. Can be used like:
+        -- telescope = require('telescope.themes').get_ivy({...})
+        telescope = nil,
+      },
+    },
   },
 }
