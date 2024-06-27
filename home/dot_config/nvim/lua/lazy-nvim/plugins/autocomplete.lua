@@ -87,7 +87,8 @@ return {
         },
 
         window = {
-          documentation = {
+          completion = cmp.config.window.bordered(),
+          documentation = cmp.config.window.bordered {
             max_width = 60,
             max_height = 20,
           },
