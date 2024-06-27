@@ -39,9 +39,6 @@ return {
       post_restore_cmds = {
         -- Restore nvim-tree if possible after restoring another buffers
         -- nvim_tree_utils.restore_nvim_tree,
-
-        -- Fix Lazy replace statuscol after popup open at start
-        -- 'Lazy reload statuscol',
       },
 
       session_lens = {
