@@ -1,18 +1,27 @@
 local M = {}
 
-M.skip_written_messages = {
+M.skip_annoying_messages = {
   filter = {
-    event = 'msg_show',
-    kind = '',
-    find = 'written',
-  },
-  opts = { skip = true },
-}
+    any = {
+      -- written messages
+      {
+        event = 'msg_show',
+        kind = '',
+        find = 'written',
+      },
 
-M.skip_search_messages = {
-  filter = {
-    event = 'msg_show',
-    kind = 'search_count',
+      -- search messages
+      {
+        event = 'msg_show',
+        kind = 'search_count',
+      },
+
+      -- etc.
+      {
+        event = 'msg_show',
+        kind = '',
+      },
+    },
   },
   opts = { skip = true },
 }
