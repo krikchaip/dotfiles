@@ -1,3 +1,4 @@
+local dashboard_utils = require 'lazy-nvim.lib.dashboard-utils'
 local lualine_utils = require 'lazy-nvim.lib.lualine-utils'
 local noice_utils = require 'lazy-nvim.lib.noice-utils'
 local tabby_utils = require 'lazy-nvim.lib.tabby-utils'
@@ -694,6 +695,32 @@ return {
         -- These are passed into the telescope picker directly. Can be used like:
         -- telescope = require('telescope.themes').get_ivy({...})
         telescope = nil,
+      },
+    },
+  },
+
+  {
+    'nvimdev/dashboard-nvim',
+    event = 'VimEnter',
+    dependencies = { 'web-devicons' },
+    opts = {
+      -- 'hyper', 'doom'
+      theme = 'hyper',
+
+      -- config used by theme
+      config = dashboard_utils.theme.hyper,
+
+      -- 'letter', 'number'
+      shortcut_type = 'letter',
+
+      -- for open file in hyper mru. it will change to the root of vcs
+      change_to_vcs_root = true,
+
+      -- hide these ui components on start
+      hide = {
+        statusline = true,
+        tabline = true,
+        winbar = true,
       },
     },
   },
