@@ -321,6 +321,8 @@ return {
             -- 'TelescopePrompt',
             -- 'TelescopeResults',
             -- '',
+
+            'dashboard',
           },
 
           buftypes = {
@@ -426,8 +428,8 @@ return {
         },
 
         disabled_filetypes = {
-          winbar = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble' },
-          statusline = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble' },
+          winbar = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble', 'dashboard' },
+          statusline = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble', 'dashboard' },
         },
 
         -- which filetypes to always be drawn as inactive statusline
