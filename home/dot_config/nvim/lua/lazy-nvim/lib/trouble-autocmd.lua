@@ -3,7 +3,7 @@ local utils = require 'lazy-nvim.lib.trouble-utils'
 local show_quickfix_panel = utils.show_panel 'qf'
 
 local function handle_quickfix_open()
-  vim.cmd [[ cclose ]]
+  vim.cmd [[cclose]]
   show_quickfix_panel()
 end
 

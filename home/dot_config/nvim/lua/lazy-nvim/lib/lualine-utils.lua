@@ -101,7 +101,7 @@ M.diff = {
     } end
   end,
 
-  on_click = function() vim.cmd [[ DiffviewOpen ]] end,
+  on_click = function() vim.cmd [[DiffviewOpen]] end,
 }
 
 M.filename = {
