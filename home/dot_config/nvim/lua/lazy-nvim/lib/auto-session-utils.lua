@@ -8,9 +8,10 @@ local M = {}
 --     instead of what have started nvim at the beginning.
 function M.setup_autosave_session()
   local auto_session = require 'auto-session'
+
   local group = vim.api.nvim_create_augroup('auto-session-manual', { clear = true })
 
-  vim.api.nvim_create_autocmd({ 'VimLeavePre' }, {
+  vim.api.nvim_create_autocmd('VimLeavePre', {
     desc = 'Auto save the current session before leaving Neovim',
     group = group,
     pattern = '*',
