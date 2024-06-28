@@ -82,6 +82,10 @@ return {
         'winsize',
       }
     end,
+    config = function(_, opts)
+      require('auto-session').setup(opts)
+      require('lazy-nvim.lib.auto-session-utils').setup_autosave_session()
+    end,
   },
 
   -- A minimalist auto brackets closer

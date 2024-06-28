@@ -6,7 +6,7 @@ local M = {}
 --     This is simply because of the `opened_with_args` variable,
 --     `vim.fn.argv()` returns result from last command's argv()
 --     instead of what have started nvim at the beginning.
-local function setup_autosave_session()
+function M.setup_autosave_session()
   local auto_session = require 'auto-session'
   local group = vim.api.nvim_create_augroup('auto-session-manual', { clear = true })
 
@@ -28,7 +28,7 @@ function M.load_session(session_dir)
   local bd = smart_delete_buffer()
 
   local ok = auto_session.RestoreSession(session_dir)
-  setup_autosave_session()
+  M.setup_autosave_session()
 
   if not ok then
     bd()
