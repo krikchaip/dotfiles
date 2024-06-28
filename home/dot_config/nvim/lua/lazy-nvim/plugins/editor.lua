@@ -50,6 +50,9 @@ return {
       -- Bypass auto save when only buffer open is one of these file types
       bypass_session_save_file_types = { 'dashboard' },
 
+      -- Config for handling the DirChangePre and DirChanged autocmds
+      cwd_change_handling = nil,
+
       pre_save_cmds = {
         nvim_tree_utils.close_all_nvim_tree,
       },
@@ -84,7 +87,9 @@ return {
     end,
     config = function(_, opts)
       require('auto-session').setup(opts)
+
       require('lazy-nvim.lib.auto-session-utils').setup_autosave_session()
+      require('lazy-nvim.lib.auto-session-utils').setup_dirchanged_session()
     end,
   },
 

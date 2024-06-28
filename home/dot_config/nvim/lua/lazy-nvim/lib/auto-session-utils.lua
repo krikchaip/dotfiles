@@ -22,14 +22,73 @@ function M.setup_autosave_session()
   })
 end
 
+-- replace `cwd_change_handling` option
+-- ref: https://github.com/rmagatti/auto-session/blob/main/lua/auto-session/autocmds.lua#L8
+function M.setup_dirchanged_session()
+  local auto_session = require 'auto-session'
+
+  local group = vim.api.nvim_create_augroup('auto-session-dirchanged', { clear = true })
+
+  vim.schedule(function()
+    vim.api.nvim_create_autocmd('DirChangedPre', {
+      desc = 'Save current session and clear all buffers/jumps',
+      group = group,
+      pattern = 'global',
+      callback = function()
+        -- Don't want to save session if dir change was triggered
+        -- by a window change. This will corrupt the session data,
+        -- mixing the two different directory sessions
+        if vim.v.event.changed_window then return end
+
+        local session_dir = vim.loop.cwd()
+        vim.notify('Previous Session: ' .. tostring(session_dir))
+
+        auto_session.SaveSession(session_dir, true)
+
+        -- Clear all buffers and jumps after session save so session
+        -- doesn't blead over to next session.
+        vim.cmd '%bd!'
+        vim.cmd 'clearjumps'
+
+        -- Clear tab names before jumping to another session
+        vim.opt.tabline = ''
+      end,
+    })
+  end)
+
+  vim.schedule(function()
+    vim.api.nvim_create_autocmd('DirChanged', {
+      desc = 'Restore session after pwd has changed',
+      group = group,
+      pattern = 'global',
+      callback = function()
+        -- see above
+        if vim.v.event.changed_window then return end
+
+        local session_dir = vim.loop.cwd()
+        vim.notify('Current Session: ' .. tostring(session_dir))
+
+        ---@diagnostic disable-next-line: param-type-mismatch
+        auto_session.RestoreSession(session_dir)
+
+        vim.defer_fn(function()
+          -- reload buffers to refresh LSP and other stuff
+          vim.cmd 'let curbuf = bufnr() | bufdo e | execute "buffer" curbuf'
+
+          -- rerender tabline for the current session
+          vim.cmd 'Lazy reload tabby'
+        end, 10)
+      end,
+    })
+  end)
+end
+
 function M.load_session(session_dir)
   local auto_session = require 'auto-session'
   local api = require 'nvim-tree.api'
 
   local bd = smart_delete_buffer()
-
   local ok = auto_session.RestoreSession(session_dir)
-  M.setup_autosave_session()
 
   if not ok then
     bd()
