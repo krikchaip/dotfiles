@@ -42,6 +42,9 @@ return {
       -- Necessary when using a UI prompt decorator such as dressing.nvim or telescope-ui-select.nvim
       select_prompts = true,
 
+      -- Changes the tree root directory on `DirChanged` and refreshes the tree.
+      sync_root_with_cwd = true,
+
       -- Automatically reloads the tree on `BufEnter` nvim-tree
       reload_on_bufenter = true,
 

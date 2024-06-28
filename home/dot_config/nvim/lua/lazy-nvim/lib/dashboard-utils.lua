@@ -16,16 +16,18 @@ M.theme.hyper = {
   },
 
   -- disable movement keymaps
-  disable_move = false,
+  disable_move = true,
 
-  shortcut = {},
+  shortcut = {
+    { desc = '  Restore Last Session ', key = 'r', action = 'SessionRestore' },
+  },
 
   -- show how many plugins neovim loaded
   packages = { enable = true },
 
-  project = { limit = 5, action = auto_session_utils.load_session },
+  project = { limit = 8, action = auto_session_utils.load_session },
 
-  mru = { limit = 10 },
+  mru = { limit = 8 },
 
   -- footer = {},
 }
