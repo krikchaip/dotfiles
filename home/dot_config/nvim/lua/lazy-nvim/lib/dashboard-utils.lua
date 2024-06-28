@@ -19,7 +19,7 @@ M.theme.hyper = {
   disable_move = true,
 
   shortcut = {
-    { desc = '  Restore Last Session ', key = 'r', action = 'SessionRestore' },
+    { desc = '  Restore Last Session ', key = 'r', action = auto_session_utils.load_session },
   },
 
   -- show how many plugins neovim loaded
