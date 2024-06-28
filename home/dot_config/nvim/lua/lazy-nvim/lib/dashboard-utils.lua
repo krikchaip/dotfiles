@@ -9,7 +9,7 @@ M.theme.hyper = {
     enable = true,
 
     -- concat string after time string line
-    -- concat = '',
+    concat = tostring(vim.loop.cwd()),
 
     -- table append after time string line
     -- append = {},
