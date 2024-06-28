@@ -28,7 +28,7 @@ M.theme.hyper = {
       local api = require 'nvim-tree.api'
 
       local bd = smart_delete_buffer()
-      local session_dir = path .. '_' .. get_git_current_branch()
+      local session_dir = path
 
       local ok = auto_session.RestoreSession(session_dir)
       if ok then return end
