@@ -19,19 +19,8 @@ return {
       { '<C-\\>', '<cmd>Telescope luasnip<CR>', desc = 'Search: LuaSnip Snippets', mode = { 'n', 'i' } },
     },
     dependencies = { 'telescope', 'luasnip' },
-    config = function() require('telescope').load_extension 'luasnip' end,
-  },
-
-  -- Telescope session lens picker
-  {
-    'rmagatti/session-lens',
-    name = 'telescope.session-lens',
-    cmd = { 'SearchSession' },
-    dependencies = { 'telescope', 'auto-session' },
-    opts = {},
-    config = function(_, opts)
-      require('session-lens').setup(opts)
-      require('telescope').load_extension 'session-lens'
+    config = function()
+      require('telescope').load_extension 'luasnip'
     end,
   },
 

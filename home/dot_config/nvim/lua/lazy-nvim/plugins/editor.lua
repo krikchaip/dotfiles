@@ -60,6 +60,7 @@ return {
       },
 
       session_lens = {
+        -- disable telescope session search
         load_on_setup = false,
       },
     },
