@@ -61,9 +61,10 @@ def "system-settings diff continue" []: nothing -> nothing {
 # remove all nvim artifacts. restore nvim to its original state
 def "restore-factory nvim" []: nothing -> nothing {
   let artifact_paths = [
+    ~/.cache/nvim
+    ~/.config/nvim
     ~/.local/share/nvim
     ~/.local/state/nvim
-    ~/.config/nvim
   ]
 
   # fix `rm` not working with relative path
