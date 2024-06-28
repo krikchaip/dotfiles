@@ -36,13 +36,19 @@ return {
       auto_session_enabled = false,
 
       -- Enables/disables the plugin's session auto creation
-      auto_session_create_enabled = true,
+      auto_session_create_enabled = false,
+
+      -- Enables/disables auto saving
+      auto_save_enabled = false,
+
+      -- Enables/disables auto restoring
+      auto_restore_enabled = false,
 
       -- Use the git branch to differentiate the session name
       auto_session_use_git_branch = true,
 
       -- Bypass auto save when only buffer open is one of these file types
-      bypass_session_save_file_types = { 'dashboard', 'NvimTree', '' },
+      bypass_session_save_file_types = { 'dashboard' },
 
       pre_save_cmds = {
         nvim_tree_utils.close_all_nvim_tree,
