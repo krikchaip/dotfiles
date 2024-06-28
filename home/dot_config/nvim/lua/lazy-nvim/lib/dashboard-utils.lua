@@ -1,3 +1,5 @@
+local auto_session_utils = require 'lazy-nvim.lib.auto-session-utils'
+
 local M = { theme = {} }
 
 M.theme.hyper = {
@@ -21,22 +23,7 @@ M.theme.hyper = {
   -- show how many plugins neovim loaded
   packages = { enable = true },
 
-  project = {
-    limit = 5,
-    action = function(path)
-      local auto_session = require 'auto-session'
-      local api = require 'nvim-tree.api'
-
-      local bd = smart_delete_buffer()
-      local session_dir = path
-
-      local ok = auto_session.RestoreSession(session_dir)
-      if ok then return end
-
-      bd()
-      api.tree.toggle { focus = false }
-    end,
-  },
+  project = { limit = 5, action = auto_session_utils.load_session },
 
   mru = { limit = 10 },
 

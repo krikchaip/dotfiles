@@ -35,17 +35,14 @@ return {
       -- Enables/disables the plugin's auto save and restore features
       auto_session_enabled = false,
 
-      -- Enables/disables auto saving
-      auto_save_enabled = true,
-
-      -- Enables/disables auto restoring
-      auto_restore_enabled = false,
+      -- Enables/disables the plugin's session auto creation
+      auto_session_create_enabled = true,
 
       -- Use the git branch to differentiate the session name
       auto_session_use_git_branch = true,
 
       -- Bypass auto save when only buffer open is one of these file types
-      bypass_session_save_file_types = { 'dashboard', 'NvimTree' },
+      bypass_session_save_file_types = { 'dashboard', 'NvimTree', '' },
 
       pre_save_cmds = {
         nvim_tree_utils.close_all_nvim_tree,
@@ -277,7 +274,9 @@ return {
     },
     opts = {
       -- a function that should prompt the user to select a window to be swapped.
-      window_picker = function() return require('window-picker').pick_window() end,
+      window_picker = function()
+        return require('window-picker').pick_window()
+      end,
     },
   },
 
