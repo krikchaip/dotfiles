@@ -5,7 +5,6 @@ return {
     'lewis6991/gitsigns.nvim',
     name = 'gitsigns',
     version = '^0.8.0',
-    cond = function() return is_git_repo() or is_git_file() end,
     event = { 'BufReadPost', 'BufNewFile' },
     opts = {
       signs = {
@@ -66,38 +65,58 @@ return {
         -- [[ Menus ]]
 
         kopts.desc = 'Git: Show Line Info'
-        vim.keymap.set('n', '<leader>gi', function() gitsigns.blame_line { full = true } end, kopts)
+        vim.keymap.set('n', '<leader>gi', function()
+          gitsigns.blame_line { full = true }
+        end, kopts)
 
         -- [[ Actions ]]
 
         kopts.desc = 'Git: Stage hunk under cursor'
-        vim.keymap.set('n', '<leader>ghs', function() gitsigns.stage_hunk() end, kopts)
+        vim.keymap.set('n', '<leader>ghs', function()
+          gitsigns.stage_hunk()
+        end, kopts)
 
         kopts.desc = 'Git: Stage highlighted hunk'
-        vim.keymap.set('v', '<leader>ghs', function() gitsigns.stage_hunk { vim.fn.line '.', vim.fn.line 'v' } end, kopts)
+        vim.keymap.set('v', '<leader>ghs', function()
+          gitsigns.stage_hunk { vim.fn.line '.', vim.fn.line 'v' }
+        end, kopts)
 
         kopts.desc = 'Git: Stage all hunks'
-        vim.keymap.set('n', '<leader>ghS', function() gitsigns.stage_buffer() end, kopts)
+        vim.keymap.set('n', '<leader>ghS', function()
+          gitsigns.stage_buffer()
+        end, kopts)
 
         kopts.desc = 'Git: Unstage all hunks'
-        vim.keymap.set('n', '<leader>ghU', function() gitsigns.reset_buffer_index() end, kopts)
+        vim.keymap.set('n', '<leader>ghU', function()
+          gitsigns.reset_buffer_index()
+        end, kopts)
 
         kopts.desc = 'Git: Reset hunk under cursor to staged'
-        vim.keymap.set('n', '<leader>ghr', function() gitsigns.reset_hunk() end, kopts)
+        vim.keymap.set('n', '<leader>ghr', function()
+          gitsigns.reset_hunk()
+        end, kopts)
 
         kopts.desc = 'Git: Reset highlighted hunk to staged'
-        vim.keymap.set('v', '<leader>ghr', function() gitsigns.reset_hunk { vim.fn.line '.', vim.fn.line 'v' } end, kopts)
+        vim.keymap.set('v', '<leader>ghr', function()
+          gitsigns.reset_hunk { vim.fn.line '.', vim.fn.line 'v' }
+        end, kopts)
 
         kopts.desc = 'Git: Reset all hunks to staged'
-        vim.keymap.set('n', '<leader>ghR', function() gitsigns.reset_buffer() end, kopts)
+        vim.keymap.set('n', '<leader>ghR', function()
+          gitsigns.reset_buffer()
+        end, kopts)
 
         -- [[ Text Objects ]]
 
         kopts.desc = 'Git: Hunk under cursor'
-        vim.keymap.set({ 'o', 'x' }, 'ic', function() gitsigns.select_hunk() end, kopts)
+        vim.keymap.set({ 'o', 'x' }, 'ic', function()
+          gitsigns.select_hunk()
+        end, kopts)
 
         kopts.desc = 'Git: Hunk under cursor'
-        vim.keymap.set({ 'o', 'x' }, 'ac', function() gitsigns.select_hunk() end, kopts)
+        vim.keymap.set({ 'o', 'x' }, 'ac', function()
+          gitsigns.select_hunk()
+        end, kopts)
       end,
     },
     config = function(_, opts)
