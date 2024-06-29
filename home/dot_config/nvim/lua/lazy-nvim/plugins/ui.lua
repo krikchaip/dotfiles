@@ -147,7 +147,9 @@ return {
 
       ts_context.setup(opts)
 
-      local _, ctx_upward = ts_repeat_move.make_repeatable_move_pair(function() end, function() ts_context.go_to_context(vim.v.count1) end)
+      local _, ctx_upward = ts_repeat_move.make_repeatable_move_pair(function() end, function()
+        ts_context.go_to_context(vim.v.count1)
+      end)
 
       vim.keymap.set('n', '[C', ctx_upward, { desc = 'Treesitter: Parent Context' })
     end,
@@ -280,7 +282,9 @@ return {
         { hl = 'RainbowDelimiterCyan', fg = colors.cyan },
       }
 
-      local hls = vim.tbl_map(function(chl) return chl.hl end, custom_highlight)
+      local hls = vim.tbl_map(function(chl)
+        return chl.hl
+      end, custom_highlight)
 
       -- create the highlight groups in the highlight setup hook, so they are reset
       -- every time the colorscheme changes
@@ -383,7 +387,9 @@ return {
         },
       },
     },
-    init = function() require 'lazy-nvim.lib.trouble-autocmd' end,
+    init = function()
+      require 'lazy-nvim.lib.trouble-autocmd'
+    end,
   },
 
   {
@@ -429,8 +435,8 @@ return {
         },
 
         disabled_filetypes = {
-          winbar = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble', 'dashboard' },
-          statusline = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble', 'dashboard' },
+          winbar = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble', 'dashboard', 'noice' },
+          statusline = { 'NvimTree', 'DiffviewFiles', 'DiffviewFileHistory', 'trouble', 'dashboard', 'noice' },
         },
 
         -- which filetypes to always be drawn as inactive statusline
@@ -484,7 +490,9 @@ return {
     opts = {
       lsp = { auto_attach = true },
     },
-    config = function(_, opts) require('nvim-navic').setup(opts) end,
+    config = function(_, opts)
+      require('nvim-navic').setup(opts)
+    end,
   },
 
   {
