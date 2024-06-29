@@ -33,10 +33,10 @@ return {
     cmd = { 'Telescope' },
     keys = {
       -- [[ Menus ]]
-      { '<C-S-b>', '<cmd>Telescope builtin<CR>', desc = 'Search: Builtin Pickers' },
-      { '<C-S-h>', '<cmd>Telescope help_tags<CR>', desc = 'Search: Help Pages' },
-      { '<C-S-m>', '<cmd>Telescope man_pages<CR>', desc = 'Search: Man Pages' },
-      { '<C-S-;>', '<cmd>Telescope commands<CR>', desc = 'Search: Plugin Commands' },
+      { '<leader>b', '<cmd>Telescope builtin<CR>', desc = 'Search: Builtin Pickers' },
+      { '<leader>h', '<cmd>Telescope help_tags<CR>', desc = 'Search: Help Pages' },
+      { '<leader>H', '<cmd>Telescope man_pages<CR>', desc = 'Search: Man Pages' },
+      { '<leader>:', '<cmd>Telescope commands<CR>', desc = 'Search: Plugin Commands' },
 
       -- [[ NVim settings ]]
       { '<C-,>c', '<cmd>Telescope colorscheme<CR>', desc = 'Settings: Colorscheme' },
@@ -55,7 +55,7 @@ return {
       -- [[ Histories ]]
       { '<leader>|', '<cmd>Telescope oldfiles<CR>', desc = 'Search: Buffer History' },
       { '<leader>?', '<cmd>Telescope search_history<CR>', desc = 'Search: Search History' },
-      { '<leader>:', '<cmd>Telescope command_history<CR>', desc = 'Search: Command History' },
+      { '<leader>;', '<cmd>Telescope command_history<CR>', desc = 'Search: Command History' },
 
       -- [[ Navigation ]]
       { '<leader><leader>', '<cmd>Telescope resume<CR>', desc = 'Picker: Resume Last' },
