@@ -641,6 +641,10 @@ return {
     'folke/noice.nvim',
     -- name = 'noice', -- had to commment this due to some bug occured
     event = 'VeryLazy',
+    keys = {
+      { '<leader>m', '<cmd>Noice telescope<CR>', desc = 'Notifications: Show History' },
+      { '<leader>M', '<cmd>Noice dismiss<CR>', desc = 'Notifications: Dismiss All' },
+    },
     dependencies = { 'nui', 'notify', 'nvim-treesitter' },
     opts = {
       messages = {
