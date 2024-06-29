@@ -345,11 +345,11 @@ return {
       { '<leader>d', trouble_utils.show_panel 'diag', desc = 'Trouble: Show Diagnostics' },
       { '<leader>D', '<cmd>Trouble diag close<CR>', desc = 'Trouble: Hide Diagnostics' },
 
-      { '<leader>q', trouble_utils.show_panel 'qf', desc = 'Trouble: Show Quickfix List' },
-      { '<leader>Q', '<cmd>Trouble qf close<CR>', desc = 'Trouble: Hide Quickfix List' },
+      { '<M-q>', trouble_utils.show_panel 'qf', desc = 'Trouble: Show Quickfix List' },
+      { '<M-S-q>', '<cmd>Trouble qf close<CR>', desc = 'Trouble: Hide Quickfix List' },
 
-      { '<leader>.', trouble_utils.show_panel 'll', desc = 'Trouble: Show Location List' },
-      { '<leader>>', '<cmd>Trouble ll close<CR>', desc = 'Trouble: Hide Location List' },
+      { '<M-w>', trouble_utils.show_panel 'll', desc = 'Trouble: Show Location List' },
+      { '<M-S-w>', '<cmd>Trouble ll close<CR>', desc = 'Trouble: Hide Location List' },
 
       { '<leader>t', trouble_utils.show_panel 'todolist', desc = 'Trouble: Show Todo List' },
       { '<leader>T', '<cmd>Trouble todolist close<CR>', desc = 'Trouble: Hide Todo List' },

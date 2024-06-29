@@ -76,8 +76,8 @@ vim.keymap.set('n', '-', '<C-x>', { desc = 'Number: Decrement' })
 vim.keymap.set('n', '+', '<C-a>', { desc = 'Number: Increment' })
 
 -- Remap macro keys to prevent accidentally pressing of q's
-vim.keymap.set('n', '<leader>m', macro_start_stop, { desc = 'Macro: Start/Stop Recording', expr = true })
-vim.keymap.set('n', '<leader>M', 'Q', { desc = 'Macro: Replay Last Recording' })
+vim.keymap.set('n', '<leader>q', macro_start_stop, { desc = 'Macro: Start/Stop Recording', expr = true })
+vim.keymap.set('n', '<leader>Q', 'Q', { desc = 'Macro: Replay Last Recording' })
 
 -- Buffer Management
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Buffer: Write Current' })
