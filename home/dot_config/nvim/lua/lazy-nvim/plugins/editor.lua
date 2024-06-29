@@ -1,3 +1,4 @@
+local auto_session_utils = require 'lazy-nvim.lib.auto-session-utils'
 local nvim_tree_utils = require 'lazy-nvim.lib.nvim-tree-utils'
 local window_picker_utils = require 'lazy-nvim.lib.window-picker-utils'
 
@@ -31,6 +32,9 @@ return {
       'SessionPurgeOrphaned',
       'Autosession',
     },
+    keys = {
+      { '<leader>s', '<cmd>Telescope session-lens<CR>', desc = 'Session: Open Session Lens' },
+    },
     opts = {
       -- Enables/disables the plugin's auto save and restore features
       auto_session_enabled = false,
@@ -62,10 +66,8 @@ return {
         -- nvim_tree_utils.restore_nvim_tree,
       },
 
-      session_lens = {
-        -- disable telescope session search
-        load_on_setup = false,
-      },
+      -- custom session lens config (telescope)
+      session_lens = auto_session_utils.session_lens_config,
     },
     init = function()
       vim.opt.sessionoptions = {

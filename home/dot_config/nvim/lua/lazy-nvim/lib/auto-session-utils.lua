@@ -1,5 +1,18 @@
 local M = {}
 
+M.session_lens_config = {
+  -- If load_on_setup is set to false, one needs to eventually call
+  -- `require("auto-session").setup_session_lens()` if they want to use session-lens.
+  load_on_setup = true,
+
+  previewer = false,
+
+  -- will be passed directly to telescope picker
+  theme_conf = {
+    border = true,
+  },
+}
+
 -- NOTE: `auto_save_enabled` does not work until `auto_save > in_pager_mode` is fixed.
 -- ref: https://github.com/rmagatti/auto-session/blob/main/lua/auto-session/init.lua#L200
 --
