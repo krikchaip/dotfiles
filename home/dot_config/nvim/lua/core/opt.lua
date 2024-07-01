@@ -65,7 +65,7 @@ vim.opt.ignorecase = true
 vim.opt.smartcase = true
 
 -- Decrease update time (default 4000ms, floating menus popup sooner on hover)
-vim.opt.updatetime = 500
+vim.opt.updatetime = 250
 
 -- Decrease mapped sequence wait time (displays which-key popup sooner)
 vim.opt.timeoutlen = 500
