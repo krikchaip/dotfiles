@@ -1,3 +1,14 @@
+local function bypass_save_by_filetype()
+  local file_types_to_bypass = { 'dashboard' }
+
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    local buf_ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
+    if vim.tbl_contains(file_types_to_bypass, buf_ft) then return true end
+  end
+
+  return false
+end
+
 local M = {}
 
 M.session_lens_config = {
@@ -52,6 +63,7 @@ function M.setup_autosave_session()
     pattern = '*',
     callback = function()
       if vim.g.in_pager_mode then return end
+      if bypass_save_by_filetype() then return end
 
       local session_dir = vim.loop.cwd()
       vim.notify('Saving Session: ' .. tostring(session_dir))
@@ -78,6 +90,8 @@ function M.setup_dirchanged_session()
         -- by a window change. This will corrupt the session data,
         -- mixing the two different directory sessions
         if vim.v.event.changed_window then return end
+
+        if bypass_save_by_filetype() then return end
 
         local session_dir = vim.loop.cwd()
         vim.notify('Previous Session: ' .. tostring(session_dir))
