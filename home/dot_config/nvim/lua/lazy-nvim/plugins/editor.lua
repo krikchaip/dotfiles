@@ -49,7 +49,7 @@ return {
       auto_restore_enabled = false,
 
       -- Use the git branch to differentiate the session name
-      auto_session_use_git_branch = true,
+      auto_session_use_git_branch = false,
 
       -- Bypass auto save when only buffer open is one of these file types
       bypass_session_save_file_types = nil,

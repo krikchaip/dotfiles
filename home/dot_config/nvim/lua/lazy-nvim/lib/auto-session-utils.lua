@@ -10,6 +10,28 @@ M.session_lens_config = {
   -- will be passed directly to telescope picker
   theme_conf = {
     border = true,
+
+    attach_mappings = function(_, map)
+      local auto_session = require 'auto-session'
+      local auto_session_actions = require 'auto-session.session-lens.actions'
+      local telescope_actions = require 'telescope.actions'
+      local telescope_actions_state = require 'telescope.actions.state'
+
+      -- ref: https://github.com/rmagatti/auto-session/blob/main/lua/auto-session/session-lens/actions.lua#L35
+      telescope_actions.select_default:replace(function(prompt_bufnr)
+        if prompt_bufnr then telescope_actions.close(prompt_bufnr) end
+
+        local selection = telescope_actions_state.get_selected_entry()
+        selection = type(selection) == 'table' and selection.filename or selection
+
+        local dirname = auto_session.format_file_name(selection)
+        vim.fn.chdir(dirname)
+      end)
+
+      map('i', '<C-c>', auto_session_actions.delete_session)
+
+      return true
+    end,
   },
 }
 
