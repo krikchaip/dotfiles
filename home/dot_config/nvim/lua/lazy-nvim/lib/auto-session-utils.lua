@@ -29,8 +29,12 @@ function M.setup_autosave_session()
     group = group,
     pattern = '*',
     callback = function()
+      if vim.g.in_pager_mode then return end
+
       local session_dir = vim.loop.cwd()
-      if not vim.g.in_pager_mode then auto_session.SaveSession(session_dir, true) end
+      vim.notify('Saving Session: ' .. tostring(session_dir))
+
+      auto_session.SaveSession(session_dir, true)
     end,
   })
 end
