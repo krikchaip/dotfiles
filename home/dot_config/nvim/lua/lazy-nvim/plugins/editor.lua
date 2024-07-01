@@ -52,7 +52,7 @@ return {
       auto_session_use_git_branch = true,
 
       -- Bypass auto save when only buffer open is one of these file types
-      bypass_session_save_file_types = { 'dashboard' },
+      bypass_session_save_file_types = nil,
 
       -- Config for handling the DirChangePre and DirChanged autocmds
       cwd_change_handling = nil,
