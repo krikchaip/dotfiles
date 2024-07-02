@@ -135,7 +135,6 @@ return {
           }
         end,
 
-        ['lua_ls'] = function() end, -- delegated to neodev plugin
         ['tsserver'] = function() end, -- delegated to typescript-tools plugin
       }
 
@@ -225,50 +224,12 @@ return {
     end,
   },
 
-  -- TODO: will replace neodev eventually should it has been more stable
   {
     'folke/lazydev.nvim',
     name = 'lazydev',
-    enabled = false,
-    ft = { 'lua' },
+    ft = 'lua',
     dependencies = { 'lspconfig' },
     opts = {},
-  },
-
-  {
-    'folke/neodev.nvim',
-    name = 'neodev',
-    ft = { 'lua' },
-    dependencies = { 'lspconfig' },
-    config = function()
-      local neodev = require 'neodev'
-      local lspconfig = require 'lspconfig'
-      local utils = require 'lazy-nvim.lib.lspconfig-utils'
-
-      neodev.setup {
-        -- Fix lua_ls does not provide suggestions for nvim plugins
-        -- (only work with nvim-config lua projects)
-        -- ref: https://github.com/folke/neodev.nvim/issues/158
-        override = function(_, library)
-          library.enabled = true
-          library.plugins = true
-        end,
-      }
-
-      lspconfig.lua_ls.setup {
-        -- tell LSP servers what capabilities that the client (nvim) can handle
-        capabilities = utils.make_capabilities(),
-
-        -- For more info: https://luals.github.io/wiki/settings
-        settings = {
-          Lua = {
-            diagnostics = {
-              disable = { 'missing-fields' },
-            },
-          },
-        },
-      }
-    end,
   },
 
   {
