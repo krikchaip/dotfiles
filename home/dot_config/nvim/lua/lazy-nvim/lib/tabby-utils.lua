@@ -38,13 +38,16 @@ function M.custom_tabline(theme)
 
       line.tabs().foreach(function(tab)
         local hl = tab.is_current() and theme.current_tab or theme.tab
-        -- local status_icon = { '', '󰆣' }
+
+        local has_modified_buffers = #line.wins_in_tab(tab.id, function(win)
+          return win.buf().is_changed()
+        end).wins <= 0 and '' or tab.is_current() and '●' or { '●', hl = { fg = theme.head.bg, bg = hl.bg } }
 
         return {
           line.sep(LEFT_SEP, hl, theme.fill),
-          -- tab.is_current() and status_icon[1] or status_icon[2],
           tab.number(),
           tab.name(),
+          has_modified_buffers,
           tab.close_btn '',
           line.sep(RIGHT_SEP, hl, theme.fill),
 
