@@ -241,6 +241,8 @@ return {
 
             mappings = {
               i = {
+                ['<M-d>'] = actions.preview_scrolling_down,
+
                 ['<CR>'] = actions.select_tab_drop,
                 ['<S-CR>'] = actions.select_default,
 
