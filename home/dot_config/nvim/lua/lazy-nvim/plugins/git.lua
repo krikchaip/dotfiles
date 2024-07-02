@@ -136,6 +136,7 @@ return {
     name = 'diffview',
     cmd = { 'DiffviewOpen', 'DiffviewFileHistory' },
     keys = {
+      { '<M-g>', '<cmd>DiffviewOpen<CR>', desc = 'Git: Open Diffview' },
       { '<leader>gd', '<cmd>DiffviewOpen<CR>', desc = 'Git: Open Diffview' },
       { '<leader>gf', '<cmd>DiffviewFileHistory %<CR>', desc = 'Git: Open File History' },
       { '<leader>gf', ':DiffviewFileHistory<CR>', desc = 'Git: Open Line History', mode = 'x' },
@@ -257,6 +258,7 @@ return {
     name = 'neogit',
     cmd = { 'Neogit' },
     keys = {
+      { '<C-g>', '<cmd>Neogit<CR>', desc = 'Git: Show Status' },
       { '<leader>gs', '<cmd>Neogit<CR>', desc = 'Git: Show Status' },
       { '<leader>gc', '<cmd>Neogit commit<CR>', desc = 'Git: Open Commit Popup' },
     },
