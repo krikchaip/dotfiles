@@ -30,7 +30,9 @@ return {
     'anuvyklack/keymap-amend.nvim',
     name = 'keymap-amend',
     lazy = false,
-    config = function() vim.keymap.amend = require 'keymap-amend' end,
+    config = function()
+      vim.keymap.amend = require 'keymap-amend'
+    end,
   },
 
   -- UI Component Library for Neovim
