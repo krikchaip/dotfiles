@@ -59,7 +59,9 @@ M.blame_line = {
 
   icon = '',
 
-  on_click = function() require('gitsigns').blame_line { full = true } end,
+  on_click = function()
+    require('gitsigns').blame_line { full = true }
+  end,
 
   fmt = trunc(nil, nil, 60),
 }
@@ -70,7 +72,9 @@ M.branch = {
   'b:gitsigns_head',
   icon = '',
 
-  on_click = function() require('telescope.builtin').git_branches() end,
+  on_click = function()
+    require('telescope.builtin').git_branches()
+  end,
 }
 
 M.diagnostics = {
@@ -85,7 +89,9 @@ M.diagnostics = {
   update_in_insert = false, -- Update diagnostics in insert mode.
   always_visible = false, -- Show diagnostics even if there are none.
 
-  on_click = function() require('trouble').focus { mode = 'diag', filter = { buf = 0 } } end,
+  on_click = function()
+    require('trouble').focus { mode = 'diag', filter = { buf = 0 } }
+  end,
 }
 
 M.diff = {
@@ -101,7 +107,9 @@ M.diff = {
     } end
   end,
 
-  on_click = function() vim.cmd [[DiffviewOpen]] end,
+  on_click = function()
+    vim.cmd [[DiffviewOpen]]
+  end,
 }
 
 M.filename = {
@@ -121,12 +129,16 @@ M.filename = {
     newfile = '', -- Text to show for newly created file before first write
   },
 
-  on_click = function() custom_pickers.find_files() end,
+  on_click = function()
+    custom_pickers.find_files()
+  end,
 }
 
 M.filetype = {
   'filetype',
-  on_click = function() require('telescope.builtin').filetypes() end,
+  on_click = function()
+    require('telescope.builtin').filetypes()
+  end,
 }
 
 --- @param inactive? boolean
@@ -153,7 +165,9 @@ M.filetype_with_icon = function(inactive)
       on_click = function() end,
     }),
     {
-      function() return vim.bo.modified and '● ' or ' ' end,
+      function()
+        return vim.bo.modified and '● ' or ' '
+      end,
       padding = { left = 0 },
       color = function()
         if not inactive then return nil end
@@ -193,13 +207,21 @@ M.navic = {
 }
 
 M.macro_recording = {
-  function() return require('noice').api.status.mode.get() end,
-  cond = function() return require('noice').api.status.mode.has() end,
+  function()
+    return require('noice').api.status.mode.get()
+  end,
+  cond = function()
+    return require('noice').api.status.mode.has()
+  end,
 }
 
 M.keystrokes = {
-  function() return require('noice').api.status.command.get() end,
-  cond = function() return require('noice').api.status.command.has() end,
+  function()
+    return require('noice').api.status.command.get()
+  end,
+  cond = function()
+    return require('noice').api.status.command.has()
+  end,
 }
 
 return M
