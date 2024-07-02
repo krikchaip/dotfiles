@@ -1,5 +1,5 @@
 local function bypass_save_by_filetype()
-  local file_types_to_bypass = { 'dashboard' }
+  local file_types_to_bypass = { 'dashboard', 'NvimTree', '' }
 
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     local buf_ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
