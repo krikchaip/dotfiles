@@ -186,13 +186,6 @@ end
 M.navic = {
   'navic',
 
-  -- All options except "lsp" options take effect when set here
-  navic_opts = {
-    highlight = true,
-    click = true,
-    depth_limit = 3,
-  },
-
   -- "static" -> perform an adjustment once when the component is being setup.
   --   This should be enough when the lualine section isn't changing colors based on the mode.
   -- "dynamic" -> keep updating the highlights according to the current modes colors

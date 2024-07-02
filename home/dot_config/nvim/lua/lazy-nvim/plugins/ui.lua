@@ -488,6 +488,9 @@ return {
     name = 'lualine.navic',
     dependencies = { 'lspconfig' },
     opts = {
+      highlight = true,
+      depth_limit = 3,
+      click = true,
       lsp = { auto_attach = true },
     },
     config = function(_, opts)
