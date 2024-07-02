@@ -15,6 +15,7 @@ packages:
       - mise
       - neovim
       - nushell
+      - pkg-config
       - ripgrep
       - rsteube/tap/carapace
       - starship
@@ -40,7 +41,7 @@ packages:
     - pnpm
 
   pnpm:
-    - '@microsoft/rush'
+    - "@microsoft/rush"
     - turbo
     - vercel
     - vite

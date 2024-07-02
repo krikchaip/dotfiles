@@ -45,19 +45,21 @@ return {
   {
     '3rd/image.nvim',
     name = 'image',
-    event = { 'BufReadPre *.png, *.jpg, *.jpeg, *.svg, *.gif, *.webp' },
+    lazy = false,
     opts = {
+      max_width_window_percentage = 50,
+      max_height_window_percentage = 50,
+
       -- toggles images when windows are overlapped
-      window_overlap_clear_enabled = false,
+      window_overlap_clear_enabled = true,
 
       -- auto show/hide images when the editor gains/looses focus
-      editor_only_render_when_focused = false,
+      editor_only_render_when_focused = true,
 
-      -- auto show/hide images in the correct Tmux window (needs visual-activity off)
-      tmux_show_only_in_active_window = false,
-
-      -- render image files as images when opened
-      hijack_file_patterns = { '*.png', '*.jpg', '*.jpeg', '*.svg', '*.gif', '*.webp' },
+      integrations = {
+        html = { enabled = true },
+        css = { enabled = true },
+      },
     },
   },
 }
