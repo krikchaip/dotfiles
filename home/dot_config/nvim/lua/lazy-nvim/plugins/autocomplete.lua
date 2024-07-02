@@ -73,17 +73,25 @@ return {
       local lspkind = require 'lspkind'
 
       -- Enable mapping in all modes
-      local ics = function(mapping_fn) return cmp.mapping(mapping_fn, { 'i', 'c', 's' }) end
+      local ics = function(mapping_fn)
+        return cmp.mapping(mapping_fn, { 'i', 'c', 's' })
+      end
 
       -- Enable mapping except command mode
-      local is = function(mapping_fn) return cmp.mapping(mapping_fn, { 'i', 's' }) end
+      local is = function(mapping_fn)
+        return cmp.mapping(mapping_fn, { 'i', 's' })
+      end
 
       -- Enable mapping for only command mode
-      local c = function(mapping_fn) return cmp.mapping(mapping_fn, { 'c' }) end
+      local c = function(mapping_fn)
+        return cmp.mapping(mapping_fn, { 'c' })
+      end
 
       cmp.setup {
         snippet = {
-          expand = function(args) require('luasnip').lsp_expand(args.body) end,
+          expand = function(args)
+            require('luasnip').lsp_expand(args.body)
+          end,
         },
 
         window = {
@@ -102,6 +110,7 @@ return {
           completeopt = 'menu,menuone,preview',
         },
 
+        ---@diagnostic disable-next-line: missing-fields
         performance = {
           -- debounce = 200, -- default: 60
           -- throttle = 100, -- default: 30
@@ -111,6 +120,7 @@ return {
           max_view_entries = 100, -- default: 200
         },
 
+        ---@diagnostic disable-next-line: missing-fields
         formatting = {
           format = lspkind.cmp_format {
             mode = 'symbol_text', -- 'text', 'text_symbol', 'symbol_text', 'symbol'
