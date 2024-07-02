@@ -149,7 +149,7 @@ return {
           local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
 
           -- Setup lsp autocommands
-          setup_highlight_references_hover(event)
+          -- setup_highlight_references_hover(event)
           setup_inlay_hints(event)
 
           -- [[ Buffer local mappings ]]
