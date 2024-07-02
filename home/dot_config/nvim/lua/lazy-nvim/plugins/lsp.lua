@@ -90,9 +90,17 @@ return {
         local map = utils.create_key_mapper(bufnr)
         local open_preview = utils.create_open_previewer(winnr)
 
+        local close_current = function()
+          vim.cmd.wincmd 'q'
+        end
+
+        local close_all_wins = function()
+          require('goto-preview').close_all_win()
+        end
+
         map {
-          { 'q', function() vim.cmd.wincmd 'q' end, 'Preview: Close Current Window' },
-          { 'Q', function() require('goto-preview').close_all_win() end, 'Preview: Close All Windows' },
+          { 'q', close_current, 'Preview: Close Current Window' },
+          { 'Q', close_all_wins, 'Preview: Close All Windows' },
           { '<CR>', open_preview 'default', 'Preview: Replace Parent Window' },
           { '<C-s>', open_preview 'horizontal', 'Preview: Split Horizontally' },
           { '<C-v>', open_preview 'vertical', 'Preview: Split Vertically' },

@@ -85,6 +85,7 @@ end
 
 -- Smart tabpage closer.
 -- Will return to previously active tabpage when possible
+-- TODO: close all buffers (with smart_delete_buffer) after tab closed
 function smart_close_tabpage()
   local ok, _ = pcall(vim.cmd, 'tabnext# | tabclose#')
   if not ok then vim.cmd [[tabclose]] end
