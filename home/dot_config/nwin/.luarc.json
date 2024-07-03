@@ -2,9 +2,10 @@
     "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
     "completion.callSnippet": "Replace",
     "diagnostics.disable": [
+        "lowercase-global",
         "missing-fields",
-        "undefined-field",
-        "param-type-mismatch"
+        "param-type-mismatch",
+        "undefined-field"
     ],
     "diagnostics.globals": [
         "vim"

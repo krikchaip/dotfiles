@@ -10,6 +10,7 @@ return {
   config = function()
     require 'plugins.global.vars'
     require 'plugins.global.opts'
+    require 'plugins.global.utils'
   end,
 
   -- Spec Lazy Loading
