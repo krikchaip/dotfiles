@@ -45,6 +45,3 @@ require('lazy').setup {
     border = 'rounded',
   },
 }
-
--- Open Lazy popup window
-vim.keymap.set('n', '<C-S-x>', '<cmd>Lazy<CR>', { desc = 'Open Lazy popup window' })
