@@ -12,6 +12,7 @@ return {
     require 'plugins.global.opts'
     require 'plugins.global.utils'
     require 'plugins.global.keymaps'
+    require 'plugins.global.autocmds'
   end,
 
   -- Spec Lazy Loading
