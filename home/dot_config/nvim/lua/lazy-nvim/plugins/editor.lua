@@ -15,6 +15,10 @@ return {
     'moll/vim-bbye',
     name = 'bbye',
     cmd = { 'Bdelete', 'Bwipeout' },
+    keys = {
+      { '<leader>x', '<cmd>Bdelete<CR>', desc = 'Buffer: Delete Current (Preserve Window)' },
+      { '<leader>X', '<cmd>Bdelete!<CR>', desc = 'Buffer: Force Delete Current (Preserve Window)' },
+    },
   },
 
   -- Automatically save/restore nvim session, including buffers, window layouts and tabs
