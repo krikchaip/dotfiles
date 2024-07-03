@@ -3,7 +3,8 @@
     "completion.callSnippet": "Replace",
     "diagnostics.disable": [
         "missing-fields",
-        "undefined-field"
+        "undefined-field",
+        "param-type-mismatch"
     ],
     "diagnostics.globals": [
         "vim"
