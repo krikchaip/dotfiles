@@ -135,7 +135,18 @@ return {
           }
         end,
 
-        ['tsserver'] = function() end, -- delegated to typescript-tools plugin
+        -- you need to specify the executable command mannualy for elixir-ls
+        ['elixirls'] = function()
+          lspconfig.elixirls.setup {
+            ---@diagnostic disable-next-line: param-type-mismatch
+            cmd = { vim.fs.joinpath(vim.fn.stdpath 'data', 'mason', 'bin', 'elixir-ls') },
+
+            capabilities = utils.make_capabilities(),
+          }
+        end,
+
+        -- delegated to typescript-tools plugin
+        ['tsserver'] = function() end,
       }
 
       -- manually setup nushell LSP server because there's no official version found on mason
