@@ -48,3 +48,4 @@ alias sks = skhd --start-service
 
 # neovim
 alias nv = nvim
+alias nw = NVIM_APPNAME='nwin' nvim
