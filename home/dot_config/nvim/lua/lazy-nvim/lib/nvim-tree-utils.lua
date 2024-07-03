@@ -77,6 +77,8 @@ function M.close_tree_if_last(original)
   if not api.tree.is_visible() then return original() end
   if #tabpage_list_normal_wins() > 2 then return original() end
 
+  if #vim.api.nvim_list_tabpages() == 1 then return vim.cmd [[Bdelete]] end
+
   api.tree.close_in_this_tab()
 
   return original()
