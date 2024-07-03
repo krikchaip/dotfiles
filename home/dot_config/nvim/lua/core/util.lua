@@ -88,7 +88,7 @@ end
 -- TODO: close all buffers (with smart_delete_buffer) after tab closed
 function smart_close_tabpage()
   local ok, _ = pcall(vim.cmd, 'tabnext# | tabclose#')
-  if not ok then vim.cmd [[tabclose]] end
+  if not ok then vim.cmd [[silent tabclose]] end
 end
 
 function macro_start_stop()
