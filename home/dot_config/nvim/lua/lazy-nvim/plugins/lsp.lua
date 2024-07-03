@@ -165,15 +165,13 @@ return {
           opts.desc = 'LSP: Diagnostic'
           vim.keymap.set('n', '[d', prev_diagnostic, opts)
 
+          opts.desc = 'LSP: Show Diagnostic Popup'
+          vim.keymap.set('n', 'gh', vim.diagnostic.open_float, opts)
+
           -- Opens a popup that displays documentation about the word under your cursor
           -- See `:help K` for why this keymap.
           opts.desc = 'LSP: Hover Documentation'
-          vim.keymap.set('n', 'K', function()
-            -- Show diagnostic at cursor position on hover
-            -- ref: https://neovim.discourse.group/t/how-to-show-diagnostics-on-hover/3830
-            local _, diagnostic_winid = vim.diagnostic.open_float(nil)
-            if not diagnostic_winid then vim.lsp.buf.hover() end
-          end, opts)
+          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
 
           -- Suggest help for a function parameter under the cursor
           opts.desc = 'LSP: Show Function Signature Help'
