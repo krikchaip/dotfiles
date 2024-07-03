@@ -1,10 +1,12 @@
 {
     "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
     "completion.callSnippet": "Replace",
+    "diagnostics.disable": [
+        "missing-fields",
+        "undefined-field"
+    ],
     "diagnostics.globals": [
         "vim"
     ],
-    "diagnostics.disable": [
-        "missing-fields"
-    ]
+    "hint.enable": true
 }
