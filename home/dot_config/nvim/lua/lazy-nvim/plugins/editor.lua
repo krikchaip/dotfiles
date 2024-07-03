@@ -394,4 +394,11 @@ return {
       vim.cmd [[hi! default link IlluminatedWordWrite LspReferenceWrite]]
     end,
   },
+
+  {
+    'lukas-reineke/headlines.nvim',
+    name = 'headlines',
+    ft = { 'markdown' },
+    opts = {},
+  },
 }
