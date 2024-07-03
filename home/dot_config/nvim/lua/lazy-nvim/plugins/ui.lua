@@ -1,5 +1,6 @@
 local dashboard_utils = require 'lazy-nvim.lib.dashboard-utils'
 local lualine_utils = require 'lazy-nvim.lib.lualine-utils'
+local navic_utils = require 'lazy-nvim.lib.navic-utils'
 local noice_utils = require 'lazy-nvim.lib.noice-utils'
 local tabby_utils = require 'lazy-nvim.lib.tabby-utils'
 local trouble_utils = require 'lazy-nvim.lib.trouble-utils'
@@ -495,6 +496,7 @@ return {
     },
     config = function(_, opts)
       require('nvim-navic').setup(opts)
+      navic_utils.setup_highlights()
     end,
   },
 
