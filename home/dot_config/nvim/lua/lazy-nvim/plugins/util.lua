@@ -51,14 +51,25 @@ return {
       max_height_window_percentage = 50,
 
       -- toggles images when windows are overlapped
-      window_overlap_clear_enabled = true,
+      window_overlap_clear_enabled = false,
 
       -- auto show/hide images when the editor gains/looses focus
-      editor_only_render_when_focused = true,
+      editor_only_render_when_focused = false,
 
       integrations = {
         html = { enabled = true },
         css = { enabled = true },
+      },
+
+      -- render image files as images when opened
+      hijack_file_patterns = {
+        '*.png',
+        '*.svg',
+        '*.jpg',
+        '*.jpeg',
+        '*.gif',
+        '*.webp',
+        '*.avif',
       },
     },
   },

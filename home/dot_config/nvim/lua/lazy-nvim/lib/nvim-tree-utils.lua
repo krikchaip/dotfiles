@@ -50,10 +50,25 @@ function M.search_node()
 end
 
 function M.preview_current_node()
+  local api = require 'nvim-tree.api'
   local preview = require 'nvim-tree-preview'
 
-  if not preview.is_watching() then return preview.watch() end
-  preview.node_under_cursor()
+  local IMAGE_EXTENSIONS = { 'png', 'svg', 'jpg', 'jpeg', 'gif', 'webp', 'avif' }
+
+  local node = api.tree.get_node_under_cursor()
+  if not node then return end
+
+  if vim.tbl_contains(IMAGE_EXTENSIONS, node.extension) then
+    api.node.open.horizontal()
+    api.tree.open { find_file = true }
+    return
+  end
+
+  if not preview.is_watching() then
+    return preview.watch()
+  else
+    return preview.node_under_cursor()
+  end
 end
 
 function M.collapse_all()
