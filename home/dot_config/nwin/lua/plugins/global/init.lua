@@ -11,6 +11,7 @@ return {
     require 'plugins.global.vars'
     require 'plugins.global.opts'
     require 'plugins.global.utils'
+    require 'plugins.global.keymaps'
   end,
 
   -- Spec Lazy Loading

@@ -5,7 +5,8 @@
         "lowercase-global",
         "missing-fields",
         "param-type-mismatch",
-        "undefined-field"
+        "undefined-field",
+        "undefined-global"
     ],
     "diagnostics.globals": [
         "vim"
