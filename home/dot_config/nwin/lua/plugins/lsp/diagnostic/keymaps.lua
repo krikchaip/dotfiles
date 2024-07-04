@@ -1,6 +1,4 @@
-function setup_diagnostic_keymaps(event)
-  local opts = { buffer = event.buf, silent = true }
-
+function setup_diagnostic_keymaps(opts)
   opts.desc = 'LSP: Diagnostic'
   vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
 
