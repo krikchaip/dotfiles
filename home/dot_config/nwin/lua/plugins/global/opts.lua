@@ -4,6 +4,13 @@ vim.opt.shell = 'nu'
 vim.opt.shelltemp = false
 vim.opt.shellcmdflag = '--stdin ' .. '--config "' .. vim.g.nu_config_path .. '" --env-config "' .. vim.g.nu_env_path .. '" -c'
 
+-- Fix default indentation
+vim.opt.expandtab = true
+vim.opt.smartindent = true
+vim.opt.shiftwidth = 2
+vim.opt.tabstop = 2
+vim.opt.softtabstop = 2
+
 -- Make line numbers default
 vim.opt.number = true
 
