@@ -129,4 +129,4 @@ vim.keymap.set('n', '<C-q>', '<cmd>qall<CR>', { desc = 'Quit: Soft' })
 vim.keymap.set('n', '<C-S-q>', '<cmd>qall!<CR>', { desc = 'Quit: Force' })
 
 -- Open Lazy popup window
-vim.keymap.set('n', '<C-S-x>', '<cmd>Lazy<CR>', { desc = 'Open Lazy popup window' })
+vim.keymap.set('n', '<C-S-x>', '<cmd>Lazy<CR>', { desc = 'Lazy: Open Popup' })

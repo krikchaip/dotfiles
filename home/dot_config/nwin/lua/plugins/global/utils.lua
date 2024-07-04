@@ -98,3 +98,11 @@ function macro_start_stop()
     return 'qq'
   end
 end
+
+--- Combine multiple table lists together.
+--- @generic T
+--- @param ... T[] table lists
+--- @return T[] combined_list { ...ListA, ...ListB, ... }
+function list_concat(...)
+  return vim.iter({ ... }):flatten():totable()
+end
