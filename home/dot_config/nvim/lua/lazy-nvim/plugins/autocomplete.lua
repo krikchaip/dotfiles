@@ -201,7 +201,6 @@ return {
 
         sources = cmp.config.sources {
           { name = 'nvim_lsp', max_item_count = 100 },
-          -- { name = 'lazydev' },
           { name = 'luasnip' },
           { name = 'dotenv', keyword_length = 3 },
           { name = 'path' },
