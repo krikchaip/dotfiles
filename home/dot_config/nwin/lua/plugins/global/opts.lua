@@ -96,3 +96,6 @@ vim.opt.termguicolors = true
 
 -- Disable Nvim intro message and other annoying messages
 vim.opt.shortmess:append 'sI'
+
+-- Limit completion window max_height
+vim.opt.pumheight = 20
