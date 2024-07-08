@@ -45,6 +45,7 @@ return {
   {
     '3rd/image.nvim',
     name = 'image',
+    commit = '94319cd', -- FIXME: pinned until the issue has been fixed
     lazy = false,
     opts = {
       max_width_window_percentage = 50,
