@@ -30,6 +30,7 @@ return {
     keys = {
       { '<leader>e', '<cmd>lua require("nvim-tree.api").tree.open()<CR>', desc = 'Explorer: Open' },
       { '<leader>E', '<cmd>lua require("nvim-tree.api").tree.close()<CR>', desc = 'Explorer: Close' },
+      { '<leader>r', '<cmd>lua require("nvim-tree.api").tree.open { find_file = true }<CR>', desc = 'Explorer: Reveal' },
     },
     dependencies = { 'web-devicons', 'lsp-file-operations', 'nvim-tree-preview' },
     opts = {
@@ -153,7 +154,7 @@ return {
 
       -- Update the focused file on `BufEnter`, un-collapses
       -- the folders recursively until it finds the file.
-      update_focused_file = { enable = true },
+      update_focused_file = { enable = false },
 
       diagnostics = {
         -- LSP and COC diagnostics
