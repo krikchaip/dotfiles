@@ -7,7 +7,7 @@ return {
     name = 'telescope',
 
     -- Spec Loading
-    dependencies = { 'plenary', 'web-devicons', 'treesitter' },
+    dependencies = { 'treesitter' },
 
     -- Spec Setup
     config = function()

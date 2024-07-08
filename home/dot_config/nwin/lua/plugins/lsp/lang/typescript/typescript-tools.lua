@@ -4,7 +4,7 @@ return {
   name = 'typescript-tools',
 
   -- Spec Loading
-  dependencies = { 'plenary', 'lspconfig' },
+  dependencies = { 'lspconfig' },
 
   -- Spec Setup
   opts = {
