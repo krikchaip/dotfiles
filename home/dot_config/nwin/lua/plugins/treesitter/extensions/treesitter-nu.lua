@@ -4,7 +4,4 @@ return {
   -- Spec Source
   'nushell/tree-sitter-nu',
   name = 'treesitter-nu',
-
-  -- Spec Lazy Loading
-  ft = 'nu',
 }

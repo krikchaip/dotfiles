@@ -12,7 +12,4 @@ return {
       enable_close_on_slash = true,
     },
   },
-
-  -- Spec Lazy Loading
-  event = 'User FilePost',
 }

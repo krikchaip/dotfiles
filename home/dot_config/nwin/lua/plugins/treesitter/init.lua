@@ -6,6 +6,13 @@ return {
     'nvim-treesitter/nvim-treesitter',
     name = 'treesitter',
 
+    -- Spec Loading
+    dependencies = {
+      'treesitter-textobjects',
+      'treesitter-autotag',
+      'treesitter-nu',
+    },
+
     -- Spec Setup
     config = function()
       require 'plugins.treesitter.setup'
