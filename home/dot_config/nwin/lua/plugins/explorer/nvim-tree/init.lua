@@ -4,7 +4,7 @@ return {
   name = 'nvim-tree',
 
   -- Spec Loading
-  -- dependencies = {},
+  dependencies = { 'lsp-file-operations' },
 
   -- Spec Setup
   config = function()
