@@ -3,9 +3,6 @@ return {
   'b0o/nvim-tree-preview.lua',
   name = 'nvim-tree-preview',
 
-  -- Spec Loading
-  dependencies = { 'plenary', 'nvim-treesitter' },
-
   -- Spec Setup
   opts = {
     keymaps = {
