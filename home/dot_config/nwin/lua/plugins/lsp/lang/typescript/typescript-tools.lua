@@ -7,22 +7,28 @@ return {
   dependencies = { 'lspconfig' },
 
   -- Spec Setup
-  opts = {
-    expose_as_code_action = 'all',
+  config = function()
+    require('typescript-tools').setup {
+      capabilities = require('plugins.lsp.lspconfig.utils').create_capabilities(),
+      on_attach = require('plugins.lsp.lspconfig.utils').on_attach,
 
-    settings = {
-      tsserver_file_preferences = {
-        includeInlayParameterNameHints = 'all',
-        includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-        includeInlayFunctionParameterTypeHints = true,
-        includeInlayVariableTypeHints = true,
-        includeInlayVariableTypeHintsWhenTypeMatchesName = false,
-        includeInlayPropertyDeclarationTypeHints = true,
-        includeInlayFunctionLikeReturnTypeHints = true,
-        includeInlayEnumMemberValueHints = true,
+      settings = {
+        -- specify commands exposed as code_actions
+        expose_as_code_action = 'all',
+
+        tsserver_file_preferences = {
+          includeInlayParameterNameHints = 'all',
+          includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+          includeInlayFunctionParameterTypeHints = true,
+          includeInlayVariableTypeHints = true,
+          includeInlayVariableTypeHintsWhenTypeMatchesName = false,
+          includeInlayPropertyDeclarationTypeHints = true,
+          includeInlayFunctionLikeReturnTypeHints = true,
+          includeInlayEnumMemberValueHints = true,
+        },
       },
-    },
-  },
+    }
+  end,
 
   -- Spec Lazy Loading
   ft = {
