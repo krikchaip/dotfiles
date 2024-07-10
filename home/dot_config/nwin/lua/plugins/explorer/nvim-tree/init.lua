@@ -13,4 +13,7 @@ return {
 
   -- Spec Lazy Loading
   keys = require('plugins.explorer.nvim-tree.keymaps').lazy(),
+
+  -- Spec Versioning
+  version = '*',
 }

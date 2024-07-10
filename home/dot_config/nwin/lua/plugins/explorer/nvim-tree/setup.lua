@@ -34,7 +34,7 @@ require('nvim-tree').setup {
     preserve_window_proportions = false,
 
     -- Value can be 'yes', 'auto', 'no'
-    signcolumn = 'no',
+    signcolumn = 'yes',
 
     -- Width of the window
     width = 30,
