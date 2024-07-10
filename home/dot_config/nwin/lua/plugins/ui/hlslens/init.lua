@@ -3,6 +3,7 @@ return {
   'kevinhwang91/nvim-hlslens',
   name = 'hlslens',
 
+  -- Spec Setup
   config = function()
     require 'plugins.ui.hlslens.setup'
     require 'plugins.ui.hlslens.keymaps'
