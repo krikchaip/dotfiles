@@ -30,6 +30,10 @@ require('lazy').setup {
   install = {
     -- try to load one of these colorschemes when starting an installation during startup
     colorscheme = { 'tokyonight' },
+
+    -- install missing plugins on startup. this doesn't increase startup time.
+    -- ps. setting this to `true` requires `global` module to be loaded first before lazy startup
+    missing = false,
   },
 
   checker = {
