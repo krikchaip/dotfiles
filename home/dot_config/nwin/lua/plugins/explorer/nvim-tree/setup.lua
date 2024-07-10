@@ -1,5 +1,3 @@
-local keymaps = require 'plugins.explorer.nvim-tree.keymaps'
-
 require('nvim-tree').setup {
   -- Keeps the cursor on the first letter of the filename when moving in the tree
   hijack_cursor = true,
@@ -209,5 +207,5 @@ require('nvim-tree').setup {
     sort_by = 'desc',
   },
 
-  on_attach = keymaps.on_attach,
+  on_attach = require('plugins.explorer.nvim-tree.keymaps').on_attach,
 }

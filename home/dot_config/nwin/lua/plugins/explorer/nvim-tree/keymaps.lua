@@ -8,6 +8,14 @@ function M.lazy()
   }
 end
 
+function M.amend()
+  local amend = require 'keymap-amend'
+  local utils = require 'plugins.explorer.nvim-tree.utils'
+
+  amend('n', 'q', utils.close_tree_if_last, { desc = 'Buffer: Delete Current' })
+  amend('n', 'Q', utils.close_tree_if_last, { desc = 'Buffer: Force Delete Current' })
+end
+
 function M.on_attach(bufnr)
   local api = require 'nvim-tree.api'
   local utils = require 'plugins.explorer.nvim-tree.utils'

@@ -7,4 +7,7 @@ return {
 
   -- A Lua version of Javascript's Promise & Async-Await
   { 'kevinhwang91/promise-async' },
+
+  -- Allows to amend the existing keybinding in Neovim
+  { 'anuvyklack/keymap-amend.nvim' },
 }
