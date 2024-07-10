@@ -1,0 +1,2 @@
+-- NOTE: 'scrollbar' will be the one who call the setup()
+-- require('hlslens').setup()

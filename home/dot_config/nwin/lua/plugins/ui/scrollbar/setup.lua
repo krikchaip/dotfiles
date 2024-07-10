@@ -9,6 +9,13 @@ require('scrollbar').setup {
     blend = 10,
   },
 
+  marks = {
+    Search = { highlight = 'CursorLineNr' },
+    GitAdd = { text = '┃' },
+    GitChange = { text = '┃' },
+    GitDelete = { text = '~' },
+  },
+
   excluded_buftypes = {
     -- default values
     'terminal',
