@@ -16,7 +16,7 @@ end
 function M.on_attach(client, bufnr)
   local opts = { buffer = bufnr, silent = true }
 
-  setup_highlight_references_hover(client, bufnr)
+  -- setup_highlight_references_hover(client, bufnr)
   setup_inlay_hints(client, bufnr)
 
   setup_diagnostic_keymaps(opts)
