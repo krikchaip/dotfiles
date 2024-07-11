@@ -1,4 +1,5 @@
 return {
+  require 'plugins.editor.auto-session',
   require 'plugins.editor.autopairs',
   require 'plugins.editor.comment',
   require 'plugins.editor.surround',

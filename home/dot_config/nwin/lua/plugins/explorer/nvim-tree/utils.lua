@@ -99,11 +99,6 @@ function M.close_tree_if_last(original)
   return original()
 end
 
-function M.close_all_nvim_tree()
-  local api = require 'nvim-tree.api'
-  api.tree.close_in_all_tabs()
-end
-
 function M.toggle_copy_single()
   local fs = require('nvim-tree.api').fs
 
@@ -173,23 +168,6 @@ function M.sort_by_natural_cmp(nodes)
   end
 
   table.sort(nodes, sorter)
-end
-
--- Restore nvim-tree by open it if its buffers are presenting in the session file
-function M.restore_nvim_tree()
-  for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
-    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
-      local buf = vim.api.nvim_win_get_buf(win)
-      local bufname = vim.api.nvim_buf_get_name(buf)
-
-      if string.match(bufname, 'NvimTree') then
-        local api = require 'nvim-tree.api'
-        local view = require 'nvim-tree.view'
-
-        if not view.is_visible() then api.tree.open() end
-      end
-    end
-  end
 end
 
 return M
