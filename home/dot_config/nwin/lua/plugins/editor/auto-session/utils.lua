@@ -136,19 +136,6 @@ function M.setup_dirchanged_session()
   end)
 end
 
-function M.load_session(session_dir)
-  local auto_session = require 'auto-session'
-  local api = require 'nvim-tree.api'
-
-  local bd = smart_delete_buffer()
-  local ok = auto_session.RestoreSession(session_dir)
-
-  if not ok then
-    bd()
-    api.tree.toggle { focus = false }
-  end
-end
-
 -- Restore nvim-tree by open it if its buffers are presenting in the session file
 function M.restore_nvim_tree()
   for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
