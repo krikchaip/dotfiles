@@ -1,7 +1,21 @@
 local which_key = require 'which-key'
 
 which_key.setup {
+  ---@type false | "classic" | "modern" | "helix"
+  preset = 'modern',
+
+  -- see https://github.com/folke/which-key.nvim/blob/main/lua/which-key/view.lua#L18 for more info
+  sort = {
+    'group',
+    'desc',
+  },
+
   icons = {
+    --- See `lua/which-key/icons.lua` for more details
+    --- Set to `false` to disable keymap icons
+    ---@type wk.IconRule[]|false
+    rules = {},
+
     -- symbol used in the command line area that shows your active key combo
     breadcrumb = '»',
 
@@ -15,32 +29,36 @@ which_key.setup {
 
 -- Document existing key chains
 -- see: https://github.com/folke/which-key.nvim?tab=readme-ov-file#-setup
-which_key.register {
-  ['<C-,>'] = { name = 'Nvim Settings', _ = 'which_key_ignore' },
-  ['<C-t>'] = { name = 'Tab', _ = 'which_key_ignore' },
-  ['<C-w>'] = { name = 'Window', _ = 'which_key_ignore' },
+which_key.add {
+  { '<C-,>', group = 'Nvim Settings' },
+  { '<C-t>', group = 'Tab' },
+  { '<C-w>', group = 'Window' },
 
-  ['<leader>'] = { name = 'Special', _ = 'which_key_ignore' },
-  ['<leader>g'] = { name = 'Git', _ = 'which_key_ignore' },
-  ['<leader>gh'] = { name = 'Git Hunk', _ = 'which_key_ignore' },
-  ['<leader>l'] = { name = 'LSP', _ = 'which_key_ignore' },
+  { '<leader>', group = 'Special' },
+  { '<leader>g', group = 'Git' },
+  { '<leader>gh', group = 'Git Hunk' },
+  { '<leader>l', group = 'LSP' },
 
-  ['['] = { name = 'Previous', _ = 'which_key_ignore' },
-  [']'] = { name = 'Next', _ = 'which_key_ignore' },
+  { '[', group = 'Previous' },
+  { ']', group = 'Next' },
 }
 
-which_key.register({
-  ['<leader>'] = { name = 'Special', _ = 'which_key_ignore' },
-  ['<leader>g'] = { name = 'Git', _ = 'which_key_ignore' },
-  ['<leader>gh'] = { name = 'Git Hunk', _ = 'which_key_ignore' },
+which_key.add {
+  { mode = 'x' },
 
-  ['['] = { name = 'Previous', _ = 'which_key_ignore' },
-  [']'] = { name = 'Next', _ = 'which_key_ignore' },
-}, { mode = 'x' })
+  { '<leader>', group = 'Special' },
+  { '<leader>g', group = 'Git' },
+  { '<leader>gh', group = 'Git Hunk' },
 
-which_key.register({
-  ['<leader>'] = { name = 'Special', _ = 'which_key_ignore' },
+  { '[', group = 'Previous' },
+  { ']', group = 'Next' },
+}
 
-  ['['] = { name = 'Previous', _ = 'which_key_ignore' },
-  [']'] = { name = 'Next', _ = 'which_key_ignore' },
-}, { mode = 'o' })
+which_key.add {
+  mode = { 'o' },
+
+  { '<leader>', group = 'Special' },
+
+  { '[', group = 'Previous' },
+  { ']', group = 'Next' },
+}
