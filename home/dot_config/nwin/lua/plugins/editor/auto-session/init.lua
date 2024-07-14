@@ -6,6 +6,7 @@ return {
 
   -- Spec Setup
   config = function()
+    require 'plugins.editor.auto-session.opts'
     require 'plugins.editor.auto-session.setup'
   end,
 

@@ -1,22 +1,5 @@
 local utils = require 'plugins.editor.auto-session.utils'
 
-vim.opt.sessionoptions = {
-  -- When restoring plugin help pages (eg. telescope), it also requires the plugin to be loaded first.
-  -- Therefore, if the plugin is lazy loaded while having your session containing its help page.
-  -- There will be times that restoring the session might fail.
-  -- 'help',
-
-  'blank',
-  'buffers',
-  'curdir',
-  'folds',
-  'globals',
-  'tabpages',
-  'terminal',
-  'winpos',
-  'winsize',
-}
-
 require('auto-session').setup {
   -- Enables/disables the plugin's auto save and restore features
   auto_session_enabled = false,
