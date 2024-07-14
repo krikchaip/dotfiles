@@ -2,7 +2,7 @@
 
 local M = {}
 
-M.split_preview = {
+M.preview_window_opts = {
   type = 'split',
   relative = 'win',
   position = 'right',

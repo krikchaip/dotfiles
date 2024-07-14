@@ -8,22 +8,22 @@ require('trouble').setup {
   modes = {
     diag = {
       mode = 'diagnostics',
-      preview = utils.split_preview,
+      preview = utils.preview_window_opts,
     },
 
     qf = {
       mode = 'quickfix',
-      preview = utils.split_preview,
+      preview = utils.preview_window_opts,
     },
 
     ll = {
       mode = 'loclist',
-      preview = utils.split_preview,
+      preview = utils.preview_window_opts,
     },
 
     todolist = {
       mode = 'todo',
-      preview = utils.split_preview,
+      preview = utils.preview_window_opts,
       filter = { tag = { 'TODO', 'FIX', 'FIXME' } },
     },
   },
