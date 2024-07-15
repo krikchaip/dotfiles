@@ -10,4 +10,7 @@ return {
 
   -- Allows to amend the existing keybinding in Neovim
   { 'anuvyklack/keymap-amend.nvim' },
+
+  -- UI Component Library for Neovim
+  { 'MunifTanjim/nui.nvim' },
 }

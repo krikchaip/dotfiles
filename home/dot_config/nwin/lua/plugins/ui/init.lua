@@ -4,6 +4,7 @@ return {
   require 'plugins.ui.hlslens',
   require 'plugins.ui.illuminate',
   require 'plugins.ui.indent-blankline',
+  require 'plugins.ui.notify',
   require 'plugins.ui.rainbow-delimiters',
   require 'plugins.ui.scrollbar',
   require 'plugins.ui.statuscol',
