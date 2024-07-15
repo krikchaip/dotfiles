@@ -15,7 +15,13 @@ return {
       relculright = false,
 
       -- filetype values for which 'statuscolumn' will be unset
-      ft_ignore = { 'help', 'NvimTree', 'trouble' },
+      ft_ignore = {
+        'DiffviewFileHistory',
+        'DiffviewFiles',
+        'NvimTree',
+        'help',
+        'trouble',
+      },
 
       segments = {
         { text = { '%s' }, click = 'v:lua.ScSa' },
