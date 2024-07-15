@@ -13,7 +13,7 @@ return {
     -- ref: https://github.com/rcarriga/nvim-notify?tab=readme-ov-file#animation-style
     stages = 'fade_in_slide_out',
 
-    timeout = 2000,
+    timeout = 500,
     top_down = true,
 
     minimum_width = 30,
