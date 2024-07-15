@@ -3,10 +3,18 @@
 local M = {}
 
 M.preview_window_opts = {
+  -- trouble.Window.split
   type = 'split',
   relative = 'win',
   position = 'right',
   size = 0.4,
+
+  -- trouble.Window.base
+  wo = {
+    number = true,
+    foldenable = false,
+    statuscolumn = '',
+  },
 }
 
 function M.show_panel(name)
