@@ -10,6 +10,7 @@ return {
   require 'plugins.ui.rainbow-delimiters',
   require 'plugins.ui.scrollbar',
   require 'plugins.ui.statuscol',
+  require 'plugins.ui.tabline',
   require 'plugins.ui.todo-comments',
   require 'plugins.ui.trouble',
   require 'plugins.ui.twilight',
