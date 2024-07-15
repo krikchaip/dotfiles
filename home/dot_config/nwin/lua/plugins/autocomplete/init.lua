@@ -19,4 +19,7 @@ return {
 
   -- Spec Lazy Loading
   event = { 'InsertEnter', 'CmdlineEnter' },
+
+  -- Spec Versioning
+  commit = '7e348da', -- FIXME: pinned until #1986 is fixed (https://github.com/hrsh7th/nvim-cmp/pull/1986)
 }

@@ -16,5 +16,5 @@ return {
   },
 
   -- Spec Versioning
-  commit = 'e968df0', -- pinned until displaying filename as floating window title is fixed
+  commit = 'e968df0', -- FIXME: pinned until displaying filename as floating window title is fixed
 }
