@@ -36,6 +36,7 @@ require('scrollbar').setup {
     'DressingInput',
     'Navbuddy',
     'NvimTree',
+    'trouble',
   },
 
   handlers = {

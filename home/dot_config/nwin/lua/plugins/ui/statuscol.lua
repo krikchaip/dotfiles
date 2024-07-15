@@ -15,7 +15,7 @@ return {
       relculright = false,
 
       -- filetype values for which 'statuscolumn' will be unset
-      ft_ignore = { 'help', 'NvimTree' },
+      ft_ignore = { 'help', 'NvimTree', 'trouble' },
 
       segments = {
         { text = { '%s' }, click = 'v:lua.ScSa' },
