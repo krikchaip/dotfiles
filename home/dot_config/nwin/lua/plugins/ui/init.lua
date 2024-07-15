@@ -5,6 +5,7 @@ return {
   require 'plugins.ui.hlslens',
   require 'plugins.ui.illuminate',
   require 'plugins.ui.indent-blankline',
+  require 'plugins.ui.navic',
   require 'plugins.ui.noice',
   require 'plugins.ui.notify',
   require 'plugins.ui.rainbow-delimiters',
