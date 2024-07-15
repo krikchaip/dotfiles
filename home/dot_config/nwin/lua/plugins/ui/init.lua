@@ -5,6 +5,7 @@ return {
   require 'plugins.ui.hlslens',
   require 'plugins.ui.illuminate',
   require 'plugins.ui.indent-blankline',
+  require 'plugins.ui.lualine',
   require 'plugins.ui.navbuddy',
   require 'plugins.ui.navic',
   require 'plugins.ui.noice',
