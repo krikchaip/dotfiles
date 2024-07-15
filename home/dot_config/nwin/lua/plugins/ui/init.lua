@@ -1,6 +1,7 @@
 return {
   require 'plugins.ui.colorizer',
   require 'plugins.ui.dashboard',
+  require 'plugins.ui.dressing',
   require 'plugins.ui.hlslens',
   require 'plugins.ui.illuminate',
   require 'plugins.ui.indent-blankline',
