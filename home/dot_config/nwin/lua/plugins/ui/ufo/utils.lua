@@ -1,5 +1,7 @@
 local M = {}
 
+M.ignored_filetypes = { 'dashboard' }
+
 function M.folded_number_suffix(virtText, lnum, endLnum, width, truncate)
   local newVirtText = {}
   local suffix = (' 󰁂 %d '):format(endLnum - lnum)
