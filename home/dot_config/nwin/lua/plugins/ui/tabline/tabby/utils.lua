@@ -61,4 +61,24 @@ function M.custom_tabline(theme)
   end
 end
 
+function M.restore_tab_names()
+  local tabby_loaded = pcall(require, 'tabby')
+  if not tabby_loaded then return end
+
+  local api = require 'tabby.module.api'
+  local tab_name = require 'tabby.feature.tab_name'
+
+  local names = vim.g.TabbyTabNames
+
+  local ok, names_to_number = pcall(vim.json.decode, names)
+  if not (ok and type(names_to_number) == 'table') then return end
+
+  for _, tabid in ipairs(api.get_tabs()) do
+    local tab_num = api.get_tab_number(tabid)
+    local name = names_to_number[tostring(tab_num)]
+
+    if name ~= nil then tab_name.set(tabid, name) end
+  end
+end
+
 return M

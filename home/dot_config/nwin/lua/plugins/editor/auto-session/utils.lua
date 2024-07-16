@@ -77,6 +77,7 @@ end
 -- ref: https://github.com/rmagatti/auto-session/blob/main/lua/auto-session/autocmds.lua#L8
 function M.setup_dirchanged_session()
   local auto_session = require 'auto-session'
+  local tabby = require 'plugins.ui.tabline.tabby.utils'
 
   local group = vim.api.nvim_create_augroup('auto-session-dirchanged', { clear = true })
 
@@ -102,9 +103,6 @@ function M.setup_dirchanged_session()
         -- doesn't blead over to next session.
         vim.cmd '%bd!'
         vim.cmd 'clearjumps'
-
-        -- Clear tab names before jumping to another session
-        vim.opt.tabline = ''
       end,
     })
   end)
@@ -121,16 +119,15 @@ function M.setup_dirchanged_session()
         local session_dir = vim.loop.cwd()
         vim.notify('Current Session: ' .. tostring(session_dir))
 
-        ---@diagnostic disable-next-line: param-type-mismatch
         auto_session.RestoreSession(session_dir)
+
+        -- clear previous tab names and replace with current session tab names
+        tabby.restore_tab_names()
 
         vim.defer_fn(function()
           -- reload buffers to refresh LSP and other stuff
           vim.cmd 'let curbuf = bufnr() | bufdo e | execute "buffer" curbuf'
-
-          -- rerender tabline for the current session
-          vim.cmd 'Lazy reload tabby'
-        end, 10)
+        end, 20)
       end,
     })
   end)
