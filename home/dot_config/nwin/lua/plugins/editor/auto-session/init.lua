@@ -8,9 +8,14 @@ return {
   config = function()
     require 'plugins.editor.auto-session.opts'
     require 'plugins.editor.auto-session.setup'
+    require 'plugins.editor.auto-session.keymaps'
   end,
 
   -- Spec Lazy Loading
-  cmd = { 'SessionSave', 'SessionRestore', 'SessionDelete', 'SessionPurgeOrphaned', 'Autosession' },
-  keys = { { '<leader>s', '<cmd>Telescope session-lens<CR>', desc = 'Session: Open Session Lens' } },
+  cmd = {
+    'SessionDelete',
+    'SessionPurgeOrphaned',
+    'SessionRestore',
+    'SessionSave',
+  },
 }
