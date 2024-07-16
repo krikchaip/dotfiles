@@ -12,7 +12,7 @@ return {
   end,
 
   -- Spec Lazy Loading
-  event = 'User FilePost',
+  event = 'VeryLazy',
   keys = {
     { ']z', '<cmd>lua require("ufo").goNextClosedFold()<CR>', desc = 'UFO: Fold Region' },
     { '[z', '<cmd>lua require("ufo").goPreviousClosedFold()<CR>', desc = 'UFO: Fold Region' },

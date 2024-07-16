@@ -32,5 +32,5 @@ return {
   end,
 
   -- Spec Lazy Loading
-  event = 'User FilePost',
+  lazy = false,
 }
