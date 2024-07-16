@@ -33,7 +33,7 @@ require('lazy').setup {
 
     -- install missing plugins on startup. this doesn't increase startup time.
     -- ps. setting this to `true` requires `global` module to be loaded first before lazy startup
-    missing = false,
+    missing = true,
   },
 
   checker = {
