@@ -32,7 +32,7 @@ return {
   end,
 
   -- Spec Lazy Loading
-  lazy = false,
+  event = 'VeryLazy',
   keys = {
     { '<C-S-l>', '<cmd>Mason<CR>', desc = 'Mason: Open Popup' },
   },
