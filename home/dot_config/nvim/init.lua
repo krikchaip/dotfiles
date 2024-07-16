@@ -49,6 +49,16 @@ require('lazy').setup {
     border = 'rounded',
   },
 
+  diff = {
+    -- diff command <d> can be one of:
+    -- * git: will run git diff and open a buffer with filetype git
+    -- * terminal_git: will open a pseudo terminal with git diff
+    -- * diffview.nvim: will open Diffview to show the diff
+    -- * browser: opens the github compare view. Note that this is always mapped to <K> as well,
+    --            so you can have a different command for diff <d>
+    cmd = 'browser',
+  },
+
   performance = {
     rtp = {
       disabled_plugins = {

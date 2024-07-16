@@ -10,6 +10,7 @@ require('nvim-treesitter.configs').setup {
     'gitignore',
 
     'bash',
+    'nu',
 
     'lua',
     'luadoc',
