@@ -1,0 +1,41 @@
+brew "bat"
+brew "fd"
+brew "imagemagick"
+brew "jq"
+brew "mise"
+brew "neovim"
+brew "nushell"
+brew "pkg-config"
+brew "ripgrep"
+brew "starship"
+
+tap "rsteube/tap"
+brew "carapace"
+
+tap "koekeishiya/formulae"
+brew "skhd"
+brew "yabai"
+
+# cask applications
+tap "buo/cask-upgrade"
+
+cask "1password"
+cask "arc"
+cask "dbeaver-community"
+cask "displaylink"
+cask "docker"
+cask "font-fira-code"
+cask "font-ligature-symbols"
+cask "font-material-symbols"
+cask "font-powerline-symbols"
+cask "font-symbols-only-nerd-font"
+cask "google-drive"
+cask "insomnia"
+cask "karabiner-elements"
+cask "kitty"
+cask "logi-options-plus"
+cask "notion"
+cask "visual-studio-code"
+
+# App Store applications
+brew "mas"

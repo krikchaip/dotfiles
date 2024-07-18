@@ -6,12 +6,8 @@ if [ ! "$(command -v brew)" ]; then
 fi
 
 # install homebrew packages
-{{- range .packages.homebrew.formulae }}
-brew install {{ . }}
-{{- end }}
-{{- range .packages.homebrew.casks }}
-brew install {{ . }}
-{{- end }}
+# Brewfile hash: {{ include "dot_Brewfile" | sha256sum }}
+brew bundle install --global --no-upgrade
 
 # install and use the latest mise binaries
 {{- range .packages.mise }}
