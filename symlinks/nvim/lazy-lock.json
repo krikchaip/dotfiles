@@ -22,6 +22,7 @@
   "gitsigns": { "branch": "main", "commit": "76927d14d3fbd4ba06ccb5246e79d93b5442c188" },
   "goto-preview": { "branch": "main", "commit": "1519ea3512828c944eed5b2bbb66a8f8deb92447" },
   "hlslens": { "branch": "main", "commit": "1db56afda3e85791a14b096e483dfda699dd9163" },
+  "homebrew-syntax-highlighter": { "branch": "master", "commit": "f13b98b92f2e9b9e38f3b1d45d41e19049d671df" },
   "illuminate": { "branch": "master", "commit": "5eeb7951fc630682c322e88a9bbdae5c224ff0aa" },
   "image": { "branch": "master", "commit": "94319cdafec62cd5b3ac1448ed1aae1bbe731f45" },
   "indent-blankline": { "branch": "master", "commit": "65e20ab94a26d0e14acac5049b8641336819dfc7" },

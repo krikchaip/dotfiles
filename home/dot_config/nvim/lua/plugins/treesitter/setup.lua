@@ -32,6 +32,8 @@ require('nvim-treesitter.configs').setup {
     'markdown_inline',
 
     'elixir',
+
+    'ruby',
   },
 
   -- Treesitter Features
