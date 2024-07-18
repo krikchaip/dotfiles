@@ -8,10 +8,11 @@ alias ll = ls -al
 alias llf = ls -afl
 alias mime-type = file --mime-type -b
 
-# homebrew bundle
+# homebrew 
 alias bb = brew bundle --global
 alias bbc = brew bundle cleanup --global
-alias bbd = brew bundle dump --global
+alias bo = brew outdated
+alias bu = brew upgrade
 
 # docker client
 alias d = docker
