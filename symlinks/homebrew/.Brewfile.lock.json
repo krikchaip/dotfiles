@@ -2,7 +2,7 @@
   "entries": {
     "brew": {
       "bat": {
-        "version": "0.24.0",
+        "version": "0.24.0_1",
         "bottle": {
           "rebuild": 0,
           "root_url": "https://ghcr.io/v2/homebrew/core",
@@ -178,7 +178,7 @@
         }
       },
       "mise": {
-        "version": "2024.6.6",
+        "version": "2024.7.3",
         "bottle": {
           "rebuild": 0,
           "root_url": "https://ghcr.io/v2/homebrew/core",
