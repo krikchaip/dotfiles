@@ -11,6 +11,5 @@ end
 
 return {
   { '<leader>w', format_and_write, desc = 'Buffer: Format and Write Current' },
-  { '<leader>W', '<cmd>w<CR>', desc = 'Buffer: Write Current' },
   { '<leader>=', format_context, desc = 'Format: Current Context', mode = { 'n', 'x' } },
 }

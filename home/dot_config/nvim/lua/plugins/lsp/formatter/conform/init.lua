@@ -23,7 +23,6 @@ return {
   end,
 
   -- Spec Lazy Loading
-  event = { 'BufWritePre' },
   cmd = { 'ConformInfo' },
   keys = require 'plugins.lsp.formatter.conform.keymaps',
 }
