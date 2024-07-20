@@ -45,4 +45,5 @@ return {
 
   -- Spec Lazy Loading
   event = 'VeryLazy',
+  cmd = { 'MasonToolsInstall', 'MasonToolsInstallSync' },
 }
