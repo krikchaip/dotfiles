@@ -22,6 +22,9 @@ vim.opt.showmode = false
 -- Always show tabline (0 = 'never', 1 = 'atleast two', 2 = 'always')
 vim.opt.showtabline = 0
 
+-- Hide command-line bar at the bottom since we use noice.nvim already
+vim.opt.cmdheight = 0
+
 -- Sync clipboard between OS and Neovim.
 vim.opt.clipboard = 'unnamedplus'
 
