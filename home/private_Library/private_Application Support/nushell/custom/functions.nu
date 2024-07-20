@@ -59,19 +59,21 @@ def "system-settings diff continue" []: nothing -> nothing {
 }
 
 # remove all nvim artifacts. restore nvim to its original state
-def "restore-factory nvim" []: nothing -> nothing {
+def "restore-factory nvim" [app_name: string = "nvim"]: nothing -> nothing {
   let artifact_paths = [
-    ~/.cache/nvim
-    ~/.config/nvim
-    ~/.local/share/nvim
-    ~/.local/state/nvim
+    ~/.cache/
+    ~/.config/
+    ~/.local/share/
+    ~/.local/state/
   ]
 
   # fix `rm` not working with relative path
   # ref: https://github.com/nushell/nushell/issues/11061#issuecomment-1812749880
   for p in $artifact_paths {
-    let absolute_path =  ($p | path expand)
+    let absolute_path =  ($p | path join $app_name | path expand)
+
     rm -rf $absolute_path
+    print $"\(removed\) ($absolute_path)"
   }
 }
 
