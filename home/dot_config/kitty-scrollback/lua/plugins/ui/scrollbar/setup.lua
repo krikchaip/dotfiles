@@ -15,7 +15,7 @@ require('scrollbar').setup {
 
   excluded_buftypes = {
     -- default values
-    'terminal',
+    -- 'terminal',
   },
 
   excluded_filetypes = {

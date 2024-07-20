@@ -12,5 +12,5 @@ return {
   end,
 
   -- Spec Lazy Loading
-  event = 'User FilePost',
+  event = 'VeryLazy',
 }
