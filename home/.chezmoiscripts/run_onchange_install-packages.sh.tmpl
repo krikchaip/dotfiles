@@ -9,6 +9,10 @@ fi
 # Brewfile hash: {{ include "dot_Brewfile" | sha256sum }}
 brew bundle install --global --no-upgrade
 
+# install and setup neovim plugins
+nvim --headless '+Lazy! restore' '+MasonToolsInstallSync' +qa
+NVIM_APPNAME='kitty-scrollback' nvim --headless '+Lazy restore' +qa
+
 # install and use the latest mise binaries
 {{- range .packages.mise }}
 mise use --global {{ . }}
