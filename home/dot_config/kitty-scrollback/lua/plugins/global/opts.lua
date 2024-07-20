@@ -17,7 +17,7 @@ vim.opt.sidescrolloff = 4
 vim.opt.mouse = 'a'
 
 -- Don't show the mode, since it's already in the status line
-vim.opt.showmode = true
+vim.opt.showmode = false
 
 -- Always show tabline (0 = 'never', 1 = 'atleast two', 2 = 'always')
 vim.opt.showtabline = 0
