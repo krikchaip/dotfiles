@@ -55,9 +55,9 @@ function M.on_attach(bufnr)
     },
 
     ['Split'] = {
-      ['<C-t>'] = { node.open.tab, 'New Tab' },
-      ['<C-v>'] = { node.open.vertical, 'Vertical' },
-      ['<C-s>'] = { node.open.horizontal, 'Horizontal' },
+      ['t'] = { node.open.tab, 'New Tab' },
+      ['v'] = { node.open.vertical, 'Vertical' },
+      ['s'] = { node.open.horizontal, 'Horizontal' },
     },
 
     ['Directory'] = {
@@ -98,7 +98,7 @@ function M.on_attach(bufnr)
       ['D'] = { fs.remove, 'Delete' },
       ['dd'] = { fs.remove, 'Delete' },
       ['dt'] = { fs.trash, 'Trash' }, -- requires the homebrew package `trash`
-      ['.'] = { node.run.cmd, 'Run Command' },
+      ['e'] = { node.run.cmd, 'Run Command' },
     },
 
     ['Search'] = {
@@ -118,7 +118,7 @@ function M.on_attach(bufnr)
     },
 
     ['Marks'] = {
-      ['v'] = { marks.toggle, 'Toggle Current' },
+      ['.'] = { marks.toggle, 'Toggle Current' },
       ['c'] = { fs.copy.node, 'Toggle Copy Current' },
       ['x'] = { fs.cut, 'Toggle Cut Current' },
       ['p'] = { fs.paste, 'Paste Selected' },
@@ -138,7 +138,7 @@ function M.on_attach(bufnr)
       ['[c'] = { node.navigate.git.prev_recursive, 'Prev Change' },
       [']c'] = { node.navigate.git.next_recursive, 'Next Change' },
 
-      ['s'] = { utils.git_add_toggle, 'Stage/Unstage Current' },
+      ['S'] = { utils.git_add_toggle, 'Stage/Unstage Current' },
     },
   }
 
