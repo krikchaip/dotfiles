@@ -9,6 +9,7 @@ return {
   -- Spec Setup
   config = function()
     require 'plugins.explorer.nvim-tree.setup'
+    require 'plugins.explorer.nvim-tree.autocmds'
     require('plugins.explorer.nvim-tree.keymaps').amend()
   end,
 
