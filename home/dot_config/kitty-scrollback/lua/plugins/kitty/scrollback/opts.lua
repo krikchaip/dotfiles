@@ -1,29 +1,35 @@
 -- ref: https://github.com/mikesmithgh/kitty-scrollback.nvim#configuration-options
 
-local global = {
-  -- enabled/disabled all default keymaps
-  keymaps_enabled = false,
+local global = function()
+  require 'plugins.kitty.scrollback.keymaps'
 
-  -- restore options that were modified while processing the scrollback buffer
-  restore_options = true,
+  return {
+    -- enabled/disabled all default keymaps
+    -- NOTE: this always has to be turned on for further keymap modifications
+    --       ref: https://github.com/mikesmithgh/kitty-scrollback.nvim/issues/152
+    keymaps_enabled = true,
 
-  -- options for paste window that sends commands to Kitty
-  paste_window = {
-    -- register used during yanks to paste window
-    yank_register = '',
+    -- restore options that were modified while processing the scrollback buffer
+    restore_options = true,
 
-    -- If true, the yank_register copies content to the paste window.
-    -- If false, disable yank to paste window
-    yank_register_enabled = true,
-  },
+    -- options for paste window that sends commands to Kitty
+    paste_window = {
+      -- register used during yanks to paste window
+      yank_register = '',
 
-  -- Sets the mode for coloring the Visual highlight group in the scrollback buffer window.
-  --   'darken' - uses a darkened version of the Normal highlight group to improve readability.
-  --   'kitty' - uses the colors defined for selection_foreground and selection_background in your Kitty configuration.
-  --   'nvim' - uses the default colors defined in the Visual highlight group.
-  --   'reverse' - reverses the foreground and background colors of the visual selection.
-  visual_selection_highlight_mode = 'nvim',
-}
+      -- If true, the yank_register copies content to the paste window.
+      -- If false, disable yank to paste window
+      yank_register_enabled = true,
+    },
+
+    -- Sets the mode for coloring the Visual highlight group in the scrollback buffer window.
+    --   'darken' - uses a darkened version of the Normal highlight group to improve readability.
+    --   'kitty' - uses the colors defined for selection_foreground and selection_background in your Kitty configuration.
+    --   'nvim' - uses the default colors defined in the Visual highlight group.
+    --   'reverse' - reverses the foreground and background colors of the visual selection.
+    visual_selection_highlight_mode = 'nvim',
+  }
+end
 
 -- `kitty_get_text.extent`
 --   'screen' - show all text currently on the screen
