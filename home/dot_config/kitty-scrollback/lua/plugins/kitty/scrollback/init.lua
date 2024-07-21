@@ -4,12 +4,7 @@ return {
   name = 'kitty-scrollback',
 
   -- Spec Setup
-  opts = {
-    {
-      -- restore options that were modified while processing the scrollback buffer
-      restore_options = true,
-    },
-  },
+  opts = require 'plugins.kitty.scrollback.opts',
 
   -- Spec Lazy Loading
   event = 'User KittyScrollbackLaunch',
