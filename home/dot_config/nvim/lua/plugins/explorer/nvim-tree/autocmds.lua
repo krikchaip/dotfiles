@@ -3,7 +3,19 @@
 vim.api.nvim_create_autocmd('User', {
   desc = 'Reload Nvim-tree after Neogit operations (staging, commiting, etc.)',
   group = vim.api.nvim_create_augroup('nvim-tree-neogit', { clear = true }),
-  pattern = { 'NeogitStatusRefreshed' },
+  pattern = {
+    'NeogitBranchCheckout',
+    'NeogitBranchDelete',
+    'NeogitBranchReset',
+    'NeogitCherryPick',
+    'NeogitMerge',
+    'NeogitPullComplete',
+    'NeogitPushComplete',
+    'NeogitRebase',
+    'NeogitReset',
+    'NeogitStash',
+    'NeogitStatusRefreshed',
+  },
   callback = function()
     require('nvim-tree.api').tree.reload()
   end,
