@@ -25,8 +25,10 @@ require('nvim-treesitter.configs').setup {
     'javascript',
     'typescript',
     'tsx',
+
     'json',
     'jsonc',
+    'yaml',
 
     'markdown',
     'markdown_inline',
