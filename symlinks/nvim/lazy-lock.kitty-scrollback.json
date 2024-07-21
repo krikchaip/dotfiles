@@ -9,7 +9,7 @@
   "cmp-rpncalc": { "branch": "master", "commit": "3d82861b41c54cb0b3c2c513563e1d8758c92625" },
   "hlslens": { "branch": "main", "commit": "1db56afda3e85791a14b096e483dfda699dd9163" },
   "kitty-scrollback": { "branch": "main", "commit": "dc101d0a8356db9c7290dfbfa82c27ec35e3b55a" },
-  "lazy.nvim": { "branch": "main", "commit": "9a374a0fb4d3ac42dac4a129d4bead7252473c77" },
+  "lazy.nvim": { "branch": "main", "commit": "a09c876f6ef642c8feaea45932df73b058d9a083" },
   "lspkind": { "branch": "master", "commit": "1735dd5a5054c1fb7feaf8e8658dbab925f4f0cf" },
   "lualine": { "branch": "master", "commit": "544dd1583f9bb27b393f598475c89809c4d5e86b" },
   "noice.nvim": { "branch": "main", "commit": "1df01e495b3ac0e2f5f111eba759691a9c21bb72" },
