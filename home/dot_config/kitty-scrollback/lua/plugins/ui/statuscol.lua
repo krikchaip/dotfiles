@@ -30,5 +30,5 @@ return {
   end,
 
   -- Spec Lazy Loading
-  lazy = false,
+  event = 'VeryLazy',
 }
