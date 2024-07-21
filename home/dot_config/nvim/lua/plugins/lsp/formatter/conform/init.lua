@@ -7,16 +7,22 @@ return {
   config = function()
     require('conform').setup {
       formatters_by_ft = {
-        ['_'] = { { 'prettierd', 'prettier' } },
+        ['_'] = { 'prettierd' },
         lua = { 'stylua' },
-        nu = {},
+        nu = { lsp_format = 'fallback' },
       },
 
-      -- Uncomment this to enable format on save
-      -- format_on_save = {
-      --   timeout_ms = 500,
-      --   lsp_fallback = true,
-      -- },
+      -- Change the default values when calling conform.format()
+      -- This will also affect the default values for format_on_save/format_after_save
+      default_format_opts = {
+        lsp_format = 'fallback',
+      },
+
+      -- notify when a formatter errors
+      notify_on_error = false,
+
+      -- notify when no formatters are available for the buffer
+      notify_no_formatters = false,
     }
 
     vim.o.formatexpr = 'v:lua.require"conform".formatexpr()'

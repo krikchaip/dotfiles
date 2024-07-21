@@ -1,12 +1,12 @@
 local function format_and_write()
-  require('conform').format({ async = false, lsp_fallback = true }, function(err, _)
+  require('conform').format({ async = false }, function(err, _)
     if err then vim.notify_once(err, vim.log.levels.ERROR) end
     vim.cmd [[write]]
   end)
 end
 
 local function format_context()
-  require('conform').format { async = true, lsp_fallback = true }
+  require('conform').format { async = true }
 end
 
 return {

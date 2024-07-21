@@ -14,7 +14,7 @@
   "cmp-rpncalc": { "branch": "master", "commit": "3d82861b41c54cb0b3c2c513563e1d8758c92625" },
   "colorizer": { "branch": "master", "commit": "08bd34bf0ed79723f62764c7f9ca70516d461d0d" },
   "comment": { "branch": "master", "commit": "e30b7f2008e52442154b66f7c519bfd2f1e32acb" },
-  "conform": { "branch": "master", "commit": "acc7d93f4a080fec587a99fcb36cffa29adc4bad" },
+  "conform": { "branch": "master", "commit": "797de8f79055334104cf77893cd93fe3fc2ac154" },
   "dashboard": { "branch": "master", "commit": "fabf5feec96185817c732d47d363f34034212685" },
   "diffview": { "branch": "main", "commit": "4516612fe98ff56ae0415a259ff6361a89419b0a" },
   "dressing": { "branch": "master", "commit": "6741f1062d3dc6e4755367a7e9b347b553623f04" },
