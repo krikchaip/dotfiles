@@ -74,12 +74,6 @@ function M.on_attach(bufnr)
     ['Navigation'] = {
       ['<'] = { node.navigate.sibling.prev, 'Previous Sibling' },
       ['>'] = { node.navigate.sibling.next, 'Next Sibling' },
-
-      ['[c'] = { node.navigate.git.prev_recursive, 'Prev Git' },
-      [']c'] = { node.navigate.git.next_recursive, 'Next Git' },
-
-      ['[d'] = { node.navigate.diagnostics.prev_recursive, 'Prev Diagnostic' },
-      [']d'] = { node.navigate.diagnostics.next_recursive, 'Next Diagnostic' },
     },
 
     ['Copy'] = {
@@ -108,9 +102,9 @@ function M.on_attach(bufnr)
     },
 
     ['Search'] = {
-      ['s'] = { utils.search_node, 'Reveal Node' },
-      ['f'] = { api.live_filter.start, 'Start Filter' },
-      ['F'] = { api.live_filter.clear, 'Clear Filter' },
+      ['f'] = { utils.search_node, 'Reveal Node' },
+      ['\\f'] = { api.live_filter.start, 'Start Filter' },
+      ['\\F'] = { api.live_filter.clear, 'Clear Filter' },
     },
 
     ['Toggle'] = {
@@ -133,6 +127,18 @@ function M.on_attach(bufnr)
       ['mt'] = { marks.bulk.trash, 'Trash Selected' }, -- requires the homebrew package `trash`
       ['mm'] = { utils.clear_all, 'Clear All' },
       ['M'] = { utils.clear_all, 'Clear All' },
+    },
+
+    ['Diagnostics'] = {
+      ['[d'] = { node.navigate.diagnostics.prev_recursive, 'Prev Suggestion' },
+      [']d'] = { node.navigate.diagnostics.next_recursive, 'Next Suggestion' },
+    },
+
+    ['Git'] = {
+      ['[c'] = { node.navigate.git.prev_recursive, 'Prev Change' },
+      [']c'] = { node.navigate.git.next_recursive, 'Next Change' },
+
+      ['s'] = { utils.git_add_toggle, 'Stage/Unstage Current' },
     },
   }
 
