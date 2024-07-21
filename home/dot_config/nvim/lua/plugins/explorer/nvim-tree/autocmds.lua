@@ -20,3 +20,12 @@ vim.api.nvim_create_autocmd('User', {
     require('nvim-tree.api').tree.reload()
   end,
 })
+
+vim.api.nvim_create_autocmd('User', {
+  desc = 'Reload Nvim-tree after Diffview operations (opened, closed, etc.)',
+  group = vim.api.nvim_create_augroup('nvim-tree-diffview', { clear = true }),
+  pattern = { 'DiffviewViewClosed', 'DiffviewViewLeave' },
+  callback = function()
+    require('nvim-tree.api').tree.reload()
+  end,
+})
