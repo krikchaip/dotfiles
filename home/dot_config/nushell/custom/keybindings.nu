@@ -151,7 +151,8 @@ def custom-keybindings [] {
                 --layout reverse
                 --border
                 --info inline-right
-                # --preview 'bat --color always {} 2> /dev/null || ls {}'
+                --with-shell 'nu --config ($nu.config-path) --env-config ($nu.env-path) -c'
+                --preview 'scat {}'
                 --bind ctrl-d:half-page-down,ctrl-u:half-page-up
           | lines
           | str join ' '

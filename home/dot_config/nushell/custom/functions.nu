@@ -83,7 +83,7 @@ def "show work-done today" []: nothing -> nothing {
 }
 
 # the cat command on steroids!
-def c [file: path]: nothing -> nothing {
+def scat [file: path]: nothing -> nothing {
   let extension = ($file | path parse | get extension | to text)
   let mime = (file --mime-type -b $file | to text)
   let allowed_mimes = [image/png image/svg+xml]
