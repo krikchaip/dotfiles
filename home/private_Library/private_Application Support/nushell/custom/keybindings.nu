@@ -6,7 +6,7 @@ def custom-keybindings [] {
       modifier: control
       keycode: char_h
       mode: [emacs vi_insert vi_normal]
-      event: { send: menu, name: help_menu }
+      event: { send: Menu, name: help_menu }
     }
 
     # ctrl+shift+c -> copy_selection
@@ -125,6 +125,37 @@ def custom-keybindings [] {
           { send: MenuLeft }
           { send: Left }
         ]
+      }
+    }
+
+    # ctrl+t -> fuzzy_search_paths
+    {
+      name: fuzzy_search_paths
+      modifier: control
+      keycode: char_t
+      mode: [emacs vi_insert vi_normal]
+      event: {
+        send: ExecuteHostCommand
+        cmd: $"commandline edit --insert \(
+          fd --type file
+             --type directory
+             --type symlink
+             --follow
+             --hidden
+             --strip-cwd-prefix
+             --exclude '**/.git/*'
+             --color always
+          | fzf --ansi
+                --multi
+                --height 40%
+                --layout reverse
+                --border
+                --info inline-right
+                # --preview 'bat --color always {} 2> /dev/null || ls {}'
+                --bind ctrl-d:half-page-down,ctrl-u:half-page-up
+          | lines
+          | str join ' '
+        \)"
       }
     }
 
