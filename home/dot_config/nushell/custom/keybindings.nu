@@ -151,8 +151,7 @@ def custom-keybindings [] {
                 --layout reverse
                 --border
                 --info inline-right
-                --with-shell 'nu --config ($nu.config-path) --env-config ($nu.env-path) -c'
-                --preview 'scat {}'
+                --preview '~/.config/fzf/preview {}'
                 --bind ctrl-d:half-page-down,ctrl-u:half-page-up
           | lines
           | str join ' '
