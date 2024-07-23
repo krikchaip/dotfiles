@@ -1,6 +1,6 @@
 -- Nushell config paths
-vim.g.nu_config_path = '~/Library/Application Support/nushell/config.nu'
-vim.g.nu_env_path = '~/Library/Application Support/nushell/env.nu'
+vim.g.nu_config_path = '~/.config/nushell/config.nu'
+vim.g.nu_env_path = '~/.config/nushell/env.nu'
 
 -- Disable some default providers
 vim.g.loaded_node_provider = 0
