@@ -81,18 +81,3 @@ def "restore-factory nvim" [app_name: string = "nvim"]: nothing -> nothing {
 def "show work-done today" []: nothing -> nothing {
   git log --stat --relative-date --since=10am --author=(git config --get user.name)
 }
-
-# the cat command on steroids!
-def scat [file: path]: nothing -> nothing {
-  let extension = ($file | path parse | get extension | to text)
-  let mime = (file --mime-type -b $file | to text)
-  let allowed_mimes = [image/png image/svg+xml]
-
-  if $mime in $allowed_mimes {
-    kitten icat $file
-  } else if $extension =~ "plist" {
-    plutil -convert xml1 -o - $file
-  } else {
-    bat $file
-  }
-}
