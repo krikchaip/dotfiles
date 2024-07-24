@@ -1,4 +1,6 @@
 export-env {
+  $env.FZF_SHELL = $"nu --config ($nu.config-path) --env-config ($nu.env-path) -c"
+
   load-env {
     FZF_DEFAULT_OPTS: (sanitize "
       --ansi
@@ -10,6 +12,7 @@ export-env {
       --bind=alt-d:preview-half-page-down,alt-u:preview-half-page-up
       --bind=alt-f:preview-bottom,alt-b:preview-top
       --bind=alt-j:preview-down,alt-k:preview-up
+      --bind=change:first
       --bind=ctrl-d:half-page-down,ctrl-u:half-page-up
       --bind=ctrl-f:last,ctrl-b:first
       --bind=shift-down:toggle+down,shift-up:toggle+up
