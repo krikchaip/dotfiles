@@ -36,6 +36,18 @@ export-env {
       --preview='~/.local/bin/fzf-preview {}'
       --scheme=path
     ")
+
+    FZF_CTRL_R_COMMAND: (sanitize "
+      history
+        | each { get command | nu-highlight }
+        | reverse | uniq | str join (char -i 0)
+    ")
+
+    FZF_CTRL_R_OPTS: (sanitize "
+      --query=(commandline)
+      --read0
+      --scheme=history
+    ")
   }
 }
 

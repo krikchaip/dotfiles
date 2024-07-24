@@ -140,16 +140,16 @@ def custom-keybindings [] {
       }
     }
 
-    # ctrl+y -> change_dir_with_fzf
-    # {
-    #   name: change_dir_with_fzf
-    #   modifier: control
-    #   keycode: char_y
-    #   mode: [emacs vi_insert vi_normal]
-    #   event: {
-    #     send: executehostcommand
-    #     cmd: 'cd (ls | where type == dir | each { |it| $it.name} | str join (char nl) | fzf | decode utf-8 | str trim)'
-    #   }
-    # }
+    # ctrl+r -> fuzzy_search_history
+    {
+      name: fuzzy_search_history
+      modifier: control
+      keycode: char_r
+      mode: [emacs vi_insert vi_normal]
+      event: {
+        send: ExecuteHostCommand
+        cmd: $"commandline edit --replace \(($env.FZF_CTRL_R_COMMAND) | fzf ($env.FZF_CTRL_R_OPTS)\)"
+      }
+    }
   ]
 }
