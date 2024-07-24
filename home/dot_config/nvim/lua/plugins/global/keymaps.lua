@@ -61,6 +61,9 @@ vim.keymap.set('c', '"', '""<Left>')
 -- Quick access to lua commands for debugging purpose
 vim.keymap.set('n', '=', ':=', { desc = 'Print Lua Expression' })
 
+-- Quick access for running external programs
+vim.keymap.set('n', '!', ':!', { desc = 'Run External Program' })
+
 -- Substitute line while on insert mode (useful for inserting indentation on an empty line)
 vim.keymap.set('i', '<M-s>', '<C-o>S', { desc = 'Substitute line' })
 
