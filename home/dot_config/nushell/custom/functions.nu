@@ -81,3 +81,14 @@ def "restore-factory nvim" [app_name: string = "nvim"]: nothing -> nothing {
 def "show work-done today" []: nothing -> nothing {
   git log --stat --relative-date --since=10am --author=(git config --get user.name)
 }
+
+# fuzzily search command aliases using fzf
+def als [...query: string]: nothing -> any {
+  help aliases
+    | to tsv --columns=[name expansion]
+    | (fzf --header-lines=1
+           --delimiter="\t+"
+           --query=$"($query | str join ' ')"
+           --bind=$"enter:become[($env.FZF_SHELL) {1}]"
+           --bind=$"double-click:become[($env.FZF_SHELL) {1}]")
+}

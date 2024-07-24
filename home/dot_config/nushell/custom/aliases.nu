@@ -1,6 +1,5 @@
 # system commands
 alias mime-type = file --mime-type -b
-alias als = help aliases
 alias desktop = cd ~/Desktop
 alias dskt = cd ~/Desktop
 
