@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #
-# The purpose of this script is to demonstrate how to preview a file or an
-# image in the preview window of fzf.
+# The purpose of this script is to demonstrate how to preview a file,
+# a directory or an image in the preview window of fzf.
 #
 # Dependencies:
 # - https://github.com/sharkdp/bat
+# - https://github.com/eza-community/eza
 # - https://github.com/hpjansson/chafa
 # - https://iterm2.com/utilities/imgcat
 
@@ -17,6 +18,11 @@ file=${1/#\~\//$HOME/}
 type=$(file --dereference --mime -- "$file")
 
 if [[ ! $type =~ image/ ]]; then
+  if [[ $type =~ directory ]]; then
+    eza --color=always --icons=always --group-directories-first --sort=Name -aTXL 1 "$1"
+    exit
+  fi
+
   if [[ $type =~ =binary ]]; then
     file "$1"
     exit
