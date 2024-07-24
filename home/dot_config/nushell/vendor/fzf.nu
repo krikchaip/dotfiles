@@ -4,7 +4,6 @@ export-env {
       --ansi
       --height=40%
       --info=inline-right
-      --keep-right
       --layout=reverse
       --margin=0,2
 
@@ -29,6 +28,7 @@ export-env {
     ")
 
     FZF_CTRL_T_OPTS: (sanitize "
+      --keep-right
       --multi
       --preview='~/.local/bin/fzf-preview {}'
       --scheme=path
