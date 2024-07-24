@@ -1,6 +1,7 @@
 # setup 3rd-party integration
-use vendor/nu_scripts.nu *
 use vendor/carapace.nu *
+use vendor/fzf.nu *
+use vendor/nu_scripts.nu *
 use vendor/mise.nu
 use vendor/starship.nu
 

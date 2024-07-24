@@ -136,34 +136,7 @@ def custom-keybindings [] {
       mode: [emacs vi_insert vi_normal]
       event: {
         send: ExecuteHostCommand
-        cmd: $"commandline edit --insert \(
-          fd --type file
-             --type directory
-             --type symlink
-             --follow
-             --hidden
-             --strip-cwd-prefix
-             --exclude '**/.git/*'
-             --color always
-          | fzf --ansi
-                --multi
-                --scheme path
-                --keep-right
-                --height 40%
-                --layout reverse
-                --margin 0,2
-                --info inline-right
-                --preview '~/.config/fzf/preview {}'
-                --bind alt-d:preview-half-page-down,alt-u:preview-half-page-up
-                --bind alt-f:preview-bottom,alt-b:preview-top
-                --bind alt-j:preview-down,alt-k:preview-up
-                --bind ctrl-d:half-page-down,ctrl-u:half-page-up
-                --bind ctrl-f:last,ctrl-b:first
-                --bind shift-down:toggle+down,shift-up:toggle+up
-                --bind tab:toggle,shift-tab:ignore
-          | lines
-          | str join ' '
-        \)"
+        cmd: $"commandline edit --insert \(($env.FZF_CTRL_T_COMMAND) | fzf ($env.FZF_CTRL_T_OPTS) | fzf-join\)"
       }
     }
 
