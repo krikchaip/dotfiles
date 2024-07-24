@@ -11,7 +11,7 @@ let path_list = (
   | prepend /opt/homebrew/sbin
   | prepend /opt/homebrew/bin
 
-  # for chezmoi binary that was installed during initial setup
+  # user-defined scripts / downloaded binaries
   | prepend ($env.HOME | path join ".local" "bin")
 
   # for global pnpm binaries
