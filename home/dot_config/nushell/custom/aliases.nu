@@ -1,18 +1,18 @@
 # system commands
+alias mime-type = file --mime-type -b
 alias als = help aliases
 alias desktop = cd ~/Desktop
 alias dskt = cd ~/Desktop
-alias l = ls -a
-alias lf = ls -af
-alias ll = ls -al
-alias llf = ls -afl
-alias mime-type = file --mime-type -b
 
 # homebrew 
 alias bb = brew bundle --global
 alias bbc = brew bundle cleanup --global
 alias bo = brew outdated
 alias bu = brew upgrade
+
+# eza
+alias l = eza --icons --hyperlink --group-directories-first --sort Name -a -TXL 1 (pwd)
+alias ll = eza --icons --hyperlink --group-directories-first --sort Name -a -lh --smart-group --time-style=relative --git --git-repos
 
 # docker client
 alias d = docker
