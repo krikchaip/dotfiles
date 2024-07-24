@@ -21,10 +21,9 @@ vim.api.nvim_create_autocmd('User', {
   end,
 })
 
-vim.api.nvim_create_autocmd('User', {
-  desc = 'Reload Nvim-tree after Diffview operations (opened, closed, etc.)',
-  group = vim.api.nvim_create_augroup('nvim-tree-diffview', { clear = true }),
-  pattern = { 'DiffviewViewClosed', 'DiffviewViewLeave' },
+vim.api.nvim_create_autocmd('TabEnter', {
+  desc = 'Reload Nvim-tree after entering a tab page',
+  group = vim.api.nvim_create_augroup('nvim-tree-tabpage', { clear = true }),
   callback = function()
     require('nvim-tree.api').tree.reload()
   end,
