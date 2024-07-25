@@ -51,13 +51,6 @@ vim.keymap.set('i', '<S-Down>', '<Esc><Right>v<Down>')
 vim.keymap.set('x', '<S-Up>', '<Up>')
 vim.keymap.set('x', '<S-Down>', '<Down>')
 
--- Simple autoclose in command mode
-vim.keymap.set('c', '{', '{}<Left>')
-vim.keymap.set('c', '[', '[]<Left>')
-vim.keymap.set('c', '(', '()<Left>')
-vim.keymap.set('c', "'", "''<Left>")
-vim.keymap.set('c', '"', '""<Left>')
-
 -- Quick access to lua commands for debugging purpose
 vim.keymap.set('n', '=', ':=', { desc = 'Print Lua Expression' })
 

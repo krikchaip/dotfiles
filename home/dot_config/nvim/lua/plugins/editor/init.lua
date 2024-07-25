@@ -3,6 +3,7 @@ return {
   require 'plugins.editor.autopairs',
   require 'plugins.editor.comment',
   require 'plugins.editor.image',
+  require 'plugins.editor.mini-pairs',
   require 'plugins.editor.surround',
   require 'plugins.editor.vim-bbye',
   require 'plugins.editor.vim-sleuth',
