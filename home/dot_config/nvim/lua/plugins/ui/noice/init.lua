@@ -5,6 +5,7 @@ return {
 
   -- Spec Setup
   config = function()
+    require 'plugins.ui.noice.opts'
     require 'plugins.ui.noice.setup'
   end,
 
@@ -14,4 +15,7 @@ return {
     { '<leader>m', '<cmd>Noice telescope<CR>', desc = 'Notifications: Show History' },
     { '<leader>M', '<cmd>Noice dismiss<CR>', desc = 'Notifications: Dismiss All' },
   },
+
+  -- Spec Versioning
+  tag = 'v4.0.0',
 }
