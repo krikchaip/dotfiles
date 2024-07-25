@@ -1,1 +1,1 @@
-vim.keymap.set('n', '<leader>s', '<cmd>Telescope session-lens<CR>', { desc = 'Session: Open Session Lens' })
+vim.keymap.set('n', '<C-S-s>', '<cmd>Telescope session-lens<CR>', { desc = 'Session: Open Session Lens' })
