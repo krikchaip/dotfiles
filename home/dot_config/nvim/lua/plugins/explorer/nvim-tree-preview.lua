@@ -8,10 +8,13 @@ return {
     keymaps = {
       ['q'] = { action = 'close', unwatch = true },
       ['P'] = { action = 'toggle_focus' },
-      ['<CR>'] = { open = 'edit' },
-      ['<C-t>'] = { open = 'tab' },
-      ['<C-v>'] = { open = 'vertical' },
-      ['<C-s>'] = { open = 'horizontal' },
+
+      ['<S-CR>'] = { open = 'edit' },
+      ['<CR>'] = { open = 'tab' },
+
+      ['t'] = { open = 'tab' },
+      ['v'] = { open = 'vertical' },
+      ['s'] = { open = 'horizontal' },
     },
   },
 
