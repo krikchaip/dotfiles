@@ -1,5 +1,14 @@
 local components = require 'plugins.ui.lualine.components'
 
+local DISABLED_FTS = {
+  'DiffviewFileHistory',
+  'DiffviewFiles',
+  'NvimTree',
+  'dashboard',
+  'noice',
+  'trouble',
+}
+
 require('lualine').setup {
   options = {
     -- set `true` to have a single statusline at bottom of instead of one for every window
@@ -13,23 +22,8 @@ require('lualine').setup {
     },
 
     disabled_filetypes = {
-      winbar = {
-        'DiffviewFileHistory',
-        'DiffviewFiles',
-        'NvimTree',
-        'dashboard',
-        'noice',
-        'trouble',
-      },
-
-      statusline = {
-        'DiffviewFileHistory',
-        'DiffviewFiles',
-        'NvimTree',
-        'dashboard',
-        'noice',
-        'trouble',
-      },
+      winbar = list_concat(DISABLED_FTS, { 'qf' }),
+      statusline = DISABLED_FTS,
     },
 
     -- which filetypes to always be drawn as inactive statusline
