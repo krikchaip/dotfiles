@@ -63,8 +63,9 @@ vim.keymap.set('i', '<M-s>', '<C-o>S', { desc = 'Substitute: Replace Line' })
 -- Find and Replace (Substitution)
 vim.keymap.set('n', '<leader>s', ':%s;', { desc = 'Substitute: Whole File' })
 vim.keymap.set('n', '<leader>S', ':%s;\\v', { desc = 'Substitute: Whole File Regex' })
-vim.keymap.set('x', '<leader>s', ':s;\\%V', { desc = 'Substitute: Visual Region' })
-vim.keymap.set('x', '<leader>S', ':s;\\%V\\v', { desc = 'Substitute: Visual Region Regex' })
+vim.keymap.set('x', 'gR', '"hy:%s;<C-r>h;&', { desc = 'Substitute: Whole File Selection' })
+vim.keymap.set('x', '<leader>s', ':s;\\%V', { desc = 'Substitute: Inside Visual' })
+vim.keymap.set('x', '<leader>S', ':s;\\%V\\v', { desc = 'Substitute: Inside Visual Regex' })
 
 -- Insert/Remove indentation with ease
 vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Indent: Current Line Remove One' })
