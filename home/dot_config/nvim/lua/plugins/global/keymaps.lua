@@ -88,6 +88,10 @@ vim.keymap.set('n', '<leader>W', '<cmd>w<CR>', { desc = 'Buffer: Write Current' 
 vim.keymap.set('n', 'q', smart_delete_buffer(), { desc = 'Buffer: Delete Current' })
 vim.keymap.set('n', 'Q', smart_delete_buffer(true), { desc = 'Buffer: Force Delete Current' })
 
+-- Quickfix List Navigation
+vim.keymap.set('n', '<M-q>', '<cmd>botright copen<CR>', { desc = 'Quickfix: Open / Focus' })
+vim.keymap.set('n', '<M-S-q>', '<cmd>cclose<CR>', { desc = 'Quickfix: Close' })
+
 -- Window Navigation
 vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Window: Focus Left' })
 vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Window: Focus Right' })
