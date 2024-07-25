@@ -4,6 +4,7 @@ return {
   end,
 
   cond = function()
-    return require('noice').api.status.mode.has()
+    local ok, noice = pcall(require, 'noice')
+    return ok and noice.api.status.mode.has()
   end,
 }
