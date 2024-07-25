@@ -11,16 +11,6 @@ require('trouble').setup {
       preview = utils.preview_window_opts,
     },
 
-    qf = {
-      mode = 'quickfix',
-      preview = utils.preview_window_opts,
-    },
-
-    ll = {
-      mode = 'loclist',
-      preview = utils.preview_window_opts,
-    },
-
     todolist = {
       mode = 'todo',
       preview = utils.preview_window_opts,
