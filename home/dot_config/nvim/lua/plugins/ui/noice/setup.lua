@@ -1,6 +1,18 @@
 local utils = require 'plugins.ui.noice.utils'
 
 require('noice').setup {
+  cmdline = {
+    format = {
+      substitute = {
+        icon = ' 󰑖',
+        icon_hl_group = 'DiagnosticSignHint',
+        lang = 'regex',
+        pattern = { '^:%%?s;', "^:'<,'>s;" },
+        view = 'cmdline',
+      },
+    },
+  },
+
   messages = {
     -- use `hlslens` instead
     view_search = false,

@@ -58,7 +58,13 @@ vim.keymap.set('n', '=', ':=', { desc = 'Print Lua Expression' })
 vim.keymap.set('n', '!', ':!', { desc = 'Run External Program' })
 
 -- Substitute line while on insert mode (useful for inserting indentation on an empty line)
-vim.keymap.set('i', '<M-s>', '<C-o>S', { desc = 'Substitute line' })
+vim.keymap.set('i', '<M-s>', '<C-o>S', { desc = 'Substitute: Replace Line' })
+
+-- Find and Replace (Substitution)
+vim.keymap.set('n', '<leader>s', ':%s;', { desc = 'Substitute: Whole File' })
+vim.keymap.set('n', '<leader>S', ':%s;\\v', { desc = 'Substitute: Whole File Regex' })
+vim.keymap.set('x', '<leader>s', ':s;\\%V', { desc = 'Substitute: Visual Region' })
+vim.keymap.set('x', '<leader>S', ':s;\\%V\\v', { desc = 'Substitute: Visual Region Regex' })
 
 -- Insert/Remove indentation with ease
 vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Indent: Current Line Remove One' })
