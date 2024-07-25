@@ -151,5 +151,17 @@ def custom-keybindings [] {
         cmd: $"commandline edit --replace \(($env.FZF_CTRL_R_COMMAND) | fzf ($env.FZF_CTRL_R_OPTS)\)"
       }
     }
+
+    # alt+c -> fuzzy_change_dir
+    {
+      name: fuzzy_change_dir
+      modifier: alt
+      keycode: char_c
+      mode: [emacs vi_insert vi_normal]
+      event: {
+        send: ExecuteHostCommand
+        cmd: $"cd \(($env.FZF_ALT_C_COMMAND) | fzf ($env.FZF_ALT_C_OPTS)\) | commandline edit --replace ''"
+      }
+    }
   ]
 }

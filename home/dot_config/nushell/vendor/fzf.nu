@@ -48,11 +48,28 @@ export-env {
       --read0
       --scheme=history
     ")
+
+    FZF_ALT_C_COMMAND: (sanitize "
+      fd --color=always
+         --exclude='**/.git/*'
+         --follow
+         --hidden
+         --strip-cwd-prefix
+         --type=directory
+    ")
+
+    FZF_ALT_C_OPTS: (sanitize "
+      --exit-0
+      --keep-right
+      --preview='~/.local/bin/fzf-preview {}'
+      --query=(commandline)
+      --scheme=path
+    ")
   }
 }
 
 export def fzf-join []: string -> string {
-  lines | str join ' '
+  lines | str join " "
 }
 
 def sanitize [opts: string] {
@@ -60,5 +77,5 @@ def sanitize [opts: string] {
     | lines
     | each {|it| $it | str trim }
     | where ($it | str length) > 0
-    | str join ' '
+    | str join " "
 }
