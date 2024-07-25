@@ -12,7 +12,7 @@ return {
   end,
 
   -- Spec Lazy Loading
-  cmd = 'Trouble',
+  event = 'VeryLazy',
   keys = {
     { '<leader>d', utils.show_panel 'diag', desc = 'Trouble: Show Diagnostics' },
     { '<leader>D', '<cmd>Trouble diag close<CR>', desc = 'Trouble: Hide Diagnostics' },
