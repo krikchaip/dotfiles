@@ -86,17 +86,22 @@ function M.close_preview()
   preview.unwatch()
 end
 
-function M.close_tree_if_last(original)
-  local api = require 'nvim-tree.api'
+--- @param bang? boolean default `false`
+function M.close_tree_if_last(bang)
+  local original = smart_delete_buffer(bang or false)
 
-  if not api.tree.is_visible() then return original() end
-  if #tabpage_list_normal_wins() > 2 then return original() end
+  return function()
+    local api = require 'nvim-tree.api'
 
-  if #vim.api.nvim_list_tabpages() == 1 then return vim.cmd [[Bdelete]] end
+    if not api.tree.is_visible() then return original() end
+    if #tabpage_list_normal_wins() > 2 then return original() end
 
-  api.tree.close_in_this_tab()
+    if #vim.api.nvim_list_tabpages() == 1 then return vim.cmd [[Bdelete]] end
 
-  return original()
+    api.tree.close_in_this_tab()
+
+    return original()
+  end
 end
 
 function M.toggle_copy_single()

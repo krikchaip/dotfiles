@@ -54,9 +54,11 @@ function tabpage_list_normal_wins(tabpage)
   end, winids)
 end
 
--- Smart delete current buffer
--- Window:  switch to the last accessed when there's more than one
--- Tabpage: switch to the last accessed when there're no more windows left
+--- Smart delete current buffer
+--- Window:  switch to the last accessed when there's more than one
+--- Tabpage: switch to the last accessed when there're no more windows left
+---
+--- @param bang? boolean default `false`
 function smart_delete_buffer(bang)
   bang = bang or false
 
