@@ -1,4 +1,5 @@
 return {
+  require 'plugins.ui.bqf',
   require 'plugins.ui.colorizer',
   require 'plugins.ui.dashboard',
   require 'plugins.ui.dressing',
