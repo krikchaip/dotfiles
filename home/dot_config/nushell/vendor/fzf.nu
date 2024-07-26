@@ -14,6 +14,7 @@ export-env {
       --bind=change:first
       --bind=ctrl-d:half-page-down,ctrl-u:half-page-up
       --bind=ctrl-f:last,ctrl-b:first
+      --bind=ctrl-space:replace-query
       --bind=shift-down:toggle+down,shift-up:toggle+up
       --bind=tab:toggle,shift-tab:ignore
     ")
