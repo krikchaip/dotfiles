@@ -21,7 +21,6 @@ export-env {
     FZF_CTRL_T_COMMAND: (sanitize "
       fd --color=always
          --exclude='**/.git/*'
-         --follow
          --hidden
          --strip-cwd-prefix
          --type=directory
@@ -52,10 +51,10 @@ export-env {
 
     FZF_ALT_C_COMMAND: (sanitize "
       fd --exclude='**/.git/*'
-         --follow
          --hidden
          --strip-cwd-prefix
          --type=directory
+         --type=symlink
     ")
 
     FZF_ALT_C_OPTS: (sanitize "
