@@ -12,6 +12,7 @@ export-env {
       --bind=alt-f:preview-bottom,alt-b:preview-top
       --bind=alt-j:preview-down,alt-k:preview-up
       --bind=change:first
+      --bind=ctrl-\\\\:clear-query
       --bind=ctrl-d:half-page-down,ctrl-u:half-page-up
       --bind=ctrl-f:last,ctrl-b:first
       --bind=ctrl-space:replace-query
