@@ -10,6 +10,7 @@ brew "nushell"
 brew "pkg-config"
 brew "ripgrep"
 brew "starship"
+brew "zoxide"
 
 tap "rsteube/tap"
 brew "carapace"
