@@ -10,7 +10,7 @@ source custom/aliases.nu
 source custom/functions.nu
 source custom/keybindings.nu
 
-$env.config = {
+$env.config = ($env.config? | default {} | merge {
   show_banner: false
   edit_mode: vi
   buffer_editor: nvim
