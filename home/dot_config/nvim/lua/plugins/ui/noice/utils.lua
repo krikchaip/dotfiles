@@ -19,6 +19,16 @@ M.skip_annoying_messages = {
   opts = { skip = true },
 }
 
+M.notify_substitute_confirm = {
+  filter = {
+    event = 'msg_show',
+    kind = 'confirm_sub',
+    mode = 'r?',
+  },
+  opts = { replace = true },
+  view = 'notify',
+}
+
 M.skip_luals_progress_messages = {
   filter = {
     event = 'lsp',

@@ -54,6 +54,7 @@ require('noice').setup {
 
   routes = {
     utils.skip_annoying_messages,
+    utils.notify_substitute_confirm,
     -- utils.skip_luals_progress_messages,
   },
 
