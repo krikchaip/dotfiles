@@ -3,7 +3,6 @@ export-env {
 
   load-env {
     FZF_DEFAULT_OPTS: (sanitize "
-      --ansi
       --height=40%
       --info=inline-right
       --layout=reverse
@@ -31,6 +30,7 @@ export-env {
     ")
 
     FZF_CTRL_T_OPTS: (sanitize "
+      --ansi
       --keep-right
       --multi
       --preview='~/.local/bin/fzf-preview {}'
@@ -44,14 +44,14 @@ export-env {
     ")
 
     FZF_CTRL_R_OPTS: (sanitize "
+      --ansi
       --query=(commandline)
       --read0
       --scheme=history
     ")
 
     FZF_ALT_C_COMMAND: (sanitize "
-      fd --color=always
-         --exclude='**/.git/*'
+      fd --exclude='**/.git/*'
          --follow
          --hidden
          --strip-cwd-prefix
