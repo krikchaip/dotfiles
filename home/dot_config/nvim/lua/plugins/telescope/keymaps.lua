@@ -51,6 +51,7 @@ return {
   end,
 
   defaults = function()
+    local a = require 'telescope.actions'
     local actions = require 'plugins.telescope.actions'
 
     return {
@@ -61,7 +62,6 @@ return {
       ['<C-r><C-w>'] = false,
       ['<C-x>'] = false,
       ['<M-f>'] = false,
-      ['<S-Tab>'] = false,
 
       -- close prompt with these instead of <C-c>
       ['<ESC>'] = 'close',
@@ -83,8 +83,11 @@ return {
       ['<M-d>'] = 'preview_scrolling_down',
       ['<M-u>'] = 'preview_scrolling_up',
 
-      -- remap <Tab> key to just only select result
+      -- items selection for quickfix list
       ['<Tab>'] = 'toggle_selection',
+      ['<S-Tab>'] = 'toggle_all',
+      ['<S-Up>'] = a['toggle_selection'] + a['move_selection_previous'],
+      ['<S-Down>'] = a['toggle_selection'] + a['move_selection_next'],
 
       -- open all selected results in tabs, splits, buffers
       ['<C-s>'] = actions.select_horizontal_or_multi,
