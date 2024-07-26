@@ -8,8 +8,10 @@ return {
   -- Spec Setup
   config = function()
     require 'plugins.ui.bqf.setup'
+    require 'plugins.ui.bqf.autocmds'
   end,
 
   -- Spec Lazy Loading
+  cmd = { 'Cdo', 'Cfdo' },
   ft = 'qf',
 }
