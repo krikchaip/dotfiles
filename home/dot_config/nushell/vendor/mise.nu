@@ -11,7 +11,7 @@ export-env {
   add-hook hooks.env_change.PWD $mise_hook
 }
 
-def --env add-hook [field: cell-path new_hook: any] {
+def --env add-hook [field: cell-path, new_hook: any] {
   let old_config = $env.config? | default {}
   let old_hooks = $old_config | get $field --ignore-errors | default []
 

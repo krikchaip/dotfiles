@@ -19,7 +19,7 @@ export-env {
     # TODO: Also Use starship vi mode indicators?
     PROMPT_INDICATOR: ""
 
-    PROMPT_COMMAND: {||
+    PROMPT_COMMAND: { ||
       # jobs are not supported
       (
         ^starship prompt
@@ -33,7 +33,7 @@ export-env {
       render_right_prompt_on_last_line: true
     })
 
-    PROMPT_COMMAND_RIGHT: {||
+    PROMPT_COMMAND_RIGHT: { ||
       (
         ^starship prompt
           --right
