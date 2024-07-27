@@ -1,7 +1,5 @@
 # system commands
 alias mime-type = file --mime-type -b
-alias desktop = cd ~/Desktop
-alias dskt = cd ~/Desktop
 
 # homebrew 
 alias bb = brew bundle --global
@@ -12,6 +10,10 @@ alias bu = brew upgrade
 # eza
 alias l = eza --icons --hyperlink --group-directories-first --sort Name -a -TXL 1 (pwd)
 alias ll = eza --icons --hyperlink --group-directories-first --sort Name -a -lh --smart-group --time-style=relative --git --git-repos
+
+# zoxide
+alias cd = __zoxide_z
+alias cdi = __zoxide_zi
 
 # docker client
 alias d = docker

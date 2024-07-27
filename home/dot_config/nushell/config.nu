@@ -2,6 +2,7 @@
 use vendor/carapace.nu *
 use vendor/fzf.nu *
 use vendor/nu_scripts.nu *
+use vendor/zoxide.nu *
 use vendor/mise.nu
 use vendor/starship.nu
 
@@ -28,4 +29,4 @@ $env.config = ($env.config? | default {} | merge {
     osc633: true
     reset_application_mode: true
   }
-}
+})

@@ -163,5 +163,17 @@ def custom-keybindings [] {
         cmd: $"cd \(($env.FZF_ALT_C_COMMAND) | fzf ($env.FZF_ALT_C_OPTS)\) | commandline edit --replace ''"
       }
     }
+
+    # alt+shift+c -> fuzzy_change_dir_zoxide
+    {
+      name: fuzzy_change_dir_zoxide
+      modifier: alt_shift
+      keycode: char_c
+      mode: [emacs vi_insert vi_normal]
+      event: {
+        send: ExecuteHostCommand
+        cmd: "__zoxide_zi"
+      }
+    }
   ]
 }
