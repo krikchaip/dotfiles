@@ -172,7 +172,7 @@ def custom-keybindings [] {
       mode: [emacs vi_insert vi_normal]
       event: {
         send: ExecuteHostCommand
-        cmd: "__zoxide_zi"
+        cmd: "__zoxide_zi (commandline) | commandline edit --replace ''"
       }
     }
   ]
