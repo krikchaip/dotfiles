@@ -87,10 +87,21 @@ end
 
 -- Smart tabpage closer.
 -- Will return to previously active tabpage when possible
--- TODO: close all buffers (with smart_delete_buffer) after tab closed
 function smart_close_tabpage()
-  local ok, _ = pcall(vim.cmd, 'tabnext# | tabclose#')
-  if not ok then vim.cmd [[silent tabclose]] end
+  _G.__bd = smart_delete_buffer()
+
+  local prev_tabnr = vim.api.nvim_get_current_tabpage()
+  local ok, _ = pcall(vim.cmd, 'tabnext#')
+  local curr_tabnr = ok and vim.api.nvim_get_current_tabpage() or prev_tabnr
+
+  if curr_tabnr == prev_tabnr then
+    vim.cmd [[windo lua __bd()]]
+  else
+    for _, winnr in ipairs(vim.api.nvim_tabpage_list_wins(prev_tabnr)) do
+      local bufnr = vim.api.nvim_win_get_buf(winnr)
+      __bd(bufnr, winnr)
+    end
+  end
 end
 
 function macro_start_stop()
