@@ -62,18 +62,20 @@ end
 function smart_delete_buffer(bang)
   bang = bang or false
 
-  return function()
-    local last_buf = vim.api.nvim_get_current_buf()
-    local last_win = vim.api.nvim_get_current_win()
+  --- @param bufnr? number default current buffer
+  --- @param winnr? number default current window
+  return function(bufnr, winnr)
+    local last_buf = bufnr or vim.api.nvim_get_current_buf()
+    local last_win = winnr or vim.api.nvim_get_current_win()
+
+    -- close loclist window if present
+    vim.cmd [[lclose]]
 
     if #vim.api.nvim_tabpage_list_wins(0) > 1 then
       vim.cmd.wincmd 'p'
     else
       vim.cmd [[silent! tabnext #]]
     end
-
-    -- close loclist window if present
-    vim.cmd [[lclose]]
 
     if #vim.fn.win_findbuf(last_buf) > 1 then
       vim.api.nvim_win_close(last_win, false)
