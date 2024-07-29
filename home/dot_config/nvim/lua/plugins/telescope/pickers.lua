@@ -17,6 +17,20 @@ function M.find_chezmoi_files()
   }
 end
 
+-- Find directories from project's root cwd
+function M.find_dirs()
+  local actions = require 'plugins.telescope.actions'
+
+  M.find_files {
+    prompt_title = 'Find Directories',
+    find_command = { 'fd', '--type', 'directory', '--hidden', '--exclude', '**/.git/*' },
+    attach_mappings = function(_, map)
+      map('i', '<CR>', actions.reveal_in_nvim_tree)
+      return true
+    end,
+  }
+end
+
 -- Fuzzy search within buffer
 function M.local_fuzzy_find()
   local opts = require('telescope.themes').get_dropdown {

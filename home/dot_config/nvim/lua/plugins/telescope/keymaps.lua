@@ -34,6 +34,7 @@ return {
       { '<leader><leader>', '<cmd>Telescope resume<CR>', desc = 'Picker: Resume Last' },
       { '<leader>\\', '<cmd>Telescope buffers<CR>', desc = 'Buffer: List Open' },
       { '<leader>p', pickers.find_files, desc = 'Explorer: List Files' },
+      { '<leader>P', pickers.find_dirs, desc = 'Explorer: List Directories' },
     }
 
     local SEARCH = {

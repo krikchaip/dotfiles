@@ -11,41 +11,16 @@ end
 
 -- Search for a file and folder then highlights it in the tree using Telescope
 function M.search_node()
-  local api = require 'nvim-tree.api'
-  local actions = require 'telescope.actions'
-  local action_state = require 'telescope.actions.state'
-  local pickers = require 'plugins.telescope.pickers'
+  local actions = require 'plugins.telescope.actions'
 
-  local opts = {
+  require('plugins.telescope.pickers').find_files {
     prompt_title = 'Search Node',
-
-    find_command = {
-      'fd',
-      '--type',
-      'file',
-      '--type',
-      'directory',
-      '--hidden', -- to show dot files and folders
-      '--exclude',
-      '**/.git/*',
-    },
-
+    find_command = { 'fd', '--type', 'file', '--type', 'directory', '--hidden', '--exclude', '**/.git/*' },
     attach_mappings = function(_, map)
-      map('i', '<CR>', function(prompt_bufnr)
-        actions.close(prompt_bufnr)
-
-        local selection = action_state.get_selected_entry()
-        local filename = selection.value or selection.filename or selection[1]
-        local filepath = vim.fs.joinpath(selection.cwd, filename)
-
-        api.tree.find_file { buf = filepath }
-      end, { desc = 'reveal_node_in_tree' })
-
+      map('i', '<CR>', actions.reveal_in_nvim_tree)
       return true
     end,
   }
-
-  return pickers.find_files(opts)
 end
 
 function M.preview_current_node()
