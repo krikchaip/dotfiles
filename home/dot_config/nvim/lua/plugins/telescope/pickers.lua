@@ -1,29 +1,16 @@
 local M = {}
 
--- Live grep from project git root with fallback
--- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#live-grep-from-project-git-root-with-fallback
-function M.live_grep(opts)
-  opts = opts or {}
-
-  if is_git_repo() then opts.cwd = get_git_root() end
-
-  require('telescope.builtin').live_grep(opts)
-end
-
--- Find files from project git root with fallback
--- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#find-files-from-project-git-root-with-fallback
+-- Find files from project's root cwd
 function M.find_files(opts)
   opts = opts or {}
 
-  if is_git_repo() then opts.cwd = get_git_root() end
+  opts.cwd = vim.loop.cwd()
 
   require('telescope.builtin').find_files(opts)
 end
 
+-- Find chezmoi files using `find_files` instead since its extension does not work somehow
 function M.find_chezmoi_files()
-  -- NOTE: this is somehow not working
-  -- telescope.extensions.chezmoi.find_files {}
-
   require('telescope.builtin').find_files {
     prompt_title = 'Chezmoi files',
     cwd = os.getenv 'HOME' .. '/.local/share/chezmoi',
@@ -40,10 +27,10 @@ function M.local_fuzzy_find()
   require('telescope.builtin').current_buffer_fuzzy_find(opts)
 end
 
--- Search text within workspace using grep_string
+-- Search text within workspace using grep_string instead of live_grep
+-- since it doesn't support fuzzy finding
+-- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
 function M.workspace_fuzzy_find()
-  -- Live grep does not support fuzzy finding
-  -- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
   require('telescope.builtin').grep_string {
     prompt_title = 'Search current workspace',
     search = '',

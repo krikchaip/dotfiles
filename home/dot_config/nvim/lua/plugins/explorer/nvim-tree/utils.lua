@@ -12,41 +12,40 @@ end
 -- Search for a file and folder then highlights it in the tree using Telescope
 function M.search_node()
   local api = require 'nvim-tree.api'
-  local builtin = require 'telescope.builtin'
   local actions = require 'telescope.actions'
   local action_state = require 'telescope.actions.state'
+  local pickers = require 'plugins.telescope.pickers'
 
-  local opts = {}
+  local opts = {
+    prompt_title = 'Search Node',
 
-  opts.prompt_title = 'Search Node'
-  opts.cwd = vim.fn.getcwd()
+    find_command = {
+      'fd',
+      '--type',
+      'file',
+      '--type',
+      'directory',
+      '--hidden', -- to show dot files and folders
+      '--exclude',
+      '**/.git/*',
+    },
 
-  opts.find_command = {
-    'fd',
-    '--type',
-    'file',
-    '--type',
-    'directory',
-    '--hidden', -- to show dot files and folders
-    '--exclude',
-    '**/.git/*',
+    attach_mappings = function(_, map)
+      map('i', '<CR>', function(prompt_bufnr)
+        actions.close(prompt_bufnr)
+
+        local selection = action_state.get_selected_entry()
+        local filename = selection.value or selection.filename or selection[1]
+        local filepath = vim.fs.joinpath(selection.cwd, filename)
+
+        api.tree.find_file { buf = filepath }
+      end, { desc = 'reveal_node_in_tree' })
+
+      return true
+    end,
   }
 
-  opts.attach_mappings = function(_, map)
-    map('i', '<CR>', function(prompt_bufnr)
-      actions.close(prompt_bufnr)
-
-      local selection = action_state.get_selected_entry()
-      local filename = selection.value or selection.filename or selection[1]
-      local filepath = vim.fs.joinpath(selection.cwd, filename)
-
-      api.tree.find_file { buf = filepath }
-    end, { desc = 'reveal_node_in_tree' })
-
-    return true
-  end
-
-  return builtin.find_files(opts)
+  return pickers.find_files(opts)
 end
 
 function M.preview_current_node()
