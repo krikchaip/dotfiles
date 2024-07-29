@@ -12,10 +12,10 @@ function M.lazy()
 end
 
 function M.view()
-  local actions = require 'diffview.actions'
+  local actions = require 'plugins.git.diffview.actions'
 
   return {
-    { 'n', 'q', smart_close_tabpage, { desc = 'Diffview: Close' } },
+    { 'n', 'q', actions.close_diffview, { desc = 'Diffview: Close' } },
 
     { 'n', 'g?', actions.help 'view', { desc = 'View: Help' } },
     { 'n', '<leader>e', actions.focus_files, { desc = 'View: Focus Panel' } },
@@ -28,7 +28,7 @@ function M.view()
 end
 
 function M.diff_view()
-  local actions = require 'diffview.actions'
+  local actions = require 'plugins.git.diffview.actions'
 
   return {
     { 'n', '[x', actions.prev_conflict, { desc = 'Merge: Previous Conflict' } },
@@ -37,10 +37,10 @@ function M.diff_view()
 end
 
 function M.file_panel()
-  local actions = require 'diffview.actions'
+  local actions = require 'plugins.git.diffview.actions'
 
   return {
-    { 'n', 'q', smart_close_tabpage, { desc = 'Diffview: Close' } },
+    { 'n', 'q', actions.close_diffview, { desc = 'Diffview: Close' } },
     { 'n', '<C-r>', actions.refresh_files, { desc = 'Diffview: Refresh' } },
 
     { 'n', '?', actions.help 'file_panel', { desc = 'Panel: Help' } },
@@ -69,10 +69,10 @@ function M.file_panel()
 end
 
 function M.file_history_panel()
-  local actions = require 'diffview.actions'
+  local actions = require 'plugins.git.diffview.actions'
 
   return {
-    { 'n', 'q', smart_close_tabpage, { desc = 'Diffview: Close' } },
+    { 'n', 'q', actions.close_diffview, { desc = 'Diffview: Close' } },
     { 'n', '<C-r>', actions.refresh_files, { desc = 'Diffview: Refresh' } },
     { 'n', '!', actions.options, { desc = 'Diffview: Open Option Panel' } },
 
@@ -102,7 +102,7 @@ function M.file_history_panel()
 end
 
 function M.option_panel()
-  local actions = require 'diffview.actions'
+  local actions = require 'plugins.git.diffview.actions'
 
   return {
     { 'n', 'q', actions.close, { desc = 'Option: Close' } },
@@ -112,7 +112,7 @@ function M.option_panel()
 end
 
 function M.help_panel()
-  local actions = require 'diffview.actions'
+  local actions = require 'plugins.git.diffview.actions'
 
   return {
     { 'n', 'q', actions.close, { desc = 'Help: Close' } },
