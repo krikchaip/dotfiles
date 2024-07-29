@@ -7,8 +7,8 @@ use vendor/mise.nu
 use vendor/starship.nu
 
 # custom-defined aliases, functions and etc.
-source custom/aliases.nu
 source custom/functions.nu
+source custom/aliases.nu
 source custom/keybindings.nu
 
 $env.config = ($env.config? | default {} | merge {
