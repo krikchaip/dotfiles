@@ -175,5 +175,17 @@ def custom-keybindings [] {
         cmd: "__zoxide_zi (commandline) | commandline edit --replace ''"
       }
     }
+
+    # alt+t -> fuzzy_ls_current_dir
+    {
+      name: fuzzy_ls_current_dir
+      modifier: alt
+      keycode: char_t
+      mode: [emacs vi_insert vi_normal]
+      event: {
+        send: ExecuteHostCommand
+        cmd: "commandline edit --insert (fuzzy ls)"
+      }
+    }
   ]
 }
