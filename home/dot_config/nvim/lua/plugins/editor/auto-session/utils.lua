@@ -16,11 +16,23 @@ M.session_lens_config = {
   -- `require("auto-session").setup_session_lens()` if they want to use session-lens.
   load_on_setup = true,
 
-  previewer = false,
+  previewer = true,
 
   -- will be passed directly to telescope picker
   theme_conf = {
     border = true,
+    borderchars = { '─', '│', '─', '│', '╭', '╮', '╯', '╰' },
+
+    layout_strategy = 'vertical',
+    layout_config = {
+      vertical = {
+        prompt_position = 'top',
+        mirror = true,
+        width = { 0.8, max = 90 },
+        height = { 0.8, max = 37 },
+        preview_height = { 0, min = 20 },
+      },
+    },
 
     attach_mappings = function(_, map)
       local auto_session = require 'auto-session'
