@@ -83,7 +83,7 @@ def "show work-done today" []: nothing -> nothing {
 }
 
 # fuzzily search command aliases using fzf
-def als [...query: string]: nothing -> any {
+def "fuzzy aliases" [...query: string]: nothing -> any {
   help aliases
     | to tsv --columns=[name expansion]
     | (fzf --header-lines=1
@@ -91,4 +91,10 @@ def als [...query: string]: nothing -> any {
            --query=$"($query | str join ' ')"
            --bind=$"enter:become[($env.FZF_SHELL) {1}]"
            --bind=$"double-click:become[($env.FZF_SHELL) {1}]")
+}
+
+# interactively list items inside the current directory using fzf
+def "fuzzy ls" []: nothing -> any {
+  let fd = ($env.FZF_CTRL_T_COMMAND | append "--exact-depth=1" | str join " ")
+  nu -c $"($fd) | fzf ($env.FZF_CTRL_T_OPTS)" | fzf-join
 }

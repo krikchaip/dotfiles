@@ -15,6 +15,10 @@ alias ll = eza --icons --hyperlink --group-directories-first --sort Name -a -lh 
 alias cd = __zoxide_z
 alias cdi = __zoxide_zi
 
+# fzf
+alias als = fuzzy aliases
+alias li = fuzzy ls
+
 # docker client
 alias d = docker
 alias da = docker attach
