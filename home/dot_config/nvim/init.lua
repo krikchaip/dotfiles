@@ -62,6 +62,9 @@ require('lazy').setup {
   performance = {
     rtp = {
       disabled_plugins = {
+        -- Required by `telescope.builtin.man_pages`
+        -- 'man',
+
         '2html_plugin',
         'bugreport',
         'compiler',
@@ -71,7 +74,6 @@ require('lazy').setup {
         'getscriptPlugin',
         'gzip',
         'logipat',
-        'man',
         'matchit',
         'matchparen',
         'netrw',
