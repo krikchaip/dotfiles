@@ -171,7 +171,8 @@ require('nvim-tree').setup {
       window_picker = {
         -- If the feature is not enabled, files will open in
         -- window from which you last opened the tree
-        enable = true,
+        -- WARN: turning this option on may affect nvim's performance
+        enable = false,
 
         -- string 'default' or a function returning
         -- the window id that will open the node, or 'nil'
