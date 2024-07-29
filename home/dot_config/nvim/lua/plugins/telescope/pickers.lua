@@ -4,7 +4,7 @@ local M = {}
 function M.find_files(opts)
   opts = opts or {}
 
-  opts.cwd = vim.loop.cwd()
+  opts.cwd = opts.cwd or vim.loop.cwd()
 
   require('telescope.builtin').find_files(opts)
 end
@@ -44,12 +44,14 @@ end
 -- Search text within workspace using grep_string instead of live_grep
 -- since it doesn't support fuzzy finding
 -- ref: https://www.reddit.com/r/neovim/comments/s696vk/telescope_fzf_ag_for_live_grep/
-function M.workspace_fuzzy_find()
-  require('telescope.builtin').grep_string {
-    prompt_title = 'Search current workspace',
-    search = '',
-    only_sort_text = true,
-  }
+function M.workspace_fuzzy_find(opts)
+  opts = opts or {}
+
+  opts.prompt_title = opts.prompt_title or 'Search current workspace'
+  opts.search = opts.search or ''
+  opts.only_sort_text = opts.only_sort_text or true
+
+  require('telescope.builtin').grep_string(opts)
 end
 
 return M
