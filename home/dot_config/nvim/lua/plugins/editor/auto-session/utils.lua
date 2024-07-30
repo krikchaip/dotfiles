@@ -35,20 +35,18 @@ M.session_lens_config = {
     },
 
     attach_mappings = function(_, map)
-      local auto_session = require 'auto-session'
       local auto_session_actions = require 'auto-session.session-lens.actions'
       local telescope_actions = require 'telescope.actions'
       local telescope_actions_state = require 'telescope.actions.state'
 
-      -- ref: https://github.com/rmagatti/auto-session/blob/main/lua/auto-session/session-lens/actions.lua#L35
+      -- ref: https://github.com/rmagatti/auto-session/blob/main/lua/auto-session/session-lens/actions.lua#L45
       telescope_actions.select_default:replace(function(prompt_bufnr)
+        local selection = telescope_actions_state.get_selected_entry()
+
+        if not selection then return end
         if prompt_bufnr then telescope_actions.close(prompt_bufnr) end
 
-        local selection = telescope_actions_state.get_selected_entry()
-        selection = type(selection) == 'table' and selection.filename or selection
-
-        local dirname = auto_session.format_file_name(selection)
-        vim.fn.chdir(dirname)
+        vim.fn.chdir(selection.value)
       end)
 
       map('i', '<C-c>', auto_session_actions.delete_session)
@@ -107,7 +105,6 @@ function M.setup_dirchanged_session()
         if bypass_save_by_filetype() then return end
 
         local session_dir = vim.loop.cwd()
-        vim.notify('Previous Session: ' .. tostring(session_dir))
 
         auto_session.SaveSession(session_dir, true)
 
@@ -129,7 +126,6 @@ function M.setup_dirchanged_session()
         if vim.v.event.changed_window then return end
 
         local session_dir = vim.loop.cwd()
-        vim.notify('Current Session: ' .. tostring(session_dir))
 
         auto_session.RestoreSession(session_dir)
 

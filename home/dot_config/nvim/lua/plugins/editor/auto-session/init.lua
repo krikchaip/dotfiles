@@ -18,4 +18,7 @@ return {
     'SessionRestore',
     'SessionSave',
   },
+
+  -- Spec Versioning
+  tag = 'v2.5.0',
 }
