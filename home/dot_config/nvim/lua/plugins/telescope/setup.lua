@@ -90,7 +90,12 @@ telescope.setup {
     lsp_document_symbols = { mappings = { i = keymaps.lsp_document_symbols() } },
     lsp_dynamic_workspace_symbols = { mappings = { i = keymaps.lsp_dynamic_workspace_symbols() } },
   },
+
+  extensions = {
+    live_grep_args = { mappings = { i = keymaps.live_grep_args() } },
+  },
 }
 
 -- Enable Telescope extensions if they are installed
 telescope.load_extension 'fzf'
+telescope.load_extension 'live_grep_args'
