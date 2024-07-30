@@ -93,12 +93,7 @@ telescope.setup {
   },
 
   extensions = {
-    helpgrep = {
-      disable_coordinates = false,
-      default_grep = pickers.workspace_fuzzy_find,
-      mappings = { i = keymaps.helpgrep() },
-    },
-
+    helpgrep = { default_grep = pickers.helpgrep, mappings = { i = keymaps.helpgrep() } },
     live_grep_args = { mappings = { i = keymaps.live_grep_args() } },
   },
 }

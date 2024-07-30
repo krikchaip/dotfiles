@@ -54,4 +54,15 @@ function M.workspace_fuzzy_find(opts)
   require('telescope.builtin').grep_string(opts)
 end
 
+-- Fuzzy search help pages
+function M.helpgrep(opts)
+  opts = opts or {}
+
+  opts.disable_coordinates = false
+  opts.path_display = { 'tail' }
+  opts.additional_args = { '--iglob', '!**/tags', '--iglob', '**/*.{txt,md}' }
+
+  M.workspace_fuzzy_find(opts)
+end
+
 return M
