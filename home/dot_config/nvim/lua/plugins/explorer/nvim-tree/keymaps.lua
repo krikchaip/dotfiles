@@ -102,6 +102,7 @@ function M.on_attach(bufnr)
 
     ['Search'] = {
       ['f'] = { utils.search_node, 'Reveal Node' },
+      ['F'] = { utils.fuzzy_under_node, 'Fuzzy Under Node' },
       ['\\f'] = { api.live_filter.start, 'Start Filter' },
       ['\\F'] = { api.live_filter.clear, 'Clear Filter' },
     },

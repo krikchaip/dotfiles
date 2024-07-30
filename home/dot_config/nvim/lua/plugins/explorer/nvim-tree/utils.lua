@@ -23,6 +23,21 @@ function M.search_node()
   }
 end
 
+function M.fuzzy_under_node()
+  local api = require 'nvim-tree.api'
+
+  local node = api.tree.get_node_under_cursor()
+  if not node then return end
+
+  local is_folder = node.fs_stat and node.fs_stat.type == 'directory' or false
+  local basedir = is_folder and node.absolute_path or vim.fn.fnamemodify(node.absolute_path, ':h')
+
+  require('plugins.telescope.pickers').workspace_fuzzy_find {
+    prompt_title = string.format('Fuzzy Under Node (%s)', vim.fs.basename(basedir)),
+    search_dirs = { basedir },
+  }
+end
+
 function M.preview_current_node()
   local api = require 'nvim-tree.api'
   local preview = require 'nvim-tree-preview'
