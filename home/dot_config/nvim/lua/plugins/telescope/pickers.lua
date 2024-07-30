@@ -48,9 +48,14 @@ end
 function M.workspace_fuzzy_find(opts)
   opts = opts or {}
 
-  opts.prompt_title = opts.prompt_title or 'Search current workspace'
+  opts.prompt_title = opts.prompt_title or 'Search Current Workspace'
   opts.search = opts.search or ''
   opts.only_sort_text = opts.only_sort_text or true
+  opts.attach_mappings = opts.attach_mappings
+    or function(_, map)
+      map('i', '<M-f>', require('plugins.telescope.actions').scope_search_dirs)
+      return true
+    end
 
   require('telescope.builtin').grep_string(opts)
 end
