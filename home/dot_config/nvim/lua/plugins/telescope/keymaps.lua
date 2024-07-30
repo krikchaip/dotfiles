@@ -105,16 +105,23 @@ return {
 
   help_tags = function()
     local actions = require 'plugins.telescope.actions'
-    return { ['<CR>'] = actions.select_vertical_or_multi }
+    return {
+      ['<CR>'] = actions.select_vertical_or_multi,
+    }
   end,
 
   man_pages = function()
     local actions = require 'plugins.telescope.actions'
-    return { ['<CR>'] = actions.select_vertical_or_multi }
+    return {
+      ['<CR>'] = actions.select_vertical_or_multi,
+    }
   end,
 
   grep_string = function()
-    return { ['<CR>'] = 'select_tab_drop', ['<S-CR>'] = 'select_default' }
+    return {
+      ['<CR>'] = 'select_tab_drop',
+      ['<S-CR>'] = 'select_default',
+    }
   end,
 
   find_files = function()
@@ -127,7 +134,10 @@ return {
   end,
 
   oldfiles = function()
-    return { ['<CR>'] = 'select_tab_drop', ['<S-CR>'] = 'select_default' }
+    return {
+      ['<CR>'] = 'select_tab_drop',
+      ['<S-CR>'] = 'select_default',
+    }
   end,
 
   buffers = function()
@@ -140,7 +150,9 @@ return {
   end,
 
   lsp_document_symbols = function()
-    return { ['<C-Space>'] = 'complete_tag' }
+    return {
+      ['<C-Space>'] = 'complete_tag',
+    }
   end,
 
   lsp_dynamic_workspace_symbols = function()
