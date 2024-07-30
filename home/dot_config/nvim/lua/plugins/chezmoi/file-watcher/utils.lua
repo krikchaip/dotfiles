@@ -6,15 +6,18 @@ local status = require 'chezmoi.commands.__status'
 
 local M = {}
 
+M.IGNORED_FTS = { 'DiffviewFiles', 'DiffviewFileHistory' }
+
+-- Use autocmd to make it work as if 'watch' option is given
 function M.edit_and_apply()
-  -- Use autocmd to make it work as if 'watch' option is given
   local bufnr = vim.api.nvim_get_current_buf()
-  local force = config.edit.force
+
+  local buf_ft = vim.api.nvim_get_option_value('filetype', { buf = bufnr })
+  if vim.tbl_contains(M.IGNORED_FTS, buf_ft) then return end
 
   local source_path = vim.api.nvim_buf_get_name(bufnr)
-  local event = { 'BufWritePost' }
-
   local status_err = nil
+
   status.execute {
     args = {
       '--source-path',
@@ -29,6 +32,9 @@ function M.edit_and_apply()
     log.warn(status_err)
     return
   end
+
+  local event = { 'BufWritePost' }
+  local force = config.edit.force
 
   local augroup = vim.api.nvim_create_augroup('chezmoi', { clear = false })
   local autocmds = vim.api.nvim_get_autocmds {
