@@ -104,6 +104,13 @@ function smart_close_tabpage()
   end
 end
 
+-- Smart window/tabpage switcher.
+-- TODO: utilize histories stack and 2 pointers (curr / prev). pops the stack
+--       when either pointer becomes unreachable.
+function smart_switch_window()
+  vim.cmd [[wincmd p]]
+end
+
 function macro_start_stop()
   if vim.fn.reg_recording() ~= '' then
     -- if still recording, then stop
