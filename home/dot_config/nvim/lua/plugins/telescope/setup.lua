@@ -1,4 +1,5 @@
 local keymaps = require 'plugins.telescope.keymaps'
+local pickers = require 'plugins.telescope.pickers'
 local telescope = require 'telescope'
 
 telescope.setup {
@@ -92,10 +93,17 @@ telescope.setup {
   },
 
   extensions = {
+    helpgrep = {
+      disable_coordinates = false,
+      default_grep = pickers.workspace_fuzzy_find,
+      mappings = { i = keymaps.live_grep_args() },
+    },
+
     live_grep_args = { mappings = { i = keymaps.live_grep_args() } },
   },
 }
 
 -- Enable Telescope extensions if they are installed
 telescope.load_extension 'fzf'
+telescope.load_extension 'helpgrep'
 telescope.load_extension 'live_grep_args'

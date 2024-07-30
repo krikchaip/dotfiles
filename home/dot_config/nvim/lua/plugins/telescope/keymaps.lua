@@ -5,7 +5,7 @@ return {
     local MENU = {
       { '<leader>b', '<cmd>Telescope builtin<CR>', desc = 'Search: Builtin Pickers' },
       { '<leader>h', '<cmd>Telescope help_tags<CR>', desc = 'Search: Help Pages' },
-      { '<leader>H', '<cmd>Telescope man_pages<CR>', desc = 'Search: Man Pages' },
+      { '<leader>H', '<cmd>Telescope helpgrep<CR>', desc = 'Search: Help Grep' },
       { '<leader>:', '<cmd>Telescope commands<CR>', desc = 'Search: Plugin Commands' },
     }
 
@@ -160,6 +160,13 @@ return {
       ['<CR>'] = 'select_tab_drop',
       ['<S-CR>'] = 'select_default',
       ['<C-Space>'] = 'complete_tag',
+    }
+  end,
+
+  helpgrep = function()
+    return {
+      ['<CR>'] = 'select_tab_drop',
+      ['<S-CR>'] = 'select_default',
     }
   end,
 
