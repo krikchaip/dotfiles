@@ -54,6 +54,7 @@ function M.workspace_fuzzy_find(opts)
   opts.attach_mappings = opts.attach_mappings
     or function(_, map)
       map('i', '<M-f>', require('plugins.telescope.actions').scope_search_dirs)
+      map('i', '<M-e>', require('plugins.telescope.actions').scope_search_ext)
       return true
     end
 

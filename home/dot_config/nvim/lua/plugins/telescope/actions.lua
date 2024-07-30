@@ -87,4 +87,24 @@ function M.scope_search_dirs(prompt_bufnr)
   }
 end
 
+function M.scope_search_ext(prompt_bufnr)
+  local actions = require 'telescope.actions'
+  local action_state = require 'telescope.actions.state'
+  local pickers = require 'plugins.telescope.pickers'
+
+  local current_input = action_state.get_current_line()
+
+  vim.ui.input({ prompt = 'Extension' }, function(ext)
+    if ext == nil then return end
+
+    actions.close(prompt_bufnr)
+
+    pickers.workspace_fuzzy_find {
+      prompt_title = string.format('Search ".%s" Files', ext),
+      default_text = current_input,
+      additional_args = { '--iglob', '*.' .. ext },
+    }
+  end)
+end
+
 return M
