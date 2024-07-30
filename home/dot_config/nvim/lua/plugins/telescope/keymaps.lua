@@ -42,6 +42,7 @@ return {
       { '<leader>*', '<cmd>Telescope grep_string<CR>', desc = 'Search: Workspace Current Highlighted', mode = 'x' },
       { '<leader>/', pickers.local_fuzzy_find, desc = 'Search: Current Buffer' },
       { '<leader>f', pickers.workspace_fuzzy_find, desc = 'Search: Current Workspace' },
+      { '<leader>F', '<cmd>Telescope live_grep_args<CR>', desc = 'Search: Embeded Ripgrep' },
     }
 
     local GIT = {
@@ -147,6 +148,35 @@ return {
       ['<CR>'] = 'select_tab_drop',
       ['<S-CR>'] = 'select_default',
       ['<C-Space>'] = 'complete_tag',
+    }
+  end,
+
+  live_grep_args = function()
+    local actions = require 'telescope-live-grep-args.actions'
+
+    local quote_prompt = actions.quote_prompt()
+    local quote_glob = actions.quote_prompt { postfix = ' --iglob=' }
+    local quote_type = actions.quote_prompt { postfix = ' --type=' }
+
+    local function ripgrep_quote_query(prompt_bufnr)
+      quote_prompt(prompt_bufnr)
+    end
+
+    local function ripgrep_quote_glob(prompt_bufnr)
+      quote_glob(prompt_bufnr)
+    end
+
+    local function ripgrep_quote_type(prompt_bufnr)
+      quote_type(prompt_bufnr)
+    end
+
+    return {
+      ['<CR>'] = 'select_tab_drop',
+      ['<S-CR>'] = 'select_default',
+      ['<C-Space>'] = 'to_fuzzy_refine',
+      ["<M-'>"] = ripgrep_quote_query,
+      ['<M-g>'] = ripgrep_quote_glob,
+      ['<M-t>'] = ripgrep_quote_type,
     }
   end,
 }
