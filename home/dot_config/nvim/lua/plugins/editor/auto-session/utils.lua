@@ -134,7 +134,7 @@ function M.setup_dirchanged_session()
 
         vim.defer_fn(function()
           -- reload buffers to refresh LSP and other stuff
-          vim.cmd 'let curbuf = bufnr() | bufdo e | execute "buffer" curbuf'
+          vim.cmd 'let curbuf = bufnr() | bufdo silent! e | execute "buffer" curbuf'
         end, 20)
       end,
     })
