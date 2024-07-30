@@ -106,14 +106,16 @@ return {
   help_tags = function()
     local actions = require 'plugins.telescope.actions'
     return {
-      ['<CR>'] = actions.select_vertical_or_multi,
+      ['<CR>'] = actions.select_tab_or_multi,
+      ['<S-CR>'] = 'select_default',
     }
   end,
 
   man_pages = function()
     local actions = require 'plugins.telescope.actions'
     return {
-      ['<CR>'] = actions.select_vertical_or_multi,
+      ['<CR>'] = actions.select_tab_or_multi,
+      ['<S-CR>'] = 'select_default',
     }
   end,
 

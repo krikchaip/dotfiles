@@ -96,7 +96,7 @@ telescope.setup {
     helpgrep = {
       disable_coordinates = false,
       default_grep = pickers.workspace_fuzzy_find,
-      mappings = { i = keymaps.live_grep_args() },
+      mappings = { i = keymaps.helpgrep() },
     },
 
     live_grep_args = { mappings = { i = keymaps.live_grep_args() } },
