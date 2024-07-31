@@ -24,7 +24,7 @@ function setup_lsp_keymaps(opts)
   vim.keymap.set('n', '<C-.>', vim.lsp.buf.code_action, opts)
 
   opts.desc = 'LSP: Search Document Symbols'
-  vim.keymap.set('n', '<leader>o', '<cmd>Telescope lsp_document_symbols<CR>', opts)
+  vim.keymap.set('n', '<leader>o', '<cmd>lua require("nvim-navbuddy").open()<CR>', opts)
 
   opts.desc = 'LSP: Search Workspace Symbols'
   vim.keymap.set('n', '<leader>O', '<cmd>Telescope lsp_dynamic_workspace_symbols<CR>', opts)

@@ -1,4 +1,4 @@
-local actions = require 'nvim-navbuddy.actions'
+local actions = require 'plugins.ui.navbuddy.actions'
 
 return {
   ['?'] = actions.help(),
@@ -44,5 +44,7 @@ return {
   ['K'] = actions.move_up(),
 
   ['p'] = actions.toggle_preview(),
-  ['f'] = actions.telescope {},
+
+  ['f'] = actions.fuzzy_current {},
+  ['F'] = actions.fuzzy_document {},
 }
