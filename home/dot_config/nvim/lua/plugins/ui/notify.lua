@@ -27,4 +27,7 @@ return {
 
   -- Spec Lazy Loading
   event = 'VeryLazy',
+  keys = {
+    { '<leader>nn', '<cmd>Telescope notify<CR>', desc = 'Notifications: Notify History' },
+  },
 }

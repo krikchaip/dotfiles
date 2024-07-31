@@ -12,8 +12,11 @@ return {
   -- Spec Lazy Loading
   event = 'VeryLazy',
   keys = {
-    { '<leader>m', '<cmd>Noice telescope<CR>', desc = 'Notifications: Show History' },
-    { '<leader>M', '<cmd>Noice dismiss<CR>', desc = 'Notifications: Dismiss All' },
+    { '<leader>nh', '<cmd>Noice history<CR>', desc = 'Notifications: Noice History' },
+    { '<leader>nl', '<cmd>Noice last<CR>', desc = 'Notifications: Show Last Message' },
+    { '<leader>ne', '<cmd>Noice errors<CR>', desc = 'Notifications: Show Errors' },
+
+    { '<leader>N', '<cmd>Noice dismiss<CR>', desc = 'Notifications: Dismiss All' },
   },
 
   -- Spec Versioning

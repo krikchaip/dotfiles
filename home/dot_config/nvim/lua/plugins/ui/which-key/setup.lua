@@ -38,6 +38,7 @@ which_key.add {
   { '<leader>g', group = 'Git' },
   { '<leader>gh', group = 'Git Hunk' },
   { '<leader>l', group = 'LSP' },
+  { '<leader>n', group = 'Notifications' },
 
   { '[', group = 'Previous' },
   { ']', group = 'Next' },
