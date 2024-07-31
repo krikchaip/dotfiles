@@ -11,6 +11,7 @@ require('nvim-treesitter.configs').setup {
 
     'bash',
     'nu',
+    'tmux',
 
     'lua',
     'luadoc',
