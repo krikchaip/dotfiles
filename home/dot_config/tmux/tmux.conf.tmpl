@@ -1,2 +1,6 @@
 # change default tmux shell to nushell
 set -g default-shell {{ output "brew" "--prefix" | trim }}/bin/nu
+
+# fix delay on pressing <esc> key
+# ref: https://www.reddit.com/r/vim/comments/40257u/delay_on_esc_with_tmux_and_vim
+set -s escape-time 0
