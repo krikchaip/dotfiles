@@ -4,3 +4,6 @@ set -g default-shell {{ output "brew" "--prefix" | trim }}/bin/nu
 # fix delay on pressing <esc> key
 # ref: https://www.reddit.com/r/vim/comments/40257u/delay_on_esc_with_tmux_and_vim
 set -s escape-time 0
+
+# enable image rendering inside tmux
+set -g allow-passthrough on
