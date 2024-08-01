@@ -1,3 +1,7 @@
+# fix input modifiers problem in tmux by mapping keys to CSI escape sequences
+# ref: https://its.mw/posts/updating-my-keymaps-in-kitty-and-neovim
+source ~/.config/tmux/csi.conf
+
 # change default tmux shell to nushell
 set -g default-shell {{ output "brew" "--prefix" | trim }}/bin/nu
 
