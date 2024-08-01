@@ -1,5 +1,0 @@
-{{ if eq .chezmoi.arch "arm" -}}
-  env HOMEBREW_BIN_PREFIX=/opt/homebrew/bin
-{{- else if eq .chezmoi.arch "amd64" -}}
-  env HOMEBREW_BIN_PREFIX=/usr/local/bin
-{{- end }}
