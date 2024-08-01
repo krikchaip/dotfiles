@@ -9,18 +9,18 @@ vim.keymap.set({ 'i', 'c', 'n' }, '<M-Left>', '<S-Left>')
 vim.keymap.set({ 'i', 'c', 'n' }, '<M-Right>', '<S-Right>')
 
 -- Horizontal Scrolling
-vim.keymap.set('n', 'H', 'zH', { desc = 'Scroll: Half Page Left' })
-vim.keymap.set('n', 'L', 'zL', { desc = 'Scroll: Half Page Right' })
-vim.keymap.set('n', '<M-h>', 'zh', { desc = 'Scroll: Left' })
-vim.keymap.set('n', '<M-l>', 'zl', { desc = 'Scroll: Right' })
+vim.keymap.set({ 'n', 'x' }, 'H', 'zH', { desc = 'Scroll: Half Page Left' })
+vim.keymap.set({ 'n', 'x' }, 'L', 'zL', { desc = 'Scroll: Half Page Right' })
+vim.keymap.set({ 'n', 'x' }, '<M-h>', 'zh', { desc = 'Scroll: Left' })
+vim.keymap.set({ 'n', 'x' }, '<M-l>', 'zl', { desc = 'Scroll: Right' })
 
 -- Vertical Scrolling
-vim.keymap.set('n', '<C-Down>', '<PageDown>M', { desc = 'Scroll: Full Page Down' })
-vim.keymap.set('n', '<C-Up>', '<PageUp>M', { desc = 'Scroll: Full Page Up' })
-vim.keymap.set('n', '<S-Down>', '<C-d>zz', { desc = 'Scroll: Half Page Down' })
-vim.keymap.set('n', '<S-Up>', '<C-u>zz', { desc = 'Scroll: Half Page Up' })
-vim.keymap.set('n', '<Down>', 'jzz', { desc = 'Scroll: Down' })
-vim.keymap.set('n', '<Up>', 'kzz', { desc = 'Scroll: Up' })
+vim.keymap.set({ 'n', 'x' }, '<C-Down>', '<PageDown>M', { desc = 'Scroll: Full Page Down' })
+vim.keymap.set({ 'n', 'x' }, '<C-Up>', '<PageUp>M', { desc = 'Scroll: Full Page Up' })
+vim.keymap.set({ 'n', 'x' }, '<S-Down>', '<C-d>zz', { desc = 'Scroll: Half Page Down' })
+vim.keymap.set({ 'n', 'x' }, '<S-Up>', '<C-u>zz', { desc = 'Scroll: Half Page Up' })
+vim.keymap.set({ 'n', 'x' }, '<Down>', 'jzz', { desc = 'Scroll: Down' })
+vim.keymap.set({ 'n', 'x' }, '<Up>', 'kzz', { desc = 'Scroll: Up' })
 
 -- Exit terminal mode in the builtin terminal (default: <C-\><C-n>)
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
@@ -48,8 +48,6 @@ vim.keymap.set('i', '<S-Left>', '<Esc>v')
 vim.keymap.set('i', '<S-Right>', '<Esc><Right>v')
 vim.keymap.set('i', '<S-Up>', '<Esc>v<Up>')
 vim.keymap.set('i', '<S-Down>', '<Esc><Right>v<Down>')
-vim.keymap.set('x', '<S-Up>', '<Up>')
-vim.keymap.set('x', '<S-Down>', '<Down>')
 
 -- Quick access to lua commands for debugging purpose
 vim.keymap.set('n', '=', ':=', { desc = 'Print Lua Expression' })
