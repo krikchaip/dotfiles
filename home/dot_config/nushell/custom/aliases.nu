@@ -59,3 +59,8 @@ alias sks = skhd --start-service
 
 # neovim
 alias nv = nvim
+
+# tmux
+alias t = tmux
+alias ta = tmux attach
+alias tl = tmux ls
