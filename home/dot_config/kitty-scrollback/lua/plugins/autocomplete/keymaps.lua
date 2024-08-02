@@ -28,7 +28,8 @@ return {
       end),
 
       -- Toggle documentation menu
-      ['<C-i>'] = utils.ics(function()
+      ['<M-i>'] = utils.ics(function()
+        if not cmp.visible() then return end
         if not cmp.visible_docs() then
           cmp.open_docs()
         else
