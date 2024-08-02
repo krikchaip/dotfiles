@@ -74,8 +74,10 @@ vim.keymap.set('n', '<M-S-,>', '<<', { desc = 'Indent: Current Line Remove One' 
 vim.keymap.set('n', '<M-S-.>', '>>', { desc = 'Indent: Current Line Insert One' })
 
 -- Make Increment/Decrement key more intuitive
-vim.keymap.set('n', '-', '<C-x>', { desc = 'Number: Decrement' })
-vim.keymap.set('n', '+', '<C-a>', { desc = 'Number: Increment' })
+vim.keymap.set({ 'n', 'x' }, '-', '<C-x>', { desc = 'Number: Decrement 1' })
+vim.keymap.set({ 'n', 'x' }, '+', '<C-a>', { desc = 'Number: Increment 1' })
+vim.keymap.set('x', 'g-', 'g<C-x>', { desc = 'Number: Decrement Sequence' })
+vim.keymap.set('x', 'g+', 'g<C-a>', { desc = 'Number: Increment Sequence' })
 
 -- Remap macro keys to prevent accidentally pressing of q's
 vim.keymap.set('n', '<leader>q', macro_start_stop, { desc = 'Macro: Start/Stop Recording', expr = true })
