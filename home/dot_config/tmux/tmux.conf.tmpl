@@ -1,13 +1,12 @@
-# change default tmux shell to nushell
-set -g default-shell {{ output "brew" "--prefix" | trim }}/bin/nu
+# custom keybindings
+source ~/.config/tmux/keybindings.conf
 
 # fix delay on pressing <esc> key
 # ref: https://www.reddit.com/r/vim/comments/40257u/delay_on_esc_with_tmux_and_vim
 set -s escape-time 0
 
+# change default tmux shell to nushell
+set -g default-shell {{ output "brew" "--prefix" | trim }}/bin/nu
+
 # enable image rendering inside tmux
 set -g allow-passthrough on
-
-# fix input modifiers problem in tmux by mapping keys to CSI escape sequences
-# ref: https://its.mw/posts/updating-my-keymaps-in-kitty-and-neovim
-source ~/.config/tmux/csi.conf
