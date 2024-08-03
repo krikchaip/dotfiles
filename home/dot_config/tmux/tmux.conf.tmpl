@@ -3,10 +3,13 @@ source ~/.config/tmux/keybindings.conf
 
 # fix delay on pressing <esc> key
 # ref: https://www.reddit.com/r/vim/comments/40257u/delay_on_esc_with_tmux_and_vim
-set -s escape-time 10
+set -s escape-time 0
 
 # change default tmux shell to nushell
 set -g default-shell {{ output "brew" "--prefix" | trim }}/bin/nu
+
+# the position of the status line, top or bottom
+set -g status-position bottom
 
 # allow image rendering in tmux
 set -g allow-passthrough on
@@ -14,12 +17,21 @@ set -g allow-passthrough on
 # enable mose mode
 set -g mouse on
 
-# start windows and panes index at 1, not 0 😠
-set -g base-index 1
-set -g pane-base-index 1
+# focus events enabled for terminals that support them
+set -g focus-events on
+
+# super useful when using full-screen programs and multi-monitor setup
+set -g aggressive-resize on
 
 # ensure window index numbers get reordered on delete
 set -g renumber-windows on
 
+# start windows and panes index at 1, not 0 😠
+set -g base-index 1
+set -g pane-base-index 1
+
+# refresh 'status-left' and 'status-right' more often
+set -g status-interval 5
+
 # show messages and indicators until a key is pressed
-set -g display-time 0
+set -g display-time 2000
