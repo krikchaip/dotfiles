@@ -13,7 +13,7 @@ source custom/keybindings.nu
 
 $env.config = ($env.config? | default {} | merge {
   show_banner: false
-  edit_mode: vi
+  edit_mode: emacs
   buffer_editor: nvim
   color_config: (tokyo-storm)
   keybindings: (custom-keybindings)
