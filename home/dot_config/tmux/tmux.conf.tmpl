@@ -13,3 +13,13 @@ set -g allow-passthrough on
 
 # enable mose mode
 set -g mouse on
+
+# start windows and panes index at 1, not 0 😠
+set -g base-index 1
+set -g pane-base-index 1
+
+# ensure window index numbers get reordered on delete
+set -g renumber-windows on
+
+# show messages and indicators until a key is pressed
+set -g display-time 0
