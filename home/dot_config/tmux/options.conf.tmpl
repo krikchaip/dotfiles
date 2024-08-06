@@ -6,7 +6,7 @@ set -s escape-time 0
 set -g default-shell {{ output "brew" "--prefix" | trim }}/bin/nu
 
 # the position of the status line, top or bottom
-set -g status-position bottom
+set -g status-position top
 
 # allow image rendering in tmux
 set -g allow-passthrough on
