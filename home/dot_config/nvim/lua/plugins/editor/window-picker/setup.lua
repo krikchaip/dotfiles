@@ -12,7 +12,7 @@ require('window-picker').setup {
   -- exclude buffers/windows with the following options
   filter_rules = {
     bo = {
-      filetype = { 'fidget', 'NvimTree' },
+      filetype = { 'fidget', 'NvimTree', 'incline' },
     },
 
     wo = {

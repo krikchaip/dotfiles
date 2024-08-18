@@ -26,6 +26,7 @@
   "homebrew-syntax-highlighter": { "branch": "master", "commit": "f13b98b92f2e9b9e38f3b1d45d41e19049d671df" },
   "illuminate": { "branch": "master", "commit": "5eeb7951fc630682c322e88a9bbdae5c224ff0aa" },
   "image": { "branch": "master", "commit": "94319cdafec62cd5b3ac1448ed1aae1bbe731f45" },
+  "incline": { "branch": "main", "commit": "16fc9c073e3ea4175b66ad94375df6d73fc114c0" },
   "indent-blankline": { "branch": "master", "commit": "dddb5d21811c319eb6e51a993d8fb44b193aae3f" },
   "keymap-amend.nvim": { "branch": "master", "commit": "b8bf9d820878d5497fdd11d6de55dea82872d98e" },
   "kitty-syntax-highlighter": { "branch": "main", "commit": "9cc594a634308aa3bfaf3da5b5e741da1c0144c1" },

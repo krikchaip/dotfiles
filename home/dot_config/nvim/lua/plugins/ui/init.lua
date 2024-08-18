@@ -5,6 +5,7 @@ return {
   require 'plugins.ui.dressing',
   require 'plugins.ui.hlslens',
   require 'plugins.ui.illuminate',
+  require 'plugins.ui.incline',
   require 'plugins.ui.indent-blankline',
   require 'plugins.ui.lualine',
   require 'plugins.ui.navbuddy',
