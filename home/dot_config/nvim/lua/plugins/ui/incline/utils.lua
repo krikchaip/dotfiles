@@ -20,15 +20,28 @@ local function filename_with_icons(props)
     file_icon,
     file_label,
     modified_icon,
-
-    group = props.focused and 'lualine_a_normal' or 'lualine_b_normal',
   }
 end
 
--- TODO: filetype + filename + modified icon, file diagnostics
+local function file_diagnostics(props)
+  local render = {}
+
+  for severity, icon in pairs(vim.g.diagnostic_signs) do
+    local n = #vim.diagnostic.get(props.buf, { severity = vim.diagnostic.severity[string.upper(severity)] })
+    if n > 0 then table.insert(render, { ' ', icon, ' ', n, group = 'DiagnosticSign' .. severity }) end
+  end
+
+  if #render > 0 then table.insert(render, { ' ', '|' }) end
+
+  return render
+end
+
 M.render = function(props)
   return {
+    file_diagnostics(props),
     filename_with_icons(props),
+
+    group = props.focused and 'lualine_a_normal' or 'lualine_b_normal',
   }
 end
 
