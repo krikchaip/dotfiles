@@ -1,12 +1,5 @@
--- Change the Diagnostic symbols in the sign column (gutter)
-local signs = {
-  DiagnosticSignError = '',
-  DiagnosticSignWarn = '',
-  DiagnosticSignHint = '',
-  DiagnosticSignInfo = '',
-}
-
-for hl, icon in pairs(signs) do
+for type, icon in pairs(vim.g.diagnostic_signs) do
+  local hl = 'DiagnosticSign' .. type
   vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = '' })
 end
 

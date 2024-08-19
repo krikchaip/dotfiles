@@ -11,3 +11,11 @@ vim.g.loaded_ruby_provider = 0
 -- Disable netrw at the very start
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
+
+-- Diagnostic symbols in the sign column (gutter)
+vim.g.diagnostic_signs = {
+  Error = '',
+  Warn = '',
+  Hint = '',
+  Info = '',
+}

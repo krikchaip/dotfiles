@@ -130,10 +130,10 @@ require('nvim-tree').setup {
 
     -- Icons for diagnostic severity
     icons = {
-      error = '',
-      warning = '',
-      hint = '',
-      info = '',
+      error = vim.g.diagnostic_signs.Error,
+      warning = vim.g.diagnostic_signs.Warn,
+      hint = vim.g.diagnostic_signs.Hint,
+      info = vim.g.diagnostic_signs.Info,
     },
   },
 
