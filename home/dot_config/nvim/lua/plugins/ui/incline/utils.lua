@@ -13,7 +13,7 @@ local function filename_with_icons(props)
 
   local file_label = { filename }
 
-  local modifed_hl = props.focused and {} or { group = 'lualine_b_visual' }
+  local modifed_hl = props.focused and {} or { guifg = vim.fn.printf('#%x', vim.api.nvim_get_hl(0, { name = 'lualine_b_visual' }).fg) }
   local modified_icon = modified and vim.tbl_extend('force', { ' ', '●', ' ' }, modifed_hl) or ' '
 
   return {
@@ -41,7 +41,7 @@ M.render = function(props)
     file_diagnostics(props),
     filename_with_icons(props),
 
-    group = props.focused and 'lualine_a_normal' or 'lualine_b_normal',
+    group = props.focused and 'lualine_b_normal' or 'lualine_b_inactive',
   }
 end
 
