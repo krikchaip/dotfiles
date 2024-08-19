@@ -32,7 +32,7 @@ require('incline').setup {
 
     width = 'fit',
 
-    padding = 1,
+    padding = 0,
     padding_char = ' ',
 
     options = {
@@ -52,7 +52,7 @@ require('incline').setup {
   },
 
   hide = {
-    cursorline = false,
+    cursorline = true,
     focused_win = false,
     only_win = false,
   },
