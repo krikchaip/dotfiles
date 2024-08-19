@@ -14,12 +14,5 @@ return {
     lualine_y = { components.filetype },
     lualine_z = { 'searchcount', 'selectioncount', 'location' },
   },
-  inactive_sections = {
-    lualine_a = {},
-    lualine_b = { components.branch },
-    lualine_c = { components.blame_line },
-    lualine_x = {},
-    lualine_y = { components.filetype },
-    lualine_z = { 'location' },
-  },
+  inactive_sections = {},
 }
