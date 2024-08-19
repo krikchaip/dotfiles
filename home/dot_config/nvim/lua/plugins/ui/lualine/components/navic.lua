@@ -1,5 +1,3 @@
-local utils = require 'plugins.ui.navic.utils'
-
 return {
   -- 'navic',
 
@@ -21,5 +19,5 @@ return {
   -- ref: https://github.com/SmiteshP/nvim-navic/issues/115
   -- padding = { left = 1, right = 0 },
 
-  fmt = utils.adjust_dynamic_highlights(),
+  fmt = require('plugins.ui.navic.utils').adjust_dynamic_highlights(),
 }

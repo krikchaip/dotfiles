@@ -1,5 +1,3 @@
-local utils = require 'plugins.ui.navic.utils'
-
 require('nvim-navic').setup {
   highlight = true,
   depth_limit = 3,
@@ -7,4 +5,4 @@ require('nvim-navic').setup {
   lsp = { auto_attach = true },
 }
 
-utils.setup_highlights()
+require('plugins.ui.navic.utils').setup_highlights()
