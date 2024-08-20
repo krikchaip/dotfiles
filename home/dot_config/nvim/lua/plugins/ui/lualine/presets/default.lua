@@ -24,7 +24,7 @@ return {
     lualine_a = { 'mode' },
     lualine_b = { components.branch },
     lualine_c = { components.blame_line },
-    lualine_x = { 'encoding', 'fileformat' },
+    lualine_x = { components.encoding, components.fileformat },
     lualine_y = { components.filetype },
     lualine_z = { 'searchcount', 'selectioncount', 'location' },
   },

@@ -3,6 +3,8 @@ return {
   branch = require 'plugins.ui.lualine.components.branch',
   diagnostics = require 'plugins.ui.lualine.components.diagnostics',
   diff = require 'plugins.ui.lualine.components.diff',
+  encoding = require 'plugins.ui.lualine.components.encoding',
+  fileformat = require 'plugins.ui.lualine.components.fileformat',
   filename = require 'plugins.ui.lualine.components.filename',
   filetype = require 'plugins.ui.lualine.components.filetype',
   filetype_with_icon = require 'plugins.ui.lualine.components.filetype-with-icon',
