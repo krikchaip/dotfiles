@@ -40,5 +40,5 @@ return {
     blame_line { full = true }
   end,
 
-  fmt = utils.trunc(nil, nil, 60),
+  fmt = utils.trunc { hide_width = 100, screen = true },
 }

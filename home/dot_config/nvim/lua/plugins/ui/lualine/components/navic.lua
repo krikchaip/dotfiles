@@ -1,3 +1,6 @@
+local adjust_navic_highlights = require('plugins.ui.navic.utils').adjust_dynamic_highlights()
+local truncate = require('plugins.ui.lualine.utils').trunc { hide_width = 100, screen = true }
+
 return {
   -- 'navic',
 
@@ -19,5 +22,7 @@ return {
   -- ref: https://github.com/SmiteshP/nvim-navic/issues/115
   -- padding = { left = 1, right = 0 },
 
-  fmt = require('plugins.ui.navic.utils').adjust_dynamic_highlights(),
+  fmt = function(text)
+    return truncate(adjust_navic_highlights(text))
+  end,
 }
