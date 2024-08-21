@@ -7,56 +7,64 @@ function M.setup_theme(lualine_theme)
   local lualine = string.format('lualine.themes.%s', lualine_theme)
   local ok, theme = pcall(require, lualine)
 
-  if ok then
+  if not ok then
     return {
-      fill = theme.normal.c,
-      head = theme.visual.a,
-      current_tab = theme.normal.a,
-      tab = theme.normal.b,
-      win = theme.normal.b,
-      tail = theme.normal.b,
-    }
-  else
-    return {
-      fill = 'TabLineFill',
-      head = 'TabLine',
-      current_tab = 'TabLineSel',
-      tab = 'TabLine',
-      win = 'TabLine',
-      tail = 'TabLine',
+      current = function()
+        return {
+          head = 'TabLine',
+          fill = 'TabLineFill',
+          current_tab = 'TabLineSel',
+          tab = 'TabLine',
+        }
+      end,
     }
   end
+
+  return {
+    current = function()
+      return {
+        head = 'TabLine',
+        fill = 'TabLineFill',
+        current_tab = 'TabLineSel',
+        tab = 'TabLine',
+      }
+    end,
+  }
+
+  -- local mode_utils = require 'lualine.utils.mode'
 end
 
 function M.custom_tabline(theme)
   return function(line)
+    local color = theme.current()
+
     return {
       {
-        { '  ', hl = theme.head },
-        line.sep(RIGHT_SEP, theme.head, theme.fill),
+        { '  ', hl = color.head },
+        line.sep(RIGHT_SEP, color.head, color.fill),
       },
 
       line.tabs().foreach(function(tab)
-        local hl = tab.is_current() and theme.current_tab or theme.tab
+        local hl = tab.is_current() and color.current_tab or color.tab
 
         local has_modified_buffers = #line.wins_in_tab(tab.id, function(win)
           return win.buf().is_changed()
-        end).wins <= 0 and '' or tab.is_current() and '●' or { '●', hl = { fg = theme.head.bg, bg = hl.bg } }
+        end).wins <= 0 and '' or tab.is_current() and '●' or { '●', hl = { fg = color.head.bg, bg = hl.bg } }
 
         return {
-          line.sep(LEFT_SEP, hl, theme.fill),
+          line.sep(LEFT_SEP, hl, color.fill),
           tab.number(),
           tab.name(),
           has_modified_buffers,
           tab.close_btn '',
-          line.sep(RIGHT_SEP, hl, theme.fill),
+          line.sep(RIGHT_SEP, hl, color.fill),
 
           hl = hl,
           margin = ' ',
         }
       end),
 
-      hl = theme.fill,
+      hl = color.fill,
     }
   end
 end
