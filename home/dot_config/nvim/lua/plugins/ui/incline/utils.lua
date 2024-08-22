@@ -2,16 +2,23 @@ local devicons = require 'nvim-web-devicons'
 
 local M = {}
 
-local function filename_with_icons(props)
-  local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ':t')
-  if filename == '' then filename = '[No Name]' end
+local function filename(props)
+  local ok, buf_name = pcall(require, 'tabby.feature.buf_name')
 
+  if ok then return buf_name.get_unique_name(props.win) end
+
+  local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ':t')
+  if name == '' then name = '[No Name]' end
+
+  return name
+end
+
+local function filename_with_icons(props)
+  local file_label = filename(props)
   local modified = vim.bo[props.buf].modified
 
-  local ft_icon, ft_color = devicons.get_icon_color(filename)
+  local ft_icon, ft_color = devicons.get_icon_color(file_label)
   local file_icon = ft_icon and { ' ', ft_icon, ' ', guifg = ft_color } or ' '
-
-  local file_label = { filename }
 
   local modifed_hl = props.focused and {} or { guifg = vim.fn.printf('#%x', vim.api.nvim_get_hl(0, { name = 'lualine_b_visual' }).fg) }
   local modified_icon = modified and vim.tbl_extend('force', { ' ', '●', ' ' }, modifed_hl) or ' '
