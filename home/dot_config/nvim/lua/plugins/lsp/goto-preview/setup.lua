@@ -4,6 +4,9 @@ require('goto-preview').setup {
   width = 80,
   height = 20,
 
+  -- Starting zindex for the stack of floating windows
+  zindex = 300,
+
   -- Whether to set the preview window title as the filename
   preview_window_title = { position = 'center' },
 
