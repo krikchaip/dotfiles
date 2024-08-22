@@ -9,6 +9,7 @@ return {
   -- Spec Setup
   config = function()
     require 'plugins.ui.tabline.tabby.setup'
+    require 'plugins.ui.tabline.tabby.autocmds'
   end,
 
   -- Spec Lazy Loading
