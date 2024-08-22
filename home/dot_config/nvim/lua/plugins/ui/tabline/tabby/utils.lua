@@ -11,6 +11,21 @@ local function list_tab_wins(tabid)
   end, tab_wins)
 end
 
+local function tab_icon(tab, hl)
+  local ok, devicons = pcall(require, 'nvim-web-devicons')
+  if not ok then return '' end
+
+  local tab_name = require 'tabby.feature.tab_name'
+  if tab_name.get_raw(tab.id) ~= '' then return '' end
+
+  local win = tab.current_win()
+  local ft_icon, ft_color = devicons.get_icon_color(win.buf_name())
+
+  local icon_hl = { fg = tab.is_current() and hl.fg or ft_color, bg = hl.bg }
+
+  return ft_icon and { ft_icon, hl = icon_hl } or ''
+end
+
 local M = {}
 
 function M.setup_theme(lualine_theme)
@@ -66,6 +81,7 @@ function M.custom_tabline(theme)
         return {
           line.sep(LEFT_SEP, hl, color.fill),
           tab.number(),
+          tab_icon(tab, hl),
           tab.name(),
           has_modified_buffers,
           tab.close_btn '',
@@ -87,16 +103,21 @@ function M.format_tab_name(tabid)
 
   local wins = list_tab_wins(tabid)
   local cur_win = api.get_tab_current_win(tabid)
+  local cur_buf = api.get_win_buf(cur_win)
+
+  local ft = vim.api.nvim_get_option_value('filetype', { buf = cur_buf })
 
   local name = ''
 
   if api.is_float_win(cur_win) then
     name = '[Floating]'
+  elseif ft == 'NvimTree' then
+    name = '󰙅 File Explorer'
   else
     name = buf_name.get_tail_name(cur_win)
   end
 
-  if vim.wo[cur_win].diff then
+  if vim.wo[cur_win].diff or string.match(ft, 'Diffview') then
     name = string.format('%s  ', name)
   elseif #wins > 1 then
     name = string.format('%s(%d)', name, #wins)
