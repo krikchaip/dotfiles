@@ -1,4 +1,26 @@
+-- ref: https://github.com/nvim-lualine/lualine.nvim/blob/master/lua/lualine/highlight.lua#L20-L35
+local mode_mapper = {
+  ['VISUAL'] = 'visual',
+  ['V-BLOCK'] = 'visual',
+  ['V-LINE'] = 'visual',
+  ['SELECT'] = 'visual',
+  ['S-LINE'] = 'visual',
+  ['S-BLOCK'] = 'visual',
+  ['REPLACE'] = 'replace',
+  ['V-REPLACE'] = 'replace',
+  ['INSERT'] = 'insert',
+  ['COMMAND'] = 'command',
+  ['EX'] = 'command',
+  ['MORE'] = 'command',
+  ['CONFIRM'] = 'command',
+  ['TERMINAL'] = 'terminal',
+}
+
 local M = {}
+
+function M.get_mode()
+  return mode_mapper[require('lualine.utils.mode').get_mode()] or 'normal'
+end
 
 --- @class TruncateOptions
 --- @field trunc_width? number truncates component when screen width is less then trunc_width
