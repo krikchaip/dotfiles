@@ -1,6 +1,16 @@
 local LEFT_SEP = ''
 local RIGHT_SEP = ''
 
+local function list_tab_wins(tabid)
+  local api = require 'tabby.module.api'
+  local tab_wins = api.get_tab_wins(tabid)
+
+  return vim.tbl_filter(function(winid)
+    local bufid = api.get_win_buf(winid)
+    return api.get_buf_type(bufid) ~= 'nofile'
+  end, tab_wins)
+end
+
 local M = {}
 
 function M.setup_theme(lualine_theme)
@@ -69,6 +79,30 @@ function M.custom_tabline(theme)
       hl = color.fill,
     }
   end
+end
+
+function M.format_tab_name(tabid)
+  local api = require 'tabby.module.api'
+  local buf_name = require 'tabby.feature.buf_name'
+
+  local wins = list_tab_wins(tabid)
+  local cur_win = api.get_tab_current_win(tabid)
+
+  local name = ''
+
+  if api.is_float_win(cur_win) then
+    name = '[Floating]'
+  else
+    name = buf_name.get_tail_name(cur_win)
+  end
+
+  if vim.wo[cur_win].diff then
+    name = string.format('%s  ', name)
+  elseif #wins > 1 then
+    name = string.format('%s(%d)', name, #wins)
+  end
+
+  return name
 end
 
 function M.restore_tab_names()
