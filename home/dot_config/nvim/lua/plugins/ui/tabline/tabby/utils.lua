@@ -49,7 +49,7 @@ function M.custom_tabline(theme)
 
         local has_modified_buffers = #line.wins_in_tab(tab.id, function(win)
           return win.buf().is_changed()
-        end).wins <= 0 and '' or tab.is_current() and '●' or { '●', hl = { fg = color.head.bg, bg = hl.bg } }
+        end).wins <= 0 and '' or '●'
 
         return {
           line.sep(LEFT_SEP, hl, color.fill),
