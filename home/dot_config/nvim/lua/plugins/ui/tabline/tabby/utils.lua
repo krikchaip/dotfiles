@@ -11,8 +11,8 @@ function M.setup_theme(lualine_theme)
     return {
       current = function()
         return {
-          head = 'TabLine',
           fill = 'TabLineFill',
+          head = 'TabLine',
           current_tab = 'TabLineSel',
           tab = 'TabLine',
         }
@@ -20,18 +20,20 @@ function M.setup_theme(lualine_theme)
     }
   end
 
+  local lualine_utils = require 'plugins.ui.lualine.utils'
+
   return {
     current = function()
+      local mode = lualine_utils.get_mode()
+
       return {
-        head = 'TabLine',
-        fill = 'TabLineFill',
-        current_tab = 'TabLineSel',
-        tab = 'TabLine',
+        fill = theme.normal.c,
+        head = theme[mode].a,
+        current_tab = theme[mode].a,
+        tab = theme[mode].b,
       }
     end,
   }
-
-  -- local mode_utils = require 'lualine.utils.mode'
 end
 
 function M.custom_tabline(theme)
