@@ -8,7 +8,7 @@ return {
     lualine_b = { unpack(components.filetype_with_icon()) },
     lualine_c = { components.navic },
     lualine_x = {},
-    lualine_y = { components.diagnostics },
+    lualine_y = { components.diagnostics() },
     lualine_z = { components.macro_recording },
   },
   inactive_winbar = {
@@ -16,7 +16,7 @@ return {
     lualine_b = { unpack(components.filetype_with_icon(true)) },
     lualine_c = {},
     lualine_x = {},
-    lualine_y = { components.diagnostics },
+    lualine_y = { components.diagnostics() },
     lualine_z = {},
   },
 

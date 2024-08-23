@@ -8,7 +8,7 @@ return {
 
   sections = {
     lualine_a = { 'mode', components.macro_recording },
-    lualine_b = { components.branch },
+    lualine_b = { components.branch, components.diagnostics 'workspace' },
     lualine_c = { components.navic },
     lualine_x = { components.blame_line, components.encoding, components.fileformat },
     lualine_y = { components.filetype },

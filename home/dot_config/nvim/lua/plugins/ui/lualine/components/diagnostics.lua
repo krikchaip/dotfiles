@@ -1,16 +1,22 @@
-return {
-  'diagnostics',
+---@diagnostic disable: missing-parameter
 
-  sources = {
-    'nvim_diagnostic',
-    -- 'nvim_workspace_diagnostic',
-    'nvim_lsp',
-  },
+--- @param scope? 'local'|'workspace'
+return function(scope)
+  scope = scope or 'local'
 
-  update_in_insert = false, -- Update diagnostics in insert mode.
-  always_visible = false, -- Show diagnostics even if there are none.
+  local source = scope == 'local' and 'nvim_diagnostic' or 'nvim_workspace_diagnostic'
+  local trouble_filter = scope == 'local' and { buf = 0 } or nil
 
-  on_click = function()
-    require('trouble').focus { mode = 'diag', filter = { buf = 0 } }
-  end,
-}
+  return {
+    'diagnostics',
+
+    sources = { source, 'nvim_lsp' },
+
+    update_in_insert = false, -- Update diagnostics in insert mode.
+    always_visible = false, -- Show diagnostics even if there are none.
+
+    on_click = function()
+      require('trouble').focus { mode = 'diag', filter = trouble_filter }
+    end,
+  }
+end
