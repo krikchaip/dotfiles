@@ -93,10 +93,9 @@ function smart_delete_buffer(bang)
     vim.cmd [[lclose]]
 
     if #vim.api.nvim_tabpage_list_wins(0) > 1 then
-      vim.cmd.wincmd 'p'
+      smart_switch_window()
     else
-      local has_last_tab, _ = pcall(vim.cmd, 'tabnext#')
-      if not has_last_tab then pcall(vim.cmd, 'tabnext-') end
+      smart_switch_tabpage()
     end
 
     if #vim.fn.win_findbuf(last_buf) > 1 then
@@ -112,9 +111,7 @@ end
 function smart_close_tabpage()
   local tabnr = vim.fn.tabpagenr()
 
-  local has_last_tab, _ = pcall(vim.cmd, 'tabnext#')
-  if not has_last_tab then pcall(vim.cmd, 'tabnext-') end
-
+  smart_switch_tabpage()
   pcall(vim.cmd.tabclose, { tabnr })
   delete_hidden_buffers()
 end
@@ -123,7 +120,12 @@ end
 -- TODO: utilize histories stack and 2 pointers (curr / prev). pops the stack
 --       when either pointer becomes unreachable.
 function smart_switch_window()
-  vim.cmd [[wincmd p]]
+  vim.cmd.wincmd 'p'
+end
+
+function smart_switch_tabpage()
+  local has_last_tab, _ = pcall(vim.cmd, 'tabnext#')
+  if not has_last_tab then pcall(vim.cmd, 'tabnext-') end
 end
 
 function macro_start_stop()
