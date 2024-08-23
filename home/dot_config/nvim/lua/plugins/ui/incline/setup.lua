@@ -3,7 +3,7 @@ local utils = require 'plugins.ui.incline.utils'
 require('incline').setup {
   render = utils.render,
 
-  debounce_threshold = { rising = 10, falling = 50 },
+  debounce_threshold = { rising = 50, falling = 10 },
 
   window = {
     placement = { vertical = 'top', horizontal = 'right' },
