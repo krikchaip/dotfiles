@@ -15,13 +15,12 @@ end
 
 local function filename_with_icons(props)
   local file_label = filename(props)
-  local modified = vim.bo[props.buf].modified
 
   local ft_icon, ft_color = devicons.get_icon_color(file_label)
   local file_icon = ft_icon and { ' ', ft_icon, ' ', guifg = ft_color } or ' '
 
-  local modifed_hl = props.focused and {} or { guifg = vim.fn.printf('#%x', vim.api.nvim_get_hl(0, { name = 'lualine_b_visual' }).fg) }
-  local modified_icon = modified and vim.tbl_extend('force', { ' ', '●', ' ' }, modifed_hl) or ' '
+  local modified = vim.bo[props.buf].modified
+  local modified_icon = modified and { ' ', '●', ' ' } or ' '
 
   return {
     file_icon,
@@ -43,13 +42,27 @@ local function file_diagnostics(props)
   return render
 end
 
+local function get_theme(props)
+  local ok, lualine_theme = pcall(require, 'lualine.themes.auto')
+  if not ok then return { guifg = '#eeeeee', guibg = '#444444' } end
+
+  local lualine_utils = require 'plugins.ui.lualine.utils'
+
+  if props.focused then
+    local mode = lualine_utils.get_mode()
+    local hl = lualine_theme[mode].b
+
+    return { guifg = hl.fg, guibg = hl.bg }
+  end
+
+  return { group = 'lualine_b_inactive' }
+end
+
 M.render = function(props)
-  return {
+  return vim.tbl_extend('force', {
     file_diagnostics(props),
     filename_with_icons(props),
-
-    group = props.focused and 'lualine_b_normal' or 'lualine_b_inactive',
-  }
+  }, get_theme(props))
 end
 
 return M
