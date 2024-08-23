@@ -10,5 +10,8 @@ vim.api.nvim_create_autocmd('ModeChanged', {
 
     -- prevent tabline to flicker on certain filetypes by simply rerender it
     if vim.tbl_contains(RELOAD_FTS, ft) and wintype == '' then vim.cmd.redrawtabline() end
+
+    -- refresh tabline for diffviews
+    if vim.wo.diff then vim.cmd.redrawtabline() end
   end,
 })
