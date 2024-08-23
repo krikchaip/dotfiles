@@ -1,6 +1,26 @@
 local devicons = require 'nvim-web-devicons'
 
+local LEFT_SEP = ' '
+local RIGHT_SEP = ' '
+
 local M = {}
+
+local function separator(symbol, props)
+  return { symbol }
+end
+
+local function file_diagnostics(props)
+  local render = {}
+
+  for severity, icon in pairs(vim.g.diagnostic_signs) do
+    local n = #vim.diagnostic.get(props.buf, { severity = vim.diagnostic.severity[string.upper(severity)] })
+    if n > 0 then table.insert(render, { icon, ' ', n, ' ', group = 'DiagnosticSign' .. severity }) end
+  end
+
+  if #render > 0 then table.insert(render, { '|', ' ' }) end
+
+  return render
+end
 
 local function filename(props)
   local ok, buf_name = pcall(require, 'tabby.feature.buf_name')
@@ -13,46 +33,20 @@ local function filename(props)
   return name
 end
 
-local function file_diagnostics(props)
-  local render = {}
-
-  for severity, icon in pairs(vim.g.diagnostic_signs) do
-    local n = #vim.diagnostic.get(props.buf, { severity = vim.diagnostic.severity[string.upper(severity)] })
-    if n > 0 then table.insert(render, { ' ', icon, ' ', n, group = 'DiagnosticSign' .. severity }) end
-  end
-
-  if #render > 0 then table.insert(render, { ' ', '|' }) end
-
-  return render
-end
-
 local function filename_with_icons(props)
   local file_label = filename(props)
 
   local ft_icon, ft_color = devicons.get_icon_color(file_label)
-  local file_icon = ft_icon and { ' ', ft_icon, ' ', guifg = ft_color } or ' '
+  local file_icon = ft_icon and { ft_icon, ' ', guifg = ft_color } or ''
 
   local modified = vim.bo[props.buf].modified
-  local modified_icon = modified and { ' ', '●', ' ' } or ' '
+  local modified_icon = modified and { ' ', '●' } or ''
 
   return {
     file_icon,
     file_label,
     modified_icon,
   }
-end
-
-local function file_diagnostics(props)
-  local render = {}
-
-  for severity, icon in pairs(vim.g.diagnostic_signs) do
-    local n = #vim.diagnostic.get(props.buf, { severity = vim.diagnostic.severity[string.upper(severity)] })
-    if n > 0 then table.insert(render, { ' ', icon, ' ', n, group = 'DiagnosticSign' .. severity }) end
-  end
-
-  if #render > 0 then table.insert(render, { ' ', '|' }) end
-
-  return render
 end
 
 local function get_theme(props)
@@ -73,8 +67,10 @@ end
 
 M.render = function(props)
   return vim.tbl_extend('force', {
+    separator(LEFT_SEP, props),
     file_diagnostics(props),
     filename_with_icons(props),
+    separator(RIGHT_SEP, props),
   }, get_theme(props))
 end
 
