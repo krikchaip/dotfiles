@@ -146,4 +146,24 @@ function M.restore_tab_names()
   end
 end
 
+function M.win_select()
+  local api = require 'tabby.module.api'
+  local buf_name = require 'tabby.feature.buf_name'
+  local tabwins = require 'tabby.feature.tabwins'
+
+  local wins = tabwins.new_wins(api.get_wins(), {}).wins
+
+  vim.ui.select(wins, {
+    format_item = function(win)
+      local tabname = win.tab().name()
+      local filename = buf_name.get_unique_name(win.id)
+
+      return string.format('Tab %s: %s', tabname, filename)
+    end,
+  }, function(win)
+    if not win then return end
+    vim.api.nvim_set_current_win(win.id)
+  end)
+end
+
 return M

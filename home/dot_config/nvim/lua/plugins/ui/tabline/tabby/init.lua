@@ -1,6 +1,5 @@
--- TODO: create a new telescope picker for this one to replace `builtin.buffers`
---       or wait until https://github.com/nanozuki/tabby.nvim/issues/143 is finished
---       ref: https://github.com/nanozuki/tabby.nvim/blob/main/lua/tabby/feature/win_picker.lua#L16
+local utils = require 'plugins.ui.tabline.tabby.utils'
+
 return {
   -- Spec Source
   'nanozuki/tabby.nvim',
@@ -18,7 +17,7 @@ return {
     { '<C-t>r', ':Tabby rename_tab ', desc = 'Tab: Rename Current' },
     { '<C-t><C-r>', ':Tabby rename_tab ', desc = 'Tab: Rename Current' },
 
-    { '<C-t>p', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
-    { '<C-t><C-p>', '<cmd>Tabby pick_window<CR>', desc = 'Tab: Pick Window' },
+    { '<C-t>p', utils.win_select, desc = 'Tab: Pick Window' },
+    { '<C-t><C-p>', utils.win_select, desc = 'Tab: Pick Window' },
   },
 }
