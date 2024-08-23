@@ -155,10 +155,14 @@ function M.win_select()
 
   vim.ui.select(wins, {
     format_item = function(win)
-      local tabname = win.tab().name()
+      local tab = win.tab()
+
+      local tabnum = tab.number()
+      local tabname = tab.name()
+
       local filename = buf_name.get_unique_name(win.id)
 
-      return string.format('Tab %s: %s', tabname, filename)
+      return string.format('Tab#%d %s: %s', tabnum, tabname, filename)
     end,
   }, function(win)
     if not win then return end
