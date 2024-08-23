@@ -1,8 +1,5 @@
 local M = require 'diffview.actions'
 
-M.close_diffview = function()
-  local ok, _ = pcall(vim.cmd, 'tabnext# | tabclose#')
-  if not ok then vim.cmd [[silent tabclose]] end
-end
+M.close_diffview = smart_close_tabpage
 
 return M

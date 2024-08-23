@@ -54,6 +54,19 @@ function tabpage_list_normal_wins(tabpage)
   end, winids)
 end
 
+-- How to close all invisible buffers
+-- ref: https://www.reddit.com/r/neovim/comments/158it1i/how_to_close_all_invisible_buffers
+function delete_hidden_buffers()
+  local bufinfos = vim.fn.getbufinfo { buflisted = 1 }
+
+  vim.tbl_map(function(bufinfo)
+    local unmodified = bufinfo.changed == 0
+    local no_windows = not bufinfo.windows or #bufinfo.windows == 0
+
+    if unmodified and no_windows then vim.api.nvim_buf_delete(bufinfo.bufnr, { force = false, unload = false }) end
+  end, bufinfos)
+end
+
 --- Smart delete current buffer
 --- Window:  switch to the last accessed when there's more than one
 --- Tabpage: switch to the last accessed when there're no more windows left
@@ -88,20 +101,13 @@ end
 -- Smart tabpage closer.
 -- Will return to previously active tabpage when possible
 function smart_close_tabpage()
-  _G.__bd = smart_delete_buffer()
+  local tabnr = vim.fn.tabpagenr()
 
-  local prev_tabnr = vim.api.nvim_get_current_tabpage()
-  local ok, _ = pcall(vim.cmd, 'tabnext#')
-  local curr_tabnr = ok and vim.api.nvim_get_current_tabpage() or prev_tabnr
+  local has_last_tab, _ = pcall(vim.cmd, 'tabnext#')
+  if not has_last_tab then pcall(vim.cmd, 'tabnext-') end
 
-  if curr_tabnr == prev_tabnr then
-    vim.cmd [[windo lua __bd()]]
-  else
-    for _, winnr in ipairs(vim.api.nvim_tabpage_list_wins(prev_tabnr)) do
-      local bufnr = vim.api.nvim_win_get_buf(winnr)
-      __bd(bufnr, winnr)
-    end
-  end
+  pcall(vim.cmd.tabclose, { tabnr })
+  delete_hidden_buffers()
 end
 
 -- Smart window/tabpage switcher.
