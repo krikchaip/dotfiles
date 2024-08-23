@@ -7,6 +7,39 @@ vim.cmd [[
   endfunction
 ]]
 
+--- Combine multiple table lists together.
+--- @generic T
+--- @param ... T[] table lists
+--- @return T[] combined_list { ...ListA, ...ListB, ... }
+function list_concat(...)
+  return vim.iter({ ... }):flatten():totable()
+end
+
+-- How to close all invisible buffers
+-- ref: https://www.reddit.com/r/neovim/comments/158it1i/how_to_close_all_invisible_buffers
+function delete_hidden_buffers()
+  local bufinfos = vim.fn.getbufinfo { buflisted = 1 }
+
+  vim.tbl_map(function(bufinfo)
+    local unmodified = bufinfo.changed == 0
+    local no_windows = not bufinfo.windows or #bufinfo.windows == 0
+
+    if unmodified and no_windows then vim.api.nvim_buf_delete(bufinfo.bufnr, { force = false, unload = false }) end
+  end, bufinfos)
+end
+
+--- @param tabpage? integer
+function tabpage_list_normal_wins(tabpage)
+  tabpage = tabpage or 0
+
+  local winids = vim.api.nvim_tabpage_list_wins(tabpage)
+
+  return vim.tbl_filter(function(id)
+    -- excludes floating window
+    return vim.api.nvim_win_get_config(id).relative == ''
+  end, winids)
+end
+
 function is_git_repo()
   vim.fn.system 'git rev-parse --is-inside-work-tree'
   return vim.v.shell_error == 0
@@ -42,31 +75,6 @@ function get_git_current_branch(path)
   return result.stdout
 end
 
---- @param tabpage? integer
-function tabpage_list_normal_wins(tabpage)
-  tabpage = tabpage or 0
-
-  local winids = vim.api.nvim_tabpage_list_wins(tabpage)
-
-  return vim.tbl_filter(function(id)
-    -- excludes floating window
-    return vim.api.nvim_win_get_config(id).relative == ''
-  end, winids)
-end
-
--- How to close all invisible buffers
--- ref: https://www.reddit.com/r/neovim/comments/158it1i/how_to_close_all_invisible_buffers
-function delete_hidden_buffers()
-  local bufinfos = vim.fn.getbufinfo { buflisted = 1 }
-
-  vim.tbl_map(function(bufinfo)
-    local unmodified = bufinfo.changed == 0
-    local no_windows = not bufinfo.windows or #bufinfo.windows == 0
-
-    if unmodified and no_windows then vim.api.nvim_buf_delete(bufinfo.bufnr, { force = false, unload = false }) end
-  end, bufinfos)
-end
-
 --- Smart delete current buffer
 --- Window:  switch to the last accessed when there's more than one
 --- Tabpage: switch to the last accessed when there're no more windows left
@@ -87,7 +95,8 @@ function smart_delete_buffer(bang)
     if #vim.api.nvim_tabpage_list_wins(0) > 1 then
       vim.cmd.wincmd 'p'
     else
-      vim.cmd [[silent! tabnext #]]
+      local has_last_tab, _ = pcall(vim.cmd, 'tabnext#')
+      if not has_last_tab then pcall(vim.cmd, 'tabnext-') end
     end
 
     if #vim.fn.win_findbuf(last_buf) > 1 then
@@ -125,12 +134,4 @@ function macro_start_stop()
     -- otherwise, start new recording
     return 'qq'
   end
-end
-
---- Combine multiple table lists together.
---- @generic T
---- @param ... T[] table lists
---- @return T[] combined_list { ...ListA, ...ListB, ... }
-function list_concat(...)
-  return vim.iter({ ... }):flatten():totable()
 end
