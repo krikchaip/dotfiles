@@ -1,4 +1,4 @@
-local RELOAD_FTS = { '', 'gitignore' }
+local RELOAD_FTS = { '', 'gitignore', 'help' }
 
 vim.api.nvim_create_autocmd('ModeChanged', {
   desc = 'Redraw Tabline on mode changes',
