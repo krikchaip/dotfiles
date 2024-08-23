@@ -7,7 +7,7 @@ require('incline').setup {
 
   window = {
     placement = { vertical = 'top', horizontal = 'right' },
-    margin = { vertical = 1, horizontal = 1 },
+    margin = { vertical = 0, horizontal = 1 },
 
     overlap = {
       tabline = false,

@@ -13,6 +13,19 @@ local function filename(props)
   return name
 end
 
+local function file_diagnostics(props)
+  local render = {}
+
+  for severity, icon in pairs(vim.g.diagnostic_signs) do
+    local n = #vim.diagnostic.get(props.buf, { severity = vim.diagnostic.severity[string.upper(severity)] })
+    if n > 0 then table.insert(render, { ' ', icon, ' ', n, group = 'DiagnosticSign' .. severity }) end
+  end
+
+  if #render > 0 then table.insert(render, { ' ', '|' }) end
+
+  return render
+end
+
 local function filename_with_icons(props)
   local file_label = filename(props)
 
