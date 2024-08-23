@@ -13,5 +13,8 @@ vim.api.nvim_create_autocmd('ModeChanged', {
 
     -- refresh tabline for diffviews
     if vim.wo.diff then vim.cmd.redrawtabline() end
+
+    -- refresh tabline for neogit windows
+    if string.match(ft, 'Neogit') then vim.cmd.redrawtabline() end
   end,
 })
