@@ -12,6 +12,9 @@ return {
     -- How many lines the window should span. Values <= 0 mean no limit.
     max_lines = 4,
 
+    -- The Z-index of the context window
+    zindex = 1,
+
     -- Maximum number of lines to show for a single context
     multiline_threshold = 1,
   },

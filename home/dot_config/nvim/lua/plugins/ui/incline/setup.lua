@@ -40,7 +40,7 @@ require('incline').setup {
       wrap = false,
     },
 
-    zindex = 50,
+    zindex = 5,
   },
 
   ignore = {
