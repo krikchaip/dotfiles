@@ -28,3 +28,11 @@ vim.api.nvim_create_autocmd('TabEnter', {
     require('nvim-tree.api').tree.reload()
   end,
 })
+
+vim.api.nvim_create_autocmd('BufEnter', {
+  desc = 'Auto reveal current buffer in Nvim-tree',
+  group = vim.api.nvim_create_augroup('nvim-tree-autoreveal', { clear = true }),
+  callback = function()
+    if vim.g.nvim_tree_autoreveal then require('nvim-tree.api').tree.find_file() end
+  end,
+})

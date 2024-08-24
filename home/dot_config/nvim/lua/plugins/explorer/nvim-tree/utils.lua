@@ -93,6 +93,12 @@ function M.close_tree_if_last(bang)
   end
 end
 
+function M.toggle_autoreveal()
+  vim.g.nvim_tree_autoreveal = not vim.g.nvim_tree_autoreveal
+  if vim.g.nvim_tree_autoreveal then require('nvim-tree.api').tree.find_file() end
+  vim.notify(string.format('nvim_tree_autoreveal: %s', vim.g.nvim_tree_autoreveal))
+end
+
 function M.toggle_copy_single()
   local fs = require('nvim-tree.api').fs
 

@@ -1,3 +1,6 @@
+-- this is specifically for 'BufEnter' autocommand
+vim.g.nvim_tree_autoreveal = false
+
 require('nvim-tree').setup {
   -- Keeps the cursor on the first letter of the filename when moving in the tree
   hijack_cursor = true,
@@ -119,7 +122,8 @@ require('nvim-tree').setup {
 
   -- Update the focused file on `BufEnter`, un-collapses
   -- the folders recursively until it finds the file.
-  update_focused_file = { enable = false },
+  -- NOTE: already handled this by custom implementation
+  update_focused_file = { enable = vim.g.nvim_tree_autoreveal },
 
   diagnostics = {
     -- LSP and COC diagnostics

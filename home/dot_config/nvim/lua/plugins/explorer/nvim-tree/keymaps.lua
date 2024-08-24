@@ -1,10 +1,13 @@
 local M = {}
 
 function M.lazy()
+  local utils = require 'plugins.explorer.nvim-tree.utils'
+
   return {
-    { '<leader>e', '<cmd>lua require("nvim-tree.api").tree.open()<CR>', desc = 'Explorer: Open' },
+    { '<leader>e', '<cmd>lua require("nvim-tree.api").tree.open { find_file = vim.g.nvim_tree_autoreveal }<CR>', desc = 'Explorer: Open' },
     { '<leader>E', '<cmd>lua require("nvim-tree.api").tree.close()<CR>', desc = 'Explorer: Close' },
     { '<leader>r', '<cmd>lua require("nvim-tree.api").tree.open { find_file = true }<CR>', desc = 'Explorer: Reveal' },
+    { '<leader>R', utils.toggle_autoreveal, desc = 'Explorer: Toggle Auto Reveal' },
   }
 end
 
