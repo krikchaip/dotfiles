@@ -68,10 +68,10 @@ vim.keymap.set('x', '<leader>S', ':s;\\%V\\v', { desc = 'Substitute: Inside Visu
 -- Insert/Remove indentation with ease
 vim.keymap.set('i', '<M-S-,>', '<C-d>', { desc = 'Indent: Current Line Remove One' })
 vim.keymap.set('i', '<M-S-.>', '<C-t>', { desc = 'Indent: Current Line Insert One' })
-vim.keymap.set('x', '<M-S-,>', '<gv', { desc = 'Indent: Highlighted Remove One' })
-vim.keymap.set('x', '<M-S-.>', '>gv', { desc = 'Indent: Highlighted Insert One' })
 vim.keymap.set('n', '<M-S-,>', '<<', { desc = 'Indent: Current Line Remove One' })
 vim.keymap.set('n', '<M-S-.>', '>>', { desc = 'Indent: Current Line Insert One' })
+vim.keymap.set('x', '<M-S-,>', '<gv', { desc = 'Indent: Highlighted Remove One' })
+vim.keymap.set('x', '<M-S-.>', '>gv', { desc = 'Indent: Highlighted Insert One' })
 
 -- Make Increment/Decrement key more intuitive
 vim.keymap.set({ 'n', 'x' }, '-', '<C-x>', { desc = 'Number: Decrement 1' })
@@ -121,17 +121,17 @@ vim.keymap.set('n', '<C-t>q', smart_close_tabpage, { desc = 'Tab: Close Current'
 vim.keymap.set('n', '<C-t><C-q>', smart_close_tabpage, { desc = 'Tab: Close Current' })
 
 -- Tabpage Navigation
-vim.keymap.set('n', '<C-Left>', '<cmd>tabprevious<CR>', { desc = 'Tab: Go to Previous' })
-vim.keymap.set('n', '<C-Right>', '<cmd>tabnext<CR>', { desc = 'Tab: Go to Next' })
-vim.keymap.set('n', '<C-1>', '<cmd>1tabnext<CR>', { desc = 'Tab: Jump to #1' })
-vim.keymap.set('n', '<C-2>', '<cmd>2tabnext<CR>', { desc = 'Tab: Jump to #2' })
-vim.keymap.set('n', '<C-3>', '<cmd>3tabnext<CR>', { desc = 'Tab: Jump to #3' })
-vim.keymap.set('n', '<C-4>', '<cmd>4tabnext<CR>', { desc = 'Tab: Jump to #4' })
-vim.keymap.set('n', '<C-5>', '<cmd>5tabnext<CR>', { desc = 'Tab: Jump to #5' })
-vim.keymap.set('n', '<C-6>', '<cmd>6tabnext<CR>', { desc = 'Tab: Jump to #6' })
-vim.keymap.set('n', '<C-7>', '<cmd>7tabnext<CR>', { desc = 'Tab: Jump to #7' })
-vim.keymap.set('n', '<C-8>', '<cmd>8tabnext<CR>', { desc = 'Tab: Jump to #8' })
-vim.keymap.set('n', '<C-9>', '<cmd>9tabnext<CR>', { desc = 'Tab: Jump to #9' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-Left>', '<cmd>tabprevious<CR>', { desc = 'Tab: Go to Previous' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-Right>', '<cmd>tabnext<CR>', { desc = 'Tab: Go to Next' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-1>', '<cmd>1tabnext<CR>', { desc = 'Tab: Jump to #1' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-2>', '<cmd>2tabnext<CR>', { desc = 'Tab: Jump to #2' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-3>', '<cmd>3tabnext<CR>', { desc = 'Tab: Jump to #3' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-4>', '<cmd>4tabnext<CR>', { desc = 'Tab: Jump to #4' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-5>', '<cmd>5tabnext<CR>', { desc = 'Tab: Jump to #5' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-6>', '<cmd>6tabnext<CR>', { desc = 'Tab: Jump to #6' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-7>', '<cmd>7tabnext<CR>', { desc = 'Tab: Jump to #7' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-8>', '<cmd>8tabnext<CR>', { desc = 'Tab: Jump to #8' })
+vim.keymap.set({ 'i', 'n', 'x' }, '<C-9>', '<cmd>9tabnext<CR>', { desc = 'Tab: Jump to #9' })
 
 -- Exit NeoVim
 vim.keymap.set('n', '<C-q>', '<cmd>qall<CR>', { desc = 'Quit: Soft' })
