@@ -122,8 +122,8 @@ require('nvim-tree').setup {
 
   -- Update the focused file on `BufEnter`, un-collapses
   -- the folders recursively until it finds the file.
-  -- NOTE: already handled this by custom implementation
-  update_focused_file = { enable = vim.g.nvim_tree_autoreveal },
+  -- NOTE: already handled this via custom implementation
+  update_focused_file = { enable = false },
 
   diagnostics = {
     -- LSP and COC diagnostics
