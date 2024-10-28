@@ -33,4 +33,9 @@ set -g status-interval 5
 # show messages and indicators until a key is pressed
 set -g display-time 2000
 
+# fix extended keys not working in v3.5
+# ref: https://github.com/tmux/tmux/issues/4140
+set -g extended-keys on
+set -g extended-keys-format csi-u
+
 # vim:ft=tmux
