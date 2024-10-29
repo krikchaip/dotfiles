@@ -2,6 +2,7 @@ packages:
   mise:
     - elixir
     - erlang
+    - go
     - lua@5.1
     - nodejs
     - pnpm
