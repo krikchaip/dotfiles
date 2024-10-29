@@ -1070,7 +1070,7 @@
         "revision": "0a4036036d47e7f2870cd0623e769ad6102eb433"
       },
       "buo/cask-upgrade": {
-        "revision": "35734d0af4a46e25bff5efeb5a89dc680656c306"
+        "revision": "88c3085044720fc60abb2d09cb67443347ae6c76"
       }
     },
     "cask": {
@@ -1201,7 +1201,7 @@
         "macOS": "14.5"
       },
       "sequoia": {
-        "HOMEBREW_VERSION": "4.4.2",
+        "HOMEBREW_VERSION": "4.4.3",
         "HOMEBREW_PREFIX": "/usr/local",
         "Homebrew/homebrew-core": "api",
         "CLT": "16.0.0.0.1.1724870825",
