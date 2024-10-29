@@ -1,14 +1,16 @@
 local LSP = {
   'lua-language-server',
+  'emmet-language-server',
+  'dockerfile-language-server',
+  'yaml-language-server',
 
   'html-lsp',
   'css-lsp',
-
-  'emmet-language-server',
   'json-lsp',
-  'marksman',
 
   'elixir-ls',
+
+  'marksman',
 
   -- had to disabled for now due to sluggish performance :(
   -- 'tailwindcss-language-server',
