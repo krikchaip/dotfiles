@@ -23,4 +23,9 @@ function M.on_attach(client, bufnr)
   setup_lsp_keymaps(opts)
 end
 
+M.server_config = {
+  capabilities = M.create_capabilities(),
+  on_attach = M.on_attach,
+}
+
 return M
