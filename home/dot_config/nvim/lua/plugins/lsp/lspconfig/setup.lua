@@ -7,6 +7,3 @@ require('mason-lspconfig').setup_handlers {
     lspconfig[server_name].setup(utils.server_config)
   end,
 }
-
--- manually setup nushell LSP server as there's no official version found on mason
-lspconfig.nushell.setup(utils.server_config)
