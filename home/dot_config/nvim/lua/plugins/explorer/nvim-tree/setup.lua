@@ -1,5 +1,5 @@
 -- this is specifically for 'BufEnter' autocommand
-vim.g.nvim_tree_autoreveal = false
+vim.g.nvim_tree_autoreveal = true
 
 require('nvim-tree').setup {
   -- Keeps the cursor on the first letter of the filename when moving in the tree
