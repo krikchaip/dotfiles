@@ -18,6 +18,7 @@ $env.config = ($env.config? | default {} | merge {
   color_config: (tokyo-storm)
   keybindings: (custom-keybindings)
   completions: { external: { enable: true, completer: (carapace) } }
+  display_errors: { termination_signal: false }
 
   # until: https://www.nushell.sh/blog/2024-05-28-nushell_0_94_0.html#shell-integration-config-toc is fixed
   shell_integration: {
