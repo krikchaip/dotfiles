@@ -8,8 +8,5 @@ require('mason-lspconfig').setup_handlers {
   end,
 }
 
--- you need to specify the executable command mannualy for elixir-ls
-lspconfig.elixirls.setup(vim.tbl_extend('force', utils.server_config, { cmd = { 'elixir-ls' } }))
-
 -- manually setup nushell LSP server as there's no official version found on mason
 lspconfig.nushell.setup(utils.server_config)

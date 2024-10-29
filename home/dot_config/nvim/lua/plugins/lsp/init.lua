@@ -7,6 +7,7 @@ return {
   require 'plugins.lsp.formatter',
 
   -- Language support
+  require 'plugins.lsp.lang.elixir',
   require 'plugins.lsp.lang.lua',
   require 'plugins.lsp.lang.typescript',
 }
