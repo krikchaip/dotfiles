@@ -8,6 +8,7 @@ return {
 
   -- Language support
   require 'plugins.lsp.lang.elixir',
+  require 'plugins.lsp.lang.json',
   require 'plugins.lsp.lang.lua',
   require 'plugins.lsp.lang.nushell',
   require 'plugins.lsp.lang.typescript',
