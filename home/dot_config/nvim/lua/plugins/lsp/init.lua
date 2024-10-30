@@ -11,4 +11,5 @@ return {
   require 'plugins.lsp.lang.lua',
   require 'plugins.lsp.lang.nushell',
   require 'plugins.lsp.lang.typescript',
+  require 'plugins.lsp.lang.yaml',
 }

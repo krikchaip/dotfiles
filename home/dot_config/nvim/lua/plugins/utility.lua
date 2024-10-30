@@ -13,4 +13,7 @@ return {
 
   -- UI Component Library for Neovim
   { 'MunifTanjim/nui.nvim' },
+
+  -- JSON schemas for yamlls and jsonls
+  { 'b0o/schemastore.nvim' },
 }
