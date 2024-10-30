@@ -10,6 +10,8 @@ local LSP = {
 
   'elixir-ls',
 
+  'gopls',
+
   'marksman',
 
   -- had to disabled for now due to sluggish performance :(
@@ -19,6 +21,7 @@ local LSP = {
 local FORMATTER = {
   'prettier',
   'prettierd',
+
   'stylua',
 }
 
