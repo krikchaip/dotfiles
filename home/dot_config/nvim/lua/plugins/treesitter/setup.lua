@@ -27,6 +27,12 @@ require('nvim-treesitter.configs').setup {
     'typescript',
     'tsx',
 
+    'go',
+    'gomod',
+    'gosum',
+    'gotmpl',
+    'gowork',
+
     'json',
     'jsonc',
     'yaml',
