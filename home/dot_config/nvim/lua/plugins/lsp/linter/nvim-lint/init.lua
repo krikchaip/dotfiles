@@ -13,6 +13,7 @@ return {
       javascriptreact = { 'eslint_d' },
       typescriptreact = { 'eslint_d' },
       elixir = { 'credo' },
+      go = { 'golangcilint' },
     }
 
     require 'plugins.lsp.linter.nvim-lint.autocmds'

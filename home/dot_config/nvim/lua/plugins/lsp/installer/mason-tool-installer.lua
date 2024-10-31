@@ -32,6 +32,8 @@ local FORMATTER = {
 local LINTER = {
   'eslint_d',
   'stylelint',
+
+  'golangci-lint',
 }
 
 -- help managing Mason package installation and updates
