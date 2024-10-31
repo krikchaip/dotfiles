@@ -23,6 +23,10 @@ local FORMATTER = {
   'prettierd',
 
   'stylua',
+
+  'gofumpt',
+  'goimports-reviser',
+  'golines',
 }
 
 local LINTER = {
