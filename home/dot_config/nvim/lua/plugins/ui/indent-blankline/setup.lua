@@ -1,7 +1,7 @@
 local utils = require 'plugins.ui.indent-blankline.utils'
 
 require('ibl').setup {
-  indent = { char = '▏' },
+  indent = { char = '▏', tab_char = '▏' },
 
   scope = {
     -- show underline at the start of scope
