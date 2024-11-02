@@ -1,7 +1,7 @@
 local function format_and_write()
   require('conform').format({ async = false }, function(err, _)
     if err then vim.notify_once(err, vim.log.levels.ERROR) end
-    vim.cmd [[write]]
+    vim.cmd [[silent write]]
   end)
 end
 

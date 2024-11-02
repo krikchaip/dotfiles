@@ -84,7 +84,7 @@ vim.keymap.set('n', '<leader>q', macro_start_stop, { desc = 'Macro: Start/Stop R
 vim.keymap.set('n', '<leader>Q', 'Q', { desc = 'Macro: Replay Last Recording' })
 
 -- Buffer Management
-vim.keymap.set('n', '<leader>W', '<cmd>w<CR>', { desc = 'Buffer: Write Current' })
+vim.keymap.set('n', '<leader>W', '<cmd>silent w<CR>', { desc = 'Buffer: Write Current' })
 vim.keymap.set('n', 'q', smart_delete_buffer(), { desc = 'Buffer: Delete Current' })
 vim.keymap.set('n', 'Q', smart_delete_buffer(true), { desc = 'Buffer: Force Delete Current' })
 
