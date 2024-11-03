@@ -9,14 +9,13 @@ return {
       formatters_by_ft = {
         ['_'] = { 'prettierd' },
         lua = { 'stylua' },
-        nu = { lsp_format = 'fallback' },
+        nu = { 'nufmt', lsp_format = 'fallback' },
         go = { 'goimports-reviser', 'gofumpt', 'golines' },
       },
 
       -- Change the default values when calling conform.format()
       -- This will also affect the default values for format_on_save/format_after_save
       default_format_opts = {
-        lsp_format = 'fallback',
         timeout_ms = 2000,
       },
 
