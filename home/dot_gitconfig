@@ -1,3 +1,8 @@
+[include]
+  path = ~/.config/delta/themes.gitconfig
+
 [user]
-	name = krikchaip
-	email = krikchai.p@gmail.com
+  name = krikchaip
+  email = krikchai.p@gmail.com
+
+[delta]
