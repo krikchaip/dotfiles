@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Rebuild bat whenever the theme variant changes
+# Tokyonight theme hash: {{ include "dot_config/bat/themes/symlink_tokyonight.tmTheme.tmpl" | sha256sum }}
+bat cache --build

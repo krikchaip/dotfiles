@@ -1,0 +1,9 @@
+--theme='tokyonight'
+
+# `pattern:syntax`
+#   - pattern -> glob pattern
+#   - syntax -> use `bat --list-language` for an overview
+--map-syntax='Dockerfile.*:Dockerfile'
+--map-syntax='*gitconfig:Git Config'
+
+# vim:ft=conf
