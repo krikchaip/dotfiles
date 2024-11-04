@@ -29,3 +29,17 @@ git:
             --color-only   \
             --hyperlinks   \
             --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
+  commit:
+    autoWrapWidth: 80
+  parseEmoji: true
+  log:
+    showWholeGraph: true
+  truncateCopiedCommitHashesTo: 12
+
+confirmOnQuit: true
+
+os:
+  editPreset: nvim-remote
+
+disableStartupPopups: false
+promptToReturnFromSubprocess: false
