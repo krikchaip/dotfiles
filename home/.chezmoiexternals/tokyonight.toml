@@ -1,0 +1,4 @@
+[".local/share/tokyonight"]
+  type = "git-repo"
+  url = "https://github.com/folke/tokyonight.nvim.git"
+  refreshPeriod = "168h"
