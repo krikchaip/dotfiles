@@ -1,8 +1,10 @@
 [include]
   path = ~/.config/delta/themes.gitconfig
+  path = ~/.local/share/tokyonight/extras/delta/tokyonight_storm.gitconfig
 
 [user]
   name = krikchaip
   email = krikchai.p@gmail.com
 
 [delta]
+  syntax-theme = tokyonight
