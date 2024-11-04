@@ -20,3 +20,12 @@ gui:
   statusPanelView: dashboard
   switchToFilesAfterStashPop: true
   switchToFilesAfterStashApply: false
+
+git:
+  paging:
+    colorArg: always
+    pager: >-
+      delta --paging=never \
+            --color-only   \
+            --hyperlinks   \
+            --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
