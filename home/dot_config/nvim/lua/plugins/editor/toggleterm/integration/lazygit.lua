@@ -12,10 +12,13 @@ return function()
       on_open = function(term)
         local opts = { buffer = term.bufnr }
 
-        opts.desc = 'Lazygit: Close Source Control'
-        vim.keymap.set('t', '<C-g>', function()
+        local function close_lazygit()
           term:close()
-        end, opts)
+        end
+
+        opts.desc = 'Lazygit: Close Source Control'
+        vim.keymap.set('t', '<C-g>', close_lazygit, opts)
+        vim.keymap.set('t', '<C-c>', close_lazygit, opts)
       end,
     },
   }
