@@ -1,5 +1,6 @@
 return {
-  require 'plugins.git.diffview',
   require 'plugins.git.gitsigns',
-  require 'plugins.git.neogit',
+
+  -- require 'plugins.git.diffview',
+  -- require 'plugins.git.neogit',
 }
