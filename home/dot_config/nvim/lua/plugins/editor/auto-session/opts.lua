@@ -4,13 +4,14 @@ vim.opt.sessionoptions = {
   -- There will be times that restoring the session might fail.
   -- 'help',
 
-  'blank',
+  -- 'blank',
+  -- 'terminal',
+
   'buffers',
   'curdir',
   'folds',
   'globals',
   'tabpages',
-  'terminal',
   'winpos',
   'winsize',
 }
