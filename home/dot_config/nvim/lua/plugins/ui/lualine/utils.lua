@@ -22,6 +22,13 @@ function M.get_mode()
   return mode_mapper[require('lualine.utils.mode').get_mode()] or 'normal'
 end
 
+--- @param hl_group string
+--- @return table colors \#rrggbb formatted colors
+function M.get_colors(hl_group)
+  ---@diagnostic disable-next-line: return-type-mismatch, missing-parameter
+  return require('lualine.utils.utils').extract_highlight_colors(hl_group)
+end
+
 --- @class TruncateOptions
 --- @field trunc_width? number truncates component when screen width is less then trunc_width
 --- @field trunc_len? number truncates component to trunc_len number of chars
