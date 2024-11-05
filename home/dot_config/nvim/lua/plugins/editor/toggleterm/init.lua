@@ -6,11 +6,10 @@ return {
   -- Spec Setup
   config = function()
     require 'plugins.editor.toggleterm.setup'
+    require 'plugins.editor.toggleterm.keymaps'
     require 'plugins.editor.toggleterm.autocmds'
   end,
 
   -- Spec Lazy Loading
-  keys = {
-    { '<C-\\>', desc = 'Toggle Terminal', mode = { 'n', 'i' } },
-  },
+  event = 'VeryLazy',
 }
