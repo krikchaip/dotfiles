@@ -14,6 +14,6 @@ return {
 
   -- Spec Lazy Loading
   keys = {
-    { '<C-\\>', '<cmd>Telescope luasnip<CR>', desc = 'Search: LuaSnip Snippets', mode = { 'n', 'i' } },
+    { '<M-\\>', '<cmd>Telescope luasnip<CR>', desc = 'Search: LuaSnip Snippets', mode = { 'n', 'i' } },
   },
 }
