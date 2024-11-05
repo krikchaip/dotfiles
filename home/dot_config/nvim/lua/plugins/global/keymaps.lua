@@ -24,7 +24,7 @@ vim.keymap.set({ 'n', 'x' }, '<Up>', 'kzz', { desc = 'Scroll: Up' })
 
 -- Exit terminal mode in the builtin terminal (default: <C-\><C-n>)
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
--- vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
+vim.keymap.set('t', '<C-S-\\>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- Clear search highlights on pressing <Esc> in normal mode
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
