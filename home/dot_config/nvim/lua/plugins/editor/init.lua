@@ -5,6 +5,7 @@ return {
   require 'plugins.editor.image',
   require 'plugins.editor.mini-pairs',
   require 'plugins.editor.surround',
+  require 'plugins.editor.toggleterm',
   require 'plugins.editor.vim-bbye',
   require 'plugins.editor.vim-sleuth',
   require 'plugins.editor.window-picker',
