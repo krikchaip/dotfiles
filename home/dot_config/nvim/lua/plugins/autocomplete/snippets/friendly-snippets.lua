@@ -24,6 +24,6 @@ return {
     -- You MUST call filetype_extends before calling lazy_load,
     -- Otherwise the extended snippets won't get load.
     -- ref: https://www.reddit.com/r/neovim/comments/1ahfg53/luasnip_cant_use_javascript_snippets_in
-    require('luasnip.loaders.from_vscode').lazy_load()
+    require('luasnip.loaders.from_vscode').load()
   end,
 }
