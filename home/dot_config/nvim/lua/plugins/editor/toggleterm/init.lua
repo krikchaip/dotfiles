@@ -6,6 +6,7 @@ return {
   -- Spec Setup
   config = function()
     require 'plugins.editor.toggleterm.setup'
+    require 'plugins.editor.toggleterm.autocmds'
   end,
 
   -- Spec Lazy Loading
