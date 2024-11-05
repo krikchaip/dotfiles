@@ -6,5 +6,17 @@
   name = krikchaip
   email = krikchai.p@gmail.com
 
+[diff]
+  ; ref: https://dandavison.github.io/delta/color-moved-support.html
+  colorMoved = default
+
+[merge]
+  ; ref: https://dandavison.github.io/delta/merge-conflicts.html
+  conflictStyle = zdiff3
+
+[interactive]
+  ; ref: https://dandavison.github.io/delta/full---help-output.html?highlight=interactive#full---help-output
+  diffFilter = delta --color-only
+
 [delta]
   syntax-theme = tokyonight
