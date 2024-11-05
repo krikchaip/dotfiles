@@ -23,4 +23,9 @@ require('toggleterm').setup {
     -- stack on top of each other instead of next to each other
     horizontal_breakpoint = 135,
   },
+
+  --- @param _term Terminal
+  on_close = function(_term)
+    vim.cmd.wincmd '='
+  end,
 }
