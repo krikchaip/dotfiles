@@ -1,6 +1,9 @@
 return function()
   local Terminal = require('toggleterm.terminal').Terminal
 
+  -- allow `:wq` or `:x` to actually wipeout git buffers rather than hiding them
+  vim.cmd [[autocmd FileType gitcommit,gitrebase,gitconfig set bufhidden=delete]]
+
   --- @param term Terminal
   --- @param close_behavior? 'default' | 'terminate'
   local function term_keybindings(term, close_behavior)

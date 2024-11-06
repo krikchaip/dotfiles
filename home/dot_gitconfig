@@ -2,6 +2,9 @@
   path = ~/.config/delta/themes.gitconfig
   path = ~/.local/share/tokyonight/extras/delta/tokyonight_storm.gitconfig
 
+[core]
+  editor = nvr --remote-tab-wait-silent
+
 [user]
   name = krikchaip
   email = krikchai.p@gmail.com
