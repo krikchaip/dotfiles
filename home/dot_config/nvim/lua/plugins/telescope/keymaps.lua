@@ -45,11 +45,7 @@ return {
       { '<leader>F', '<cmd>Telescope live_grep_args<CR>', desc = 'Search: Embeded Ripgrep' },
     }
 
-    local GIT = {
-      { '<leader>gb', '<cmd>Telescope git_branches<CR>', desc = 'Git: Manage Branches' },
-    }
-
-    return vim.iter({ MENU, SETTINGS, HISTORY, NAVIGATION, SEARCH, GIT }):flatten():totable()
+    return vim.iter({ MENU, SETTINGS, HISTORY, NAVIGATION, SEARCH }):flatten():totable()
   end,
 
   defaults = function()

@@ -5,3 +5,7 @@ local lazygit = integration.lazygit()
 vim.keymap.set('n', '<C-g>', function()
   lazygit.default:toggle()
 end, { desc = 'Lazygit: Toggle Source Control' })
+
+vim.keymap.set('n', '<leader>gb', function()
+  lazygit.branch:toggle()
+end, { desc = 'Lazygit: Manage Branches' })
