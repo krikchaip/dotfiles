@@ -6,6 +6,10 @@ packages:
     - lua@5.1
     - nodejs
     - pnpm
+    - python
+
+  python:
+    - neovim-remote
 
   pnpm:
     - "@microsoft/rush"

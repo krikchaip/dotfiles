@@ -13,14 +13,27 @@ brew bundle install --global --no-upgrade
 nvim --headless '+Lazy! restore' '+MasonToolsInstallSync' +qa
 NVIM_APPNAME='kitty-scrollback' nvim --headless '+Lazy restore' +qa
 
+# enable experimental features eg. pipx and others
+mise settings set experimental true
+
 # install and use the latest mise binaries
 {{- range .packages.mise }}
 mise use --global {{ . }}
 {{- end }}
 
-# install global npm packages via pnpm
+# install and upgrade pipx using mise's python pip
+pip install --upgrade pip
+pip install --user pipx
+pip install --upgrade pipx
+
+# install global python packages
+{{- range .packages.python }}
+mise use --global pipx:{{ . }}
+{{- end }}
+
+# install global npm packages
 {{- range .packages.pnpm }}
-nu -c 'pnpm add --global {{ . }}@latest'
+mise use --global npm:{{ . }}
 {{- end }}
 
 # launch yabai & skhd in the background
