@@ -2,11 +2,18 @@ return function()
   local Terminal = require('toggleterm.terminal').Terminal
 
   --- @param term Terminal
-  local function term_keybindings(term)
+  --- @param close_behavior? 'default' | 'terminate'
+  local function term_keybindings(term, close_behavior)
+    close_behavior = close_behavior or 'default'
+
     local opts = { buffer = term.bufnr }
 
     local function close_lazygit()
-      term:close()
+      if close_behavior == 'default' then
+        term:close()
+      elseif close_behavior == 'terminate' then
+        term:send 'q'
+      end
     end
 
     opts.desc = 'Lazygit: Close Source Control'
@@ -16,7 +23,8 @@ return function()
 
   --- @param cmd string
   --- @param on_open? fun(term: Terminal)
-  local function base_term(cmd, on_open)
+  --- @param close_behavior? 'default' | 'terminate'
+  local function base_term(cmd, on_open, close_behavior)
     return Terminal:new {
       cmd = cmd,
       display_name = '💤Lazygit',
@@ -26,7 +34,7 @@ return function()
 
       on_open = function(term)
         if on_open then on_open(term) end
-        term_keybindings(term)
+        term_keybindings(term, close_behavior)
       end,
     }
   end
@@ -36,5 +44,8 @@ return function()
     branch = base_term('lazygit branch', function()
       vim.api.nvim_feedkeys('_', 'i', false)
     end),
+    file_history = base_term('lazygit log', function()
+      vim.api.nvim_feedkeys('_', 'i', false)
+    end, 'terminate'),
   }
 end
