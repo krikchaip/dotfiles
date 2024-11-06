@@ -36,6 +36,14 @@ return function()
         if on_open then on_open(term) end
         term_keybindings(term, close_behavior)
       end,
+
+      on_close = function()
+        vim.cmd.edit()
+      end,
+
+      on_exit = function()
+        vim.cmd.edit()
+      end,
     }
   end
 

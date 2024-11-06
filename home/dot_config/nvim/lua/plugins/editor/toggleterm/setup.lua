@@ -28,4 +28,9 @@ require('toggleterm').setup {
   on_close = function(_term)
     vim.cmd.wincmd '='
   end,
+
+  --- @param _term Terminal
+  on_exit = function(_term)
+    vim.cmd.wincmd '='
+  end,
 }
