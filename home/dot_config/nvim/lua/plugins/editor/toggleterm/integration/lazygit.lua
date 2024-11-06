@@ -44,6 +44,9 @@ return function()
     branch = base_term('lazygit branch', function()
       vim.api.nvim_feedkeys('_', 'i', false)
     end),
+    log = base_term('lazygit log', function()
+      vim.api.nvim_feedkeys('_', 'i', false)
+    end),
     file_history = base_term('lazygit log', function()
       vim.api.nvim_feedkeys('_', 'i', false)
     end, 'terminate'),
