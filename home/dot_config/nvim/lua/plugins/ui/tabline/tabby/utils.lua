@@ -74,7 +74,7 @@ function M.custom_tabline(theme)
       line.tabs().foreach(function(tab)
         local hl = tab.is_current() and color.current_tab or color.tab
 
-        local has_modified_buffers = #line.wins_in_tab(tab.id, function(win)
+        local has_modified_buffers = #line.wins_in_tab(tab.id).filter(function(win)
           return win.buf().is_changed()
         end).wins <= 0 and '' or '●'
 
@@ -114,7 +114,7 @@ function M.format_tab_name(tabid)
   elseif ft == 'NvimTree' then
     name = '󰙅 File Explorer'
   else
-    name = buf_name.get_tail_name(cur_win)
+    name = buf_name.get(cur_buf, { mode = 'unique' })
   end
 
   if vim.wo[cur_win].diff or string.match(ft, 'Diffview') then
@@ -149,9 +149,13 @@ end
 function M.win_select()
   local api = require 'tabby.module.api'
   local buf_name = require 'tabby.feature.buf_name'
-  local tabwins = require 'tabby.feature.tabwins'
+  local tabwins = require 'tabby.feature.wins'
 
-  local wins = tabwins.new_wins(api.get_wins(), {}).wins
+  -- WARN: might break soon (as of 2024-11-20, tabby@2.7.2)
+  local wins = tabwins.new_wins(api.get_wins(), {}).foreach(function(w)
+    ---@diagnostic disable-next-line: return-type-mismatch
+    return tabwins.new_win(w, {})
+  end)
 
   vim.ui.select(wins, {
     format_item = function(win)
@@ -160,9 +164,13 @@ function M.win_select()
       local tabnum = tab.number()
       local tabname = tab.name()
 
-      local filename = buf_name.get_unique_name(win.id)
+      local filename = buf_name.get(win.buf().id, { mode = 'unique' })
 
-      return string.format('Tab#%d %s: %s', tabnum, tabname, filename)
+      if tabname == filename then
+        return string.format('Tab#%d %s', tabnum, tabname)
+      else
+        return string.format('Tab#%d %s: %s', tabnum, tabname, filename)
+      end
     end,
   }, function(win)
     if not win then return end

@@ -65,7 +65,7 @@ end
 local function filename(props)
   local ok, buf_name = pcall(require, 'tabby.feature.buf_name')
 
-  if ok then return buf_name.get_unique_name(props.win) end
+  if ok then return buf_name.get(props.buf, { mode = 'unique' }) end
 
   local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ':t')
   if name == '' then name = '[No Name]' end
