@@ -94,6 +94,11 @@ vim.keymap.set('n', '<M-S-q>', '<cmd>cclose<CR>', { desc = 'Quickfix List: Close
 vim.keymap.set('n', '<M-w>', '<cmd>lopen<CR>', { desc = 'Location List: Open / Focus' })
 vim.keymap.set('n', '<M-S-w>', '<cmd>lclose<CR>', { desc = 'Location List: Close' })
 
+-- File Navigation
+-- ref: https://vi.stackexchange.com/questions/3364/open-filename-under-cursor-like-gf-but-in-a-new-tab-or-split
+vim.keymap.set('n', 'gf', '<cmd>vertical wincmd F<CR>', { desc = 'Go to file under cursor (new split)' })
+vim.keymap.set('n', 'gF', '<cmd>wincmd gF<CR>', { desc = 'Go to file under cursor (new tabpage)' })
+
 -- Window Navigation
 vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Window: Focus Left' })
 vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Window: Focus Right' })
