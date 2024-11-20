@@ -40,6 +40,10 @@ alias dcd = docker compose down
 alias dcpa = docker compose ps -a
 alias dcu = docker compose up
 
+# kubernetes
+alias k = kubectl
+alias mk = minikube kubectl --
+
 # chezmoi
 alias cz = chezmoi
 alias cza = chezmoi apply
