@@ -113,6 +113,8 @@ function M.format_tab_name(tabid)
     name = '[Floating]'
   elseif ft == 'NvimTree' then
     name = '󰙅 File Explorer'
+  elseif ft == '' then
+    name = '[No Name]'
   else
     name = buf_name.get(cur_buf, { mode = 'unique' })
   end
