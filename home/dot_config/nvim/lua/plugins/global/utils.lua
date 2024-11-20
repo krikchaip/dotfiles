@@ -124,8 +124,7 @@ function smart_switch_window()
 end
 
 function smart_switch_tabpage()
-  local has_last_tab, _ = pcall(vim.cmd, 'tabnext#')
-  if not has_last_tab then pcall(vim.cmd, 'tabnext-') end
+  pcall(vim.cmd, 'tabnext#')
 end
 
 function macro_start_stop()
