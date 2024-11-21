@@ -100,11 +100,11 @@ vim.keymap.set('n', 'gf', '<cmd>vertical wincmd F<CR>', { desc = 'Go to file und
 vim.keymap.set('n', 'gF', '<cmd>wincmd gF<CR>', { desc = 'Go to file under cursor (new tabpage)' })
 
 -- Window Navigation
-vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Window: Focus Left' })
-vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Window: Focus Right' })
-vim.keymap.set('n', '<C-j>', '<C-w>j', { desc = 'Window: Focus Lower' })
-vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Window: Focus Upper' })
-vim.keymap.set('n', '<Tab>', smart_switch_window, { desc = 'Window: Focus Previously Active' })
+vim.keymap.set({ 'n', 'x' }, '<C-h>', '<C-w>h', { desc = 'Window: Focus Left' })
+vim.keymap.set({ 'n', 'x' }, '<C-l>', '<C-w>l', { desc = 'Window: Focus Right' })
+vim.keymap.set({ 'n', 'x' }, '<C-j>', '<C-w>j', { desc = 'Window: Focus Lower' })
+vim.keymap.set({ 'n', 'x' }, '<C-k>', '<C-w>k', { desc = 'Window: Focus Upper' })
+vim.keymap.set({ 'n', 'x' }, '<Tab>', smart_switch_window, { desc = 'Window: Focus Previously Active' })
 
 -- `<C-w>w` doesn't work when there's more than 2 windows in a tab
 -- ref: https://www.reddit.com/r/neovim/comments/pibo9c/how_to_focus_an_opened_floating_window
