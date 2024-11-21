@@ -5,7 +5,7 @@ gui:
   sidePanelWidth: 0.25
   mainPanelSplitMode: vertical
   showListFooter: false
-  showFileTree: false
+  showFileTree: true
   showRandomTip: true
   showCommandLog: true
   showBottomLine: true
