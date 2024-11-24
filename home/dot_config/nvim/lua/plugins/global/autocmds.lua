@@ -37,6 +37,9 @@ vim.api.nvim_create_autocmd('VimResized', {
   desc = 'Balance nvim windows when terminal screen resizes',
   group = vim.api.nvim_create_augroup('balance-windows', { clear = true }),
   callback = function()
-    vim.cmd.wincmd '='
+    local current_tab = vim.fn.tabpagenr()
+
+    vim.cmd [[tabdo wincmd =]]
+    vim.cmd('tabn ' .. current_tab)
   end,
 })
