@@ -30,3 +30,13 @@ vim.api.nvim_create_autocmd({ 'UIEnter', 'BufReadPost', 'BufNewFile' }, {
     end
   end,
 })
+
+-- Adjust nvim windows size when 'lines' or 'columns' changes
+-- ref: https://neovim.discourse.group/t/how-can-i-get-size-of-my-current-workspace/1876/2
+vim.api.nvim_create_autocmd('VimResized', {
+  desc = 'Balance nvim windows when terminal screen resizes',
+  group = vim.api.nvim_create_augroup('balance-windows', { clear = true }),
+  callback = function()
+    vim.cmd.wincmd '='
+  end,
+})
