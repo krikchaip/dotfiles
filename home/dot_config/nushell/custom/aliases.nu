@@ -50,13 +50,10 @@ alias kg = kubectl get
 alias kga = kubectl get -A
 alias kl = kubectl logs
 alias klf = kubectl logs -f
-alias mk = minikube kubectl --
-alias mkd = minikube kubectl -- describe
-alias mke = minikube kubectl -- exec -it
-alias mkg = minikube kubectl -- get
-alias mkga = minikube kubectl -- get -A
-alias mkl = minikube kubectl -- logs
-alias mklf = minikube kubectl -- logs -f
+alias mk = minikube
+alias mki = minikube image
+alias mkk = minikube kubectl --
+alias mks = minikube status
 
 # chezmoi
 alias cz = chezmoi
