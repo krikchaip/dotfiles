@@ -9,6 +9,8 @@ return {
   -- Spec Setup
   config = function()
     require('typescript-tools').setup {
+      single_file_support = true,
+
       capabilities = require('plugins.lsp.lspconfig.utils').create_capabilities(),
       on_attach = require('plugins.lsp.lspconfig.utils').on_attach,
 
