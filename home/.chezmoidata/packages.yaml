@@ -11,8 +11,9 @@ packages:
   python:
     - neovim-remote
 
-  pnpm:
+  npm:
     - "@microsoft/rush"
     - turbo
+    - typescript
     - vercel
     - vite
