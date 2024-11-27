@@ -14,7 +14,7 @@ return {
         hover = true,
         completion = true,
 
-        -- this has already been taken care of by prettier
+        -- turn this off if you want 'conform' to take care of it
         format = { enable = false },
 
         -- disable the built-in schemaStore and use the plugin

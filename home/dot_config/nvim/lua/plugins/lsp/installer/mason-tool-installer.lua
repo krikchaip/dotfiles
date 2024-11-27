@@ -27,6 +27,8 @@ local FORMATTER = {
   'gofumpt',
   'goimports-reviser',
   'golines',
+
+  'yamlfmt',
 }
 
 local LINTER = {

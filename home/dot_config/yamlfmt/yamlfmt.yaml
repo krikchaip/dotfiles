@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/google/yamlfmt/refs/heads/main/schema.json
+
+# ref: https://github.com/google/yamlfmt/blob/main/docs/config-file.md#formatter
+formatter:
+  type: basic
+
+  # Retain line breaks in formatted yaml, but only keep a single line in groups of many blank lines
+  retain_line_breaks_single: true
+
+  # Option that will preserve newlines in folded block scalars (blocks that start with '>')
+  scan_folded_as_literal: true
+
+  # Render '-' array items (block sequence items) without an increased indent
+  indentless_arrays: true
+
+  # Trim trailing whitespace from lines
+  trim_trailing_whitespace: true
+
+  # Always add a newline at end of file
+  eof_newline: true

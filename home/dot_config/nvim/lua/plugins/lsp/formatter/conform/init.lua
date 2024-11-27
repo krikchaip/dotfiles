@@ -8,9 +8,11 @@ return {
     require('conform').setup {
       formatters_by_ft = {
         ['_'] = { 'prettierd' },
+
+        go = { 'goimports-reviser', 'gofumpt', 'golines' },
         lua = { 'stylua' },
         nu = { 'nufmt', lsp_format = 'fallback' },
-        go = { 'goimports-reviser', 'gofumpt', 'golines' },
+        yaml = { 'yamlfmt', lsp_format = 'fallback' },
       },
 
       -- Change the default values when calling conform.format()
