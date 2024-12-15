@@ -10,6 +10,10 @@ return {
         ['_'] = { 'prettierd' },
 
         go = { 'goimports-reviser', 'gofumpt', 'golines' },
+        gomod = { lsp_format = 'prefer' },
+        gowork = { lsp_format = 'prefer' },
+        gotmpl = { lsp_format = 'prefer' },
+
         lua = { 'stylua' },
         nu = { 'nufmt', lsp_format = 'fallback' },
         yaml = { 'yamlfmt', lsp_format = 'fallback' },
