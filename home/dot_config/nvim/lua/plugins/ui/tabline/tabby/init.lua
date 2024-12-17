@@ -20,4 +20,7 @@ return {
     { '<C-t>p', utils.win_select, desc = 'Tab: Pick Window' },
     { '<C-t><C-p>', utils.win_select, desc = 'Tab: Pick Window' },
   },
+
+  -- Spec Versioning
+  commit = '9705aee',
 }

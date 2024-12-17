@@ -1,6 +1,8 @@
 local LEFT_SEP = ''
 local RIGHT_SEP = ''
 
+local WIN_SELECT_IGNORE = { 'NvimTree' }
+
 local function list_tab_wins(tabid)
   local api = require 'tabby.module.api'
   local tab_wins = api.get_tab_wins(tabid)
@@ -154,10 +156,18 @@ function M.win_select()
   local tabwins = require 'tabby.feature.wins'
 
   -- WARN: might break soon (as of 2024-11-20, tabby@2.7.2)
-  local wins = tabwins.new_wins(api.get_wins(), {}).foreach(function(w)
-    ---@diagnostic disable-next-line: return-type-mismatch
-    return tabwins.new_win(w, {})
-  end)
+  local wins = tabwins
+    .new_wins(api.get_wins(), {})
+    .filter(function(w)
+      local bufid = vim.api.nvim_win_get_buf(w)
+      local bufft = vim.bo[bufid].filetype
+
+      return not vim.tbl_contains(WIN_SELECT_IGNORE, bufft)
+    end)
+    .foreach(function(w)
+      ---@diagnostic disable-next-line: return-type-mismatch
+      return tabwins.new_win(w, {})
+    end)
 
   vim.ui.select(wins, {
     format_item = function(win)
