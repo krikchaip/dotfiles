@@ -36,6 +36,11 @@ mise use --global pipx:{{ . }}
 mise use --global npm:{{ . }}
 {{- end }}
 
+# install go binaries
+{{- range .packages.go }}
+mise use --global go:{{ . }}
+{{- end }}
+
 # launch yabai & skhd in the background
 if pgrep yabai; then yabai --restart-service; else yabai --start-service; fi
 if pgrep skhd; then skhd --restart-service; else skhd --start-service; fi
