@@ -136,3 +136,8 @@ function macro_start_stop()
     return 'qq'
   end
 end
+
+-- Refresh all buffers in a list without changing focus
+function refresh_all_buffers()
+  vim.cmd [[let curbuf = bufnr() | bufdo silent! e | execute "buffer" curbuf]]
+end

@@ -10,7 +10,10 @@ function M.load_session(session_dir)
   if not ok then
     bd()
     api.tree.toggle { focus = false }
+    return
   end
+
+  refresh_all_buffers()
 end
 
 M.theme = {
