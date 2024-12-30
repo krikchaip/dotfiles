@@ -33,7 +33,7 @@ require('noice').setup {
 
     documentation = {
       opts = {
-        size = { max_width = 60, max_height = 20 },
+        size = { max_width = 60, max_height = 30 },
       },
     },
   },

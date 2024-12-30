@@ -13,7 +13,7 @@ cmp.setup {
 
   window = {
     completion = cmp.config.window.bordered(),
-    documentation = cmp.config.window.bordered { max_width = 60, max_height = 20 },
+    documentation = cmp.config.window.bordered { max_width = 60, max_height = 30 },
   },
 
   view = {
