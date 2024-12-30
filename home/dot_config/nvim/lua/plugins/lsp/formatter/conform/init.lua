@@ -31,6 +31,7 @@ return {
       -- This will also affect the default values for format_on_save/format_after_save
       default_format_opts = {
         timeout_ms = 2000,
+        lsp_format = 'fallback',
       },
 
       -- notify when a formatter errors
