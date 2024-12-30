@@ -7,7 +7,15 @@ return {
   config = function()
     require('conform').setup {
       formatters_by_ft = {
-        ['_'] = { 'prettierd' },
+        html = { 'prettierd' },
+        css = { 'prettierd' },
+        json = { 'prettierd' },
+        markdown = { 'prettierd' },
+
+        javascript = { 'prettierd' },
+        typescript = { 'prettierd' },
+        javascriptreact = { 'prettierd' },
+        typescriptreact = { 'prettierd' },
 
         go = { 'goimports-reviser', 'gofumpt', 'golines' },
         gomod = { lsp_format = 'prefer' },
