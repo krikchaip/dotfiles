@@ -16,6 +16,15 @@ def "packages install" []: nothing -> nothing {
     | bash
 }
 
+# identify which values your current configuration has changed from the defaults
+# ref: https://www.nushell.sh/blog/2024-12-04-configuration_preview.html#finding-overridden-values
+def "nu-config diff" []: nothing -> nothing {
+  let defaults = nu -n -c "$env.config = {}; $env.config | reject color_config keybindings menus | to nuon" | from nuon | transpose key default
+  let current = $env.config | reject color_config keybindings menus | transpose key current
+
+  $current | merge $defaults | where $it.current != $it.default
+}
+
 # apply system settings immediately without restarting the computer
 def "system-settings apply" []: nothing -> nothing {
   osascript -e 'tell application "System Preferences" to quit'
