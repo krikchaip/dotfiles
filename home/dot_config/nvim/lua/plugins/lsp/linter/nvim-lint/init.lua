@@ -34,4 +34,7 @@ return {
 
   -- Spec Lazy Loading
   event = 'User FilePost',
+
+  -- Spec Versioning
+  commit = 'ec9fda1', -- FIXME: golangci-lint somehow does not work after this commit
 }
