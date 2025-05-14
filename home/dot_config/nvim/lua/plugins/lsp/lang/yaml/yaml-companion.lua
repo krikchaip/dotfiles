@@ -48,7 +48,7 @@ return {
       lspconfig = vim.tbl_extend('force', server_config, { settings = settings }),
     }
 
-    require('lspconfig').yamlls.setup(config)
+    vim.lsp.config('yamlls', config)
     require('telescope').load_extension 'yaml_schema'
   end,
 

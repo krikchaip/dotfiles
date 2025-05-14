@@ -8,21 +8,23 @@ return {
 
   -- Spec Setup
   config = function()
-    local lspconfig = require 'lspconfig'
     local schemastore = require 'schemastore'
     local utils = require 'plugins.lsp.lspconfig.utils'
 
     -- ref: https://github.com/b0o/SchemaStore.nvim#usage
-    lspconfig.jsonls.setup(vim.tbl_extend('force', utils.server_config, {
-      settings = {
-        json = {
-          format = { enable = false },
-          validate = { enable = true },
+    vim.lsp.config(
+      'jsonls',
+      vim.tbl_extend('force', utils.server_config, {
+        settings = {
+          json = {
+            format = { enable = false },
+            validate = { enable = true },
 
-          schemas = schemastore.json.schemas(),
+            schemas = schemastore.json.schemas(),
+          },
         },
-      },
-    }))
+      })
+    )
   end,
 
   -- Spec Lazy Loading
