@@ -20,5 +20,5 @@ return {
   },
 
   -- Spec Versioning
-  tag = 'v4.0.0',
+  -- tag = 'v4.0.0',
 }

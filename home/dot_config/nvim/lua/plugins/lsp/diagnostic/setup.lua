@@ -1,9 +1,21 @@
+local signs = {
+  text = {},
+  texthl = {},
+  numhl = {},
+}
+
 for type, icon in pairs(vim.g.diagnostic_signs) do
   local hl = 'DiagnosticSign' .. type
-  vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = '' })
+  local severity = vim.diagnostic.severity[string.upper(type)]
+
+  signs.text[severity] = icon
+  signs.texthl[severity] = hl
+  signs.numhl[severity] = ''
 end
 
 vim.diagnostic.config {
+  signs = signs,
+
   virtual_text = false,
   update_in_insert = false,
 

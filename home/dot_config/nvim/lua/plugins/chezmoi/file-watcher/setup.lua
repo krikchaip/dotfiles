@@ -4,11 +4,9 @@ require('chezmoi').setup {
   --   force = false,
   -- },
 
-  -- notification = {
-  --   on_open = true,
-  --   on_apply = true,
-  --   on_watch = false,
-  -- },
+  events = {
+    on_watch = { notification = { enable = false } },
+  },
 
   -- telescope = {
   --   select = { '<CR>' },

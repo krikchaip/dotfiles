@@ -8,6 +8,12 @@ local M = {}
 
 M.IGNORED_FTS = { 'DiffviewFiles', 'DiffviewFileHistory' }
 
+function M.watch(bufnr)
+  return function()
+    require('chezmoi.commands.__edit').watch(bufnr)
+  end
+end
+
 -- Use autocmd to make it work as if 'watch' option is given
 function M.edit_and_apply()
   local bufnr = vim.api.nvim_get_current_buf()

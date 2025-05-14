@@ -76,7 +76,7 @@ function M.setup_autosave_session()
       if bypass_save_by_filetype() then return end
 
       local session_dir = vim.loop.cwd()
-      vim.notify('Saving Session: ' .. tostring(session_dir))
+      -- vim.notify('Saving Session: ' .. tostring(session_dir))
 
       auto_session.SaveSession(session_dir, true)
     end,

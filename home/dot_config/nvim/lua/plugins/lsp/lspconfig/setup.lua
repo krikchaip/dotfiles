@@ -1,9 +1,8 @@
-local lspconfig = require 'lspconfig'
+local mason_lspconfig = require 'mason-lspconfig'
 local utils = require 'plugins.lsp.lspconfig.utils'
 
-require('mason-lspconfig').setup_handlers {
-  -- will be called for each installed server that doesn't have a dedicated handler
-  function(server_name)
-    lspconfig[server_name].setup(utils.server_config)
-  end,
-}
+for _, name in ipairs(mason_lspconfig.get_installed_servers()) do
+  vim.lsp.config(name, utils.server_config)
+end
+
+mason_lspconfig.setup()
