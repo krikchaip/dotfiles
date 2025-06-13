@@ -5,3 +5,13 @@ vim.cmd [[
     return escape(a:str, '^$.*?/\[]~')
   endfunction
 ]]
+
+function MacroStartStop()
+  if vim.fn.reg_recording() ~= "" then
+    -- if still recording, then stop
+    return "q"
+  else
+    -- otherwise, start new recording
+    return "qq"
+  end
+end
