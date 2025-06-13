@@ -1,7 +1,7 @@
 local map = vim.keymap.set
 
-map("n", ";", ":", { desc = "CMD enter command mode" })
-map("i", "jk", "<ESC>")
+map("i", "jk", "<Esc>")
+map({ "n", "x" }, ";", ":")
 
 -- emacs style movement keys
 map({ "i", "c" }, "<C-a>", "<Home>", { desc = "Cursor: Beginning of Line" })
@@ -61,12 +61,12 @@ map("x", "<leader>s", ":s;\\%V", { desc = "Substitute: Inside Visual" })
 map("x", "<leader>S", ":s;\\%V\\v", { desc = "Substitute: Inside Visual Regex" })
 
 -- insert/remove indentation
-map("i", "<M-S-,>", "<C-d>", { desc = "Indent: Current Line Remove One" })
-map("i", "<M-S-.>", "<C-t>", { desc = "Indent: Current Line Insert One" })
-map("n", "<M-S-,>", "<<", { desc = "Indent: Current Line Remove One" })
-map("n", "<M-S-.>", ">>", { desc = "Indent: Current Line Insert One" })
-map("x", "<M-S-,>", "<gv", { desc = "Indent: Highlighted Remove One" })
-map("x", "<M-S-.>", ">gv", { desc = "Indent: Highlighted Insert One" })
+map("i", "<M-,>", "<C-d>", { desc = "Indent: Current Line Remove One" })
+map("i", "<M-.>", "<C-t>", { desc = "Indent: Current Line Insert One" })
+map("n", "<M-,>", "<<", { desc = "Indent: Current Line Remove One" })
+map("n", "<M-.>", ">>", { desc = "Indent: Current Line Insert One" })
+map("x", "<M-,>", "<gv", { desc = "Indent: Highlighted Remove One" })
+map("x", "<M-.>", ">gv", { desc = "Indent: Highlighted Insert One" })
 
 -- increment/decrement value
 map({ "n", "x" }, "-", "<C-x>", { desc = "Number: Decrement 1" })
@@ -77,6 +77,24 @@ map("x", "g+", "g<C-a>", { desc = "Number: Increment Sequence" })
 -- remap macro recording keys
 map("n", "<leader>q", MacroStartStop, { desc = "Macro: Start/Stop Recording", expr = true })
 map("n", "<leader>Q", "Q", { desc = "Macro: Replay Last Recording" })
+
+-- buffer management (tabufline)
+map("n", "<C-n>", "<cmd>enew<CR>", { desc = "Buffer: New Empty" })
+map("n", ">", Tabufline.Next, { desc = "Buffer: Goto Next" })
+map("n", "<", Tabufline.Prev, { desc = "Buffer: Goto Previous" })
+map("n", "<M-S-.>", Tabufline.MoveRight, { desc = "Buffer: Move Right" })
+map("n", "<M-S-,>", Tabufline.MoveLeft, { desc = "Buffer: Move Left" })
+map("n", "q", Tabufline.Close, { desc = "Buffer: Close Current" })
+map("n", "Q", Tabufline.CloseAll, { desc = "Buffer: Close All" })
+
+for i = 1, 9, 1 do
+  local key = string.format("<M-%s>", i)
+  local desc = string.format("Buffer: Goto #%s", i)
+
+  vim.keymap.set("n", key, function()
+    vim.api.nvim_set_current_buf(vim.t.bufs[i])
+  end, { desc = desc })
+end
 
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit terminal mode" })

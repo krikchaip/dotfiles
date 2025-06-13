@@ -15,3 +15,24 @@ function MacroStartStop()
     return "qq"
   end
 end
+
+Tabufline = {
+  Next = function()
+    require("nvchad.tabufline").next()
+  end,
+  Prev = function()
+    require("nvchad.tabufline").prev()
+  end,
+  MoveRight = function()
+    require("nvchad.tabufline").move_buf(1)
+  end,
+  MoveLeft = function()
+    require("nvchad.tabufline").move_buf(-1)
+  end,
+  Close = function()
+    require("nvchad.tabufline").close_buffer()
+  end,
+  CloseAll = function()
+    require("nvchad.tabufline").closeAllBufs(true)
+  end,
+}
