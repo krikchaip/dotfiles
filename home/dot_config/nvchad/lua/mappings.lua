@@ -80,6 +80,10 @@ map("n", "<M-.>", ">>", { desc = "Indent: Current Line Insert One" })
 map("x", "<M-,>", "<gv", { desc = "Indent: Highlighted Remove One" })
 map("x", "<M-.>", ">gv", { desc = "Indent: Highlighted Insert One" })
 
+-- comment
+map("n", "<M-/>", "gcc", { desc = "Comment: Toggle Line", remap = true })
+map("v", "<M-/>", "gc", { desc = "Comment: Toggle Region", remap = true })
+
 -- increment/decrement value
 map({ "n", "x" }, "-", "<C-x>", { desc = "Number: Decrement 1" })
 map({ "n", "x" }, "+", "<C-a>", { desc = "Number: Increment 1" })
@@ -90,7 +94,7 @@ map("x", "g+", "g<C-a>", { desc = "Number: Increment Sequence" })
 map("n", "<leader>q", MacroStartStop, { desc = "Macro: Start/Stop Recording", expr = true })
 map("n", "<leader>Q", "Q", { desc = "Macro: Replay Last Recording" })
 
--- buffer management (tabufline)
+-- buffer management
 map("n", "<C-n>", "<cmd>enew<CR>", { desc = "Buffer: New Empty" })
 map("n", "<C-s>", "<cmd>w<CR>", { desc = "Buffer: Save" })
 map("n", "<C-S-s>", "<cmd>silent w<CR>", { desc = "Buffer: Save Without Formatting" })
