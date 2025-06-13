@@ -3,6 +3,18 @@ local map = vim.keymap.set
 map("i", "jk", "<Esc>")
 map({ "n", "x" }, ";", ":")
 
+-- the most useful keymaps ever...
+map("n", "<C-/>", "<cmd>NvCheatsheet<CR>", { desc = "NvChad: Toggle NvCheatsheet" })
+map("n", "<C-q>", "<cmd>qa<CR>", { desc = "Exit Neovim: Soft" })
+map("n", "<C-S-q>", "<cmd>qa!<CR>", { desc = "Exit Neovim: Force" })
+
+-- plugin management
+map("n", "<C-S-x>", "<cmd>Lazy<CR>", { desc = "Lazy: Open Popup" })
+
+-- line number display
+map("n", "<leader>lnn", "<cmd>set nu!<CR>", { desc = "Line Number: Toggle Default" })
+map("n", "<leader>lnr", "<cmd>set rnu!<CR>", { desc = "Line Number: Toggle Relative" })
+
 -- emacs style movement keys
 map({ "i", "c" }, "<C-a>", "<Home>", { desc = "Cursor: Beginning of Line" })
 map({ "i", "c" }, "<C-e>", "<End>", { desc = "Cursor: End of Line" })
