@@ -1,3 +1,4 @@
+-- ref: https://lazy.folke.io/configuration
 return {
   defaults = { lazy = true },
   install = { colorscheme = { "nvchad" } },
