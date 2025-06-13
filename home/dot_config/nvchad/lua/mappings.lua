@@ -142,5 +142,12 @@ for i = 1, 9, 1 do
   )
 end
 
+-- builtin terminal
+map("n", "<leader>tv", Term.VSplit, { desc = "Terminal: New Vertical Term" })
+map("n", "<leader>ts", Term.HSplit, { desc = "Terminal: New Horizontal Term" })
+map({ "n", "t" }, "<M-v>", Term.VToggle, { desc = "Terminal: Toggleable Vertical Term" })
+map({ "n", "t" }, "<M-s>", Term.HToggle, { desc = "Terminal: Toggleable Horizontal Term" })
+map({ "n", "t" }, "<M-t>", Term.Toggle, { desc = "Terminal: Toggle Floating Term" })
+
 -- exit terminal mode
-map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit terminal mode" })
+map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit Terminal Mode" })

@@ -36,3 +36,21 @@ Tabufline = {
     require("nvchad.tabufline").closeAllBufs(true)
   end,
 }
+
+Term = {
+  VSplit = function()
+    require("nvchad.term").new { pos = "vsp" }
+  end,
+  HSplit = function()
+    require("nvchad.term").new { pos = "sp" }
+  end,
+  VToggle = function()
+    require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm" }
+  end,
+  HToggle = function()
+    require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
+  end,
+  Toggle = function()
+    require("nvchad.term").toggle { pos = "float", id = "floatTerm" }
+  end,
+}
