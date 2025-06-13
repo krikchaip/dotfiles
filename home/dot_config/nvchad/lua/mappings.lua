@@ -4,9 +4,13 @@ map("i", "jk", "<Esc>")
 map({ "n", "x" }, ";", ":")
 
 -- the most useful keymaps ever...
-map("n", "<C-/>", "<cmd>NvCheatsheet<CR>", { desc = "NvChad: Toggle NvCheatsheet" })
 map("n", "<C-q>", "<cmd>qa<CR>", { desc = "Exit Neovim: Soft" })
 map("n", "<C-S-q>", "<cmd>qa!<CR>", { desc = "Exit Neovim: Force" })
+
+-- nvchad specific
+map("n", "<C-/>", NvChad.Cheatsheet, { desc = "NvChad: Toggle NvCheatsheet" })
+map("n", "<C-,>t", NvChad.Themes, { desc = "NvChad: Select Colorscheme" })
+map("n", "<C-,><C-t>", NvChad.Themes, { desc = "NvChad: Select Colorscheme" })
 
 -- plugin management
 map("n", "<C-S-x>", "<cmd>Lazy<CR>", { desc = "Lazy: Open Popup" })
@@ -155,3 +159,6 @@ map({ "n", "t" }, "<M-t>", Term.Toggle, { desc = "Terminal: Toggle Floating Term
 
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit Terminal Mode" })
+
+-- telescope pickers
+map("n", "<leader>h", "<cmd>Telescope help_tags<CR>", { desc = "Search: Help Pages" })

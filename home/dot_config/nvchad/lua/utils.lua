@@ -16,6 +16,13 @@ function MacroStartStop()
   end
 end
 
+NvChad = {
+  Cheatsheet = "<cmd>NvCheatsheet<CR>",
+  Themes = function()
+    require("nvchad.themes").open()
+  end,
+}
+
 Tabufline = {
   Next = function()
     require("nvchad.tabufline").next()
