@@ -109,5 +109,26 @@ map("n", "<C-w>n", "<cmd>vnew<CR>", { desc = "Window: Split Empty Vertically" })
 map("n", "<C-w><C-n>", "<cmd>vnew<CR>", { desc = "Window: Split Empty Vertically" })
 map("n", "<C-w>N", "<cmd>new<CR>", { desc = "Window: Split Empty Horizontally" })
 
+-- tabpage management
+map("n", "<C-Left>", "<cmd>tabprevious<CR>", { desc = "Tab: Go to Previous" })
+map("n", "<C-Right>", "<cmd>tabnext<CR>", { desc = "Tab: Go to Next" })
+map("n", "<C-S-left>", "<cmd>-tabmove<CR>", { desc = "Tab: Move Backward" })
+map("n", "<C-S-right>", "<cmd>+tabmove<CR>", { desc = "Tab: Move Forward" })
+map("n", "<C-t>n", "<cmd>tabnew<CR>", { desc = "Tab: Create Empty" })
+map("n", "<C-t><C-n>", "<cmd>tabnew<CR>", { desc = "Tab: Create Empty" })
+map("n", "<C-t>o", "<cmd>tabonly<CR>", { desc = "Tab: Close All Others" })
+map("n", "<C-t><C-o>", "<cmd>tabonly<CR>", { desc = "Tab: Close All Others" })
+map("n", "<C-t>q", "<cmd>tabclose<CR>", { desc = "Tab: Close Current" })
+map("n", "<C-t><C-q>", "<cmd>tabclose<CR>", { desc = "Tab: Close Current" })
+
+for i = 1, 9, 1 do
+  vim.keymap.set(
+    "n",
+    string.format("<C-%s>", i),
+    string.format("<cmd>%stabnext<CR>", i),
+    { desc = string.format("Tab: Jump to #%s", i) }
+  )
+end
+
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit terminal mode" })
