@@ -99,5 +99,15 @@ for i = 1, 9, 1 do
   end, { desc = desc })
 end
 
+-- window management
+map("n", "<C-h>", "<C-w>h", { desc = "Window: Focus Left" })
+map("n", "<C-l>", "<C-w>l", { desc = "Window: Focus Right" })
+map("n", "<C-j>", "<C-w>j", { desc = "Window: Focus Lower" })
+map("n", "<C-k>", "<C-w>k", { desc = "Window: Focus Upper" })
+map("n", "<Tab>", "<cmd>wincmd p<CR>", { desc = "Window: Focus Previously Active" })
+map("n", "<C-w>n", "<cmd>vnew<CR>", { desc = "Window: Split Empty Vertically" })
+map("n", "<C-w><C-n>", "<cmd>vnew<CR>", { desc = "Window: Split Empty Vertically" })
+map("n", "<C-w>N", "<cmd>new<CR>", { desc = "Window: Split Empty Horizontally" })
+
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit terminal mode" })
