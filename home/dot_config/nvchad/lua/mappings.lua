@@ -160,8 +160,15 @@ map({ "n", "t" }, "<M-t>", Term.Toggle, { desc = "Terminal: Toggle Floating Term
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit Terminal Mode" })
 
--- telescope search pickers
+-- search pickers (telescope)
 map("n", "<leader>h", "<cmd>Telescope help_tags<CR>", { desc = "Search: Help Pages" })
+map("n", "<leader>b", "<cmd>Telescope buffers<CR>", { desc = "Search: Open Buffers" })
+map("n", "<leader>B", "<cmd>Telescope oldfiles<CR>", { desc = "Search: Buffer History" })
+map("n", "<leader>;", "<cmd>Telescope command_history<CR>", { desc = "Search: Command History" })
+map("n", "<leader>f", "<cmd>Telescope find_files<CR>", { desc = "Search: Files" })
+map("n", "<leader>/", "<cmd>Telescope current_buffer_fuzzy_find<CR>", { desc = "Search: Current Buffer" })
+map("n", "<leader>g", "<cmd>Telescope live_grep<CR>", { desc = "Search: Live Grep" })
+map({ "n", "x" }, "<leader>*", "<cmd>Telescope grep_string<CR>", { desc = "Search: Grep Current Selection" })
 
 -- user settings (telescope)
 map("n", "<C-,>o", "<cmd>Telescope vim_options<CR>", { desc = "Settings: Vim Options" })
@@ -174,3 +181,6 @@ map("n", "<C-,>h", "<cmd>Telescope highlights<CR>", { desc = "Settings: Highligh
 map("n", "<C-,><C-h>", "<cmd>Telescope highlights<CR>", { desc = "Settings: Highlights" })
 map("n", "<C-,>,", Telescope.Dotfiles, { desc = "Settings: Dotfiles" })
 map("n", "<C-,><C-,>", Telescope.Dotfiles, { desc = "Settings: Dotfiles" })
+
+-- resume last picker
+map("n", "<leader><leader>", "<cmd>Telescope resume<CR>", { desc = "Telescope: Resume Last Picker" })
