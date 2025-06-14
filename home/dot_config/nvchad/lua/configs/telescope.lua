@@ -18,6 +18,33 @@ M.config = function(opts)
       ["<M-Tab>"] = "drop_all",
     },
   }
+
+  opts.pickers = {
+    help_tags = {
+      mappings = {
+        i = {
+          ["<CR>"] = "file_edit",
+        },
+      },
+    },
+
+    man_pages = {
+      mappings = {
+        i = {
+          ["<CR>"] = "file_edit",
+        },
+      },
+    },
+
+    buffers = {
+      mappings = {
+        i = {
+          ["<M-d>"] = false,
+          ["<C-c>"] = "delete_buffer",
+        },
+      },
+    },
+  }
 end
 
 return M
