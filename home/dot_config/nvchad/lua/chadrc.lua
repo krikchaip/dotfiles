@@ -13,6 +13,9 @@ M.ui = {
   statusline = {
     theme = "vscode_colored",
   },
+  tabufline = {
+    lazyload = false,
+  },
 }
 
 M.nvdash = {

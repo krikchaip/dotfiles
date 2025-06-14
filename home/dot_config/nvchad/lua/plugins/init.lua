@@ -34,4 +34,11 @@ return {
     event = "User FilePost",
     opts = {},
   },
+
+  {
+    "echasnovski/mini.bracketed",
+    version = "*",
+    event = "User FilePost",
+    opts = {},
+  },
 }
