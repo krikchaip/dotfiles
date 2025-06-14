@@ -27,4 +27,11 @@ return {
       require("configs.treesitter").config(opts)
     end,
   },
+
+  {
+    "echasnovski/mini.ai",
+    version = "*",
+    event = "User FilePost",
+    opts = {},
+  },
 }
