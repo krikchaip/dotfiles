@@ -160,5 +160,17 @@ map({ "n", "t" }, "<M-t>", Term.Toggle, { desc = "Terminal: Toggle Floating Term
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit Terminal Mode" })
 
--- telescope pickers
+-- telescope search pickers
 map("n", "<leader>h", "<cmd>Telescope help_tags<CR>", { desc = "Search: Help Pages" })
+
+-- user settings (telescope)
+map("n", "<C-,>o", "<cmd>Telescope vim_options<CR>", { desc = "Settings: Vim Options" })
+map("n", "<C-,><C-o>", "<cmd>Telescope vim_options<CR>", { desc = "Settings: Vim Options" })
+map("n", "<C-,>a", "<cmd>Telescope autocommands<CR>", { desc = "Settings: Autocommands" })
+map("n", "<C-,><C-a>", "<cmd>Telescope autocommands<CR>", { desc = "Settings: Autocommands" })
+map("n", "<C-,>k", "<cmd>Telescope keymaps<CR>", { desc = "Settings: Keymappings" })
+map("n", "<C-,><C-k>", "<cmd>Telescope keymaps<CR>", { desc = "Settings: Keymappings" })
+map("n", "<C-,>h", "<cmd>Telescope highlights<CR>", { desc = "Settings: Highlights" })
+map("n", "<C-,><C-h>", "<cmd>Telescope highlights<CR>", { desc = "Settings: Highlights" })
+map("n", "<C-,>,", Telescope.Dotfiles, { desc = "Settings: Dotfiles" })
+map("n", "<C-,><C-,>", Telescope.Dotfiles, { desc = "Settings: Dotfiles" })

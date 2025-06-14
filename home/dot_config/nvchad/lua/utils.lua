@@ -17,7 +17,9 @@ function MacroStartStop()
 end
 
 NvChad = {
-  Cheatsheet = "<cmd>NvCheatsheet<CR>",
+  Cheatsheet = function()
+    vim.cmd "NvCheatsheet"
+  end,
   Themes = function()
     require("nvchad.themes").open()
   end,
@@ -59,5 +61,11 @@ Term = {
   end,
   Toggle = function()
     require("nvchad.term").toggle { pos = "float", id = "floatTerm" }
+  end,
+}
+
+Telescope = {
+  Dotfiles = function()
+    vim.cmd "Telescope find_files prompt_title=Dotfiles cwd=~/.local/share/chezmoi"
   end,
 }
