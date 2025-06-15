@@ -14,8 +14,8 @@ return {
 
   {
     "nvim-telescope/telescope.nvim",
-    opts = function(_, opts)
-      require("configs.telescope").config(opts)
+    config = function(_, opts)
+      require("configs.telescope").setup(opts)
     end,
   },
 
