@@ -57,6 +57,8 @@ M.config = function(opts)
       scope_incremental = false,
     },
   }
+
+  return opts
 end
 
 return M
