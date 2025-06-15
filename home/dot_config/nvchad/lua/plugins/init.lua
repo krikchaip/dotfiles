@@ -29,6 +29,12 @@ return {
   },
 
   {
+    "windwp/nvim-ts-autotag",
+    event = "User FilePost",
+    opts = { opts = { enable_close_on_slash = true } },
+  },
+
+  {
     "echasnovski/mini.ai",
     version = "*",
     event = "User FilePost",
