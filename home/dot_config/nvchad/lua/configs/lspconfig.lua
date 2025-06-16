@@ -52,7 +52,11 @@ M.setup = function()
     emmet_ls = {},
     tailwindcss = {},
 
-    ts_ls = {},
+    ts_ls = {
+      settings = {
+        expose_as_code_action = "all", -- specify commands exposed as code_actions
+      },
+    },
     vue_ls = {},
   }
 
