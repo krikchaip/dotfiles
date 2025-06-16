@@ -16,7 +16,18 @@ M.setup = function()
   local servers = {
     lua_ls = {},
 
-    gopls = {},
+    -- settings: https://github.com/golang/tools/blob/master/gopls/doc/settings.md
+    -- analyzers: https://github.com/golang/tools/blob/master/gopls/doc/analyzers.md
+    gopls = {
+      settings = {
+        gopls = {
+          templateExtensions = {},
+          gofumpt = false,
+          usePlaceholders = true,
+          analyses = { unusedvariable = true, useany = true },
+        },
+      },
+    },
 
     pyright = {},
 
