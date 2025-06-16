@@ -12,6 +12,8 @@ return {
     end,
   },
 
+  { "b0o/schemastore.nvim" },
+
   {
     "nvim-telescope/telescope.nvim",
     config = function(_, opts)
