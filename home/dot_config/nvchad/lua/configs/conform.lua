@@ -1,15 +1,33 @@
-local options = {
-  formatters_by_ft = {
+local M = {}
+
+M.config = function(opts)
+  opts.formatters_by_ft = {
+    html = { "prettierd" },
+    css = { "prettierd" },
+
+    javascript = { "prettierd" },
+    typescript = { "prettierd" },
+    javascriptreact = { "prettierd" },
+    typescriptreact = { "prettierd" },
+
+    json = { "prettierd" },
+    yaml = { "yamlfmt", lsp_format = "fallback" },
+
+    markdown = { "prettierd" },
+
+    go = { "goimports-reviser", "gofumpt", "golines" },
+    gomod = { lsp_format = "prefer" },
+    gowork = { lsp_format = "prefer" },
+    gotmpl = { lsp_format = "prefer" },
+
     lua = { "stylua" },
-    -- css = { "prettier" },
-    -- html = { "prettier" },
-  },
+    nu = { "nufmt", lsp_format = "fallback" },
+  }
 
-  -- format_on_save = {
-  --   -- These options will be passed to conform.format()
-  --   timeout_ms = 500,
-  --   lsp_fallback = true,
-  -- },
-}
+  opts.notify_on_error = false
+  opts.notify_no_formatters = false
 
-return options
+  return opts
+end
+
+return M

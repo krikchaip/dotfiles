@@ -116,3 +116,15 @@ Diagnostic = {
     require("telescope.builtin").diagnostics(require("telescope.themes").get_ivy {})
   end,
 }
+
+Conform = {
+  Format = function()
+    require("conform").format { async = true }
+  end,
+  FormatSave = function()
+    require("conform").format({ async = false }, function(err, _)
+      if err then vim.notify_once(err, vim.log.levels.ERROR) end
+      vim.cmd "silent write"
+    end)
+  end,
+}
