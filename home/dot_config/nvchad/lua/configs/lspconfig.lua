@@ -40,11 +40,22 @@ M.setup = function()
         json = {
           format = { enable = false },
           validate = { enable = true },
-          schemas = require("schemastore").json.schemas(),
+          schemas = require("configs.schemastore").json(),
         },
       },
     },
-    yamlls = {},
+    yamlls = {
+      settings = {
+        yaml = {
+          validate = true,
+          hover = true,
+          completion = true,
+          format = { enable = false },
+          schemaStore = { enable = false, url = "" },
+          schemas = require("configs.schemastore").yaml(),
+        },
+      },
+    },
 
     html = {},
 
