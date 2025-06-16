@@ -1,8 +1,22 @@
 return {
+  { import = "nvchad.blink.lazyspec" },
+  {
+    "saghen/blink.cmp",
+    opts = function(_, opts)
+      return require("configs.blink").config(opts)
+    end,
+  },
+
   {
     "stevearc/conform.nvim",
     -- event = 'BufWritePre', -- uncomment for format on save
     opts = require "configs.conform",
+  },
+
+  {
+    "folke/lazydev.nvim",
+    ft = "lua",
+    opts = {},
   },
 
   {
@@ -20,8 +34,6 @@ return {
       require("configs.telescope").setup(opts)
     end,
   },
-
-  -- { import = "nvchad.blink.lazyspec" },
 
   {
     "nvim-treesitter/nvim-treesitter",
