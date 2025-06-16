@@ -90,6 +90,9 @@ LSP = {
   References = function()
     vim.cmd "Telescope lsp_references include_declaration=false"
   end,
+  WorkspaceSymbols = function()
+    vim.cmd "Telescope lsp_dynamic_workspace_symbols"
+  end,
   WorkspaceAdd = function()
     vim.lsp.buf.add_workspace_folder()
   end,
