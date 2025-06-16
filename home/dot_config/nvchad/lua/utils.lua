@@ -107,3 +107,12 @@ LSP = {
     vim.lsp.buf.signature_help { silent = true, max_height = 7, border = "single" }
   end,
 }
+
+Diagnostic = {
+  Buffer = function()
+    require("telescope.builtin").diagnostics(require("telescope.themes").get_ivy { bufnr = 0 })
+  end,
+  Workspace = function()
+    require("telescope.builtin").diagnostics(require("telescope.themes").get_ivy {})
+  end,
+}
