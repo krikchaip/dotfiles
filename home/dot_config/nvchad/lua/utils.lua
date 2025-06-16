@@ -70,3 +70,34 @@ Telescope = {
     vim.cmd "Telescope find_files prompt_title=Dotfiles cwd=~/.local/share/chezmoi"
   end,
 }
+
+LSP = {
+  Hover = function()
+    vim.lsp.buf.hover { silent = true, border = "single", max_width = 90 }
+  end,
+  Definition = function()
+    vim.lsp.buf.definition()
+  end,
+  Declaration = function()
+    vim.lsp.buf.declaration()
+  end,
+  Typedef = function()
+    vim.lsp.buf.type_definition()
+  end,
+  Rename = function()
+    require "nvchad.lsp.renamer"()
+  end,
+  WorkspaceAdd = function()
+    vim.lsp.buf.add_workspace_folder()
+  end,
+  WorkspaceRemove = function()
+    vim.lsp.buf.remove_workspace_folder()
+  end,
+  WorkspaceList = function()
+    print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+  end,
+  Signature = function()
+    -- ref: https://github.com/NvChad/ui/blob/v3.0/lua/nvchad/lsp/signature.lua#L28
+    vim.lsp.buf.signature_help { silent = true, max_height = 7, border = "single" }
+  end,
+}

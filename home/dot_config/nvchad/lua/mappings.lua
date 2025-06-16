@@ -186,3 +186,14 @@ map("n", "<C-,><C-,>", Telescope.Dotfiles, { desc = "Settings: Dotfiles" })
 
 -- resume last picker
 map("n", "<leader><leader>", "<cmd>Telescope resume<CR>", { desc = "Telescope: Resume Last Picker" })
+
+-- lsp
+map("n", "K", LSP.Hover, { desc = "LSP: Hover" })
+map("n", "gd", LSP.Definition, { desc = "LSP: Jump to Definition" })
+map("n", "gD", LSP.Declaration, { desc = "LSP: Jump to Declaration" })
+map("n", "grd", LSP.Typedef, { desc = "LSP: Jump to Typedef" })
+map("n", "grn", LSP.Rename, { desc = "LSP: NvRenamer" })
+map("n", "gwa", LSP.WorkspaceAdd, { desc = "LSP: Add Workspace Folder" })
+map("n", "gwr", LSP.WorkspaceRemove, { desc = "LSP: Remove Workspace Folder" })
+map("n", "gwl", LSP.WorkspaceList, { desc = "LSP: List Workspace Folder" })
+map("i", "<C-s>", LSP.Signature, { desc = "LSP: Signature Help" })
