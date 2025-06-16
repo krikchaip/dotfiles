@@ -87,6 +87,9 @@ LSP = {
   Rename = function()
     require "nvchad.lsp.renamer"()
   end,
+  References = function()
+    vim.cmd "Telescope lsp_references include_declaration=false"
+  end,
   WorkspaceAdd = function()
     vim.lsp.buf.add_workspace_folder()
   end,
