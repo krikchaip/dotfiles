@@ -21,6 +21,14 @@ return {
   },
 
   {
+    "mfussenegger/nvim-lint",
+    event = "User FilePost",
+    config = function()
+      require("configs.lint").setup()
+    end,
+  },
+
+  {
     "neovim/nvim-lspconfig",
     config = function()
       require("configs.lspconfig").setup()
