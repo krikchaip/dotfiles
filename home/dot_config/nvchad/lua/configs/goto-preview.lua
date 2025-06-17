@@ -11,6 +11,9 @@ local set_win_cursor = vim.api.nvim_win_set_cursor
 local close_win = vim.api.nvim_win_close
 
 M.config = function(opts)
+  opts.zindex = 10
+  opts.vim_ui_input = false
+
   opts.post_open_hook = M.post_open_hook
 
   return opts
