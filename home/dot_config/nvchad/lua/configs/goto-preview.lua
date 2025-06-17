@@ -25,6 +25,9 @@ M.post_open_hook = function(bufnr, winnr)
     return { buffer = bufnr, desc = "Preview: " .. desc }
   end
 
+  map("n", "q", "<cmd>wincmd q<CR>", opts "Close Current")
+  map("n", "Q", "<cmd>lua require('goto-preview').close_all_win()<CR>", opts "Close All")
+
   map("n", "<CR>", M.open_preview(winnr, "default"), opts "Open Buffer")
   map("n", "<C-x>", M.open_preview(winnr, "horizontal"), opts "Split Horizontally")
   map("n", "<C-v>", M.open_preview(winnr, "vertical"), opts "Split Vertically")
@@ -54,6 +57,9 @@ M.open_preview = function(preview_win, type)
     M.open_file(orig_window, filename, cursor_position, command)
 
     local buffer = get_buf()
+
+    nomap(buffer, "n", "q")
+    nomap(buffer, "n", "Q")
 
     nomap(buffer, "n", "<CR>")
     nomap(buffer, "n", "<C-x>")

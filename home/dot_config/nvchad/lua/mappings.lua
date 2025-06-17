@@ -192,6 +192,7 @@ map("n", "<leader><leader>", "<cmd>Telescope resume<CR>", { desc = "Telescope: R
 map("n", "K", LSP.Hover, { desc = "LSP: Hover" })
 map("n", "gd", LSP.Definition, { desc = "LSP: Jump to Definition" })
 map("n", "gD", LSP.Declaration, { desc = "LSP: Jump to Declaration" })
+map("n", "gri", LSP.Implementation, { desc = "LSP: Jump to Implementation" })
 map("n", "grd", LSP.Typedef, { desc = "LSP: Jump to Typedef" })
 map("n", "grn", LSP.Rename, { desc = "LSP: NvRenamer" })
 map("n", "grr", LSP.References, { desc = "LSP: Show References" })
