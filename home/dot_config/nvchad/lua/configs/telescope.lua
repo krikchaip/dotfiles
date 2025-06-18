@@ -4,6 +4,16 @@ local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
 M.config = function(opts)
+  opts.defaults.preview = {
+    mime_hook = function(filepath, bufnr, options)
+      if Snacks.image.supports(filepath) then
+        Snacks.image.buf.attach(bufnr, { src = filepath, inline = true })
+      else
+        require("telescope.previewers").buffer_previewer_maker(filepath, bufnr, options)
+      end
+    end,
+  }
+
   opts.defaults.mappings = {
     i = {
       -- close prompt
@@ -77,6 +87,7 @@ M.setup = function(opts)
       local bufname = args.data.bufname
 
       if filetype and no_numbers[filetype] then vim.wo.number = false end
+      if bufname and Snacks.image.supports(bufname) then vim.wo.number = false end
       if bufname and bufname:match "*.csv" then vim.wo.wrap = false end
     end,
   })
