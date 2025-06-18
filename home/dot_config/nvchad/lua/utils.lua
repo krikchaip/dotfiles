@@ -131,3 +131,20 @@ Conform = {
     end)
   end,
 }
+
+Explorer = {
+  Open = function()
+    require("nvim-tree.api").tree.open { find_file = vim.g.auto_reveal }
+  end,
+  Toggle = function()
+    require("nvim-tree.api").tree.toggle { find_file = vim.g.auto_reveal, focus = false }
+  end,
+  Reveal = function()
+    require("nvim-tree.api").tree.open { find_file = true }
+  end,
+  RevealToggle = function()
+    vim.g.auto_reveal = not vim.g.auto_reveal
+    if vim.g.auto_reveal then require("nvim-tree.api").tree.find_file() end
+    vim.notify(string.format("auto_reveal: %s", vim.g.auto_reveal))
+  end,
+}
