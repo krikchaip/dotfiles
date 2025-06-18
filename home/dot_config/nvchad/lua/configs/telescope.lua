@@ -18,6 +18,7 @@ M.config = function(opts)
     i = {
       -- close prompt
       ["<C-c>"] = false,
+      ["<C-q>"] = "close",
       ["<ESC>"] = "close",
 
       -- scrolling
@@ -27,7 +28,6 @@ M.config = function(opts)
       ["<M-u>"] = "results_scrolling_up",
 
       -- item selection (qflist)
-      ["<C-q>"] = false,
       ["<M-Tab>"] = "drop_all",
     },
   }
