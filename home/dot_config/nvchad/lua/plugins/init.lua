@@ -59,6 +59,15 @@ return {
   { "b0o/schemastore.nvim" },
 
   {
+    "folke/snacks.nvim",
+    lazy = false,
+    priority = 1000,
+    opts = function(_, opts)
+      return require("configs.snacks").config(opts)
+    end,
+  },
+
+  {
     "nvim-telescope/telescope.nvim",
     config = function(_, opts)
       require("configs.telescope").setup(opts)
