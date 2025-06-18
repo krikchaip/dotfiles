@@ -60,6 +60,19 @@ M.setup = function(opts)
       require("nvim-tree.api").tree.reload()
     end,
   })
+
+  local events = require("nvim-tree.api").events
+
+  local prev = { old_name = "", new_name = "" }
+
+  -- Snacks.rename integration for nvim-tree
+  -- ref: https://github.com/folke/snacks.nvim/blob/main/docs/rename.md#nvim-tree
+  events.subscribe(events.Event.NodeRenamed, function(data)
+    if prev.new_name ~= data.new_name or prev.old_name ~= data.old_name then
+      prev = data
+      Snacks.rename.on_rename_file(data.old_name, data.new_name)
+    end
+  end)
 end
 
 M.on_attach = function(bufnr)
