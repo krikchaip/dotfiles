@@ -16,7 +16,6 @@ return {
 
   {
     "rmagatti/goto-preview",
-    event = "User FilePost",
     config = function()
       require("configs.goto-preview").setup()
     end,
@@ -41,6 +40,20 @@ return {
     config = function()
       require("configs.lspconfig").setup()
     end,
+  },
+
+  {
+    "echasnovski/mini.ai",
+    version = "*",
+    event = "User FilePost",
+    opts = {},
+  },
+
+  {
+    "echasnovski/mini.bracketed",
+    version = "*",
+    event = "User FilePost",
+    opts = {},
   },
 
   { "b0o/schemastore.nvim" },
@@ -70,19 +83,5 @@ return {
     "windwp/nvim-ts-autotag",
     event = "User FilePost",
     opts = { opts = { enable_close_on_slash = true } },
-  },
-
-  {
-    "echasnovski/mini.ai",
-    version = "*",
-    event = "User FilePost",
-    opts = {},
-  },
-
-  {
-    "echasnovski/mini.bracketed",
-    version = "*",
-    event = "User FilePost",
-    opts = {},
   },
 }
