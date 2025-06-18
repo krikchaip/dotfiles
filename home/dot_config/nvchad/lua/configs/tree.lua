@@ -43,6 +43,23 @@ M.setup = function(opts)
   require("nvim-tree").setup(M.config(opts))
 
   vim.g.auto_reveal = true
+
+  autocmd("BufEnter", {
+    desc = "Auto reveal current buffer in Nvim-tree",
+    group = augroup("nvim-tree-autoreveal", { clear = true }),
+    callback = function()
+      if not vim.g.auto_reveal then return end
+      require("nvim-tree.api").tree.find_file()
+    end,
+  })
+
+  autocmd("TabEnter", {
+    desc = "Reload Nvim-tree after entering a tab page",
+    group = augroup("nvim-tree-tabpage", { clear = true }),
+    callback = function()
+      require("nvim-tree.api").tree.reload()
+    end,
+  })
 end
 
 M.on_attach = function(bufnr)
