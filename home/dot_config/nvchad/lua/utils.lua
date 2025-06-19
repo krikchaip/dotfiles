@@ -177,6 +177,9 @@ Git = {
   StageHunkV = function()
     require("gitsigns").stage_hunk { vim.fn.line ".", vim.fn.line "v" }
   end,
+  StageHunkAll = function()
+    require("gitsigns").stage_buffer()
+  end,
   ResetHunk = function()
     require("gitsigns").reset_hunk()
   end,
@@ -185,5 +188,8 @@ Git = {
   end,
   ResetHunkAll = function()
     require("gitsigns").reset_buffer()
+  end,
+  Unstage = function()
+    require("gitsigns").reset_buffer_index()
   end,
 }

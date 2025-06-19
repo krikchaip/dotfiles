@@ -163,8 +163,8 @@ M.on_attach = function(bufnr)
   map("n", "]d", node.navigate.diagnostics.next_recursive, opts "Diagnostic: Next")
 
   -- git
-  map("n", "[h", node.navigate.git.prev_recursive, opts "Git: Previous Change")
-  map("n", "]h", node.navigate.git.next_recursive, opts "Git: Next Change")
+  map("n", "[g", node.navigate.git.prev_recursive, opts "Git: Previous Change")
+  map("n", "]g", node.navigate.git.next_recursive, opts "Git: Next Change")
   map("n", "s", M.git_add_toggle, opts "Git: Toggle Stage")
 end
 
