@@ -23,6 +23,7 @@ return {
 
   {
     "rmagatti/goto-preview",
+    event = "BufEnter",
     config = function()
       require("configs.goto-preview").setup()
     end,
@@ -31,7 +32,7 @@ return {
   {
     "folke/lazydev.nvim",
     ft = "lua",
-    opts = {},
+    opts = { library = { { path = "snacks.nvim", words = { "Snacks" } } } },
   },
 
   {

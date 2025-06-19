@@ -36,7 +36,7 @@ M.config = function(opts)
     help_tags = {
       mappings = {
         i = {
-          ["<CR>"] = "file_edit",
+          ["<CR>"] = "select_tab",
         },
       },
     },
@@ -44,7 +44,7 @@ M.config = function(opts)
     man_pages = {
       mappings = {
         i = {
-          ["<CR>"] = "file_edit",
+          ["<CR>"] = "select_tab",
         },
       },
     },
