@@ -157,6 +157,12 @@ Git = {
   Status = function()
     require("nvchad.term").toggle(Git.FloatOpts { id = "git.status", cmd = "lazygit" })
   end,
+  Log = function()
+    require("nvchad.term").toggle(Git.FloatOpts { id = "git.log", cmd = "lazygit log" })
+  end,
+  Branch = function()
+    require("nvchad.term").toggle(Git.FloatOpts { id = "git.branch", cmd = "lazygit branch" })
+  end,
   FileHistory = function()
     local filename = vim.fn.expand "%"
     local cmd = table.concat({ "lazygit", "-f", filename }, " ")
