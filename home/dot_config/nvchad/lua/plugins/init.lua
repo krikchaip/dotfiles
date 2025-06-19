@@ -15,6 +15,13 @@ return {
   },
 
   {
+    "lewis6991/gitsigns.nvim",
+    opts = function(_, opts)
+      return require("configs.gitsigns").config(opts)
+    end,
+  },
+
+  {
     "rmagatti/goto-preview",
     config = function()
       require("configs.goto-preview").setup()
