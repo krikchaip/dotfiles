@@ -4,6 +4,8 @@ local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
 M.config = function(opts)
+  opts.defaults.vimgrep_arguments = M.vimgrep_arguments()
+
   opts.defaults.preview = {
     mime_hook = function(filepath, bufnr, options)
       if Snacks.image.supports(filepath) then
@@ -49,6 +51,12 @@ M.config = function(opts)
       },
     },
 
+    -- `hidden = true` will still show the inside of `.git/` as it's not specified in `.gitignore`.
+    -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
+    find_files = {
+      find_command = { "fd", "--type", "file", "--hidden", "--exclude", "**/.git/*" },
+    },
+
     buffers = {
       ignore_current_buffer = true,
       sort_lastused = true,
@@ -60,6 +68,11 @@ M.config = function(opts)
           ["<C-c>"] = "delete_buffer",
         },
       },
+    },
+
+    lsp_references = {
+      include_declaration = false,
+      include_current_line = false,
     },
   }
 
@@ -91,6 +104,18 @@ M.setup = function(opts)
       if bufname and bufname:match "*.csv" then vim.wo.wrap = false end
     end,
   })
+end
+
+-- file and text search in hidden files and directories
+-- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
+M.vimgrep_arguments = function()
+  local args = require("telescope.config").values.vimgrep_arguments
+
+  table.insert(args, "--hidden")
+  table.insert(args, "--glob")
+  table.insert(args, "!**/.git/*")
+
+  return args
 end
 
 return M

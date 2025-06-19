@@ -91,7 +91,7 @@ LSP = {
     require "nvchad.lsp.renamer"()
   end,
   References = function()
-    vim.cmd "Telescope lsp_references include_declaration=false"
+    vim.cmd "Telescope lsp_references"
   end,
   WorkspaceSymbols = function()
     vim.cmd "Telescope lsp_dynamic_workspace_symbols"
