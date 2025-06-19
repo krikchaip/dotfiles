@@ -168,4 +168,7 @@ Git = {
     local cmd = table.concat({ "lazygit", "-f", filename }, " ")
     require("nvchad.term").new(Git.FloatOpts { id = "git.file-history", cmd = cmd })
   end,
+  BlameLine = function()
+    require("gitsigns").blame_line { full = true }
+  end,
 }
