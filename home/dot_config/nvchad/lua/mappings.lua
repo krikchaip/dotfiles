@@ -211,3 +211,6 @@ map("n", "<M-e>", Explorer.Open, { desc = "Explorer: Open" })
 map("n", "<M-S-e>", Explorer.Toggle, { desc = "Explorer: Toggle" })
 map("n", "<M-r>", Explorer.Reveal, { desc = "Explorer: Reveal File" })
 map("n", "<M-S-r>", Explorer.RevealToggle, { desc = "Explorer: Toggle Auto Reveal" })
+
+-- git (source control)
+map({ "n", "t" }, "<M-g>", Git.Status, { desc = "Git: Show Status" })

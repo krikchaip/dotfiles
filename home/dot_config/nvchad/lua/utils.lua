@@ -148,3 +148,13 @@ Explorer = {
     vim.notify(string.format("auto_reveal: %s", vim.g.auto_reveal))
   end,
 }
+
+Git = {
+  FloatOpts = function(opts)
+    local base_opts = { pos = "float", float_opts = { width = 0.8, height = 0.8, row = 0.05, col = 0.1 } }
+    return vim.tbl_deep_extend("force", base_opts, opts)
+  end,
+  Status = function()
+    require("nvchad.term").toggle(Git.FloatOpts { id = "git.status", cmd = "lazygit" })
+  end,
+}
