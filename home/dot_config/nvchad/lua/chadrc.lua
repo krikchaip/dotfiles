@@ -22,6 +22,10 @@ M.nvdash = {
   load_on_startup = true,
 }
 
+M.term = {
+  sizes = { vsp = 0.3, ["bo vsp"] = 0.3 },
+}
+
 M.cheatsheet = {
   theme = "simple",
 }
