@@ -64,7 +64,7 @@ git:
     showWholeGraph: true
   truncateCopiedCommitHashesTo: 12
 
-confirmOnQuit: true
+confirmOnQuit: false
 
 os:
   editPreset: nvim-remote

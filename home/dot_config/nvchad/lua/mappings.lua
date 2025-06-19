@@ -214,3 +214,4 @@ map("n", "<M-S-r>", Explorer.RevealToggle, { desc = "Explorer: Toggle Auto Revea
 
 -- git (source control)
 map({ "n", "t" }, "<M-g>", Git.Status, { desc = "Git: Show Status" })
+map({ "n", "t" }, "<leader>gf", Git.FileHistory, { desc = "Git: File History" })
