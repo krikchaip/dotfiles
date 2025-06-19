@@ -192,4 +192,13 @@ Git = {
   Unstage = function()
     require("gitsigns").reset_buffer_index()
   end,
+  NavHunk = function(direction, diffkey)
+    return function()
+      if vim.wo.diff then
+        vim.cmd.normal { diffkey, bang = true }
+      else
+        require("gitsigns").nav_hunk(direction, { preview = false })
+      end
+    end
+  end,
 }
