@@ -69,11 +69,11 @@ confirmOnQuit: true
 os:
   editPreset: nvim-remote
 
-  # replace toggleterm close key to '<C-g>' instead of 'q'
+  # remap nvim term close key to '<M-g>' instead of 'q'
   # ref: https://github.com/jesseduffield/lazygit/blob/master/pkg/config/editor_presets.go#L58-L67
-  edit: 'if ($env.NVIM? | is-empty) { nvim -- {{filename}} } else { nvim --server $env.NVIM --remote-send "<C-g>"; nvim --server $env.NVIM --remote-tab {{filename}} }'
-  editAtLine: 'if ($env.NVIM? | is-empty) { nvim +{{line}} -- {{filename}} } else { nvim --server $env.NVIM --remote-send "<C-g>"; nvim --server $env.NVIM --remote-tab {{filename}}; nvim --server $env.NVIM --remote-send ":{{line}}<CR>" }'
-  openDirInEditor: 'if ($env.NVIM? | is-empty) { nvim -- {{dir}} } else { nvim --server $env.NVIM --remote-send "<C-g>"; nvim --server $env.NVIM --remote-tab {{dir}} }'
+  edit: 'if ($env.NVIM? | is-empty) { nvim -- {{filename}} } else { nvim --server $env.NVIM --remote-send "<M-g>"; nvim --server $env.NVIM --remote {{filename}} }'
+  editAtLine: 'if ($env.NVIM? | is-empty) { nvim +{{line}} -- {{filename}} } else { nvim --server $env.NVIM --remote-send "<M-g>"; nvim --server $env.NVIM --remote {{filename}}; nvim --server $env.NVIM --remote-send ":{{line}}<CR>" }'
+  openDirInEditor: 'if ($env.NVIM? | is-empty) { nvim -- {{dir}} } else { nvim --server $env.NVIM --remote-send "<M-g>"; nvim --server $env.NVIM --remote {{dir}} }'
 
 disableStartupPopups: false
 promptToReturnFromSubprocess: false
