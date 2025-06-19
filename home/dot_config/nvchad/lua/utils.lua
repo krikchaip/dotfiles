@@ -171,4 +171,19 @@ Git = {
   BlameLine = function()
     require("gitsigns").blame_line { full = true }
   end,
+  StageHunk = function()
+    require("gitsigns").stage_hunk()
+  end,
+  StageHunkV = function()
+    require("gitsigns").stage_hunk { vim.fn.line ".", vim.fn.line "v" }
+  end,
+  ResetHunk = function()
+    require("gitsigns").reset_hunk()
+  end,
+  ResetHunkV = function()
+    require("gitsigns").reset_hunk { vim.fn.line ".", vim.fn.line "v" }
+  end,
+  ResetHunkAll = function()
+    require("gitsigns").reset_buffer()
+  end,
 }
