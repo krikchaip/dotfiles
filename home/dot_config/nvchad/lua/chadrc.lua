@@ -21,11 +21,7 @@ M.ui = {
 M.nvdash = {
   load_on_startup = true,
   buttons = {
-    {
-      txt = "󰾩  Restore Session",
-      keys = "r",
-      cmd = ":lua if not pcall(vim.cmd, 'PossessionLoadCwd') then vim.cmd 'enew' end",
-    },
+    { txt = "󰾩  Restore Session", keys = "r", cmd = "PossessionLoadCwd" },
     { txt = "  Find File", keys = "f", cmd = "Telescope find_files" },
     { txt = "  Recent Files", keys = "o", cmd = "Telescope oldfiles only_cwd=true" },
     { txt = "󰈭  Find Word", keys = "g", cmd = "Telescope live_grep" },
@@ -44,6 +40,8 @@ M.nvdash = {
     { txt = "─", hl = "NvDashFooter", no_gap = true, rep = true },
   },
 }
+
+if vim.fn.argc() > 0 then table.remove(M.nvdash.buttons, 1) end
 
 M.term = {
   sizes = { vsp = 0.3, ["bo vsp"] = 0.3 },

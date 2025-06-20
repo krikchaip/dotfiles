@@ -1,6 +1,7 @@
 local M = {}
 
 M.config = function(opts)
+  opts.silent = true
   opts.prompt_no_cr = true
   opts.autosave = { current = true, cwd = true }
 
