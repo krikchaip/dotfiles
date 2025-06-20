@@ -173,6 +173,7 @@ map("n", "<leader>f", "<cmd>Telescope find_files<CR>", { desc = "Search: Files" 
 map("n", "<leader>/", "<cmd>Telescope current_buffer_fuzzy_find<CR>", { desc = "Search: Current Buffer" })
 map("n", "<leader>G", "<cmd>Telescope live_grep<CR>", { desc = "Search: Live Grep" })
 map({ "n", "x" }, "<leader>*", "<cmd>Telescope grep_string<CR>", { desc = "Search: Grep Current Selection" })
+map({ "n", "i" }, "<M-\\>", "<cmd>Telescope luasnip<CR>", { desc = "Search: Snippets" })
 
 -- user settings (telescope)
 map("n", "<C-,>o", "<cmd>Telescope vim_options<CR>", { desc = "Settings: Vim Options" })

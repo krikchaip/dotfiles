@@ -90,6 +90,8 @@ return {
     end,
   },
 
+  { "benfowler/telescope-luasnip.nvim" },
+
   {
     "nvim-tree/nvim-tree.lua",
     config = function(_, opts)
