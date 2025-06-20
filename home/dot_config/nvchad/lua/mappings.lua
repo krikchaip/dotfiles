@@ -86,8 +86,9 @@ map("x", "<M-,>", "<gv", { desc = "Indent: Highlighted Remove One" })
 map("x", "<M-.>", ">gv", { desc = "Indent: Highlighted Insert One" })
 
 -- comment
-map("n", "<M-/>", "gcc", { desc = "Comment: Toggle Line", remap = true })
-map("v", "<M-/>", "gc", { desc = "Comment: Toggle Region", remap = true })
+map("i", "<M-/>", "<Esc>gcc`^i", { desc = "Comment: Toggle Line", remap = true })
+map("n", "<M-/>", "mcgcc`c", { desc = "Comment: Toggle Line", remap = true })
+map("v", "<M-/>", "gcgv<Esc>", { desc = "Comment: Toggle Region", remap = true })
 
 -- increment/decrement value
 map({ "n", "x" }, "-", "<C-x>", { desc = "Number: Decrement 1" })
