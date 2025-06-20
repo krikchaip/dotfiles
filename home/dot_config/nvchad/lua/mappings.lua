@@ -1,6 +1,8 @@
 local map = vim.keymap.set
 
 map("i", "jk", "<Esc>")
+map("i", "kj", "<Esc>")
+
 map({ "n", "x" }, ";", ":")
 
 -- the most useful keymaps ever...
@@ -229,3 +231,6 @@ map("n", "<leader>gR", Git.ResetHunkAll, { desc = "Git: Reset All Hunks" })
 map("n", "<leader>gu", Git.Unstage, { desc = "Git: Unstage Buffer" })
 map("n", "[g", Git.NavHunk("prev", "[c"), { desc = "Git: Prev Hunk" })
 map("n", "]g", Git.NavHunk("next", "]c"), { desc = "Git: Next Hunk" })
+
+-- notification (messages)
+map("n", "<leader>n", Notification.Show, { desc = "Notification: Show" })

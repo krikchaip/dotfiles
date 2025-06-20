@@ -201,3 +201,9 @@ Git = {
     end
   end,
 }
+
+Notification = {
+  Show = function()
+    Snacks.notifier.show_history()
+  end,
+}
