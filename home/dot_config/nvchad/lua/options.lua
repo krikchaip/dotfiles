@@ -36,3 +36,9 @@ opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
 
 -- enable 24-bit colour in terminal
 o.termguicolors = true
+
+-- session options
+opt.sessionoptions:append "localoptions"
+opt.sessionoptions:append "winpos"
+opt.sessionoptions:remove "blank"
+opt.sessionoptions:remove "terminal"

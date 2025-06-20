@@ -64,6 +64,14 @@ return {
     opts = {},
   },
 
+  {
+    "jedrzejboczar/possession.nvim",
+    cmd = { "PossessionLoad", "PossessionLoadCwd" },
+    opts = function(_, opts)
+      return require("configs.possession").config(opts)
+    end,
+  },
+
   { "b0o/schemastore.nvim" },
 
   {

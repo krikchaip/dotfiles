@@ -20,6 +20,29 @@ M.ui = {
 
 M.nvdash = {
   load_on_startup = true,
+  buttons = {
+    {
+      txt = "󰾩  Restore Session",
+      keys = "r",
+      cmd = ":lua if not pcall(vim.cmd, 'PossessionLoadCwd') then vim.cmd 'enew' end",
+    },
+    { txt = "  Find File", keys = "f", cmd = "Telescope find_files" },
+    { txt = "  Recent Files", keys = "o", cmd = "Telescope oldfiles only_cwd=true" },
+    { txt = "󰈭  Find Word", keys = "g", cmd = "Telescope live_grep" },
+    { txt = "󱥚  Themes", keys = "t", cmd = ":lua require('nvchad.themes').open()" },
+    { txt = "  Mappings", keys = "m", cmd = "Telescope keymaps" },
+    { txt = "─", hl = "NvDashFooter", no_gap = true, rep = true },
+    {
+      txt = function()
+        local stats = require("lazy").stats()
+        local ms = math.floor(stats.startuptime) .. " ms"
+        return "  Loaded " .. stats.loaded .. "/" .. stats.count .. " plugins in " .. ms
+      end,
+      hl = "NvDashFooter",
+      no_gap = true,
+    },
+    { txt = "─", hl = "NvDashFooter", no_gap = true, rep = true },
+  },
 }
 
 M.term = {
