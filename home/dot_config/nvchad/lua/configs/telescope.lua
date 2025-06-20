@@ -4,6 +4,8 @@ local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
 M.config = function(opts)
+  opts = opts or { defaults = {} }
+
   opts.defaults.vimgrep_arguments = M.vimgrep_arguments()
 
   opts.defaults.preview = {

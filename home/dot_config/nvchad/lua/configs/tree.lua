@@ -135,8 +135,9 @@ M.on_attach = function(bufnr)
   map("n", "rb", fs.rename_basename, opts "Rename: Basename")
 
   -- search
-  map("n", "f", live_filter.start, opts "Search: Start Filter")
-  map("n", "F", live_filter.clear, opts "Search: Clear Filter")
+  map("n", "f", M.search_node, opts "Search: Node")
+  map("n", "\\f", live_filter.start, opts "Search: Start Filter")
+  map("n", "\\F", live_filter.clear, opts "Search: Clear Filter")
 
   -- filters
   map("n", "\\a", tree.toggle_enable_filters, opts "Filter: Toggle All")
@@ -166,6 +167,35 @@ M.on_attach = function(bufnr)
   map("n", "[g", node.navigate.git.prev_recursive, opts "Git: Previous Change")
   map("n", "]g", node.navigate.git.next_recursive, opts "Git: Next Change")
   map("n", "s", M.git_add_toggle, opts "Git: Toggle Stage")
+end
+
+M.search_node = function()
+  local cwd = vim.uv.cwd()
+  local find_command = require("configs.telescope").config().pickers.find_files.find_command
+
+  table.insert(find_command, "--type")
+  table.insert(find_command, "directory")
+
+  vim.print(find_command)
+
+  local function select_default(prompt_bufnr)
+    local selection = require("telescope.actions.state").get_selected_entry()
+    local filename = selection.value or selection.filename or selection[1]
+    local filepath = vim.fs.joinpath(selection.cwd, filename)
+
+    require("telescope.actions").close(prompt_bufnr)
+    require("nvim-tree.api").tree.find_file { buf = filepath, open = true, focus = true }
+  end
+
+  require("telescope.builtin").find_files {
+    prompt_title = "Search Node",
+    cwd = cwd,
+    find_command = find_command,
+    attach_mappings = function(_, picker_map)
+      picker_map("i", "<CR>", select_default)
+      return true
+    end,
+  }
 end
 
 M.clear_all = function()
