@@ -3,7 +3,9 @@ local M = {}
 M.config = function(opts)
   opts.silent = true
   opts.prompt_no_cr = true
-  opts.autosave = { current = true, cwd = true }
+
+  local autosave = vim.fn.argc() == 0
+  opts.autosave = { current = autosave, cwd = autosave }
 
   opts.hooks = {
     after_load = function()
