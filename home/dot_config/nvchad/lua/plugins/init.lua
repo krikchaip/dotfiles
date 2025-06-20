@@ -8,6 +8,17 @@ return {
   },
 
   {
+    "xvzc/chezmoi.nvim",
+    event = {
+      "BufReadPre */.local/share/chezmoi/*",
+      "BufNewFile */.local/share/chezmoi/*",
+    },
+    config = function(_, opts)
+      require("configs.chezmoi").setup(opts)
+    end,
+  },
+
+  {
     "stevearc/conform.nvim",
     opts = function(_, opts)
       return require("configs.conform").config(opts)
