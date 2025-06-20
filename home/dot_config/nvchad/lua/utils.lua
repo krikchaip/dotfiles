@@ -39,8 +39,7 @@ Tabufline = {
     require("nvchad.tabufline").move_buf(-1)
   end,
   Close = function()
-    local ok = pcall(require("nvchad.tabufline").close_buffer)
-    if not ok then vim.cmd "bd" end
+    pcall(require("nvchad.tabufline").close_buffer)
   end,
   CloseAll = function()
     require("nvchad.tabufline").closeAllBufs(true)
