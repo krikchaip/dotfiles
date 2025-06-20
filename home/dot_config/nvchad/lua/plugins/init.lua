@@ -109,4 +109,6 @@ return {
     event = "User FilePost",
     opts = { opts = { enable_close_on_slash = true } },
   },
+
+  { "folke/which-key.nvim", event = "VeryLazy" },
 }
