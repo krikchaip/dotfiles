@@ -74,6 +74,7 @@ alias sks = skhd --start-service
 
 # neovim
 alias nv = nvim
+alias nvc = env NVIM_APPNAME=nvchad nvim
 
 # tmux
 alias t = tmux
