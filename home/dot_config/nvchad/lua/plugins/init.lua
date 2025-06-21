@@ -42,7 +42,6 @@ return {
 
   {
     "rmagatti/goto-preview",
-    event = "BufEnter",
     config = function()
       require("configs.goto-preview").setup()
     end,
