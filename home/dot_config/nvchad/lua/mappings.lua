@@ -114,7 +114,7 @@ map("n", ">", Tabufline.Next, { desc = "Buffer: Goto Next" })
 map("n", "<M-S-,>", Tabufline.MoveLeft, { desc = "Buffer: Move Left" })
 map("n", "<M-S-.>", Tabufline.MoveRight, { desc = "Buffer: Move Right" })
 map("n", "q", Tabufline.Close, { desc = "Buffer: Close Current" })
-map("n", "Q", Tabufline.CloseAll, { desc = "Buffer: Close All" })
+map("n", "<M-q>", Tabufline.CloseAll, { desc = "Buffer: Close All" })
 
 for i = 1, 9, 1 do
   local key = string.format("<M-%s>", i)
@@ -134,6 +134,7 @@ map("n", "<Tab>", "<cmd>wincmd p<CR>", { desc = "Window: Focus Previously Active
 map("n", "<C-w>n", "<cmd>vnew<CR>", { desc = "Window: Split Empty Vertically" })
 map("n", "<C-w><C-n>", "<cmd>vnew<CR>", { desc = "Window: Split Empty Vertically" })
 map("n", "<C-w>N", "<cmd>new<CR>", { desc = "Window: Split Empty Horizontally" })
+map("n", "Q", "<cmd>wincmd q<CR>", { desc = "Window: Close Current" })
 
 -- tabpage management
 map("n", "<C-Left>", "<cmd>tabprevious<CR>", { desc = "Tab: Go to Previous" })
