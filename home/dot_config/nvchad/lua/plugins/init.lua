@@ -8,6 +8,11 @@ return {
   },
 
   {
+    "bfontaine/Brewfile.vim",
+    event = { "BufReadPre *Brewfile", "BufNewFile *Brewfile" },
+  },
+
+  {
     "alker0/chezmoi.vim",
     lazy = false,
     init = function()
