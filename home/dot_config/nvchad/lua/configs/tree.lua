@@ -187,7 +187,7 @@ M.search_node = function()
     local filepath = vim.fs.joinpath(selection.cwd, filename)
 
     require("telescope.actions").close(prompt_bufnr)
-    require("nvim-tree.api").tree.find_file { buf = filepath, open = true, focus = true }
+    require("nvim-tree.api").tree.find_file { buf = filepath }
   end
 
   require("telescope.builtin").find_files {
