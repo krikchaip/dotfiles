@@ -77,6 +77,7 @@ end
 
 M.on_attach = function(bufnr)
   local api = require "nvim-tree.api"
+  local preview = require "configs.tree-preview"
 
   local tree = api.tree
   local node = api.node
@@ -111,8 +112,12 @@ M.on_attach = function(bufnr)
   map("n", "x", node.open.horizontal, opts "Open: Horizontal Split")
   map("n", "v", node.open.vertical, opts "Open: Vertical Split")
   map("n", "t", node.open.tab, opts "Open: New Tab")
-  map("n", "p", node.open.preview, opts "Open: Preview Node")
   map("n", "i", node.show_info_popup, opts "Open: Node Info")
+
+  -- preview
+  map("n", "p", preview.toggle, opts "Preview: Toggle")
+  map("n", "<M-d>", preview.scroll_down, opts "Preview: Scroll Down")
+  map("n", "<M-u>", preview.scroll_up, opts "Preview: Scroll Up")
 
   -- navigation
   map("n", "h", node.navigate.parent, opts "Navigate: Parent Directory")
@@ -175,8 +180,6 @@ M.search_node = function()
 
   table.insert(find_command, "--type")
   table.insert(find_command, "directory")
-
-  vim.print(find_command)
 
   local function select_default(prompt_bufnr)
     local selection = require("telescope.actions.state").get_selected_entry()

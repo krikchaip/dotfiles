@@ -111,7 +111,15 @@ return {
   { "benfowler/telescope-luasnip.nvim" },
 
   {
+    "b0o/nvim-tree-preview.lua",
+    opts = function(_, opts)
+      require("configs.tree-preview").config(opts)
+    end,
+  },
+
+  {
     "nvim-tree/nvim-tree.lua",
+    dependencies = { "b0o/nvim-tree-preview.lua" },
     config = function(_, opts)
       require("configs.tree").setup(opts)
     end,
