@@ -112,8 +112,8 @@ return {
 
   {
     "b0o/nvim-tree-preview.lua",
-    opts = function(_, opts)
-      require("configs.tree-preview").config(opts)
+    config = function(_, opts)
+      require("configs.tree-preview").setup(opts)
     end,
   },
 
