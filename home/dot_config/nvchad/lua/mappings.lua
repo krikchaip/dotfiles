@@ -33,10 +33,10 @@ map({ "i", "c", "n" }, "<M-Left>", "<S-Left>", { desc = "Cursor: Next Word" })
 map({ "i", "c", "n" }, "<M-Right>", "<S-Right>", { desc = "Cursor: Previous Word" })
 
 -- horizontal scrolling
-map({ "n", "x" }, "H", "zH", { desc = "Scroll: Half Page Left" })
-map({ "n", "x" }, "L", "zL", { desc = "Scroll: Half Page Right" })
-map({ "n", "x" }, "<M-h>", "zh", { desc = "Scroll: Left" })
-map({ "n", "x" }, "<M-l>", "zl", { desc = "Scroll: Right" })
+map({ "n", "x" }, "H", "zh", { desc = "Scroll: Left" })
+map({ "n", "x" }, "L", "zl", { desc = "Scroll: Right" })
+map({ "n", "x" }, "<M-h>", "zH", { desc = "Scroll: Half Page Left" })
+map({ "n", "x" }, "<M-l>", "zL", { desc = "Scroll: Half Page Right" })
 
 -- vertical scrolling
 map({ "n", "x" }, "<C-Down>", "<PageDown>M", { desc = "Scroll: Full Page Down" })
