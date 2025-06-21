@@ -28,13 +28,41 @@ M.post_open_hook = function(bufnr, winnr)
     return { buffer = bufnr, desc = "Preview: " .. desc }
   end
 
-  map("n", "q", "<cmd>wincmd q<CR>", opts "Close Current")
-  map("n", "Q", "<cmd>lua require('goto-preview').close_all_win()<CR>", opts "Close All")
+  M.map {
+    { "n", "q", M.close, opts "Close Current" },
+    { "n", "Q", M.close_all, opts "Close All" },
 
-  map("n", "<CR>", M.open_preview(winnr, "default"), opts "Open Buffer")
-  map("n", "<C-x>", M.open_preview(winnr, "horizontal"), opts "Split Horizontally")
-  map("n", "<C-v>", M.open_preview(winnr, "vertical"), opts "Split Vertically")
-  map("n", "<C-t>", M.open_preview(winnr, "tab"), opts "Open in a new Tab")
+    { "n", "<CR>", M.open_preview(winnr, "default"), opts "Open Buffer" },
+    { "n", "<C-x>", M.open_preview(winnr, "horizontal"), opts "Split Horizontally" },
+    { "n", "<C-v>", M.open_preview(winnr, "vertical"), opts "Split Vertically" },
+    { "n", "<C-t>", M.open_preview(winnr, "tab"), opts "Open in a new Tab" },
+  }
+end
+
+M.map = function(mappings)
+  local function once(fn)
+    return function()
+      local buf = get_buf()
+
+      for _, args in ipairs(mappings) do
+        nomap(buf, args[1], args[2])
+      end
+
+      fn()
+    end
+  end
+
+  for _, args in ipairs(mappings) do
+    map(args[1], args[2], once(args[3]), args[4])
+  end
+end
+
+M.close = function()
+  vim.cmd "wincmd q"
+end
+
+M.close_all = function()
+  require("goto-preview").close_all_win()
 end
 
 -- Open preview window using telescope-esque bindings
@@ -58,16 +86,6 @@ M.open_preview = function(preview_win, type)
 
     close_win(preview_win, gtp.conf.force_close)
     M.open_file(orig_window, filename, cursor_position, command)
-
-    local buffer = get_buf()
-
-    nomap(buffer, "n", "q")
-    nomap(buffer, "n", "Q")
-
-    nomap(buffer, "n", "<CR>")
-    nomap(buffer, "n", "<C-x>")
-    nomap(buffer, "n", "<C-v>")
-    nomap(buffer, "n", "<C-t>")
   end
 end
 
