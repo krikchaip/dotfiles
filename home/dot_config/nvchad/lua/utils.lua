@@ -118,7 +118,7 @@ Diagnostic = {
     require("telescope.builtin").diagnostics(require("telescope.themes").get_ivy { bufnr = 0 })
   end,
   Workspace = function()
-    require("telescope.builtin").diagnostics(require("telescope.themes").get_ivy {})
+    require("telescope.builtin").diagnostics(require("telescope.themes").get_ivy { no_unlisted = true })
   end,
 }
 
