@@ -14,6 +14,7 @@ M.config = function(opts)
   opts.zindex = 10
   opts.vim_ui_input = false
 
+  opts.lsp_configs = { get_config = M.get_config }
   opts.post_open_hook = M.post_open_hook
 
   return opts
@@ -21,6 +22,20 @@ end
 
 M.setup = function()
   require("goto-preview").setup(M.config {})
+end
+
+M.get_config = function(data)
+  local uri, range
+
+  if data.params then
+    uri = data.params.textDocument.uri
+    range = data.params.position
+  else
+    uri = data.targetUri or data.uri
+    range = (data.targetRange or data.range).start
+  end
+
+  return uri, { range.line + 1, range.character }
 end
 
 M.post_open_hook = function(bufnr, winnr)
