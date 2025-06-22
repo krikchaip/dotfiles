@@ -1,6 +1,6 @@
 local M = {}
 
-M.move = function(opts)
+M.config = function(opts)
   opts.mappings = {
     -- visual mode
     left = "<M-S-Left>",
