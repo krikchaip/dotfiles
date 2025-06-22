@@ -66,7 +66,7 @@ Term = {
 
 Telescope = {
   Grep = function()
-    vim.cmd "Telescope grep_string prompt_title=Grep search="
+    require("configs.telescope").grep()
   end,
   Dotfiles = function()
     vim.cmd "Telescope find_files prompt_title=Dotfiles cwd=~/.local/share/chezmoi"

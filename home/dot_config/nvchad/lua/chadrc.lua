@@ -24,7 +24,7 @@ M.nvdash = {
     { txt = "󰾩  Restore Session", keys = "r", cmd = "PossessionLoadCwd" },
     { txt = "  Find File", keys = "f", cmd = "Telescope find_files" },
     { txt = "  Recent Files", keys = "o", cmd = "Telescope oldfiles only_cwd=true" },
-    { txt = "󰈭  Find Word", keys = "g", cmd = "Telescope live_grep" },
+    { txt = "󰈭  Find Word", keys = "g", cmd = ":lua require('configs.telescope').grep()" },
     { txt = "󱥚  Themes", keys = "t", cmd = ":lua require('nvchad.themes').open()" },
     { txt = "  Mappings", keys = "m", cmd = "Telescope keymaps" },
     { txt = "─", hl = "NvDashFooter", no_gap = true, rep = true },

@@ -120,4 +120,13 @@ M.vimgrep_arguments = function()
   return args
 end
 
+M.grep = function(opts)
+  opts = opts or {}
+
+  opts.prompt_title = opts.prompt_title or "Grep"
+  opts.search = opts.search or ""
+
+  require("telescope.builtin").grep_string(opts)
+end
+
 return M
