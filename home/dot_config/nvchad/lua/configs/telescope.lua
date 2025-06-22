@@ -59,6 +59,14 @@ M.config = function(opts)
       find_command = { "fd", "--type", "file", "--hidden", "--exclude", "**/.git/*" },
     },
 
+    grep_string = {
+      mappings = {
+        i = {
+          ["<M-s>"] = M.scope_search,
+        },
+      },
+    },
+
     buffers = {
       ignore_current_buffer = true,
       sort_lastused = true,
@@ -125,6 +133,7 @@ M.grep = function(opts)
 
   opts.prompt_title = opts.prompt_title or "Grep"
   opts.search = opts.search or ""
+  opts.only_sort_text = true
 
   require("telescope.builtin").grep_string(opts)
 end
@@ -136,6 +145,52 @@ M.dotfiles = function(opts)
   opts.cwd = "~/.local/share/chezmoi"
 
   require("telescope.builtin").find_files(opts)
+end
+
+M.scope_search = function(prompt_bufnr)
+  local input = require("telescope.actions.state").get_current_line()
+
+  local cwd = vim.uv.cwd()
+  local find_command = M.config().pickers.find_files.find_command
+
+  table.remove(find_command, 3)
+  table.insert(find_command, 3, "directory")
+
+  local function select_default(inner_prompt_bufnr)
+    local picker = require("telescope.actions.state").get_current_picker(inner_prompt_bufnr)
+    local selection = picker:get_multi_selection()
+
+    local dirs = {}
+
+    if vim.tbl_isempty(selection) then
+      local entry = require("telescope.actions.state").get_selected_entry().value
+      table.insert(dirs, entry)
+    else
+      for _, s in ipairs(selection) do
+        table.insert(dirs, s.value)
+      end
+    end
+
+    require("telescope.actions").close(inner_prompt_bufnr)
+
+    M.grep {
+      prompt_title = string.format("Grep Under (%s)", table.concat(dirs, ", ")),
+      default_text = input,
+      search_dirs = dirs,
+    }
+  end
+
+  require("telescope.actions").close(prompt_bufnr)
+
+  require("telescope.builtin").find_files {
+    prompt_title = "Scope Search",
+    cwd = cwd,
+    find_command = find_command,
+    attach_mappings = function(_, map)
+      map("i", "<CR>", select_default)
+      return true
+    end,
+  }
 end
 
 return M
