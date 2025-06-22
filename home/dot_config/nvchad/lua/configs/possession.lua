@@ -10,6 +10,7 @@ M.config = function(opts)
   opts.hooks = {
     after_load = function()
       vim.cmd "let @/=''"
+      vim.cmd "silent! argdelete"
     end,
   }
 
