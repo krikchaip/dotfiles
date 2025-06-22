@@ -174,7 +174,7 @@ map("n", "<leader>o", "<cmd>Telescope oldfiles only_cwd=true<CR>", { desc = "Sea
 map("n", "<leader>;", "<cmd>Telescope command_history<CR>", { desc = "Search: Command History" })
 map("n", "<leader>f", "<cmd>Telescope find_files<CR>", { desc = "Search: Files" })
 map("n", "<leader>/", "<cmd>Telescope current_buffer_fuzzy_find<CR>", { desc = "Search: Current Buffer" })
-map("n", "<leader>G", "<cmd>Telescope live_grep<CR>", { desc = "Search: Live Grep" })
+map("n", "<leader>G", Telescope.Grep, { desc = "Search: Grep" })
 map({ "n", "x" }, "<leader>*", "<cmd>Telescope grep_string<CR>", { desc = "Search: Grep Current Selection" })
 map({ "n", "i" }, "<M-\\>", "<cmd>Telescope luasnip<CR>", { desc = "Search: Snippets" })
 
