@@ -13,6 +13,7 @@ M.config = function(opts)
     "bash",
     "nu",
     "tmux",
+    "make",
 
     "lua",
     "luadoc",
