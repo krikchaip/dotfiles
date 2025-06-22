@@ -31,16 +31,11 @@ end
 M.toggle = vim.schedule_wrap(function()
   local preview = require "nvim-tree-preview"
 
-  local notify = vim.notify
-  vim.notify = function() end
-
   if not preview.is_watching() then
     preview.watch()
   else
     preview.unwatch()
   end
-
-  vim.notify = notify
 end)
 
 M.scroll_down = function()

@@ -14,6 +14,9 @@ M.notifier_filter = function(notif)
   -- temporary fix for https://github.com/mfussenegger/nvim-lint/issues/744
   if notif.msg:find "`golangci%-lint` exited with code: 5" then return false end
 
+  -- a quick hack to mute tree_preview.toggle()
+  if notif.msg:find "current buffer is not NvimTree" then return false end
+
   return true
 end
 
