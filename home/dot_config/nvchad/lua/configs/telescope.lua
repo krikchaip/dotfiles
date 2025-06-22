@@ -129,4 +129,13 @@ M.grep = function(opts)
   require("telescope.builtin").grep_string(opts)
 end
 
+M.dotfiles = function(opts)
+  opts = opts or {}
+
+  opts.prompt_title = opts.prompt_title or "Dotfiles"
+  opts.cwd = "~/.local/share/chezmoi"
+
+  require("telescope.builtin").find_files(opts)
+end
+
 return M
