@@ -78,16 +78,16 @@ LSP = {
     vim.lsp.buf.hover { silent = true, border = "single", max_width = 90 }
   end,
   Definition = function()
-    vim.cmd "lua require('goto-preview').goto_preview_definition()"
+    vim.schedule(require("goto-preview").goto_preview_definition)
   end,
   Declaration = function()
-    vim.cmd "lua require('goto-preview').goto_preview_declaration()"
+    vim.schedule(require("goto-preview").goto_preview_declaration)
   end,
   Implementation = function()
-    vim.cmd "lua require('goto-preview').goto_preview_implementation()"
+    vim.schedule(require("goto-preview").goto_preview_implementation)
   end,
   Typedef = function()
-    vim.cmd "lua require('goto-preview').goto_preview_type_definition()"
+    vim.schedule(require("goto-preview").goto_preview_type_definition)
   end,
   Rename = function()
     require "nvchad.lsp.renamer"()
