@@ -88,6 +88,15 @@ return {
   },
 
   {
+    "echasnovski/mini.move",
+    version = "*",
+    event = "User FilePost",
+    opts = function(_, opts)
+      return require("configs.mini").move(opts)
+    end,
+  },
+
+  {
     "jedrzejboczar/possession.nvim",
     cmd = { "PossessionLoad", "PossessionLoadCwd" },
     opts = function(_, opts)
