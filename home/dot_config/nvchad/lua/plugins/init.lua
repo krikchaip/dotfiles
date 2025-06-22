@@ -97,6 +97,13 @@ return {
   },
 
   {
+    "echasnovski/mini.splitjoin",
+    version = "*",
+    event = "User FilePost",
+    opts = { mappings = { toggle = "gs" } },
+  },
+
+  {
     "jedrzejboczar/possession.nvim",
     cmd = { "PossessionLoad", "PossessionLoadCwd" },
     opts = function(_, opts)
