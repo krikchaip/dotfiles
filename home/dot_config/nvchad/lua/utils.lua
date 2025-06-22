@@ -149,6 +149,9 @@ Explorer = {
     if vim.g.auto_reveal then require("nvim-tree.api").tree.find_file() end
     vim.notify(string.format("auto_reveal: %s", vim.g.auto_reveal))
   end,
+  Mini = function()
+    require("mini.files").open()
+  end,
 }
 
 Git = {

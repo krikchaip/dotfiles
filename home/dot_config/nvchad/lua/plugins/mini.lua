@@ -35,4 +35,12 @@ return {
     event = "User FilePost",
     opts = {},
   },
+
+  {
+    "echasnovski/mini.files",
+    version = "*",
+    config = function(_, opts)
+      require("configs.mini.files").setup(opts)
+    end,
+  },
 }
