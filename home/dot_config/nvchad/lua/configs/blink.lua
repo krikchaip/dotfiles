@@ -13,6 +13,17 @@ M.config = function(opts)
     },
   }
 
+  opts.keymap["<Tab>"] = { "snippet_forward", "fallback" }
+  opts.keymap["<S-Tab>"] = { "snippet_backward", "fallback" }
+
+  opts.cmdline.keymap = {
+    ["<S-Tab>"] = false,
+    ["<C-e>"] = false,
+
+    ["<Tab>"] = { "show_and_insert", "accept" },
+    ["<C-Space>"] = { "show", "hide" },
+  }
+
   return opts
 end
 
