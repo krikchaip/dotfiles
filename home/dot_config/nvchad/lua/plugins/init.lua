@@ -104,6 +104,13 @@ return {
   },
 
   {
+    "echasnovski/mini.surround",
+    version = "*",
+    event = "User FilePost",
+    opts = {},
+  },
+
+  {
     "jedrzejboczar/possession.nvim",
     cmd = { "PossessionLoad", "PossessionLoadCwd" },
     opts = function(_, opts)
