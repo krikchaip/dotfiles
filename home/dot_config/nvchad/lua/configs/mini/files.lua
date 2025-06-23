@@ -53,6 +53,8 @@ M.on_attach = function(bufnr)
 
   map("n", "<S-Right>", MiniFiles.go_in, opts "Go in entry (Arrow)")
   map("n", "<Right>", M.go_in_plus, opts "Go in entry plus (Arrow)")
+  map("n", "<S-Enter>", MiniFiles.go_in, opts "Go in entry (Enter)")
+  map("n", "<Enter>", M.go_in_plus, opts "Go in entry plus (Enter)")
   map("n", "h", M.go_out_plus, opts "Go out of directory plus")
   map("n", "<Left>", M.go_out_plus, opts "Go out of directory plus (Arrow)")
   map("n", "<BS>", M.reset, opts "Reset")
