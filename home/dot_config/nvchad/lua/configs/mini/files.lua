@@ -31,21 +31,39 @@ end
 M.setup = function(opts)
   require("mini.files").setup(M.config(opts))
 
+  autocmd("User", {
+    group = augroup("mini-files.mappings", { clear = true }),
+    pattern = "MiniFilesBufferCreate",
+    callback = function(args)
+      M.on_attach(args.data.buf_id)
+    end,
+  })
+
   -- Snacks.rename integration for mini.files
   -- ref: https://github.com/folke/snacks.nvim/blob/main/docs/rename.md#minifiles
   autocmd("User", {
-    group = augroup("mini-files.integration", { clear = true }),
+    group = augroup("mini-files.rename", { clear = true }),
     pattern = "MiniFilesActionRename",
     callback = function(args)
       Snacks.rename.on_rename_file(args.data.from, args.data.to)
     end,
   })
 
+  -- Snacks.image integration for mini.files preview window
   autocmd("User", {
-    group = augroup("mini-files.mappings", { clear = true }),
-    pattern = "MiniFilesBufferCreate",
+    group = augroup("mini-files.image", { clear = true }),
+    pattern = "MiniFilesWindowUpdate",
     callback = function(args)
-      M.on_attach(args.data.buf_id)
+      local bufnr, winnr = args.data.buf_id, args.data.win_id
+      local bufname = vim.api.nvim_buf_get_name(bufnr)
+      local filepath = bufname:match "^minifiles://%d+/(/.+)$"
+
+      if Snacks.image.supports(filepath) then
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+        vim.api.nvim_win_set_height(winnr, 15)
+
+        Snacks.image.placement.new(bufnr, filepath, { inline = true })
+      end
     end,
   })
 end
