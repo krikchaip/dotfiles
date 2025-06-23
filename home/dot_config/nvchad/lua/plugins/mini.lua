@@ -39,6 +39,7 @@ return {
   {
     "echasnovski/mini.files",
     version = "*",
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function(_, opts)
       require("configs.mini.files").setup(opts)
     end,

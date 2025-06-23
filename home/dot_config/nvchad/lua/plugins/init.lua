@@ -103,6 +103,7 @@ return {
 
   {
     "b0o/nvim-tree-preview.lua",
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function(_, opts)
       require("configs.tree-preview").setup(opts)
     end,
