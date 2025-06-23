@@ -5,6 +5,10 @@ local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
 M.config = function(opts)
+  opts.content = {
+    sort = M.gitignore,
+  }
+
   opts.mappings = {
     go_in = "L",
     go_in_plus = "l",
@@ -103,6 +107,37 @@ end
 M.reset = function()
   MiniFiles.reset()
   MiniFiles.reveal_cwd()
+end
+
+-- gitignore filter
+-- ref: https://www.reddit.com/r/neovim/comments/17v3vec/has_anybody_setup_gitignore_filter_for_minifiles
+M.gitignore = function(entries)
+  local paths = vim.tbl_map(function(e)
+    return e.path
+  end, entries)
+
+  local command = { "git", "check-ignore", "--stdin" }
+  local stdin = table.concat(paths, "\n")
+  local output = {}
+
+  local process = vim.fn.jobstart(command, {
+    stdout_buffered = true,
+    on_stdout = function(_, data)
+      output = data
+    end,
+  })
+
+  -- command failed to run
+  if process < 1 then return entries end
+
+  -- send paths via STDIN
+  vim.fn.chansend(process, stdin)
+  vim.fn.chanclose(process, "stdin")
+  vim.fn.jobwait { process }
+
+  return MiniFiles.default_sort(vim.tbl_filter(function(e)
+    return not vim.tbl_contains(output, e.path)
+  end, entries))
 end
 
 return M
