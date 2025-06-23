@@ -48,6 +48,7 @@ M.on_attach = function(bufnr)
     return { desc = desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
   end
 
+  map("n", "h", M.go_out_plus, opts "Go out of directory plus")
   map("n", "<BS>", M.reset, opts "Reset")
 end
 
@@ -68,6 +69,16 @@ M.open = function()
   else
     MiniFiles.open(nil, false)
   end
+end
+
+M.go_out_plus = function()
+  local path = (MiniFiles.get_fs_entry() or {}).path
+
+  if path == nil then return end
+  if vim.fs.dirname(path) == vim.uv.cwd() then return end
+
+  MiniFiles.go_out()
+  MiniFiles.trim_right()
 end
 
 M.reset = function()
