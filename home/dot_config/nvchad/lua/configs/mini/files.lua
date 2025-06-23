@@ -4,6 +4,13 @@ local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
 M.config = function(opts)
+  opts.mappings = {
+    go_in = "L",
+    go_in_plus = "l",
+    go_out = "",
+    go_out_plus = "h",
+  }
+
   opts.windows = {
     preview = true,
     width_focus = 30,
