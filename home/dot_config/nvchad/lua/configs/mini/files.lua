@@ -48,7 +48,13 @@ M.on_attach = function(bufnr)
     return { desc = desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
   end
 
+  map("n", "<Up>", "<Up>", opts())
+  map("n", "<Down>", "<Down>", opts())
+
+  map("n", "<S-Right>", MiniFiles.go_in, opts "Go in entry (Arrow)")
+  map("n", "<Right>", M.go_in_plus, opts "Go in entry plus (Arrow)")
   map("n", "h", M.go_out_plus, opts "Go out of directory plus")
+  map("n", "<Left>", M.go_out_plus, opts "Go out of directory plus (Arrow)")
   map("n", "<BS>", M.reset, opts "Reset")
 end
 
@@ -69,6 +75,10 @@ M.open = function()
   else
     MiniFiles.open(nil, false)
   end
+end
+
+M.go_in_plus = function()
+  MiniFiles.go_in { close_on_file = true }
 end
 
 M.go_out_plus = function()
