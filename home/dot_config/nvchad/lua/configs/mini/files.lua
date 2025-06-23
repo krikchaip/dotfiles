@@ -66,15 +66,22 @@ M.open = function()
   local buf_name = vim.api.nvim_buf_get_name(0)
   local dir_name = vim.fn.fnamemodify(buf_name, ":p:h")
 
-  if vim.fn.filereadable(buf_name) == 1 then
+  local root = vim.uv.cwd()
+  local in_root = buf_name:sub(1, #root) == root
+
+  if in_root and vim.fn.filereadable(buf_name) == 1 then
     MiniFiles.open(buf_name, false)
     MiniFiles.reveal_cwd()
-  elseif vim.fn.isdirectory(dir_name) == 1 then
+  elseif in_root and vim.fn.isdirectory(dir_name) == 1 then
     MiniFiles.open(dir_name, false)
     MiniFiles.reveal_cwd()
   else
-    MiniFiles.open(nil, false)
+    M.open_root()
   end
+end
+
+M.open_root = function()
+  require("mini.files").open()
 end
 
 M.go_in_plus = function()

@@ -152,6 +152,9 @@ Explorer = {
   Mini = function()
     require("configs.mini.files").open()
   end,
+  MiniRoot = function()
+    require("configs.mini.files").open_root()
+  end,
 }
 
 Git = {
