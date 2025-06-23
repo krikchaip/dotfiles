@@ -4,8 +4,8 @@ local map = vim.keymap.set
 local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
----@type table<string,boolean>|nil
-local ignored = nil
+---@type table<string,table<string,boolean>>
+local ignored = {}
 
 M.config = function(opts)
   opts.content = {
@@ -118,10 +118,7 @@ M.reset = function()
 end
 
 M.sync = function()
-  if not MiniFiles.synchronize() then return end
-
-  ---@diagnostic disable-next-line: lowercase-global
-  output = nil
+  if MiniFiles.synchronize() then ignored = {} end
 end
 
 M.split = function(direction)
@@ -167,16 +164,22 @@ end
 -- gitignore filter
 -- ref: https://www.reddit.com/r/neovim/comments/17v3vec/has_anybody_setup_gitignore_filter_for_minifiles
 M.gitignore = function(entries)
-  if ignored == nil then
+  local entry = entries[1]
+  local modifier = entry.fs_type == "file" and ":p:h" or ":h"
+  local dir_name = vim.fn.fnamemodify(entry.path, modifier)
+
+  if ignored[dir_name] == nil then
     local paths = vim.tbl_map(function(e)
       return e.path
     end, entries)
 
-    ignored = Git.CheckIgnore(paths)
+    ignored[dir_name] = Git.CheckIgnore(paths)
   end
 
-  return function(entry)
-    return not ignored[entry.path]
+  return function(e)
+    local mod = e.fs_type == "file" and ":p:h" or ":h"
+    local parent = vim.fn.fnamemodify(e.path, mod)
+    return ignored[parent] == nil or not ignored[parent][e.path]
   end
 end
 
