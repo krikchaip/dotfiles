@@ -1,11 +1,30 @@
 local M = {}
 
+local autocmd = vim.api.nvim_create_autocmd
+local augroup = vim.api.nvim_create_augroup
+
 M.config = function(opts)
+  opts.windows = {
+    preview = true,
+    width_focus = 30,
+    width_preview = 60,
+  }
+
   return opts
 end
 
 M.setup = function(opts)
   require("mini.files").setup(M.config(opts))
+
+  -- Snacks.rename integration for mini.files
+  -- ref: https://github.com/folke/snacks.nvim/blob/main/docs/rename.md#minifiles
+  autocmd("User", {
+    group = augroup("mini-files.integration", { clear = true }),
+    pattern = "MiniFilesActionRename",
+    callback = function(args)
+      Snacks.rename.on_rename_file(args.data.from, args.data.to)
+    end,
+  })
 end
 
 return M
