@@ -4,10 +4,12 @@ local map = vim.keymap.set
 local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
+---@type table<string,boolean>|nil
+local ignored = nil
+
 M.config = function(opts)
   opts.content = {
-    filter = M.combine_filters { M.exclude "/%.git$" },
-    sort = M.gitignore,
+    sort = M.sorter,
   }
 
   opts.mappings = {
@@ -63,6 +65,7 @@ M.on_attach = function(bufnr)
   map("n", "h", M.go_out_plus, opts "Go out of directory plus")
   map("n", "<Left>", M.go_out_plus, opts "Go out of directory plus (Arrow)")
   map("n", "<BS>", M.reset, opts "Reset")
+  map("n", "=", M.sync, opts "Synchronize")
 end
 
 -- open and select the current buffer in mini files
@@ -110,17 +113,45 @@ M.reset = function()
   MiniFiles.reveal_cwd()
 end
 
+M.sync = function()
+  if not MiniFiles.synchronize() then return end
+
+  ---@diagnostic disable-next-line: lowercase-global
+  output = nil
+end
+
+M.sorter = function(entries)
+  local filters = M.combine_filters { M.gitignore(entries), M.exclude "%.git$" }
+  entries = vim.tbl_filter(filters, entries)
+
+  return MiniFiles.default_sort(entries)
+end
+
 M.combine_filters = function(...)
   local filters = ...
 
   return function(entry)
-    local include = true
-
     for _, f in ipairs(filters) do
-      include = include and f(entry)
+      if not f(entry) then return false end
     end
 
-    return include
+    return true
+  end
+end
+
+-- gitignore filter
+-- ref: https://www.reddit.com/r/neovim/comments/17v3vec/has_anybody_setup_gitignore_filter_for_minifiles
+M.gitignore = function(entries)
+  if ignored == nil then
+    local paths = vim.tbl_map(function(e)
+      return e.path
+    end, entries)
+
+    ignored = Git.CheckIgnore(paths)
+  end
+
+  return function(entry)
+    return not ignored[entry.path]
   end
 end
 
@@ -128,37 +159,6 @@ M.exclude = function(pattern)
   return function(entry)
     return entry.path:find(pattern) == nil
   end
-end
-
--- gitignore filter
--- ref: https://www.reddit.com/r/neovim/comments/17v3vec/has_anybody_setup_gitignore_filter_for_minifiles
-M.gitignore = function(entries)
-  local paths = vim.tbl_map(function(e)
-    return e.path
-  end, entries)
-
-  local command = { "git", "check-ignore", "--stdin" }
-  local stdin = table.concat(paths, "\n")
-  local output = {}
-
-  local process = vim.fn.jobstart(command, {
-    stdout_buffered = true,
-    on_stdout = function(_, data)
-      output = data
-    end,
-  })
-
-  -- command failed to run
-  if process < 1 then return entries end
-
-  -- send paths via STDIN
-  vim.fn.chansend(process, stdin)
-  vim.fn.chanclose(process, "stdin")
-  vim.fn.jobwait { process }
-
-  return MiniFiles.default_sort(vim.tbl_filter(function(e)
-    return not vim.tbl_contains(output, e.path)
-  end, entries))
 end
 
 return M
