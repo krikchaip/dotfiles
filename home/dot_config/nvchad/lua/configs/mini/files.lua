@@ -72,9 +72,13 @@ M.on_attach = function(bufnr)
   map("n", "<C-t>", M.split "tab", opts "Split tab")
 end
 
+M.open = function()
+  require("mini.files").open()
+end
+
 -- open and select the current buffer in mini files
 -- ref: https://github.com/linkarzu/dotfiles-latest/blob/main/neovim/neobean/lua/plugins/mini-files.lua#L87-L100
-M.open = function()
+M.open_reveal = function()
   local MiniFiles = require "mini.files"
 
   local buf_name = vim.api.nvim_buf_get_name(0)
@@ -92,10 +96,6 @@ M.open = function()
   else
     M.open_root()
   end
-end
-
-M.open_root = function()
-  require("mini.files").open()
 end
 
 M.go_in_plus = function()

@@ -217,7 +217,7 @@ map("n", "<M-S-e>", Explorer.Toggle, { desc = "Explorer: Toggle" })
 map("n", "<M-r>", Explorer.Reveal, { desc = "Explorer: Reveal File" })
 map("n", "<M-S-r>", Explorer.RevealToggle, { desc = "Explorer: Toggle Auto Reveal" })
 map("n", "<leader>e", Explorer.Mini, { desc = "Explorer: Open Mini" })
-map("n", "<leader>r", Explorer.MiniRoot, { desc = "Explorer: Open Mini at Root" })
+map("n", "<leader>r", Explorer.MiniReveal, { desc = "Explorer: Reveal File in Mini" })
 
 -- git (source control)
 map({ "n", "t" }, "<M-g>", Git.Status, { desc = "Git: Status" })

@@ -153,8 +153,8 @@ Explorer = {
   Mini = function()
     require("configs.mini.files").open()
   end,
-  MiniRoot = function()
-    require("configs.mini.files").open_root()
+  MiniReveal = function()
+    require("configs.mini.files").open_reveal()
   end,
 }
 
