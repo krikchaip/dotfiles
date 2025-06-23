@@ -7,6 +7,9 @@ local augroup = vim.api.nvim_create_augroup
 ---@type table<string,table<string,boolean>>
 local ignored = {}
 
+---@type table<string,string>
+local fs_type = {}
+
 M.config = function(opts)
   opts.content = {
     sort = M.sorter,
@@ -49,20 +52,33 @@ M.setup = function(opts)
     end,
   })
 
-  -- Snacks.image integration for mini.files preview window
   autocmd("User", {
-    group = augroup("mini-files.image", { clear = true }),
+    group = augroup("mini-files.preview", { clear = true }),
     pattern = "MiniFilesWindowUpdate",
     callback = function(args)
       local bufnr, winnr = args.data.buf_id, args.data.win_id
+
       local bufname = vim.api.nvim_buf_get_name(bufnr)
       local filepath = bufname:match "^minifiles://%d+/(/.+)$"
 
+      -- Snacks.image integration for mini.files preview window
+      -- ref: ChatGPT 🤪
       if Snacks.image.supports(filepath) then
         vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
         vim.api.nvim_win_set_height(winnr, 15)
 
         Snacks.image.placement.new(bufnr, filepath, { inline = true })
+
+        return
+      end
+
+      -- set preview window options
+      if M.fs_type(filepath) == "file" then
+        vim.bo[bufnr].buftype = "nowrite"
+        vim.wo[winnr].number = true
+        vim.wo[winnr].signcolumn = "yes"
+
+        return
       end
     end,
   })
@@ -91,7 +107,7 @@ M.on_attach = function(bufnr)
 end
 
 M.open = function()
-  require("mini.files").open()
+  require("mini.files").open(vim.uv.cwd(), true)
 end
 
 -- open and select the current buffer in mini files
@@ -112,7 +128,7 @@ M.open_reveal = function()
     MiniFiles.open(dir_name, false)
     MiniFiles.reveal_cwd()
   else
-    M.open_root()
+    M.open()
   end
 end
 
@@ -136,7 +152,7 @@ M.reset = function()
 end
 
 M.sync = function()
-  if MiniFiles.synchronize() then ignored = {} end
+  if MiniFiles.synchronize() then M.reset_cache() end
 end
 
 M.split = function(direction)
@@ -205,6 +221,21 @@ M.exclude = function(pattern)
   return function(entry)
     return entry.path:find(pattern) == nil
   end
+end
+
+M.reset_cache = function()
+  ignored = {}
+  fs_type = {}
+end
+
+M.fs_type = function(path)
+  local type = fs_type[path]
+  if type ~= nil then return type end
+
+  type = vim.uv.fs_stat(path).type
+  fs_type[path] = type
+
+  return type
 end
 
 return M
