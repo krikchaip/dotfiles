@@ -150,7 +150,7 @@ Explorer = {
     vim.notify(string.format("auto_reveal: %s", vim.g.auto_reveal))
   end,
   Mini = function()
-    require("mini.files").open()
+    require("configs.mini.files").open()
   end,
 }
 

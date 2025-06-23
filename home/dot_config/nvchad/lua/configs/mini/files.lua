@@ -27,4 +27,9 @@ M.setup = function(opts)
   })
 end
 
+M.open = function()
+  local MiniFiles = require "mini.files"
+  MiniFiles.open()
+end
+
 return M
