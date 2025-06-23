@@ -66,6 +66,10 @@ M.on_attach = function(bufnr)
   map("n", "<Left>", M.go_out_plus, opts "Go out of directory plus (Arrow)")
   map("n", "<BS>", M.reset, opts "Reset")
   map("n", "=", M.sync, opts "Synchronize")
+
+  map("n", "<C-x>", M.split "horizontal", opts "Split horizontally")
+  map("n", "<C-v>", M.split "vertical", opts "Split vertically")
+  map("n", "<C-t>", M.split "tab", opts "Split tab")
 end
 
 -- open and select the current buffer in mini files
@@ -118,6 +122,27 @@ M.sync = function()
 
   ---@diagnostic disable-next-line: lowercase-global
   output = nil
+end
+
+M.split = function(direction)
+  local direction_cmd = {
+    horizontal = "new",
+    vertical = "vnew",
+    tab = "tabedit",
+  }
+
+  return function()
+    local target = MiniFiles.get_explorer_state().target_window
+    local path = MiniFiles.get_fs_entry().path
+
+    target = vim.api.nvim_win_call(target, function()
+      vim.cmd(string.format("%s %s", direction_cmd[direction], path))
+      return vim.api.nvim_get_current_win()
+    end)
+
+    MiniFiles.set_target_window(target)
+    MiniFiles.go_in { close_on_file = true }
+  end
 end
 
 M.sorter = function(entries)
