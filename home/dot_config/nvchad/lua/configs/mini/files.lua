@@ -6,6 +6,7 @@ local augroup = vim.api.nvim_create_augroup
 
 M.config = function(opts)
   opts.content = {
+    filter = M.combine_filters { M.exclude "/%.git$" },
     sort = M.gitignore,
   }
 
@@ -107,6 +108,26 @@ end
 M.reset = function()
   MiniFiles.reset()
   MiniFiles.reveal_cwd()
+end
+
+M.combine_filters = function(...)
+  local filters = ...
+
+  return function(entry)
+    local include = true
+
+    for _, f in ipairs(filters) do
+      include = include and f(entry)
+    end
+
+    return include
+  end
+end
+
+M.exclude = function(pattern)
+  return function(entry)
+    return entry.path:find(pattern) == nil
+  end
 end
 
 -- gitignore filter
