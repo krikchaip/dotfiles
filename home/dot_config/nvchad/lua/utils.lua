@@ -6,6 +6,7 @@ vim.cmd [[
   endfunction
 ]]
 
+---@return string expr
 function MacroStartStop()
   if vim.fn.reg_recording() ~= "" then
     -- if still recording, then stop
@@ -208,6 +209,33 @@ Git = {
         require("gitsigns").nav_hunk(direction, { preview = false })
       end
     end
+  end,
+
+  ---@param paths string[]
+  ---@return table<string, boolean> ignored
+  CheckIgnore = function(paths)
+    local command = { "git", "check-ignore", "--stdin" }
+    local stdin = table.concat(paths, "\n")
+    local output = {}
+
+    local process = vim.fn.jobstart(command, {
+      stdout_buffered = true,
+      on_stdout = function(_, data)
+        for _, line in ipairs(data) do
+          output[line] = true
+        end
+      end,
+    })
+
+    -- command failed to run
+    if process < 1 then return {} end
+
+    -- send paths via STDIN
+    vim.fn.chansend(process, stdin)
+    vim.fn.chanclose(process, "stdin")
+    vim.fn.jobwait { process }
+
+    return output
   end,
 }
 
