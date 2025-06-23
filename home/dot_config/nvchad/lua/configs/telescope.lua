@@ -122,8 +122,18 @@ M.vimgrep_arguments = function()
   local args = require("telescope.config").values.vimgrep_arguments
 
   table.insert(args, "--hidden")
+
   table.insert(args, "--glob")
   table.insert(args, "!**/.git/*")
+
+  table.insert(args, "--glob")
+  table.insert(args, "!**/pnpm-lock.yaml")
+
+  table.insert(args, "--glob")
+  table.insert(args, "!**/yarn.lock")
+
+  table.insert(args, "--glob")
+  table.insert(args, "!**/package-lock.json")
 
   return args
 end
