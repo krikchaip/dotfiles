@@ -5,6 +5,7 @@ local M = {}
 M.config = function(opts)
   opts.image = { enabled = true }
   opts.notifier = { enabled = true, filter = M.notifier_filter }
+  opts.words = { enabled = true, debounce = 500, notify_end = false, modes = { "n", "i" } }
 
   return opts
 end

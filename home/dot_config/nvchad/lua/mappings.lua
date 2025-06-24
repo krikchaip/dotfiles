@@ -206,6 +206,8 @@ map("n", "gwa", LSP.WorkspaceAdd, { desc = "LSP: Add Workspace Folder" })
 map("n", "gwr", LSP.WorkspaceRemove, { desc = "LSP: Remove Workspace Folder" })
 map("n", "gwl", LSP.WorkspaceList, { desc = "LSP: List Workspace Folder" })
 map("i", "<C-s>", LSP.Signature, { desc = "LSP: Signature Help" })
+map({ "n", "i" }, "<M-n>", LSP.NextWord, { desc = "LSP: Next Highlighted Word" })
+map({ "n", "i" }, "<M-p>", LSP.PreviousWord, { desc = "LSP: Previous Highlighted Word" })
 
 -- diagnostic
 map("n", "<leader>d", Diagnostic.Buffer, { desc = "Diagnostic: Show Current Buffer" })

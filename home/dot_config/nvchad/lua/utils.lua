@@ -112,6 +112,12 @@ LSP = {
     -- ref: https://github.com/NvChad/ui/blob/v3.0/lua/nvchad/lsp/signature.lua#L28
     vim.lsp.buf.signature_help { silent = true, max_height = 7, border = "single" }
   end,
+  NextWord = function()
+    Snacks.words.jump(1, true)
+  end,
+  PreviousWord = function()
+    Snacks.words.jump(-1, true)
+  end,
 }
 
 Diagnostic = {
