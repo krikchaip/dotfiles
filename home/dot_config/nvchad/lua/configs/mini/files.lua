@@ -103,6 +103,7 @@ M.on_attach = function(bufnr)
   map("n", "<Left>", M.go_out_plus, opts "Go out of directory plus (Arrow)")
   map("n", "\\", "''", opts("Go to latest jump", { remap = true }))
   map("n", "<BS>", M.reset, opts "Reset")
+  map("n", "f", M.search_node, opts "Search node")
   map("n", "=", M.sync, opts "Synchronize")
 
   map("n", "<C-x>", M.split "horizontal", opts "Split horizontally")
@@ -153,6 +154,36 @@ end
 M.reset = function()
   MiniFiles.reset()
   MiniFiles.reveal_cwd()
+end
+
+M.search_node = function()
+  local cwd = vim.uv.cwd()
+  local find_command = require("configs.telescope").config().pickers.find_files.find_command
+
+  table.insert(find_command, "--type")
+  table.insert(find_command, "directory")
+
+  local function select_default(prompt_bufnr)
+    local selection = require("telescope.actions.state").get_selected_entry()
+    local filename = selection.value or selection.filename or selection[1]
+    local filepath = vim.fs.joinpath(selection.cwd, filename)
+
+    require("telescope.actions").close(prompt_bufnr)
+
+    require("mini.files").open(filepath, false)
+    require("mini.files").reveal_cwd()
+  end
+
+  require("mini.files").close()
+  require("telescope.builtin").find_files {
+    prompt_title = "Search Node",
+    cwd = cwd,
+    find_command = find_command,
+    attach_mappings = function(_, picker_map)
+      picker_map("i", "<CR>", select_default)
+      return true
+    end,
+  }
 end
 
 M.sync = function()
