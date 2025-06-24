@@ -171,12 +171,16 @@ M.search_node = function()
     local filepath = vim.fs.joinpath(selection.cwd, filename)
 
     require("telescope.actions").close(prompt_bufnr)
-
     require("mini.files").open(filepath, true)
-    require("mini.files").reveal_cwd()
+
+    M.reset()
 
     latest_path = filepath
   end
+
+  local function close(prompt_bufnr)
+    require("telescope.actions").close(prompt_bufnr)
+    require("mini.files").open(MiniFiles.get_latest_path(), true)
   end
 
   require("mini.files").close()
@@ -186,6 +190,8 @@ M.search_node = function()
     find_command = find_command,
     attach_mappings = function(_, picker_map)
       picker_map("i", "<CR>", select_default)
+      picker_map("i", "<ESC>", close)
+      picker_map("i", "<C-q>", close)
       return true
     end,
   }
