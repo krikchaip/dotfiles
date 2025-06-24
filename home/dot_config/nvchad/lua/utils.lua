@@ -239,6 +239,26 @@ Git = {
   end,
 }
 
+Session = {
+  Load = function()
+    local notify = vim.notify
+    vim.notify = function(msg, level)
+      local match_msg = msg:find "Cannot find last loaded cwd session" ~= nil
+      local match_level = level == vim.log.levels.ERROR
+
+      if match_msg and match_level then
+        vim.cmd "enew"
+      else
+        notify(msg, level)
+      end
+
+      vim.notify = notify
+    end
+
+    vim.cmd "PossessionLoadCwd"
+  end,
+}
+
 Notification = {
   Show = function()
     Snacks.notifier.show_history()

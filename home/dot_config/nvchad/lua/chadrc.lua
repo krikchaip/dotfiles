@@ -21,7 +21,7 @@ M.ui = {
 M.nvdash = {
   load_on_startup = true,
   buttons = {
-    { txt = "󰾩  Restore Session", keys = "r", cmd = "PossessionLoadCwd" },
+    { txt = "󰾩  Restore Session", keys = "r", cmd = ":lua Session.Load()" },
     { txt = "  Find File", keys = "f", cmd = "Telescope find_files" },
     { txt = "  Recent Files", keys = "o", cmd = "Telescope oldfiles only_cwd=true" },
     { txt = "󰈭  Find Word", keys = "g", cmd = ":lua require('configs.telescope').grep()" },
