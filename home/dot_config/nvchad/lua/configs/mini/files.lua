@@ -85,8 +85,11 @@ M.setup = function(opts)
 end
 
 M.on_attach = function(bufnr)
-  local function opts(desc)
-    return { desc = desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
+  local function opts(desc, more_opts)
+    local base_opts = { desc = desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
+    more_opts = more_opts or {}
+
+    return vim.tbl_deep_extend("force", base_opts, more_opts)
   end
 
   map("n", "<Up>", "<Up>", opts())
@@ -98,6 +101,7 @@ M.on_attach = function(bufnr)
   map("n", "<Enter>", M.go_in_plus, opts "Go in entry plus (Enter)")
   map("n", "h", M.go_out_plus, opts "Go out of directory plus")
   map("n", "<Left>", M.go_out_plus, opts "Go out of directory plus (Arrow)")
+  map("n", "\\", "''", opts("Go to latest jump", { remap = true }))
   map("n", "<BS>", M.reset, opts "Reset")
   map("n", "=", M.sync, opts "Synchronize")
 
