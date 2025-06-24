@@ -82,6 +82,9 @@ M.setup = function(opts)
 
         return
       end
+
+      -- set options for the rest of windows
+      vim.wo[winnr].cursorline = true
     end,
   })
 end
