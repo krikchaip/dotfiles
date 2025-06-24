@@ -4,6 +4,8 @@ local map = vim.keymap.set
 local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
+local latest_path = vim.uv.cwd()
+
 ---@type table<string,table<string,boolean>>
 local ignored = {}
 
@@ -112,7 +114,7 @@ M.on_attach = function(bufnr)
 end
 
 M.open = function()
-  require("mini.files").open(vim.uv.cwd(), true)
+  require("mini.files").open(latest_path, true)
 end
 
 -- open and select the current buffer in mini files
@@ -170,8 +172,11 @@ M.search_node = function()
 
     require("telescope.actions").close(prompt_bufnr)
 
-    require("mini.files").open(filepath, false)
+    require("mini.files").open(filepath, true)
     require("mini.files").reveal_cwd()
+
+    latest_path = filepath
+  end
   end
 
   require("mini.files").close()
