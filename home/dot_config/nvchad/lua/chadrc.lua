@@ -22,10 +22,10 @@ M.nvdash = {
   load_on_startup = true,
   buttons = {
     { txt = "󰾩  Restore Session", keys = "r", cmd = ":lua Session.Load()" },
-    { txt = "  Find File", keys = "f", cmd = "Telescope find_files" },
+    { txt = "  Find File", keys = "f", cmd = ":lua Telescope.SearchNode()" },
     { txt = "  Recent Files", keys = "o", cmd = "Telescope oldfiles only_cwd=true" },
-    { txt = "󰈭  Find Word", keys = "g", cmd = ":lua require('configs.telescope').grep()" },
-    { txt = "󱥚  Themes", keys = "t", cmd = ":lua require('nvchad.themes').open()" },
+    { txt = "󰈭  Find Word", keys = "g", cmd = ":lua Telescope.Grep()" },
+    { txt = "󱥚  Themes", keys = "t", cmd = ":lua NvChad.Themes()" },
     { txt = "  Mappings", keys = "m", cmd = "Telescope keymaps" },
     { txt = "─", hl = "NvDashFooter", no_gap = true, rep = true },
     {

@@ -157,6 +157,49 @@ M.dotfiles = function(opts)
   require("telescope.builtin").find_files(opts)
 end
 
+M.search_node = function(opts)
+  opts = opts or {}
+
+  local find_command = M.config().pickers.find_files.find_command
+
+  table.insert(find_command, "--type")
+  table.insert(find_command, "directory")
+
+  opts.prompt_title = opts.prompt_title or "Search Node"
+  opts.cwd = opts.cwd or vim.uv.cwd()
+  opts.find_command = opts.find_command or find_command
+
+  local function select_default(prompt_bufnr)
+    local selection = require("telescope.actions.state").get_selected_entry()
+    local filename = selection.value or selection.filename or selection[1]
+    local filepath = vim.fs.joinpath(selection.cwd, filename)
+
+    if vim.uv.fs_stat(filepath).type == "file" then
+      require("telescope.actions").select_default(prompt_bufnr)
+      return
+    end
+
+    require("telescope.actions").close(prompt_bufnr)
+
+    require("mini.files").open(filepath, true)
+    require("configs.mini.files").reset()
+    require("configs.mini.files").set_latest_path(filepath)
+  end
+
+  local attach_mappings = opts.attach_mappings
+  opts.attach_mappings = function(_, map)
+    map("i", "<CR>", select_default)
+
+    if attach_mappings then
+      return attach_mappings(_, map)
+    else
+      return true
+    end
+  end
+
+  require("telescope.builtin").find_files(opts)
+end
+
 M.scope_search = function(prompt_bufnr)
   local input = require("telescope.actions.state").get_current_line()
 

@@ -72,6 +72,9 @@ Telescope = {
   Dotfiles = function()
     require("configs.telescope").dotfiles()
   end,
+  SearchNode = function()
+    require("configs.telescope").search_node()
+  end,
 }
 
 LSP = {
