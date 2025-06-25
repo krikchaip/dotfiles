@@ -177,8 +177,7 @@ M.search_node = function()
     require("mini.files").open(filepath, true)
 
     M.reset()
-
-    latest_path = filepath
+    M.set_latest_path(filepath)
   end
 
   local function close(prompt_bufnr)
@@ -275,6 +274,10 @@ end
 M.reset_cache = function()
   ignored = {}
   fs_type = {}
+end
+
+M.set_latest_path = function(path)
+  latest_path = path
 end
 
 M.fs_type = function(path)
