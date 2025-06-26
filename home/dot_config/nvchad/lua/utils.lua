@@ -111,9 +111,6 @@ LSP = {
   Typedef = function()
     require("goto-preview").goto_preview_type_definition {}
   end,
-  Rename = function()
-    require "nvchad.lsp.renamer"()
-  end,
   References = function()
     vim.cmd "Telescope lsp_references"
   end,

@@ -4,8 +4,18 @@ local M = {}
 ---@param opts snacks.Config
 M.config = function(opts)
   opts.image = { enabled = true }
+  opts.input = { enabled = true, expand = false }
   opts.notifier = { enabled = true, filter = M.notifier_filter }
   opts.words = { enabled = true, debounce = 500, notify_end = false, modes = { "n", "i" } }
+
+  opts.styles = {
+    input = {
+      title_pos = "left",
+      relative = "cursor",
+      width = 30,
+      keys = { i_esc = { "<esc>", "cancel", mode = "i", expr = true } },
+    },
+  }
 
   return opts
 end
