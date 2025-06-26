@@ -45,6 +45,24 @@ Tabufline = {
   CloseAll = function()
     require("nvchad.tabufline").closeAllBufs(true)
   end,
+  Serialize = function()
+    return vim
+      .iter(vim.api.nvim_list_tabpages())
+      :map(function(t)
+        return vim.iter(vim.api.nvim_tabpage_get_var(t, "bufs")):fold({}, function(set, b)
+          set[vim.api.nvim_buf_get_name(b)] = true
+          return set
+        end)
+      end)
+      :totable()
+  end,
+  Load = function(tabpages)
+    for i = 1, #vim.api.nvim_list_tabpages() do
+      vim.t[i].bufs = vim.tbl_filter(function(b)
+        return tabpages[i][vim.api.nvim_buf_get_name(b)]
+      end, vim.t[i].bufs)
+    end
+  end,
 }
 
 Term = {

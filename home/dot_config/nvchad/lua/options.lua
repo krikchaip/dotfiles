@@ -38,7 +38,7 @@ opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
 o.termguicolors = true
 
 -- session options
-opt.sessionoptions:append "localoptions"
 opt.sessionoptions:append "winpos"
 opt.sessionoptions:remove "blank"
+opt.sessionoptions:remove "help"
 opt.sessionoptions:remove "terminal"

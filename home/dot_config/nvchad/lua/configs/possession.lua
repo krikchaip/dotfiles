@@ -8,9 +8,14 @@ M.config = function(opts)
   opts.autosave = { current = autosave, cwd = autosave }
 
   opts.hooks = {
-    after_load = function()
+    before_save = function()
+      return { tabufline = Tabufline.Serialize() }
+    end,
+    after_load = function(_, data)
       vim.cmd "let @/=''"
       vim.cmd "silent! argdelete"
+
+      Tabufline.Load(data.tabufline)
     end,
   }
 
