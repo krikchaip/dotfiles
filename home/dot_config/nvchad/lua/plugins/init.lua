@@ -102,6 +102,12 @@ return {
   { "benfowler/telescope-luasnip.nvim" },
 
   {
+    "folke/todo-comments.nvim",
+    event = "VeryLazy",
+    opts = { signs = false, highlight = { multiline_pattern = "^%s+" } },
+  },
+
+  {
     "b0o/nvim-tree-preview.lua",
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function(_, opts)
