@@ -49,18 +49,23 @@ Tabufline = {
     return vim
       .iter(vim.api.nvim_list_tabpages())
       :map(function(t)
-        return vim.iter(vim.api.nvim_tabpage_get_var(t, "bufs")):fold({}, function(set, b)
-          set[vim.api.nvim_buf_get_name(b)] = true
-          return set
+        return vim.iter(ipairs(vim.t[t].bufs)):fold({}, function(bufs, i, b)
+          bufs[vim.api.nvim_buf_get_name(b)] = i
+          return bufs
         end)
       end)
       :totable()
   end,
   Load = function(tabpages)
-    for i = 1, #vim.api.nvim_list_tabpages() do
-      vim.t[i].bufs = vim.tbl_filter(function(b)
-        return tabpages[i][vim.api.nvim_buf_get_name(b)]
-      end, vim.t[i].bufs)
+    for _, t in ipairs(vim.api.nvim_list_tabpages()) do
+      vim.t[t].bufs = vim.iter(vim.t[t].bufs):fold({}, function(bufs, b)
+        local bufname = vim.api.nvim_buf_get_name(b)
+        local order = tabpages[t][bufname]
+
+        if order ~= nil then bufs[order] = b end
+
+        return bufs
+      end)
     end
   end,
 }
