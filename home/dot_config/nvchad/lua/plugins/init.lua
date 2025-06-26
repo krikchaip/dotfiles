@@ -92,14 +92,22 @@ return {
     end,
   },
 
+  { "benfowler/telescope-luasnip.nvim" },
+
+  {
+    "nvim-telescope/telescope-ui-select.nvim",
+    event = "VeryLazy",
+    config = function()
+      require("configs.telescope-ui-select").setup()
+    end,
+  },
+
   {
     "nvim-telescope/telescope.nvim",
     config = function(_, opts)
       require("configs.telescope").setup(opts)
     end,
   },
-
-  { "benfowler/telescope-luasnip.nvim" },
 
   {
     "folke/todo-comments.nvim",
