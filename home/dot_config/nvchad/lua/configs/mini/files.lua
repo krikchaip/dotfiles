@@ -4,8 +4,6 @@ local map = vim.keymap.set
 local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
-local latest_path = vim.uv.cwd()
-
 ---@type table<string,table<string,boolean>>
 local ignored = {}
 
@@ -117,7 +115,8 @@ M.on_attach = function(bufnr)
 end
 
 M.open = function()
-  require("mini.files").open(latest_path, true)
+  local MiniFiles = require "mini.files"
+  MiniFiles.open(MiniFiles.get_latest_path())
 end
 
 -- open and select the current buffer in mini files
@@ -132,14 +131,14 @@ M.open_reveal = function()
   local in_root = buf_name:sub(1, #root) == root
 
   if in_root and vim.fn.filereadable(buf_name) == 1 then
-    MiniFiles.open(buf_name, false)
-    MiniFiles.reveal_cwd()
+    MiniFiles.open(buf_name)
   elseif in_root and vim.fn.isdirectory(dir_name) == 1 then
-    MiniFiles.open(dir_name, false)
-    MiniFiles.reveal_cwd()
+    MiniFiles.open(dir_name)
   else
     M.open()
   end
+
+  M.reset()
 end
 
 M.go_in_plus = function()
@@ -174,15 +173,14 @@ M.search_node = function()
     local filepath = vim.fs.joinpath(selection.cwd, filename)
 
     require("telescope.actions").close(prompt_bufnr)
-    require("mini.files").open(filepath, true)
+    require("mini.files").open(filepath)
 
     M.reset()
-    M.set_latest_path(filepath)
   end
 
   local function close(prompt_bufnr)
     require("telescope.actions").close(prompt_bufnr)
-    require("mini.files").open(MiniFiles.get_latest_path(), true)
+    M.open()
   end
 
   require("mini.files").close()
@@ -274,10 +272,6 @@ end
 M.reset_cache = function()
   ignored = {}
   fs_type = {}
-end
-
-M.set_latest_path = function(path)
-  latest_path = path
 end
 
 M.fs_type = function(path)
