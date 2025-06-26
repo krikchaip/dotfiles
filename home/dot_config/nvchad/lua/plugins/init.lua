@@ -47,7 +47,6 @@ return {
 
   {
     "rmagatti/goto-preview",
-    event = "User FilePost",
     config = function()
       require("configs.goto-preview").setup()
     end,

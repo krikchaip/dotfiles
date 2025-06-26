@@ -91,7 +91,7 @@ LSP = {
     require("goto-preview").goto_preview_implementation {}
   end,
   Typedef = function()
-    require("goto-preview").goto_preview_type_definitio {}
+    require("goto-preview").goto_preview_type_definition {}
   end,
   Rename = function()
     require "nvchad.lsp.renamer"()

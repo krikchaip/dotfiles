@@ -28,12 +28,12 @@ M.get_config = function(data)
   local uri, range
 
   if data.params then
-    uri = data.params.textDocument.uri
-    range = data.params.position
-  else
-    uri = data.targetUri or data.uri
-    range = (data.targetRange or data.range).start
+    local response = vim.lsp.buf_request_sync(0, data.method, data.params)[1]
+    data = response.result[1] or response.result
   end
+
+  uri = data.targetUri or data.uri
+  range = (data.targetRange or data.range).start
 
   return uri, { range.line + 1, range.character }
 end
