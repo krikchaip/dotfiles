@@ -182,8 +182,7 @@ M.search_node = function(opts)
     require("telescope.actions").close(prompt_bufnr)
 
     require("mini.files").open(filepath, true)
-    require("configs.mini.files").reset()
-    require("configs.mini.files").set_latest_path(filepath)
+    -- require("configs.mini.files").reset()
   end
 
   local attach_mappings = opts.attach_mappings

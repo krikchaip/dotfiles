@@ -138,7 +138,7 @@ M.open_reveal = function()
     M.open()
   end
 
-  M.reset()
+  -- M.reset()
 end
 
 M.go_in_plus = function()
@@ -157,7 +157,7 @@ end
 
 M.reset = function()
   MiniFiles.reset()
-  MiniFiles.reveal_cwd()
+  -- MiniFiles.reveal_cwd()
 end
 
 M.search_node = function()
@@ -175,7 +175,7 @@ M.search_node = function()
     require("telescope.actions").close(prompt_bufnr)
     require("mini.files").open(filepath)
 
-    M.reset()
+    -- M.reset()
   end
 
   local function close(prompt_bufnr)
