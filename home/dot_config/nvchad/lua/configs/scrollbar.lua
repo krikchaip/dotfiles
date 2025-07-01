@@ -5,6 +5,7 @@ M.config = function(opts)
   opts.hide_if_all_visible = true
 
   opts.handle = { blend = 10 }
+  opts.excluded_buftypes = { "nofile" }
 
   opts.marks = {
     GitAdd = { text = "┃" },
