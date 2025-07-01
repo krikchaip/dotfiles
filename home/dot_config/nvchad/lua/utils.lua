@@ -293,3 +293,12 @@ Notification = {
     Snacks.notifier.show_history()
   end,
 }
+
+UFO = {
+  PrevRegion = function()
+    require("ufo").goPreviousClosedFold()
+  end,
+  NextRegion = function()
+    require("ufo").goNextClosedFold()
+  end,
+}

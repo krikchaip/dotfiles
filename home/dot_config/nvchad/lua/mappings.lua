@@ -238,3 +238,7 @@ map("n", "]g", Git.NavHunk("next", "]c"), { desc = "Git: Next Hunk" })
 
 -- notification (messages)
 map("n", "<leader>n", Notification.Show, { desc = "Notification: Show" })
+
+-- fold region navigation (ufo)
+map("n", "[z", UFO.PrevRegion, { desc = "UFO: Prev Region" })
+map("n", "]z", UFO.NextRegion, { desc = "UFO: Next Region" })
