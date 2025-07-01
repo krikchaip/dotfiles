@@ -8,6 +8,14 @@ return {
   },
 
   {
+    "kevinhwang91/nvim-bqf",
+    ft = "qf",
+    config = function(_, opts)
+      require("configs.bqf").setup(opts)
+    end,
+  },
+
+  {
     "bfontaine/Brewfile.vim",
     event = { "BufReadPre *Brewfile", "BufNewFile *Brewfile" },
   },
