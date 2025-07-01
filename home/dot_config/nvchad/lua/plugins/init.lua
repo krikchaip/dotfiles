@@ -140,6 +140,12 @@ return {
   },
 
   {
+    "nvim-treesitter/nvim-treesitter-context",
+    event = "User FilePost",
+    opts = { max_lines = 4, multiline_threshold = 1 },
+  },
+
+  {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
       return require("configs.treesitter").config(opts)

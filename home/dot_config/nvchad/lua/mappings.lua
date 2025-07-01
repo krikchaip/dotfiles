@@ -193,6 +193,9 @@ map("n", "<C-,><C-,>", Telescope.Dotfiles, { desc = "Settings: Dotfiles" })
 -- resume last picker
 map("n", "<leader><leader>", "<cmd>Telescope resume<CR>", { desc = "Telescope: Resume Last Picker" })
 
+-- treesitter
+map("n", "gC", Treesitter.Upwards, { desc = "Treesitter: Jump Context Upwards" })
+
 -- lsp
 map("n", "K", LSP.Hover, { desc = "LSP: Hover" })
 map("n", "gd", LSP.Definition, { desc = "LSP: Jump to Definition" })

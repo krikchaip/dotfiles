@@ -100,6 +100,12 @@ Telescope = {
   end,
 }
 
+Treesitter = {
+  Upwards = function()
+    require("treesitter-context").go_to_context(vim.v.count1)
+  end,
+}
+
 LSP = {
   Hover = function()
     vim.lsp.buf.hover { silent = true, border = "single", max_width = 90 }
