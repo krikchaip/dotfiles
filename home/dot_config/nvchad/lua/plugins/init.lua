@@ -84,6 +84,14 @@ return {
   { "b0o/schemastore.nvim" },
 
   {
+    "petertriho/nvim-scrollbar",
+    event = "User FilePost",
+    opts = function(_, opts)
+      return require("configs.scrollbar").config(opts)
+    end,
+  },
+
+  {
     "folke/snacks.nvim",
     lazy = false,
     priority = 1000,
