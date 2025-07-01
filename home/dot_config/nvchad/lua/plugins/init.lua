@@ -144,5 +144,14 @@ return {
     opts = { opts = { enable_close_on_slash = true } },
   },
 
+  {
+    "kevinhwang91/nvim-ufo",
+    dependencies = { "kevinhwang91/promise-async" },
+    event = "User FilePost",
+    config = function(_, opts)
+      require("configs.ufo").setup(opts)
+    end,
+  },
+
   { "folke/which-key.nvim", event = "VeryLazy" },
 }
