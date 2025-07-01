@@ -6,6 +6,7 @@ M.config = function(opts)
   opts.image = { enabled = true }
   opts.input = { enabled = true, expand = false }
   opts.notifier = { enabled = true, filter = M.notifier_filter }
+  opts.statuscolumn = { enabled = true, left = { "sign", "git" }, right = { "fold" }, folds = { open = true } }
   opts.words = { enabled = true, debounce = 500, notify_end = false, modes = { "n", "i" } }
 
   opts.styles = {
