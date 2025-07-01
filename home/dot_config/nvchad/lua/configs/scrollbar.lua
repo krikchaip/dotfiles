@@ -5,7 +5,6 @@ M.config = function(opts)
   opts.hide_if_all_visible = true
 
   opts.handle = { blend = 10 }
-  opts.handlers = { gitsigns = true }
 
   opts.marks = {
     GitAdd = { text = "┃" },
@@ -14,6 +13,11 @@ M.config = function(opts)
   }
 
   return opts
+end
+
+M.setup = function(opts)
+  require("scrollbar.handlers.gitsigns").setup()
+  require("scrollbar").setup(M.config(opts))
 end
 
 return M

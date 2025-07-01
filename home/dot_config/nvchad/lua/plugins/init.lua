@@ -86,8 +86,8 @@ return {
   {
     "petertriho/nvim-scrollbar",
     event = "User FilePost",
-    opts = function(_, opts)
-      return require("configs.scrollbar").config(opts)
+    config = function(_, opts)
+      return require("configs.scrollbar").setup(opts)
     end,
   },
 
