@@ -101,6 +101,14 @@ return {
     end,
   },
 
+  {
+    "MeanderingProgrammer/render-markdown.nvim",
+    ft = "markdown",
+    opts = function(_, opts)
+      return require("configs.render-markdown").config(opts)
+    end,
+  },
+
   { "b0o/schemastore.nvim" },
 
   {

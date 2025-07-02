@@ -22,6 +22,7 @@ M.config = function(opts)
     "vimdoc",
 
     "regex",
+    "latex",
 
     "html",
     "css",
