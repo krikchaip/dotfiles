@@ -24,6 +24,8 @@ M.config = function(opts)
     ["<C-Space>"] = { "show", "hide" },
   }
 
+  opts.completion.ghost_text.show_with_menu = false
+
   return opts
 end
 

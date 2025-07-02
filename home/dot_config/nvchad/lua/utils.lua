@@ -108,7 +108,7 @@ Treesitter = {
 
 LSP = {
   Hover = function()
-    vim.lsp.buf.hover { silent = true, border = "single", max_width = 90 }
+    vim.lsp.buf.hover { silent = true, border = "single", max_width = 80 }
   end,
   Definition = function()
     require("goto-preview").goto_preview_definition {}
@@ -142,7 +142,7 @@ LSP = {
   end,
   Signature = function()
     -- ref: https://github.com/NvChad/ui/blob/v3.0/lua/nvchad/lsp/signature.lua#L28
-    vim.lsp.buf.signature_help { silent = true, max_height = 7, border = "single" }
+    vim.lsp.buf.signature_help { silent = true, max_height = 7, max_width = 80, border = "single" }
   end,
   NextWord = function()
     Snacks.words.jump(1, true)

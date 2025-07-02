@@ -104,8 +104,8 @@ return {
   {
     "MeanderingProgrammer/render-markdown.nvim",
     ft = "markdown",
-    opts = function(_, opts)
-      return require("configs.render-markdown").config(opts)
+    config = function(_, opts)
+      require("configs.render-markdown").setup(opts)
     end,
   },
 
