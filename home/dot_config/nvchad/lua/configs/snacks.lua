@@ -7,8 +7,21 @@ M.config = function(opts)
   opts.input = { enabled = true, expand = false }
   opts.notifier = { enabled = true, filter = M.notifier_filter }
   opts.scope = { enabled = true, keys = { jump = nil } }
-  opts.statuscolumn = { enabled = true, left = { "sign", "git" }, right = { "fold" }, folds = { open = true } }
-  opts.words = { enabled = true, debounce = 500, notify_end = false, modes = { "n", "i" } }
+
+  opts.statuscolumn = {
+    enabled = true,
+    left = { "sign", "git" },
+    right = { "fold" },
+    folds = { open = true },
+    refresh = 20,
+  }
+
+  opts.words = {
+    enabled = true,
+    debounce = 500,
+    notify_end = false,
+    modes = { "n", "i" },
+  }
 
   opts.styles = {
     input = {
