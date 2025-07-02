@@ -82,6 +82,18 @@ return {
   },
 
   {
+    "hedyhli/outline.nvim",
+    dependencies = {
+      "epheien/outline-treesitter-provider.nvim",
+      "bngarren/outline-test-blocks-provider.nvim",
+    },
+    cmd = { "Outline", "OutlineOpen" },
+    opts = function(_, opts)
+      return require("configs.outline").config(opts)
+    end,
+  },
+
+  {
     "jedrzejboczar/possession.nvim",
     cmd = { "PossessionLoad", "PossessionLoadCwd" },
     opts = function(_, opts)

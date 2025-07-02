@@ -18,7 +18,7 @@ M.config = function(opts)
 
   opts.words = {
     enabled = true,
-    debounce = 500,
+    debounce = 250,
     notify_end = false,
     modes = { "n", "i" },
   }

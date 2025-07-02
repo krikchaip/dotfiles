@@ -125,6 +125,9 @@ LSP = {
   References = function()
     vim.cmd "Telescope lsp_references"
   end,
+  DocumentSymbols = function()
+    vim.cmd "Outline"
+  end,
   WorkspaceSymbols = function()
     vim.cmd "Telescope lsp_dynamic_workspace_symbols"
   end,
