@@ -311,3 +311,9 @@ UFO = {
     require("ufo").goNextClosedFold()
   end,
 }
+
+Markdown = {
+  TogglePreview = function()
+    require("render-markdown").buf_toggle()
+  end,
+}

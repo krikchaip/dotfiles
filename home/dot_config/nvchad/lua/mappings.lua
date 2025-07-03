@@ -246,3 +246,6 @@ map("n", "<leader>n", Notification.Show, { desc = "Notification: Show" })
 -- fold region navigation (ufo)
 map("n", "[z", UFO.PrevRegion, { desc = "UFO: Prev Region" })
 map("n", "]z", UFO.NextRegion, { desc = "UFO: Next Region" })
+
+-- markdown
+map("n", "<leader>v", Markdown.TogglePreview, { desc = "Markdown: Toggle Preview" })
