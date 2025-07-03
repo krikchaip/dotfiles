@@ -31,7 +31,7 @@ M.get_config = function(data)
     local response = vim.lsp.buf_request_sync(0, data.method, data.params)
 
     if response ~= nil then
-      local item = response[1]
+      local item = response[1] or response[2]
       data = item.result[1] or item.result
     end
   end
