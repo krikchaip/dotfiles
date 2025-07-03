@@ -22,6 +22,7 @@ M.config = function(opts)
 end
 
 M.setup = function()
+  dofile(vim.g.base46_cache .. "grug_far")
   require("grug-far").setup(M.config {})
 end
 

@@ -7,6 +7,7 @@ local M = {}
 
 M.base46 = {
   theme = "embark",
+  integrations = { "grug_far" },
 }
 
 M.ui = {
