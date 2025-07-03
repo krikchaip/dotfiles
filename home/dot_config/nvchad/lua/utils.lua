@@ -319,13 +319,17 @@ Markdown = {
 }
 
 GrugFar = {
+  Toggle = function(opts)
+    opts = vim.tbl_deep_extend("force", { instanceName = "GrugFar" }, opts)
+    require("grug-far").toggle_instance(opts)
+  end,
   Buffer = function()
-    require("grug-far").open { prefills = { paths = vim.fn.expand "%" } }
+    GrugFar.Toggle { prefills = { paths = vim.fn.expand "%" } }
   end,
   Workspace = function()
-    require("grug-far").open()
+    GrugFar.Toggle {}
   end,
   Selection = function()
-    require("grug-far").open { visualSelectionUsage = "operate-within-range" }
+    GrugFar.Toggle { visualSelectionUsage = "operate-within-range" }
   end,
 }
