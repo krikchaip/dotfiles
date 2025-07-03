@@ -317,3 +317,15 @@ Markdown = {
     require("render-markdown").buf_toggle()
   end,
 }
+
+GrugFar = {
+  Buffer = function()
+    require("grug-far").open { prefills = { paths = vim.fn.expand "%" } }
+  end,
+  Workspace = function()
+    require("grug-far").open()
+  end,
+  Selection = function()
+    require("grug-far").open { visualSelectionUsage = "operate-within-range" }
+  end,
+}

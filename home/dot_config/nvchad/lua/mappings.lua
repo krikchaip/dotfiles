@@ -72,12 +72,10 @@ map("i", "<S-Down>", "<Esc><Right>v<Down>")
 -- substitute line while in insert mode
 map("i", "<M-s>", "<C-o>S", { desc = "Substitute: Replace Line" })
 
--- find and replace (substitution)
-map("n", "<leader>s", ":%s;", { desc = "Substitute: Whole File" })
-map("n", "<leader>S", ":%s;\\v", { desc = "Substitute: Whole File Regex" })
-map("x", "gR", '"hy:%s;<C-r>h;&', { desc = "Substitute: Whole File Selection" })
-map("x", "<leader>s", ":s;\\%V", { desc = "Substitute: Inside Visual" })
-map("x", "<leader>S", ":s;\\%V\\v", { desc = "Substitute: Inside Visual Regex" })
+-- find and replace (grug-far)
+map({ "n", "x" }, "<leader>s", GrugFar.Buffer, { desc = "GrugFar: Current Buffer" })
+map({ "n", "x" }, "<leader>S", GrugFar.Workspace, { desc = "GrugFar: Workspace" })
+map("x", "<M-s>", GrugFar.Selection, { desc = "GrugFar: Current Selection" })
 
 -- insert/remove indentation
 map("i", "<M-,>", "<C-d>", { desc = "Indent: Current Line Remove One" })

@@ -61,6 +61,13 @@ return {
   },
 
   {
+    "MagicDuck/grug-far.nvim",
+    config = function()
+      require("configs.grug-far").setup()
+    end,
+  },
+
+  {
     "folke/lazydev.nvim",
     ft = "lua",
     opts = { library = { { path = "snacks.nvim", words = { "Snacks" } } } },
