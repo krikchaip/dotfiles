@@ -40,6 +40,13 @@ return {
   },
 
   {
+    "olimorris/codecompanion.nvim",
+    opts = function(_, opts)
+      return require("configs.codecompanion").config(opts)
+    end,
+  },
+
+  {
     "stevearc/conform.nvim",
     opts = function(_, opts)
       return require("configs.conform").config(opts)
@@ -110,7 +117,7 @@ return {
 
   {
     "MeanderingProgrammer/render-markdown.nvim",
-    ft = "markdown",
+    ft = { "markdown", "codecompanion" },
     config = function(_, opts)
       require("configs.render-markdown").setup(opts)
     end,

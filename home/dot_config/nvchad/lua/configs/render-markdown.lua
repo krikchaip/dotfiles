@@ -6,6 +6,7 @@ M.options = function()
 end
 
 M.config = function(opts)
+  opts.filetypes = { "markdown", "codecompanion" }
   opts.anti_conceal = { enabled = false }
   opts.completions = { blink = { enabled = true } }
   opts.heading = { position = "inline", left_pad = 1, border = true, border_virtual = true }
