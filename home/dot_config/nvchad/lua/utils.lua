@@ -333,3 +333,15 @@ GrugFar = {
     GrugFar.Toggle { visualSelectionUsage = "operate-within-range" }
   end,
 }
+
+LLM = {
+  ToggleChat = function()
+    require("codecompanion").toggle()
+  end,
+  Inline = function()
+    return ":CodeCompanion "
+  end,
+  Actions = function()
+    require("codecompanion").actions {}
+  end,
+}
