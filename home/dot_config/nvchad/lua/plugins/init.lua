@@ -42,8 +42,8 @@ return {
   {
     "olimorris/codecompanion.nvim",
     cmd = { "CodeCompanion" },
-    opts = function(_, opts)
-      return require("configs.codecompanion").config(opts)
+    config = function(_, opts)
+      require("configs.codecompanion").setup(opts)
     end,
   },
 
