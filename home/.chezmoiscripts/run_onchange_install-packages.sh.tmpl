@@ -10,8 +10,7 @@ fi
 brew bundle install --global --no-upgrade
 
 # install and setup neovim plugins
-nvim --headless '+Lazy! restore' '+MasonToolsInstallSync' +qa
-NVIM_APPNAME='kitty-scrollback' nvim --headless '+Lazy restore' +qa
+nvim --headless '+Lazy! restore' '+MasonInstallAll' +qa
 
 # enable experimental features eg. pipx and others
 mise settings set experimental true
