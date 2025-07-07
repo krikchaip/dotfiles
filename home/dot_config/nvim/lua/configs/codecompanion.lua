@@ -5,9 +5,30 @@ local augroup = vim.api.nvim_create_augroup
 local map = vim.keymap.set
 
 M.config = function(opts)
+  opts.adapters = {
+    gemini_flash = function()
+      return require("codecompanion.adapters").extend("gemini", {
+        name = "gemini_flash",
+        schema = { model = { default = "gemini-2.5-flash" } },
+      })
+    end,
+
+    gemini_pro = function()
+      return require("codecompanion.adapters").extend("gemini", {
+        name = "gemini_pro",
+        schema = { model = { default = "gemini-2.5-pro" } },
+      })
+    end,
+
+    opts = {
+      show_defaults = false,
+      show_model_choices = false,
+    },
+  }
+
   opts.strategies = {
     chat = {
-      adapter = "gemini",
+      adapter = "gemini_flash",
       keymaps = {
         options = { modes = { n = { "?", "g?", "<C-/>" }, i = { "<C-/>" } } },
         send = { modes = { n = "<CR>", i = "<S-CR>" } },
@@ -31,7 +52,7 @@ M.config = function(opts)
     },
 
     inline = {
-      adapter = "gemini",
+      adapter = "gemini_flash",
       keymaps = {
         accept_change = { modes = { n = "<C-a>" } },
         reject_change = { modes = { n = "<C-x>" } },
@@ -39,7 +60,7 @@ M.config = function(opts)
     },
 
     cmd = {
-      adapter = "gemini",
+      adapter = "gemini_flash",
     },
   }
 
