@@ -16,7 +16,7 @@ nvim --headless '+Lazy! restore' '+MasonInstallAll' +qa
 mise settings set experimental true
 
 # install and use the latest mise binaries
-{{- range .packages.mise }}
+{{- range .package.mise }}
 mise use --global {{ . }}
 {{- end }}
 
@@ -25,18 +25,18 @@ pip install --upgrade pip
 pip install --user pipx
 pip install --upgrade pipx
 
-# install global python packages
-{{- range .packages.python }}
+# install global python package
+{{- range .package.python }}
 mise use --global pipx:{{ . }}
 {{- end }}
 
-# install global npm packages
-{{- range .packages.npm }}
+# install global npm package
+{{- range .package.npm }}
 mise use --global npm:{{ . }}
 {{- end }}
 
 # install go binaries
-{{- range .packages.go }}
+{{- range .package.go }}
 mise use --global go:{{ . }}
 {{- end }}
 

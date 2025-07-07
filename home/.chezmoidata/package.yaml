@@ -1,22 +1,16 @@
-packages:
+package:
   mise:
-  - elixir
-  - erlang
+  - bun
   - go
   - lua@5.1
   - nodejs
-  - pnpm
   - python
 
   python:
   - neovim-remote
 
   npm:
-  - "@microsoft/rush"
-  - turbo
   - typescript
-  - vercel
-  - vite
 
   go:
   - github.com/mitranim/gow
