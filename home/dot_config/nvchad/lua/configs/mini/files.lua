@@ -176,7 +176,7 @@ M.search_node = function()
     require("telescope.actions").close(prompt_bufnr)
     require("mini.files").open(filepath)
 
-    -- M.reset()
+    M.reset()
   end
 
   local function close(prompt_bufnr)
