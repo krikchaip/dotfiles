@@ -21,7 +21,7 @@ globinclude env/*.conf
 
 # kitty's default shell
 # ref: https://sw.kovidgoyal.net/kitty/conf/#opt-kitty.shell
-shell nu
+shell {{ .config.shell }}
 
 # kitty's default text editor
 # ref: https://sw.kovidgoyal.net/kitty/conf/#opt-kitty.editor
