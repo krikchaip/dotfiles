@@ -56,6 +56,7 @@ end
 
 M.setup = function(opts)
   require("codecompanion").setup(M.config(opts))
+  require("codecompanion-spinner").setup()
 
   autocmd("FileType", {
     group = augroup("codecompanion.mapping", { clear = true }),
