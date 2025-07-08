@@ -27,6 +27,9 @@ M.config = function(opts)
         goto_file_under_cursor = { modes = { n = "gf" }, description = "Open the file under cursor" },
         copilot_stats = { modes = { n = "<localleader>S" } },
       },
+      tools = {
+        opts = { default_tools = { "web_search" } },
+      },
       opts = { goto_file_action = "edit" },
     },
 
