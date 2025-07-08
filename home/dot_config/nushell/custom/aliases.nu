@@ -1,7 +1,7 @@
 # system commands
 alias mime-type = file --mime-type -b
 
-# homebrew 
+# homebrew
 alias bb = brew bundle --global
 alias bbc = brew bundle cleanup --global
 alias bo = brew outdated
@@ -73,7 +73,7 @@ alias skr = skhd --restart-service
 alias sks = skhd --start-service
 
 # neovim
-alias nv = nvim
+alias nvc = env NVIM_APPNAME=nvchad nvim
 alias neowin = env NVIM_APPNAME=neowin nvim
 
 # tmux
