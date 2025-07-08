@@ -2,8 +2,9 @@
 # ref: https://www.reddit.com/r/vim/comments/40257u/delay_on_esc_with_tmux_and_vim
 set -s escape-time 0
 
-# change default tmux shell to nushell
-set -g default-shell {{ output "brew" "--prefix" | trim }}/bin/nu
+# change default tmux shell to configured shell
+{{- $shell := printf "%s/bin/%s" (output "brew" "--prefix" | trim) .config.shell }}
+set -g default-shell {{$shell}}
 
 # the position of the status line, top or bottom
 set -g status-position top
