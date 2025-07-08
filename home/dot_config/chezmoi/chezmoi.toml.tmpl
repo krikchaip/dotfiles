@@ -1,9 +1,9 @@
 [cd]
-  command = "nu"
+  command = "{{ .config.shell }}"
 
 [diff]
   command = "nvim"
-  args = ["-d", "{{ .Destination }}", "{{ .Target }}"]
+  args = ["-d", '{{ "{{" }} .Destination {{ "}}" }}', '{{ "{{" }} .Target {{ "}}" }}']
   exclude = ["scripts", "externals"]
 
 [edit]
