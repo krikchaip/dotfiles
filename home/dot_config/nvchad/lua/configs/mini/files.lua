@@ -113,6 +113,9 @@ M.on_attach = function(bufnr)
   map("n", "<C-x>", M.split "horizontal", opts "Split horizontally")
   map("n", "<C-v>", M.split "vertical", opts "Split vertically")
   map("n", "<C-t>", M.split "tab", opts "Split tab")
+
+  map("n", "ya", M.copy_absolute, opts "Copy absolute path")
+  map("n", "yr", M.copy_relative, opts "Copy relative path")
 end
 
 M.open = function()
@@ -221,6 +224,24 @@ M.split = function(direction)
     MiniFiles.set_target_window(target)
     MiniFiles.go_in { close_on_file = true }
   end
+end
+
+M.copy_absolute = function()
+  local path = (MiniFiles.get_fs_entry() or {}).path
+  if not path then return vim.notify "Cursor is not on valid entry" end
+
+  vim.fn.setreg("+", path)
+  vim.notify("Copied absolute path: " .. path)
+end
+
+M.copy_relative = function()
+  local path = (MiniFiles.get_fs_entry() or {}).path
+  if not path then return vim.notify "Cursor is not on valid entry" end
+
+  local relative_path = vim.fn.fnamemodify(path, ":.")
+
+  vim.fn.setreg("+", relative_path)
+  vim.notify("Copied relative path: " .. relative_path)
 end
 
 M.sorter = function(entries)
