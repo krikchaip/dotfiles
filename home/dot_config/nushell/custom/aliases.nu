@@ -73,9 +73,9 @@ alias skr = skhd --restart-service
 alias sks = skhd --start-service
 
 # neovim
-alias nvc = env NVIM_APPNAME=nvchad nvim
 alias nvchad = env NVIM_APPNAME=nvchad nvim
 alias neowin = env NVIM_APPNAME=neowin nvim
+alias n = nvchad
 
 # tmux
 alias t = tmux
