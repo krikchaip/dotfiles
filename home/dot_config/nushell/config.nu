@@ -5,6 +5,7 @@ use vendor/mise.nu
 use vendor/nu_scripts.nu *
 use vendor/starship.nu
 use vendor/zoxide.nu *
+use vendor/yazi.nu *
 
 # custom-defined aliases, functions and etc.
 source custom/functions.nu
