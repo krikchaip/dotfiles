@@ -37,22 +37,6 @@ M.config = function(opts)
   }
 
   opts.pickers = {
-    help_tags = {
-      mappings = {
-        i = {
-          ["<CR>"] = "select_tab",
-        },
-      },
-    },
-
-    man_pages = {
-      mappings = {
-        i = {
-          ["<CR>"] = "select_tab",
-        },
-      },
-    },
-
     -- `hidden = true` will still show the inside of `.git/` as it's not specified in `.gitignore`.
     -- ref: https://github.com/nvim-telescope/telescope.nvim/wiki/Configuration-Recipes#file-and-text-search-in-hidden-files-and-directories
     find_files = {
