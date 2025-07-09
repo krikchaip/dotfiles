@@ -40,6 +40,11 @@ mise use --global npm:{{ . }}
 mise use --global go:{{ . }}
 {{- end }}
 
+# yazi plugins and flavors
+{{- range .package.yazi }}
+ya pkg add {{ . }}
+{{- end }}
+
 # launch yabai & skhd in the background
 if pgrep yabai; then yabai --restart-service; else yabai --start-service; fi
 if pgrep skhd; then skhd --restart-service; else skhd --start-service; fi
