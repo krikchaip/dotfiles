@@ -141,17 +141,17 @@ M.on_attach = function(bufnr)
 
   -- search
   map("n", "f", M.search_node, opts "Search: Node")
-  map("n", "\\f", live_filter.start, opts "Search: Start Filter")
-  map("n", "\\F", live_filter.clear, opts "Search: Clear Filter")
+  map("n", "<localleader>f", live_filter.start, opts "Search: Start Filter")
+  map("n", "<localleader>F", live_filter.clear, opts "Search: Clear Filter")
 
   -- filters
-  map("n", "\\a", tree.toggle_enable_filters, opts "Filter: Toggle All")
-  map("n", "\\m", tree.toggle_no_bookmark_filter, opts "Filter: Toggle Marks")
-  map("n", "\\b", tree.toggle_no_buffer_filter, opts "Filter: Toggle Buffers")
-  map("n", "\\c", tree.toggle_git_clean_filter, opts "Filter: Toggle Git Clean")
-  map("n", "\\i", tree.toggle_gitignore_filter, opts "Filter: Toggle Git Ignore")
-  map("n", "\\.", tree.toggle_hidden_filter, opts "Filter: Toggle Dotfiles")
-  map("n", "\\h", tree.toggle_custom_filter, opts "Filter: Toggle Hidden")
+  map("n", "<localleader>a", tree.toggle_enable_filters, opts "Filter: Toggle All")
+  map("n", "<localleader>m", tree.toggle_no_bookmark_filter, opts "Filter: Toggle Marks")
+  map("n", "<localleader>b", tree.toggle_no_buffer_filter, opts "Filter: Toggle Buffers")
+  map("n", "<localleader>c", tree.toggle_git_clean_filter, opts "Filter: Toggle Git Clean")
+  map("n", "<localleader>i", tree.toggle_gitignore_filter, opts "Filter: Toggle Git Ignore")
+  map("n", "<localleader>.", tree.toggle_hidden_filter, opts "Filter: Toggle Dotfiles")
+  map("n", "<localleader>h", tree.toggle_custom_filter, opts "Filter: Toggle Hidden")
 
   -- marks
   map("n", ".", marks.toggle, opts "Mark: Toggle")
