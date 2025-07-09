@@ -3,7 +3,7 @@
   path = ~/.local/share/tokyonight/extras/delta/tokyonight_storm.gitconfig
 
 [core]
-  editor = nvr -cc vsplit -c 'set winfixbuf bufhidden=delete | nnoremap q <C-w>q' --remote-send '<M-g>' --remote-wait-silent
+  editor = nvr -cc vsplit -c 'set winfixbuf bufhidden=delete | nnoremap <buffer> q <C-w>q' --remote-send '<M-g>' --remote-wait-silent
 
 [user]
   name = krikchaip
