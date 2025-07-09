@@ -39,8 +39,6 @@ return {
     end,
   },
 
-  { "franco-ruggeri/codecompanion-spinner.nvim" },
-
   {
     "olimorris/codecompanion.nvim",
     cmd = { "CodeCompanion" },
