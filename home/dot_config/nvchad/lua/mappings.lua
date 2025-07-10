@@ -10,7 +10,6 @@ map("n", "<C-q>", "<cmd>qa<CR>", { desc = "Exit Neovim: Soft" })
 map("n", "<C-S-q>", "<cmd>qa!<CR>", { desc = "Exit Neovim: Force" })
 
 -- nvchad specific
-map("n", "<C-/>", NvChad.Cheatsheet, { desc = "NvChad: Toggle NvCheatsheet" })
 map("n", "<C-,>t", NvChad.Themes, { desc = "NvChad: Select Colorscheme" })
 map("n", "<C-,><C-t>", NvChad.Themes, { desc = "NvChad: Select Colorscheme" })
 
@@ -181,6 +180,7 @@ map("n", "<C-,>o", "<cmd>Telescope vim_options<CR>", { desc = "Settings: Vim Opt
 map("n", "<C-,><C-o>", "<cmd>Telescope vim_options<CR>", { desc = "Settings: Vim Options" })
 map("n", "<C-,>a", "<cmd>Telescope autocommands<CR>", { desc = "Settings: Autocommands" })
 map("n", "<C-,><C-a>", "<cmd>Telescope autocommands<CR>", { desc = "Settings: Autocommands" })
+map("n", "<C-/>", "<cmd>Telescope keymaps<CR>", { desc = "Settings: Keymappings" })
 map("n", "<C-,>k", "<cmd>Telescope keymaps<CR>", { desc = "Settings: Keymappings" })
 map("n", "<C-,><C-k>", "<cmd>Telescope keymaps<CR>", { desc = "Settings: Keymappings" })
 map("n", "<C-,>h", "<cmd>Telescope highlights<CR>", { desc = "Settings: Highlights" })

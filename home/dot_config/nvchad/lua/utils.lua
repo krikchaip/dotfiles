@@ -18,9 +18,6 @@ function MacroStartStop()
 end
 
 NvChad = {
-  Cheatsheet = function()
-    vim.cmd "NvCheatsheet"
-  end,
   Themes = function()
     require("nvchad.themes").open()
   end,
