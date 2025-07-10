@@ -19,3 +19,5 @@ package:
   - BennyOe/tokyo-night
   - gosxrgxx/flexoki-dark
   - 956MB/vscode-dark-plus
+  - yazi-rs/plugins:smart-paste
+  - yazi-rs/plugins:types
