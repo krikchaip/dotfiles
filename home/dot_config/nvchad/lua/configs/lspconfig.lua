@@ -56,6 +56,7 @@ M.setup = function()
         },
       },
     },
+    taplo = {},
 
     html = {},
 

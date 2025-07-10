@@ -43,6 +43,7 @@ M.config = function(opts)
     "json",
     "jsonc",
     "yaml",
+    "toml",
 
     "dockerfile",
 
