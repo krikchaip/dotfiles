@@ -1,2 +1,3 @@
 config:
   shell: nu
+  shell_exec: nu --config ~/.config/nushell/config.nu --env-config ~/.config/nushell/env.nu -c
