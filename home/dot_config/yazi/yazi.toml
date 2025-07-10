@@ -1,0 +1,4 @@
+"$schema" = "https://yazi-rs.github.io/schemas/yazi.json"
+
+[opener]
+edit = [{ run = 'nvim "$@"', block = true, desc = "nvim (block)", for = "unix" }]
