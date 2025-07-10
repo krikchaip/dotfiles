@@ -1,0 +1,11 @@
+"$schema" = "https://yazi-rs.github.io/schemas/keymap.json"
+
+[[mgr.prepend_keymap]]
+on = [";"]
+run = "shell '{{ .config.shell }} -c \" $0\"' --interactive --cursor=7"
+desc = "Run a shell command"
+
+[[mgr.prepend_keymap]]
+on = [":"]
+run = "shell '{{ .config.shell }} -c \" $0\"' --block --interactive --cursor=7"
+desc = "Run a shell command (block until finishes)"
