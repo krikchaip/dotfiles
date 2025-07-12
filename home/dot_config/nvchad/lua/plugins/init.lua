@@ -41,6 +41,7 @@ return {
 
   {
     "olimorris/codecompanion.nvim",
+    dependencies = { "ravitemer/codecompanion-history.nvim" },
     cmd = { "CodeCompanion" },
     config = function(_, opts)
       require("configs.codecompanion").setup(opts)

@@ -16,19 +16,19 @@ M.config = function(opts)
         send = { modes = { n = "<CR>", i = "<S-CR>" } },
         regenerate = { modes = { n = "<localleader>r" } },
         close = { modes = { n = "<C-q>", i = "<C-q>" } },
-        stop = { modes = { n = "<localleader>x" } },
-        clear = { modes = { n = "<localleader>c" } },
-        codeblock = { modes = { n = "<localleader>b" } },
+        stop = { modes = { n = "<localleader><Space>" } },
+        clear = { modes = { n = "<localleader>D" } },
+        codeblock = { modes = { n = "<localleader>q" } },
         yank_code = { modes = { n = "<localleader>y" } },
-        pin = { modes = { n = "<localleader>p" } },
-        watch = { modes = { n = "<localleader>w" } },
+        pin = { modes = { n = "<localleader>>" } },
+        watch = { modes = { n = "<localleader>." } },
         change_adapter = { modes = { n = "<localleader>a" } },
         fold_code = { modes = { n = "<localleader>z" } },
-        debug = { modes = { n = "<localleader>d" } },
-        system_prompt = { modes = { n = "<localleader>s" } },
+        debug = { modes = { n = "<localleader>e" } },
+        system_prompt = { modes = { n = "<M-s>" } },
         auto_tool_mode = { modes = { n = "<localleader>t" } },
         goto_file_under_cursor = { modes = { n = "gf" }, description = "Open the file under cursor" },
-        copilot_stats = { modes = { n = "<localleader>S" } },
+        copilot_stats = { modes = { n = "<localleader>C" } },
       },
       tools = {
         opts = { default_tools = { "web_search" } },
@@ -55,6 +55,36 @@ M.config = function(opts)
       window = { layout = "float", width = 0.5, opts = { number = false, wrap = true, winfixbuf = true } },
     },
     inline = { layout = "buffer" },
+  }
+
+  opts.extensions = {
+    history = {
+      enabled = true,
+      opts = {
+        keymap = "<localleader>h",
+        save_chat_keymap = "<localleader>w",
+        picker_keymaps = { delete = { i = "<C-c>" } },
+
+        auto_save = false,
+        continue_last_chat = true,
+        delete_on_clearing_chat = true,
+
+        title_generation_opts = {
+          adapter = "gemini",
+          model = "gemini-2.5-flash",
+        },
+
+        summary = {
+          create_summary_keymap = "<localleader>S",
+          browse_summaries_keymap = "<localleader>s",
+          generation_opts = { adapter = "gemini", model = "gemini-2.5-flash" },
+        },
+
+        chat_filter = function(chat_data)
+          return chat_data.project_root == Snacks.git.get_root(vim.uv.cwd())
+        end,
+      },
+    },
   }
 
   return opts
