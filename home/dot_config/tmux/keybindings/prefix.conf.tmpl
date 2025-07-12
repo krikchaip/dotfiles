@@ -2,9 +2,13 @@
 set -g prefix C-\;
 bind C-\; send-prefix
 
-bind -N "[Help] List keys"      ?   list-keys -N
-bind -N "[Help] Describe a key" /   command-prompt -p "Lookup key:" -k { list-keys -1N "%%" }
-bind -N "[Help] Describe a key" C-/ command-prompt -p "Lookup key:" -k { list-keys -1N "%%" }
+{{ if eq .config.shell "nu" -}}
+bind -N "[Help] List keys" /   display-popup -E "tmux lsk -N | lines | each { str replace -a --regex '\s+' ' ' } | to text | ^sort -k3,3 -k4 | fzf --height=~100%"
+bind -N "[Help] List keys" C-/ display-popup -E "tmux lsk -N | lines | each { str replace -a --regex '\s+' ' ' } | to text | ^sort -k3,3 -k4 | fzf --height=~100%"
+{{- else -}}
+bind -N "[Help] List keys" /   list-keys -N
+bind -N "[Help] List keys" C-/ list-keys -N
+{{- end }}
 
 bind -N "[Server] Enter command"  :   command-prompt
 bind -N "[Server] Reload configs" M-r source "~/.config/tmux/tmux.conf" \; display -d 1000 "tmux.conf Reloaded!"
