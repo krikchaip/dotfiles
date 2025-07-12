@@ -4,6 +4,9 @@ local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 local map = vim.keymap.set
 
+local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+local watch_list = { "ChatStopped", "RequestStarted", "RequestFinished", "DiffAccepted", "DiffRejected" }
+
 M.config = function(opts)
   opts.strategies = {
     chat = {
@@ -67,6 +70,14 @@ M.setup = function(opts)
       M.on_attach(args.buf)
     end,
   })
+
+  autocmd("User", {
+    group = augroup("codecompanion.fidget", { clear = true }),
+    pattern = "CodeCompanion*",
+    callback = function(args)
+      M.notify_status(args)
+    end,
+  })
 end
 
 M.on_attach = function(bufnr)
@@ -75,6 +86,35 @@ M.on_attach = function(bufnr)
   end
 
   map("n", "q", LLM.ToggleChat, opts "CodeCompanion: Close Chat")
+end
+
+-- Snacks.notifier integration for status update displays fidget spinner
+-- ref: https://github.com/olimorris/codecompanion.nvim/discussions/813#discussioncomment-13080521
+M.notify_status = function(request)
+  local event_name = request.match:gsub("CodeCompanion", "")
+  local msg = "[CodeCompanion] " .. event_name
+
+  if not vim.tbl_contains(watch_list, event_name) then return end
+
+  vim.notify(msg, vim.log.levels.INFO, {
+    id = "code_companion_status",
+    title = "Code Companion Status",
+    timeout = 1000,
+
+    keep = function()
+      return vim.endswith(event_name, "Started")
+    end,
+
+    opts = function(notif)
+      notif.icon = ""
+      if vim.endswith(event_name, "Started") then
+        ---@diagnostic disable-next-line: undefined-field
+        notif.icon = spinner[math.floor(vim.uv.hrtime() / (1e6 * 80)) % #spinner + 1]
+      elseif vim.endswith(event_name, "Finished") then
+        notif.icon = " "
+      end
+    end,
+  })
 end
 
 return M
