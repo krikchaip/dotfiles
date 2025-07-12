@@ -86,3 +86,6 @@ alias tk = tmux kill-server
 alias tl = tmux ls
 alias tn = tmux new
 alias tns = tmux new -s
+
+# python
+alias py = python
