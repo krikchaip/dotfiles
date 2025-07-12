@@ -13,7 +13,7 @@ bind -N "[Help] List keys" C-/ list-keys -N
 bind -N "[Server] Enter command"  :   command-prompt
 bind -N "[Server] Reload configs" M-r source "~/.config/tmux/tmux.conf" \; display -d 1000 "tmux.conf Reloaded!"
 
-bind -N "[Session] Create new"             T   new-session -c "#{pane_current_path}"
+bind -N "[Session] Create new"             T   command-prompt -p "New session:" { new-session -s "%%" -c "#{pane_current_path}" }
 bind -N "[Session] Detach from current"    d   detach-client
 bind -N "[Session] Detach from current"    C-d detach-client
 bind -N "[Session] Open browser"           b   choose-session -ZsK "#{?#{e|<:#{line},9},#{e|+:1,#{line}},#{?#{e|<:#{line},35},M-#{a:#{e|+:97,#{e|-:#{line},9}}},}}"
