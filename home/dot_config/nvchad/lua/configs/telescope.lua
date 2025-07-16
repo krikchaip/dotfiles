@@ -119,6 +119,9 @@ M.vimgrep_arguments = function()
   table.insert(args, "--glob")
   table.insert(args, "!**/package-lock.json")
 
+  table.insert(args, "--glob")
+  table.insert(args, "!**/*.pdf")
+
   return args
 end
 
