@@ -15,6 +15,8 @@ M.config = function(opts)
   opts.indent = { enabled = false, icon = "" }
 
   opts.win_options = {
+    linebreak = { default = true, rendered = true },
+    wrap = { default = true, rendered = true },
     number = { default = false, rendered = false },
   }
 
