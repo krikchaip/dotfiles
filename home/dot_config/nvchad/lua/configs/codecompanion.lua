@@ -66,7 +66,6 @@ M.config = function(opts)
         picker_keymaps = { delete = { i = "<C-c>" } },
 
         auto_save = false,
-        continue_last_chat = true,
         delete_on_clearing_chat = true,
 
         title_generation_opts = {
