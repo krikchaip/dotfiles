@@ -69,7 +69,29 @@ M.setup = function()
         expose_as_code_action = "all", -- specify commands exposed as code_actions
       },
     },
+
     vue_ls = {},
+
+    -- a dedicated tsserver for .vue files
+    -- ref: https://github.com/vuejs/language-tools/wiki/Neovim
+    vtsls = {
+      settings = {
+        vtsls = {
+          tsserver = {
+            globalPlugins = {
+              {
+                name = "@vue/typescript-plugin",
+                location = vim.fn.stdpath "data"
+                  .. "/mason/packages/vue-language-server/node_modules/@vue/language-server",
+                languages = { "vue" },
+                configNamespace = "typescript",
+              },
+            },
+          },
+        },
+      },
+      filetypes = { "vue" },
+    },
   }
 
   for name, opts in pairs(servers) do
