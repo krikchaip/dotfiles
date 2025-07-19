@@ -162,6 +162,14 @@ return {
   },
 
   {
+    "rachartier/tiny-inline-diagnostic.nvim",
+    event = "VeryLazy",
+    config = function()
+      require("configs.tiny-inline-diagnostic").setup()
+    end,
+  },
+
+  {
     "folke/todo-comments.nvim",
     event = "VeryLazy",
     opts = { signs = false, highlight = { multiline_pattern = "^%s+" } },

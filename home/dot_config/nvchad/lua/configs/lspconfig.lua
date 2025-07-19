@@ -94,6 +94,10 @@ M.setup = function()
     },
   }
 
+  -- disable the default inline virtual text for diagnostics,
+  -- as 'tiny-inline-diagnostic' will handle it.
+  vim.diagnostic.config { virtual_text = false }
+
   for name, opts in pairs(servers) do
     vim.lsp.config(name, opts)
     vim.lsp.enable(name)
