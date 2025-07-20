@@ -211,6 +211,14 @@ return {
   },
 
   {
+    "JoosepAlviste/nvim-ts-context-commentstring",
+    event = "User FilePost",
+    config = function()
+      require("configs.ts-context-commentstring").setup()
+    end,
+  },
+
+  {
     "kevinhwang91/nvim-ufo",
     dependencies = { "kevinhwang91/promise-async" },
     event = "User FilePost",
