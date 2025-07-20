@@ -10,7 +10,7 @@ return {
     "echasnovski/mini.bracketed",
     version = "*",
     event = "User FilePost",
-    opts = {},
+    opts = { diagnostic = { suffix = "" } },
   },
 
   {
