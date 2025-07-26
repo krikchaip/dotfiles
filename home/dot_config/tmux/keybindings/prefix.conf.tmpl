@@ -19,9 +19,12 @@ bind -N "[Session] Detach from current"    C-d detach-client
 bind -N "[Session] Open browser"           b   choose-session -ZsK "#{?#{e|<:#{line},9},#{e|+:1,#{line}},#{?#{e|<:#{line},35},M-#{a:#{e|+:97,#{e|-:#{line},9}}},}}"
 bind -N "[Session] Open browser"           C-b choose-session -ZsK "#{?#{e|<:#{line},9},#{e|+:1,#{line}},#{?#{e|<:#{line},35},M-#{a:#{e|+:97,#{e|-:#{line},9}}},}}"
 bind -N "[Session] Rename current"         R   command-prompt -p "Rename session:" -I "#S" { rename-session "%%" }
-bind -N "[Session] Goto last"              L   switch-client -l
-bind -N "[Session] Goto next"           -r )   switch-client -n
-bind -N "[Session] Goto previous"       -r (   switch-client -p
+bind -N "[Session] Goto last"           -r ,   switch-client -l
+bind -N "[Session] Goto last"           -r C-, switch-client -l
+bind -N "[Session] Goto next"           -r ]   switch-client -n
+bind -N "[Session] Goto next"           -r C-] switch-client -n
+bind -N "[Session] Goto previous"       -r [   switch-client -p
+bind -N "[Session] Goto previous"       -r C-[ switch-client -p
 
 bind -N "[Window] Split new"                 t     new-window -c "#{pane_current_path}"
 bind -N "[Window] Split new"                 C-t   new-window -c "#{pane_current_path}"
