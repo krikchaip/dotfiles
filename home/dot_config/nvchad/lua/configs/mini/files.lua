@@ -150,13 +150,16 @@ M.go_in_plus = function()
 end
 
 M.go_out_plus = function()
-  local path = (MiniFiles.get_fs_entry() or {}).path
+  local state = MiniFiles.get_explorer_state()
+  if state == nil then return end
 
-  if path == nil then return end
-  if vim.fs.dirname(path) == vim.uv.cwd() then return end
+  local path = state.branch[state.depth_focus]
+  local cwd = vim.uv.cwd()
 
-  MiniFiles.go_out()
-  MiniFiles.trim_right()
+  if path ~= cwd then
+    MiniFiles.go_out()
+    MiniFiles.trim_right()
+  end
 end
 
 M.reset = function()
@@ -266,16 +269,18 @@ end
 -- gitignore filter
 -- ref: https://www.reddit.com/r/neovim/comments/17v3vec/has_anybody_setup_gitignore_filter_for_minifiles
 M.gitignore = function(entries)
-  local entry = entries[1]
-  local modifier = entry.fs_type == "file" and ":p:h" or ":h"
-  local dir_name = vim.fn.fnamemodify(entry.path, modifier)
+  if #entries > 0 then
+    local entry = entries[1]
+    local modifier = entry.fs_type == "file" and ":p:h" or ":h"
+    local dir_name = vim.fn.fnamemodify(entry.path, modifier)
 
-  if ignored[dir_name] == nil then
-    local paths = vim.tbl_map(function(e)
-      return e.path
-    end, entries)
+    if ignored[dir_name] == nil then
+      local paths = vim.tbl_map(function(e)
+        return e.path
+      end, entries)
 
-    ignored[dir_name] = Git.CheckIgnore(paths)
+      ignored[dir_name] = Git.CheckIgnore(paths)
+    end
   end
 
   return function(e)
