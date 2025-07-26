@@ -16,10 +16,10 @@ M.config = function(opts)
   }
 
   opts.mappings = {
-    go_in = "L",
-    go_in_plus = "l",
+    go_in = "",
+    go_in_plus = "",
     go_out = "",
-    go_out_plus = "h",
+    go_out_plus = "",
   }
 
   opts.windows = {
@@ -99,23 +99,30 @@ M.on_attach = function(bufnr)
   map("n", "<Down>", "<Down>", opts())
 
   map("n", "<Esc>", MiniFiles.close, opts "Close (Esc)")
-  map("n", "<S-Right>", MiniFiles.go_in, opts "Go in entry (Arrow)")
-  map("n", "<Right>", M.go_in_plus, opts "Go in entry plus (Arrow)")
-  map("n", "<S-Enter>", MiniFiles.go_in, opts "Go in entry (Enter)")
-  map("n", "<Enter>", M.go_in_plus, opts "Go in entry plus (Enter)")
-  map("n", "h", M.go_out_plus, opts "Go out of directory plus")
-  map("n", "<Left>", M.go_out_plus, opts "Go out of directory plus (Arrow)")
-  map("n", ",", "''", opts("Go to latest jump", { remap = true }))
-  map("n", "<BS>", M.reset, opts "Reset")
-  map("n", "f", M.search_node, opts "Search node")
-  map("n", "=", M.sync, opts "Synchronize")
-
-  map("n", "<C-x>", M.split "horizontal", opts "Split horizontally")
-  map("n", "<C-v>", M.split "vertical", opts "Split vertically")
-  map("n", "<C-t>", M.split "tab", opts "Split tab")
 
   map("n", "ya", M.copy_absolute, opts "Copy absolute path")
   map("n", "yr", M.copy_relative, opts "Copy relative path")
+
+  map("n", "L", M.go_in, opts "Go in entry")
+  map("n", "<S-Right>", M.go_in, opts "Go in entry (Arrow)")
+  map("n", "<S-Enter>", M.go_in, opts "Go in entry (Enter)")
+
+  map("n", "l", M.go_in_plus, opts "Go in entry plus")
+  map("n", "<Right>", M.go_in_plus, opts "Go in entry plus (Arrow)")
+  map("n", "<Enter>", M.go_in_plus, opts "Go in entry plus (Enter)")
+
+  map("n", "h", M.go_out_plus, opts "Go out of directory plus")
+  map("n", "<Left>", M.go_out_plus, opts "Go out of directory plus (Arrow)")
+
+  map("n", ",", "''", opts("Go to latest jump", { remap = true }))
+  map("n", "<BS>", M.reset, opts "Reset")
+  map("n", "f", M.search_node, opts "Search node")
+
+  map("n", "<C-x>", M.split "horizontal", opts "Split horizontally")
+  map("n", "<C-t>", M.split "tab", opts "Split tab")
+  map("n", "<C-v>", M.split "vertical", opts "Split vertically")
+
+  map("n", "=", M.sync, opts "Synchronize")
 end
 
 M.open = function()
@@ -145,7 +152,13 @@ M.open_reveal = function()
   -- M.reset()
 end
 
+M.go_in = function()
+  if MiniFiles.get_fs_entry() == nil then return end
+  MiniFiles.go_in {}
+end
+
 M.go_in_plus = function()
+  if MiniFiles.get_fs_entry() == nil then return end
   MiniFiles.go_in { close_on_file = true }
 end
 
