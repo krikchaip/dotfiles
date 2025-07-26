@@ -2,8 +2,68 @@
     "profiles": [
         {
             "complex_modifications": {
-                "parameters": { "basic.simultaneous_threshold_milliseconds": 35 },
                 "rules": [
+                    {
+                        "description": "Tmux prefix keys (x+c and ,+.)",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^net\\.kovidgoyal\\.kitty$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "description": "Left prefix key (x+c)",
+                                "from": {
+                                    "simultaneous": [
+                                        { "key_code": "x" },
+                                        { "key_code": "c" }
+                                    ]
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "semicolon",
+                                        "modifiers": ["control"]
+                                    },
+                                    {
+                                        "key_code": "left_control",
+                                        "lazy": true
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^net\\.kovidgoyal\\.kitty$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "description": "Right prefix key (,+.)",
+                                "from": {
+                                    "simultaneous": [
+                                        { "key_code": "comma" },
+                                        { "key_code": "period" }
+                                    ]
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "semicolon",
+                                        "modifiers": ["control"]
+                                    },
+                                    {
+                                        "key_code": "left_control",
+                                        "lazy": true
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
+                    },
                     {
                         "description": "Force Quit Applications (del)",
                         "manipulators": [

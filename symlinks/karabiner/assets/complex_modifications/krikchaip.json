@@ -430,6 +430,45 @@
           "to_if_alone": [{ "key_code": "escape" }]
         }
       ]
+    },
+    {
+      "description": "Tmux prefix keys (x+c and ,+.)",
+      "manipulators": [
+        {
+          "description": "Left prefix key (x+c)",
+          "type": "basic",
+          "from": {
+            "simultaneous": [{ "key_code": "x" }, { "key_code": "c" }]
+          },
+          "to": [
+            { "key_code": "semicolon", "modifiers": ["control"] },
+            { "key_code": "left_control", "lazy": true }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^net\\.kovidgoyal\\.kitty$"]
+            }
+          ]
+        },
+        {
+          "description": "Right prefix key (,+.)",
+          "type": "basic",
+          "from": {
+            "simultaneous": [{ "key_code": "comma" }, { "key_code": "period" }]
+          },
+          "to": [
+            { "key_code": "semicolon", "modifiers": ["control"] },
+            { "key_code": "left_control", "lazy": true }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^net\\.kovidgoyal\\.kitty$"]
+            }
+          ]
+        }
+      ]
     }
   ]
 }
