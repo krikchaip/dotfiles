@@ -37,3 +37,8 @@ $env.PNPM_HOME = ($env.HOME | path join "Library" "pnpm")
 # image.nvim couldn't reach. we have to tell the plugin to find those libs from this path
 # ref: https://github.com/3rd/image.nvim#installing-imagemagick
 $env.DYLD_LIBRARY_PATH = (brew --prefix | path parse | path join "lib")
+
+# fix OpenSSL library not found during compilation for Apple Silicon MacBooks
+# ref: https://stackoverflow.com/questions/26288042/error-installing-psycopg2-library-not-found-for-lssl
+$env.LDFLAGS = $"-L (brew --prefix openssl)/lib"
+$env.CPPFLAGS = $"-I (brew --prefix openssl)/include"
