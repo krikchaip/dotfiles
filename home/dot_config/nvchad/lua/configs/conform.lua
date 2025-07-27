@@ -9,6 +9,7 @@ M.config = function(opts)
     typescript = { "prettierd" },
     javascriptreact = { "prettierd" },
     typescriptreact = { "prettierd" },
+    vue = { "prettierd" },
 
     json = { "prettierd" },
     yaml = { "yamlfmt", lsp_format = "fallback" },
