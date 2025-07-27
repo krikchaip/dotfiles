@@ -29,6 +29,7 @@ M.config = function(opts)
     "javascript",
     "typescript",
     "tsx",
+    "styled",
     "vue",
 
     "python",
