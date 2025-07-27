@@ -9,6 +9,7 @@ M.setup = function()
     vue = { "eslint_d" },
 
     go = { "golangcilint" },
+    python = { "pylint", "flake8", "ruff" },
   }
 
   local linters = require("lint").linters
@@ -25,7 +26,7 @@ M.setup = function()
     return diagnostic
   end)
 
-  vim.cmd "au BufWritePost,InsertLeave * lua require('lint').try_lint()"
+  vim.cmd "au BufEnter,BufWritePost,InsertLeave * lua require('lint').try_lint()"
 end
 
 return M

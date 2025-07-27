@@ -21,6 +21,8 @@ M.config = function(opts)
     gowork = { lsp_format = "prefer" },
     gotmpl = { lsp_format = "prefer" },
 
+    python = { "isort", "black", "ruff_format" },
+
     lua = { "stylua" },
     nu = { "nufmt", lsp_format = "fallback" },
   }
