@@ -64,25 +64,34 @@ M.setup = function()
     emmet_ls = {},
     tailwindcss = {},
 
-    ts_ls = {
-      settings = {
-        expose_as_code_action = "all", -- specify commands exposed as code_actions
-      },
-    },
-
     vue_ls = {},
 
-    -- a dedicated tsserver for .vue files
-    -- ref: https://github.com/vuejs/language-tools/wiki/Neovim
     vtsls = {
       settings = {
+        javascript = {
+          format = { enable = false },
+        },
+
+        typescript = {
+          format = { enable = false },
+        },
+
         vtsls = {
+          autoUseWorkspaceTsdk = true,
+
+          experimental = {
+            completion = { enableServerSideFuzzyMatch = true, entriesLimit = 200 },
+          },
+
           tsserver = {
             globalPlugins = {
+              -- integration for VueJS SFC
+              -- ref: https://github.com/vuejs/language-tools/wiki/Neovim
               {
                 name = "@vue/typescript-plugin",
                 location = vim.fn.stdpath "data"
                   .. "/mason/packages/vue-language-server/node_modules/@vue/language-server",
+                enableForWorkspaceTypeScriptVersions = true,
                 languages = { "vue" },
                 configNamespace = "typescript",
               },
@@ -90,7 +99,7 @@ M.setup = function()
           },
         },
       },
-      filetypes = { "vue" },
+      filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
     },
   }
 
