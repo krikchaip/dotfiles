@@ -32,12 +32,22 @@ M.get_config = function(data)
 
     if response ~= nil then
       local item = response[1] or response[2]
-      data = item.result[1] or item.result
-    end
-  end
 
-  uri = data.targetUri or data.uri or data.params.textDocument.uri
-  range = (data.targetRange or data.range).start or data.params.position
+      if item ~= nil then
+        data = item.result[1] or item.result
+        uri = data.targetUri or data.uri
+        range = (data.targetRange or data.range).start
+      else
+        vim.print(response)
+      end
+    else
+      uri = data.params.textDocument.uri
+      range = data.params.position
+    end
+  else
+    uri = data.targetUri or data.uri
+    range = (data.targetRange or data.range).start
+  end
 
   return uri, { range.line + 1, range.character }
 end
