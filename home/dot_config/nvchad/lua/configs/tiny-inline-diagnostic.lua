@@ -4,6 +4,7 @@ M.config = function(opts)
   opts.preset = "powerline"
 
   opts.options = {
+    show_source = { enabled = true },
     use_icons_from_diagnostic = true,
     overflow = { padding = 3 },
   }
