@@ -3,6 +3,15 @@ require "nvchad.autocmds"
 local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
+-- prevent horizontal scrolling in terminal windows such as nvterm
+autocmd("TermOpen", {
+  desc = "Prevent accidental horizontal scrolling in terminal windows",
+  group = augroup("no-term-scroll", { clear = true }),
+  callback = function()
+    vim.wo.wrap = true
+  end,
+})
+
 -- highlight text after yanking
 -- ref: https://github.com/nvim-lua/kickstart.nvim/blob/master/init.lua#L196-L205
 autocmd("TextYankPost", {
