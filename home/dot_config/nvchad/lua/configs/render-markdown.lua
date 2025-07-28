@@ -11,11 +11,14 @@ M.config = function(opts)
   opts.completions = { blink = { enabled = true } }
   opts.heading = { position = "inline", left_pad = 1, border = true, border_virtual = true }
   opts.code = { style = "normal", border = "thick", left_pad = 2 }
+  opts.quote = { repeat_linebreak = true }
   opts.sign = { enabled = false }
   opts.indent = { enabled = false, icon = "" }
 
   opts.win_options = {
     linebreak = { default = true, rendered = true },
+    showbreak = { default = "  ", rendered = "  " },
+    breakindent = { default = true, rendered = true },
     wrap = { default = true, rendered = true },
     number = { default = false, rendered = false },
   }
