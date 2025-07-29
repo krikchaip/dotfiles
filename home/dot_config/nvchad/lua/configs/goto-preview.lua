@@ -27,27 +27,30 @@ end
 M.get_config = function(data)
   local uri, range
 
-  if data.params then
-    local response = vim.lsp.buf_request_sync(0, data.method, data.params)
-
-    if response ~= nil then
-      local item = response[1] or response[2]
-
-      if item ~= nil then
-        data = item.result[1] or item.result
-        uri = data.targetUri or data.uri
-        range = (data.targetRange or data.range).start
-      else
-        vim.print(response)
-      end
-    else
-      uri = data.params.textDocument.uri
-      range = data.params.position
-    end
-  else
+  if not data.params then
     uri = data.targetUri or data.uri
     range = (data.targetRange or data.range).start
+
+    return uri, { range.line + 1, range.character }
   end
+
+  local response = vim.lsp.buf_request_sync(0, data.method, data.params)
+
+  if response == nil then
+    uri = data.params.textDocument.uri
+    range = data.params.position
+
+    return uri, { range.line + 1, range.character }
+  end
+
+  local item = response[1] or response[2]
+
+  if item == nil then vim.print(response) end
+  if item.result == nil then vim.print(item) end
+  if item.result then data = item.result[1] or item.result end
+
+  uri = data.targetUri or data.uri
+  range = (data.targetRange or data.range).start
 
   return uri, { range.line + 1, range.character }
 end
