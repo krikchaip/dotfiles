@@ -90,6 +90,7 @@ alias tns = tmux new -s
 # python
 alias py = python
 alias pym = python -m
-alias dj = python manage.py
 alias pe = pipenv
+alias pex = pipenv run
 alias pesh = pipenv shell
+alias dj = pipenv run ./manage.py
