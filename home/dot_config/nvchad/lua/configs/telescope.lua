@@ -132,7 +132,7 @@ M.grep = function(opts)
   opts.search = opts.search or ""
   opts.only_sort_text = true
 
-  require("telescope.builtin").grep_string(opts)
+  require("telescope.builtin").live_grep(opts)
 end
 
 M.dotfiles = function(opts)
