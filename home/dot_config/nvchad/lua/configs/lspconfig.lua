@@ -30,6 +30,7 @@ M.setup = function()
     },
 
     pyright = {},
+    djlsp = {},
 
     dockerls = {},
 
@@ -58,7 +59,7 @@ M.setup = function()
     },
     taplo = {},
 
-    html = {},
+    html = { filetypes = { "html", "htmldjango" } },
 
     cssls = {},
     emmet_ls = {},

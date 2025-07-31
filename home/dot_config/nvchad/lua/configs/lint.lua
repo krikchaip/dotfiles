@@ -9,7 +9,9 @@ M.setup = function()
     vue = { "eslint_d" },
 
     go = { "golangcilint" },
+
     python = { "pylint", "flake8", "ruff" },
+    htmldjango = { "djlint" },
   }
 
   local linters = require("lint").linters

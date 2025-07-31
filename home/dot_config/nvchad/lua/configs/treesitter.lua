@@ -34,6 +34,7 @@ M.config = function(opts)
 
     "python",
     "requirements",
+    "htmldjango",
 
     "go",
     "gomod",

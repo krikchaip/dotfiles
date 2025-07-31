@@ -22,6 +22,7 @@ M.config = function(opts)
     gotmpl = { lsp_format = "prefer" },
 
     python = { "isort", "black", "ruff_format" },
+    htmldjango = { "djlint" },
 
     lua = { "stylua" },
     nu = { "nufmt", lsp_format = "fallback" },
