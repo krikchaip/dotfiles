@@ -18,14 +18,16 @@ end
 M.setup = function(opts)
   require("nvim-tree-preview").setup(M.config(opts))
 
-  autocmd("FileType", {
-    desc = "Auto toggle preview on tree open",
-    group = augroup("tree-preview", { clear = true }),
-    pattern = "NvimTree",
-    callback = function(args)
-      autocmd("BufEnter", { buffer = args.buf, callback = M.toggle })
-    end,
-  })
+  if vim.g.auto_preview_node then
+    autocmd("FileType", {
+      desc = "Auto toggle preview on tree open",
+      group = augroup("tree-preview", { clear = true }),
+      pattern = "NvimTree",
+      callback = function(args)
+        autocmd("BufEnter", { buffer = args.buf, callback = M.toggle })
+      end,
+    })
+  end
 end
 
 M.toggle = vim.schedule_wrap(function()
