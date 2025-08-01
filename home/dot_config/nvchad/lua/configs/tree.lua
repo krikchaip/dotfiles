@@ -46,7 +46,7 @@ M.setup = function(opts)
     desc = "Auto reveal current buffer in Nvim-tree",
     group = augroup("nvim-tree-autoreveal", { clear = true }),
     callback = function()
-      if not vim.g.auto_reveal then return end
+      if not vim.g.auto_reveal_buffer then return end
       require("nvim-tree.api").tree.find_file()
     end,
   })
