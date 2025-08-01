@@ -51,6 +51,14 @@ M.config = function(opts)
       },
     },
 
+    live_grep = {
+      mappings = {
+        i = {
+          ["<M-s>"] = M.scope_search,
+        },
+      },
+    },
+
     buffers = {
       ignore_current_buffer = true,
       sort_lastused = true,
