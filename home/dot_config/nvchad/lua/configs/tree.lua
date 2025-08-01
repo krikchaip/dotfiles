@@ -88,17 +88,17 @@ M.on_attach = function(bufnr)
   end
 
   -- explorer
-  map("n", "<C-/>", tree.toggle_help, opts "Explorer: Toggle Help")
+  map("n", "<C-/>", preview.wrap(tree.toggle_help), opts "Explorer: Toggle Help")
   map("n", "q", tree.close, opts "Explorer: Close Tree")
   map("n", "<C-r>", tree.reload, opts "Explorer: Refresh Tree")
   map("n", "<BS>", node.navigate.parent_close, opts "Explorer: Close Directory")
   map("n", "<S-BS>", tree.collapse_all, opts "Explorer: Collapse All")
   map("n", "E", tree.expand_all, opts "Explorer: Expand All")
-  map("n", "n", fs.create, opts "Explorer: New Node")
+  map("n", "n", preview.wrap(fs.create), opts "Explorer: New Node")
   map("n", "D", fs.remove, opts "Explorer: Delete Node")
   map("n", "dd", fs.remove, opts "Explorer: Delete Node")
   map("n", "dt", fs.trash, opts "Explorer: Trash Node")
-  map("n", "e", node.run.cmd, opts "Explorer: Run Command at Node")
+  map("n", "e", preview.wrap(node.run.cmd), opts "Explorer: Run Command at Node")
 
   -- open node
   map("n", "l", node.open.edit, opts "Open: Selected Node")
@@ -131,11 +131,11 @@ M.on_attach = function(bufnr)
   map("n", "yb", fs.copy.basename, opts "Copy: Basename")
 
   -- rename
-  map("n", "R", fs.rename, opts "Rename: Filename")
-  map("n", "rr", fs.rename, opts "Rename: Filename")
-  map("n", "rf", fs.rename_sub, opts "Rename: Full Name")
-  map("n", "ra", fs.rename_full, opts "Rename: Full Path")
-  map("n", "rb", fs.rename_basename, opts "Rename: Basename")
+  map("n", "R", preview.wrap(fs.rename), opts "Rename: Filename")
+  map("n", "rr", preview.wrap(fs.rename), opts "Rename: Filename")
+  map("n", "rf", preview.wrap(fs.rename_sub), opts "Rename: Full Name")
+  map("n", "ra", preview.wrap(fs.rename_full), opts "Rename: Full Path")
+  map("n", "rb", preview.wrap(fs.rename_basename), opts "Rename: Basename")
 
   -- search
   map("n", "f", M.search_node, opts "Search: Node")

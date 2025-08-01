@@ -48,4 +48,12 @@ M.scroll_up = function()
   require("nvim-tree-preview").scroll(-8)
 end
 
+M.wrap = function(fn)
+  local preview = require "nvim-tree-preview"
+  return function()
+    if preview.is_watching() then preview.unwatch() end
+    fn()
+  end
+end
+
 return M
