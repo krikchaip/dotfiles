@@ -1,3 +1,5 @@
+---@diagnostic disable: undefined-field
+
 local M = {}
 
 local map = vim.keymap.set
@@ -43,7 +45,11 @@ M.get_config = function(data)
     return uri, { range.line + 1, range.character }
   end
 
-  local item = response[1] or response[2]
+  local item
+  for i = 1, 10, 1 do
+    item = response[i]
+    if item ~= nil then break end
+  end
 
   if item == nil then vim.print(response) end
   if item.result == nil then vim.print(item) end
