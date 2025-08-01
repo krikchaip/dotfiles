@@ -29,6 +29,11 @@ M.config = function(opts)
         code = { border = "thin", left_pad = 0 },
       },
     },
+    filetype = {
+      codecompanion = {
+        render_modes = { "n", "c", "t" },
+      },
+    },
   }
 
   return opts
