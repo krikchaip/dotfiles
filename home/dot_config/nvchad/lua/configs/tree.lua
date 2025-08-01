@@ -42,8 +42,6 @@ end
 M.setup = function(opts)
   require("nvim-tree").setup(M.config(opts))
 
-  vim.g.auto_reveal = true
-
   autocmd("BufEnter", {
     desc = "Auto reveal current buffer in Nvim-tree",
     group = augroup("nvim-tree-autoreveal", { clear = true }),
