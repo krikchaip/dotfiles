@@ -338,6 +338,9 @@ LLM = {
   Inline = function()
     return ":CodeCompanion "
   end,
+  AddToChat = function()
+    require("codecompanion").add {}
+  end,
   Actions = function()
     require("codecompanion").actions {}
   end,

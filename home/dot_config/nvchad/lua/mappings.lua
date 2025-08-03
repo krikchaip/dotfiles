@@ -252,4 +252,5 @@ map("n", "<leader>v", Markdown.TogglePreview, { desc = "Markdown: Toggle Preview
 -- LLM (codecompanion)
 map("n", "<leader>a", LLM.ToggleChat, { desc = "LLM: Toggle Chat" })
 map("v", "<leader>a", LLM.Inline, { desc = "LLM: Inline Visual", expr = true })
+map("v", "ga", LLM.AddToChat, { desc = "LLM: Add Selection to Chat" })
 map({ "n", "v" }, "<leader>A", LLM.Actions, { desc = "LLM: Show Actions" })
