@@ -52,6 +52,7 @@ M.config = function(opts)
   opts.display = {
     chat = {
       auto_scroll = false,
+      intro_message = "",
       window = { layout = "float", width = 0.5, opts = { number = false, wrap = true, winfixbuf = true } },
     },
     inline = { layout = "buffer" },
