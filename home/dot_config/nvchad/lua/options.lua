@@ -37,6 +37,10 @@ opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
 -- enable 24-bit colour in terminal
 o.termguicolors = true
 
+-- fix scroll position not remember on buffer switch
+-- ref: https://github.com/neovim/neovim/issues/28707
+o.jumpoptions = "view"
+
 -- session options
 opt.sessionoptions:append "winpos"
 opt.sessionoptions:remove "blank"
