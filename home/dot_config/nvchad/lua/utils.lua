@@ -78,6 +78,54 @@ Tabufline = {
   end,
 }
 
+ScrollPosition = {
+  Serialize = function()
+    if not vim.w.SavedBufView then return {} end
+
+    local bufs = vim
+      .iter(vim.api.nvim_list_tabpages())
+      :map(function(t)
+        return vim.t[t].bufs
+      end)
+      :flatten()
+      :fold({}, function(acc, b)
+        acc[b] = true
+        return acc
+      end)
+
+    local views = vim.tbl_extend("force", vim.w.SavedBufView, {
+      [tostring(vim.api.nvim_get_current_buf())] = vim.fn.winsaveview(),
+    })
+
+    return vim
+      .iter(views)
+      :filter(function(b)
+        return bufs[tonumber(b, 10)]
+      end)
+      :fold({}, function(acc, b, view)
+        acc[vim.api.nvim_buf_get_name(tonumber(b, 10))] = view
+        return acc
+      end)
+  end,
+  Load = function(data)
+    local bufs = vim
+      .iter(vim.api.nvim_list_tabpages())
+      :map(function(t)
+        return vim.t[t].bufs
+      end)
+      :flatten()
+      :fold({}, function(acc, b)
+        acc[vim.api.nvim_buf_get_name(b)] = b
+        return acc
+      end)
+
+    vim.w.SavedBufView = vim.iter(data):fold({}, function(acc, name, view)
+      acc[tostring(bufs[name])] = view
+      return acc
+    end)
+  end,
+}
+
 Term = {
   VSplit = function()
     require("nvchad.term").new { pos = "vsp" }

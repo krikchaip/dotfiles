@@ -9,13 +9,17 @@ M.config = function(opts)
 
   opts.hooks = {
     before_save = function()
-      return { tabufline = Tabufline.Serialize() }
+      return {
+        tabufline = Tabufline.Serialize(),
+        scroll_position = ScrollPosition.Serialize(),
+      }
     end,
     after_load = function(_, data)
       vim.cmd "let @/=''"
       vim.cmd "silent! argdelete"
 
       Tabufline.Load(data.tabufline)
+      ScrollPosition.Load(data.scroll_position)
     end,
   }
 

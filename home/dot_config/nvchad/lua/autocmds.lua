@@ -22,25 +22,6 @@ autocmd("TextYankPost", {
   end,
 })
 
--- restore cursor position on file open
--- ref: https://nvchad.com/docs/recipes
-autocmd("BufReadPost", {
-  desc = "Restore cursor position on file open",
-  group = augroup("restore-cursor", { clear = true }),
-  pattern = "*",
-  callback = function()
-    local line = vim.fn.line "'\""
-    if
-      line > 1
-      and line <= vim.fn.line "$"
-      and vim.bo.filetype ~= "commit"
-      and vim.fn.index({ "xxd", "gitrebase" }, vim.bo.filetype) == -1
-    then
-      vim.cmd 'normal! g`"'
-    end
-  end,
-})
-
 -- show nvdash when all buffers are closed
 -- ref: https://nvchad.com/docs/recipes
 autocmd("BufDelete", {
