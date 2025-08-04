@@ -52,6 +52,38 @@ autocmd("BufDelete", {
   end,
 })
 
+-- open new buffer to the right of the current one
+autocmd("BufAdd", {
+  desc = "Open new buffer to the right of the current one",
+  group = augroup("open-buffer-right", { clear = true }),
+  callback = function(args)
+    local new_buf = args.buf
+    local anchor_buf = vim.fn.bufnr "#"
+
+    if new_buf == anchor_buf or anchor_buf == -1 or vim.bo[new_buf].buftype ~= "" then return end
+
+    local bufs = vim.t.bufs
+    local anchor_idx = -1
+    local new_buf_idx = -1
+
+    for i, bufnr in ipairs(bufs) do
+      if bufnr == anchor_buf then anchor_idx = i end
+      if bufnr == new_buf then new_buf_idx = i end
+    end
+
+    if anchor_idx ~= -1 and new_buf_idx ~= -1 and anchor_idx ~= new_buf_idx then
+      table.remove(bufs, new_buf_idx)
+
+      -- adjust anchor_idx if new_buf was before it
+      if new_buf_idx < anchor_idx then anchor_idx = anchor_idx - 1 end
+
+      table.insert(bufs, anchor_idx + 1, new_buf)
+
+      vim.t.bufs = bufs
+    end
+  end,
+})
+
 -- avoid scrolling when switch buffers
 -- ref: https://vim.fandom.com/wiki/Avoid_scrolling_when_switch_buffers
 vim.cmd [[
