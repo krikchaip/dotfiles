@@ -94,3 +94,6 @@ alias pe = pipenv
 alias pex = pipenv run
 alias pesh = pipenv shell
 alias dj = pipenv run ./manage.py
+
+# gemini
+alias g = gemini
