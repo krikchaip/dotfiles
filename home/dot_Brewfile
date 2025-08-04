@@ -60,6 +60,7 @@ cask "logi-options-plus"
 cask "mongodb-compass"
 cask "notion"
 cask "obsidian"
+cask "redis-insight"
 cask "visual-studio-code"
 
 # App Store applications
