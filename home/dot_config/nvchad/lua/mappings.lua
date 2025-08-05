@@ -1,7 +1,5 @@
 local map = vim.keymap.set
 
-map("i", "jk", "<Esc>")
-map("i", "kj", "<Esc>")
 map({ "n", "x" }, "<C-z>", "<Esc>")
 map({ "n", "x" }, ";", ":")
 
