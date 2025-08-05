@@ -2,9 +2,10 @@
     "profiles": [
         {
             "complex_modifications": {
+                "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
                 "rules": [
                     {
-                        "description": "Tmux prefix keys (x+c and ,+.)",
+                        "description": "Tmux prefix keys (s+d and k+l)",
                         "manipulators": [
                             {
                                 "conditions": [
@@ -15,11 +16,11 @@
                                         "type": "frontmost_application_if"
                                     }
                                 ],
-                                "description": "Left prefix key (x+c)",
+                                "description": "Left prefix key (s+d)",
                                 "from": {
                                     "simultaneous": [
-                                        { "key_code": "x" },
-                                        { "key_code": "c" }
+                                        { "key_code": "s" },
+                                        { "key_code": "d" }
                                     ]
                                 },
                                 "to": [
@@ -43,11 +44,11 @@
                                         "type": "frontmost_application_if"
                                     }
                                 ],
-                                "description": "Right prefix key (,+.)",
+                                "description": "Right prefix key (k+l)",
                                 "from": {
                                     "simultaneous": [
-                                        { "key_code": "comma" },
-                                        { "key_code": "period" }
+                                        { "key_code": "k" },
+                                        { "key_code": "l" }
                                     ]
                                 },
                                 "to": [

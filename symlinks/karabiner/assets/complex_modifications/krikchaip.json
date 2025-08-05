@@ -432,13 +432,13 @@
       ]
     },
     {
-      "description": "Tmux prefix keys (x+c and ,+.)",
+      "description": "Tmux prefix keys (s+d and k+l)",
       "manipulators": [
         {
-          "description": "Left prefix key (x+c)",
+          "description": "Left prefix key (s+d)",
           "type": "basic",
           "from": {
-            "simultaneous": [{ "key_code": "x" }, { "key_code": "c" }]
+            "simultaneous": [{ "key_code": "s" }, { "key_code": "d" }]
           },
           "to": [
             { "key_code": "semicolon", "modifiers": ["control"] },
@@ -452,10 +452,10 @@
           ]
         },
         {
-          "description": "Right prefix key (,+.)",
+          "description": "Right prefix key (k+l)",
           "type": "basic",
           "from": {
-            "simultaneous": [{ "key_code": "comma" }, { "key_code": "period" }]
+            "simultaneous": [{ "key_code": "k" }, { "key_code": "l" }]
           },
           "to": [
             { "key_code": "semicolon", "modifiers": ["control"] },
