@@ -60,10 +60,7 @@ M.config = function(opts)
     },
 
     buffers = {
-      ignore_current_buffer = true,
-      sort_lastused = true,
-      sort_mru = true,
-
+      select_current = true,
       mappings = {
         i = {
           ["<M-d>"] = false,
