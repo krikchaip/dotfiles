@@ -267,7 +267,7 @@ Git = {
     require("nvchad.term").toggle(Git.FloatOpts { id = "git.branch", cmd = "lazygit branch" })
   end,
   FileHistory = function()
-    local filename = vim.fn.expand "%"
+    local filename = vim.fn.expand "%:p"
     local cmd = table.concat({ "lazygit", "-f", filename }, " ")
     require("nvchad.term").new(Git.FloatOpts { id = "git.file-history", cmd = cmd })
   end,
