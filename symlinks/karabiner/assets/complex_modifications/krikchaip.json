@@ -469,6 +469,56 @@
           ]
         }
       ]
+    },
+    {
+      "description": "Double press of Escape to Undo (ctrl+z)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": { "key_code": "escape" },
+          "to": [
+            { "key_code": "z", "modifiers": ["control"] },
+            { "set_variable": { "name": "esc_pressed", "value": false } }
+          ],
+          "conditions": [
+            { "type": "variable_if", "name": "esc_pressed", "value": true }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": { "key_code": "escape" },
+          "to": [{ "set_variable": { "name": "esc_pressed", "value": true } }],
+          "to_delayed_action": {
+            "to_if_invoked": [
+              {
+                "key_code": "escape",
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "esc_pressed",
+                    "value": true
+                  }
+                ]
+              },
+              { "set_variable": { "name": "esc_pressed", "value": false } }
+            ],
+            "to_if_canceled": [
+              {
+                "key_code": "escape",
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "esc_pressed",
+                    "value": true
+                  }
+                ]
+              },
+              { "set_variable": { "name": "esc_pressed", "value": false } }
+            ]
+          },
+          "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 }
+        }
+      ]
     }
   ]
 }

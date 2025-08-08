@@ -2,8 +2,87 @@
     "profiles": [
         {
             "complex_modifications": {
-                "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
+                "parameters": { "basic.simultaneous_threshold_milliseconds": 30 },
                 "rules": [
+                    {
+                        "description": "Double press of Escape to Undo (ctrl+z)",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_pressed",
+                                        "type": "variable_if",
+                                        "value": true
+                                    }
+                                ],
+                                "from": { "key_code": "escape" },
+                                "to": [
+                                    {
+                                        "key_code": "z",
+                                        "modifiers": ["control"]
+                                    },
+                                    {
+                                        "set_variable": {
+                                            "name": "esc_pressed",
+                                            "value": false
+                                        }
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "from": { "key_code": "escape" },
+                                "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
+                                "to": [
+                                    {
+                                        "set_variable": {
+                                            "name": "esc_pressed",
+                                            "value": true
+                                        }
+                                    }
+                                ],
+                                "to_delayed_action": {
+                                    "to_if_canceled": [
+                                        {
+                                            "conditions": [
+                                                {
+                                                    "name": "esc_pressed",
+                                                    "type": "variable_if",
+                                                    "value": true
+                                                }
+                                            ],
+                                            "key_code": "escape"
+                                        },
+                                        {
+                                            "set_variable": {
+                                                "name": "esc_pressed",
+                                                "value": false
+                                            }
+                                        }
+                                    ],
+                                    "to_if_invoked": [
+                                        {
+                                            "conditions": [
+                                                {
+                                                    "name": "esc_pressed",
+                                                    "type": "variable_if",
+                                                    "value": true
+                                                }
+                                            ],
+                                            "key_code": "escape"
+                                        },
+                                        {
+                                            "set_variable": {
+                                                "name": "esc_pressed",
+                                                "value": false
+                                            }
+                                        }
+                                    ]
+                                },
+                                "type": "basic"
+                            }
+                        ]
+                    },
                     {
                         "description": "Tmux prefix keys (s+d and k+l)",
                         "manipulators": [
