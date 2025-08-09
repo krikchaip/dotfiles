@@ -21,10 +21,10 @@ bind -N "[Session] Open browser"           C-b choose-session -ZsK "#{?#{e|<:#{l
 bind -N "[Session] Rename current"         R   command-prompt -p "Rename session:" -I "#S" { rename-session "%%" }
 bind -N "[Session] Goto last"           -r ,   switch-client -l
 bind -N "[Session] Goto last"           -r C-, switch-client -l
-bind -N "[Session] Goto next"           -r ]   switch-client -n
-bind -N "[Session] Goto next"           -r C-] switch-client -n
-bind -N "[Session] Goto previous"       -r [   switch-client -p
-bind -N "[Session] Goto previous"       -r C-[ switch-client -p
+bind -N "[Session] Goto next"           -r n   switch-client -n
+bind -N "[Session] Goto next"           -r C-n switch-client -n
+bind -N "[Session] Goto previous"       -r p   switch-client -p
+bind -N "[Session] Goto previous"       -r C-p switch-client -p
 
 bind -N "[Window] Split new"                 t     new-window -c "#{pane_current_path}"
 bind -N "[Window] Split new"                 C-t   new-window -c "#{pane_current_path}"
@@ -55,12 +55,12 @@ bind -N "[Window] Goto #9"                   9     select-window -t :=9
 bind -N "[Window] Goto #9"                   C-9   select-window -t :=9
 bind -N "[Window] Goto last"                 Tab   last-window
 bind -N "[Window] Goto last"                 C-Tab last-window
-bind -N "[Window] Goto next"              -r n     next-window
-bind -N "[Window] Goto next"              -r C-n   next-window
-bind -N "[Window] Goto previous"          -r p     previous-window
-bind -N "[Window] Goto previous"          -r C-p   previous-window
-bind -N "[Window] Swap with next"         -r N     swap-window -d -t +1
-bind -N "[Window] Swap with previous"     -r P     swap-window -d -t -1
+bind -N "[Window] Goto next"              -r ]     next-window
+bind -N "[Window] Goto next"              -r C-]   next-window
+bind -N "[Window] Goto previous"          -r [     previous-window
+bind -N "[Window] Goto previous"          -r C-[   previous-window
+bind -N "[Window] Swap with next"         -r \}     swap-window -d -t +1
+bind -N "[Window] Swap with previous"     -r \{     swap-window -d -t -1
 bind -N "[Window] Move to session"           M-s   run-shell 'CURR_WINDOW=$(tmux display -p "#S:#I"); tmux choose-tree -Zs "switch-client -t \"%%\"; move-window -s $CURR_WINDOW"'
 bind -N "[Window] Break into new session"    M-S   command-prompt -p "Session name:" { new-session -ds "%%"; move-window -t "%%"; kill-window -t "%%":1; switch-client -t "%%" }
 

@@ -440,10 +440,7 @@
           "from": {
             "simultaneous": [{ "key_code": "s" }, { "key_code": "d" }]
           },
-          "to": [
-            { "key_code": "semicolon", "modifiers": ["control"] },
-            { "key_code": "left_control", "lazy": true }
-          ],
+          "to": [{ "key_code": "semicolon", "modifiers": ["control"] }],
           "conditions": [
             {
               "type": "frontmost_application_if",
@@ -457,10 +454,7 @@
           "from": {
             "simultaneous": [{ "key_code": "k" }, { "key_code": "l" }]
           },
-          "to": [
-            { "key_code": "semicolon", "modifiers": ["control"] },
-            { "key_code": "left_control", "lazy": true }
-          ],
+          "to": [{ "key_code": "semicolon", "modifiers": ["control"] }],
           "conditions": [
             {
               "type": "frontmost_application_if",
