@@ -106,10 +106,6 @@
                                     {
                                         "key_code": "semicolon",
                                         "modifiers": ["control"]
-                                    },
-                                    {
-                                        "key_code": "left_control",
-                                        "lazy": true
                                     }
                                 ],
                                 "type": "basic"
@@ -134,10 +130,6 @@
                                     {
                                         "key_code": "semicolon",
                                         "modifiers": ["control"]
-                                    },
-                                    {
-                                        "key_code": "left_control",
-                                        "lazy": true
                                     }
                                 ],
                                 "type": "basic"
