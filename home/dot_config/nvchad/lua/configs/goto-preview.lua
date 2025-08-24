@@ -56,7 +56,11 @@ M.get_config = function(data)
   if item.result then data = item.result[1] or item.result end
 
   uri = data.targetUri or data.uri
-  range = (data.targetRange or data.range).start
+
+  local dataRange = data.targetRange or data.range
+  if dataRange == nil then vim.print(data) end
+
+  range = dataRange.start
 
   return uri, { range.line + 1, range.character }
 end
