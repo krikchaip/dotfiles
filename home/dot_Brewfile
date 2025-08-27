@@ -11,6 +11,7 @@ brew "gemini-cli"
 brew "gh"
 brew "git-delta"
 brew "glab"
+brew "gs"          # required by `imagemagick` for pdf previewing
 brew "gsed"
 brew "helm"
 brew "imagemagick"
@@ -21,8 +22,8 @@ brew "mise"
 brew "neovim"
 brew "nushell"
 brew "pkg-config"
-brew "poppler"
-brew "resvg"
+brew "poppler"     # required by `yazi` for pdf previewing
+brew "resvg"       # required by `yazi` for svg previewing
 brew "ripgrep"
 brew "sevenzip"
 brew "starship"
