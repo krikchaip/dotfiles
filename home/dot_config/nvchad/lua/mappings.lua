@@ -99,7 +99,7 @@ map("n", "<leader>Q", "Q", { desc = "Macro: Replay Last Recording" })
 
 -- buffer management
 map("n", "<C-n>", "<cmd>enew<CR>", { desc = "Buffer: New Empty" })
-map("n", "<leader>=", Conform.Format, { desc = "Buffer: Format Content" })
+map({ "n", "x" }, "<leader>=", Conform.Format, { desc = "Buffer: Format Content" })
 map("n", "<leader>w", Conform.FormatSave, { desc = "Buffer: Format and Save" })
 map("n", "<leader>W", "<cmd>silent w<CR>", { desc = "Buffer: Save Without Formatting" })
 map("n", "<C-S-a>", "gg0VG$", { desc = "Buffer: Select Whole File" })
