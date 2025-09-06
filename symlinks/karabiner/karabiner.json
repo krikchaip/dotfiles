@@ -2,7 +2,7 @@
     "profiles": [
         {
             "complex_modifications": {
-                "parameters": { "basic.simultaneous_threshold_milliseconds": 30 },
+                "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
                 "rules": [
                     {
                         "description": "Double press of Escape to Undo (ctrl+z)",
