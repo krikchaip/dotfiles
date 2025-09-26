@@ -10,7 +10,7 @@ M.setup = function()
 
     go = { "golangcilint" },
 
-    python = { "pylint", "flake8", "ruff" },
+    python = { "flake8", "ruff" },
     htmldjango = { "djlint" },
   }
 
