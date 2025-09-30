@@ -26,7 +26,6 @@ M.config = function(opts)
         fold_code = { modes = { n = "<localleader>z" } },
         debug = { modes = { n = "<localleader>e" } },
         system_prompt = { modes = { n = "<M-s>" } },
-        auto_tool_mode = { modes = { n = "<localleader>t" } },
         goto_file_under_cursor = { modes = { n = "gf" }, description = "Open the file under cursor" },
         copilot_stats = { modes = { n = "<localleader>C" } },
       },
