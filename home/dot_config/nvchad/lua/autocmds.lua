@@ -67,35 +67,41 @@ autocmd("BufAdd", {
 
 -- avoid scrolling when switch buffers
 -- ref: https://vim.fandom.com/wiki/Avoid_scrolling_when_switch_buffers
-vim.cmd [[
-  " Save current view settings on a per-window, per-buffer basis.
-  function! AutoSaveWinView()
-    if !exists("w:SavedBufView")
-      let w:SavedBufView = {}
-    endif
 
-    let w:SavedBufView[bufnr("%")] = winsaveview()
-  endfunction
+-- Save current view settings on a per-window, per-buffer basis.
+local function auto_save_win_view()
+  if vim.w.SavedBufView == nil then vim.w.SavedBufView = {} end
+  vim.w.SavedBufView[vim.fn.bufnr "%"] = vim.fn.winsaveview()
+end
 
-  " Restore current view settings.
-  function! AutoRestoreWinView()
-    let buf = bufnr("%")
+-- Restore current view settings.
+local function auto_restore_win_view()
+  local buf = vim.fn.bufnr "%"
 
-    if exists("w:SavedBufView") && has_key(w:SavedBufView, buf)
-      let v = winsaveview()
-      let atStartOfFile = v.lnum == 1 && v.col == 0
+  if vim.w.SavedBufView ~= nil and vim.w.SavedBufView[buf] ~= nil then
+    local v = vim.fn.winsaveview()
 
-      if atStartOfFile && !&diff
-        call winrestview(w:SavedBufView[buf])
-      endif
+    local at_start_of_file = v.lnum == 1 and v.col == 0
+    local diff = vim.api.nvim_get_option_value("diff", { win = 0 })
 
-      unlet w:SavedBufView[buf]
-    endif
-  endfunction
+    if at_start_of_file and not diff then vim.fn.winrestview(vim.w.SavedBufView[buf]) end
 
-  " When switching buffers, preserve window view.
-  if v:version >= 700
-    autocmd BufLeave * call AutoSaveWinView()
-    autocmd BufEnter * call AutoRestoreWinView()
-  endif
-]]
+    vim.w.SavedBufView[buf] = nil
+  end
+end
+
+local preserve_win_view_group = augroup("preserve-win-view", { clear = true })
+
+autocmd("BufLeave", {
+  desc = "Preserve window view when leaving a buffer",
+  group = preserve_win_view_group,
+  pattern = "*",
+  callback = auto_save_win_view,
+})
+
+autocmd("BufEnter", {
+  desc = "Restore window view when entering a buffer",
+  group = preserve_win_view_group,
+  pattern = "*",
+  callback = auto_restore_win_view,
+})
