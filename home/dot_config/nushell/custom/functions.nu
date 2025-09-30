@@ -18,7 +18,7 @@ def "packages install" []: nothing -> nothing {
 
 # identify which values your current configuration has changed from the defaults
 # ref: https://www.nushell.sh/blog/2024-12-04-configuration_preview.html#finding-overridden-values
-def "nu-config diff" []: nothing -> nothing {
+def "nu-config diff" [] {
   let defaults = nu -n -c "$env.config = {}; $env.config | reject color_config keybindings menus | to nuon" | from nuon | transpose key default
   let current = $env.config | reject color_config keybindings menus | transpose key current
 
