@@ -1,53 +1,111 @@
 #!/bin/bash
+set -euo pipefail
 
-# install homebrew
-if [ ! "$(command -v brew)" ]; then
+# Function to add a directory to the PATH if it exists and is not already there.
+add_to_path() {
+  if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+    export PATH="$1:$PATH"
+  fi
+}
+
+# Install Homebrew if not installed
+if ! command -v brew &>/dev/null; then
+  echo "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
-# install homebrew packages
+# Set up Homebrew environment for this script
+if [ -x "/opt/homebrew/bin/brew" ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x "/usr/local/bin/brew" ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+# Install Homebrew packages
 # Brewfile hash: {{ include "dot_Brewfile" | sha256sum }}
+echo "Installing Homebrew packages..."
 brew bundle install --global --no-upgrade
 
-# install and setup neovim plugins
-nvim --headless '+Lazy! restore' '+MasonInstallAll' +qa
+# Activate mise for this script session
+if command -v mise &>/dev/null; then
+  echo "Activating mise..."
+  eval "$(mise activate bash)"
+else
+  echo "Warning: mise not found. Skipping mise-related installations."
+fi
 
-# enable experimental features eg. pipx and others
-mise settings set experimental true
+# Install and setup neovim plugins
+if command -v nvim &>/dev/null; then
+  echo "Installing Neovim plugins..."
+  nvim --headless '+Lazy! restore' '+MasonInstallAll' +qa
+fi
 
-# install and use the latest mise binaries
+# Enable mise experimental features
+if command -v mise &>/dev/null; then
+  mise settings set experimental true
+fi
+
+# Install mise-managed tools
 {{- range .package.mise }}
-mise use --global {{ . }}
+if command -v mise &>/dev/null; then
+  echo "Installing {{ . }} with mise..."
+  mise use --global {{ . }}
+fi
 {{- end }}
 
-# install and upgrade pipx using mise's python pip
-pip install --upgrade pip
-pip install --user pipx
-pip install --upgrade pipx
+# Install/upgrade pipx and ensure it's in the PATH
+if command -v python &>/dev/null && command -v pip &>/dev/null; then
+  echo "Installing/upgrading pipx..."
 
-# install global python package
+  pip install --upgrade pip
+  pip install --user --upgrade pipx
+
+  add_to_path "$HOME/.local/bin"
+
+  if command -v pipx &>/dev/null; then
+    pipx ensurepath
+  fi
+fi
+
+# Install global python packages via pipx (managed by mise)
 {{- range .package.python }}
-mise use --global pipx:{{ . }}
+if command -v mise &>/dev/null; then
+  echo "Installing Python package {{ . }} with mise (via pipx)..."
+  mise use --global pipx:{{ . }}
+fi
 {{- end }}
 
-# install global npm package
+# Install global npm packages (managed by mise)
 {{- range .package.npm }}
-mise use --global npm:{{ . }}
+if command -v mise &>/dev/null; then
+  echo "Installing npm package {{ . }} with mise..."
+  mise use --global npm:{{ . }}
+fi
 {{- end }}
 
-# install go binaries
+# Install go binaries (managed by mise)
 {{- range .package.go }}
-mise use --global go:{{ . }}
+if command -v mise &>/dev/null; then
+  echo "Installing Go package {{ . }} with mise..."
+  mise use --global go:{{ . }}
+fi
 {{- end }}
 
-# yazi plugins and flavors
+# Install yazi plugins
 {{- range .package.yazi }}
-ya pkg add {{ . }}
+if command -v ya &>/dev/null; then
+  echo "Adding yazi plugin {{ . }}..."
+  ya pkg add {{ . }} || [ $? -eq 1 ]
+fi
 {{- end }}
 
-# launch yabai & skhd in the background
-if pgrep yabai; then yabai --restart-service; else yabai --start-service; fi
-if pgrep skhd; then skhd --restart-service; else skhd --start-service; fi
+# Start/restart yabai & skhd services
+echo "Managing yabai & skhd services..."
+if pgrep yabai &>/dev/null; then yabai --restart-service; else yabai --start-service; fi
+if pgrep skhd &>/dev/null; then skhd --restart-service; else skhd --start-service; fi
+
+echo "Installation script finished."
+echo "Note: You may need to restart your shell for all changes to take effect."
 
 # to disable the SIP (System Integrity Protection), please follow the instructions from the link below.
 # ref: https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection
