@@ -56,6 +56,9 @@ Tabufline = {
           end)
           :totable()
       end)
+      :filter(function(tab)
+        return #tab > 0
+      end)
       :totable()
   end,
   Load = function(tabpages)
