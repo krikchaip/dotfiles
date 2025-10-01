@@ -51,6 +51,9 @@ Tabufline = {
           :map(function(buf)
             return vim.api.nvim_buf_get_name(buf)
           end)
+          :filter(function(bufname)
+            return #bufname > 0
+          end)
           :totable()
       end)
       :totable()
