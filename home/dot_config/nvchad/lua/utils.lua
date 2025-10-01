@@ -134,6 +134,11 @@ ScrollPosition = {
         return acc
       end)
 
+    if #data == 0 then
+      vim.w.SavedBufView = nil
+      return
+    end
+
     vim.w.SavedBufView = vim.iter(data):fold({}, function(acc, name, view)
       acc[tostring(bufs[name])] = view
       return acc
