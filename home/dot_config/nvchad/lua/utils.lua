@@ -106,7 +106,16 @@ ScrollPosition = {
     return vim
       .iter(views)
       :filter(function(b)
-        return bufs[tonumber(b, 10)]
+        local bufid = tonumber(b, 10)
+        if not bufs[bufid] then return false end
+
+        local bufname = vim.api.nvim_buf_get_name(bufid)
+        if #bufname < 1 then return false end
+
+        local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufid })
+        if buftype == "nofile" then return false end
+
+        return true
       end)
       :fold({}, function(acc, b, view)
         acc[vim.api.nvim_buf_get_name(tonumber(b, 10))] = view
