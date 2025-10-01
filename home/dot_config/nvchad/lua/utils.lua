@@ -45,11 +45,11 @@ Tabufline = {
   Serialize = function()
     return vim
       .iter(vim.api.nvim_list_tabpages())
-      :map(function(t)
+      :map(function(tab)
         return vim
-          .iter(vim.t[t].bufs)
-          :map(function(b)
-            return vim.api.nvim_buf_get_name(b)
+          .iter(vim.t[tab].bufs)
+          :map(function(buf)
+            return vim.api.nvim_buf_get_name(buf)
           end)
           :totable()
       end)
@@ -84,12 +84,12 @@ ScrollPosition = {
 
     local bufs = vim
       .iter(vim.api.nvim_list_tabpages())
-      :map(function(t)
-        return vim.t[t].bufs
+      :map(function(tab)
+        return vim.t[tab].bufs
       end)
       :flatten()
-      :fold({}, function(acc, b)
-        acc[b] = true
+      :fold({}, function(acc, buf)
+        acc[buf] = true
         return acc
       end)
 
