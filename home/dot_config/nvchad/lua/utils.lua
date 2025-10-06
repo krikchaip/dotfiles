@@ -134,7 +134,7 @@ ScrollPosition = {
         return acc
       end)
 
-    if #data == 0 then
+    if next(data) == nil then
       vim.w.SavedBufView = nil
       return
     end
