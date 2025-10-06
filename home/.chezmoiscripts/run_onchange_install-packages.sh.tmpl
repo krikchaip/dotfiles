@@ -30,7 +30,9 @@ fi
 # Install and setup neovim plugins
 if command -v nvim &>/dev/null; then
   echo "Installing Neovim plugins..."
+
   nvim --headless '+Lazy! restore' '+MasonInstallAll' +qa
+  NVIM_APPNAME=nvchad nvim --headless '+Lazy! restore' '+MasonInstallAll' +qa
 fi
 
 # Enable mise experimental features
