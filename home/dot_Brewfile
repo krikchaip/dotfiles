@@ -42,6 +42,7 @@ brew "yabai"
 tap "buo/cask-upgrade"
 
 cask "1password"
+cask "1password-cli"
 cask "arc"
 cask "dbeaver-community"
 cask "displaylink"
