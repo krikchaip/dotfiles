@@ -12,6 +12,7 @@ package:
 
   npm:
   - typescript
+  - tree-sitter-cli
 
   go:
   - github.com/mitranim/gow
