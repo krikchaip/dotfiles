@@ -415,7 +415,7 @@ LLM = {
     require("codecompanion").toggle()
   end,
   Inline = function()
-    return ":CodeCompanion "
+    return ":CodeCompanion #{buffer} "
   end,
   Actions = function()
     require("codecompanion").actions {}
