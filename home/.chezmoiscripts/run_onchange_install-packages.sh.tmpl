@@ -1,13 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# Function to add a directory to the PATH if it exists and is not already there.
-add_to_path() {
-  if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
-    export PATH="$1:$PATH"
-  fi
-}
-
 # Install Homebrew if not installed
 if ! command -v brew &>/dev/null; then
   echo "Installing Homebrew..."
@@ -52,20 +45,6 @@ if command -v mise &>/dev/null; then
   mise use --global {{ . }}
 fi
 {{- end }}
-
-# Install/upgrade pipx and ensure it's in the PATH
-if command -v python &>/dev/null && command -v pip &>/dev/null; then
-  echo "Installing/upgrading pipx..."
-
-  pip install --upgrade pip
-  pip install --user --upgrade pipx
-
-  add_to_path "$HOME/.local/bin"
-
-  if command -v pipx &>/dev/null; then
-    pipx ensurepath
-  fi
-fi
 
 # Install global python packages via pipx (managed by mise)
 {{- range .package.python }}

@@ -4,6 +4,7 @@ package:
   - go
   - lua@5.1
   - nodejs
+  - pipx
   - python
 
   python:
