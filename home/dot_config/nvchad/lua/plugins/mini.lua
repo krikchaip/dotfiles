@@ -1,20 +1,20 @@
 return {
   {
-    "echasnovski/mini.ai",
+    "nvim-mini/mini.ai",
     version = "*",
     event = "User FilePost",
     opts = {},
   },
 
   {
-    "echasnovski/mini.bracketed",
+    "nvim-mini/mini.bracketed",
     version = "*",
     event = "User FilePost",
     opts = { diagnostic = { suffix = "" } },
   },
 
   {
-    "echasnovski/mini.move",
+    "nvim-mini/mini.move",
     version = "*",
     event = "User FilePost",
     opts = function(_, opts)
@@ -23,21 +23,21 @@ return {
   },
 
   {
-    "echasnovski/mini.splitjoin",
+    "nvim-mini/mini.splitjoin",
     version = "*",
     event = "User FilePost",
     opts = { mappings = { toggle = "gs" } },
   },
 
   {
-    "echasnovski/mini.surround",
+    "nvim-mini/mini.surround",
     version = "*",
     event = "User FilePost",
     opts = {},
   },
 
   {
-    "echasnovski/mini.files",
+    "nvim-mini/mini.files",
     version = "*",
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function(_, opts)
