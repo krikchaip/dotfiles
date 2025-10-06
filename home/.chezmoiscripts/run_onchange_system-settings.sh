@@ -58,7 +58,6 @@ defaults write -g AppleInterfaceStyle Dark
 
 #** Accessibility > Display > Reduce motion = ✅
 defaults write com.apple.Accessibility ReduceMotionEnabled -bool true
-defaults write com.apple.universalaccess reduceMotion -bool true
 
 #** Accessibility > Pointer Control > Double-click speed
 defaults write -g com.apple.mouse.doubleClickThreshold -float 0.5
