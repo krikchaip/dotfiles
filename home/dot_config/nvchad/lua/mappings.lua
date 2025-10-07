@@ -2,6 +2,7 @@ local map = vim.keymap.set
 
 map({ "n", "x" }, "<C-z>", "<Esc>")
 map({ "n", "x" }, ";", ":")
+map({ "n", "x" }, "G", "Gzz")
 
 -- the most useful keymaps ever...
 map("n", "<C-q>", "<cmd>qa<CR>", { desc = "Exit Neovim: Soft" })
@@ -102,7 +103,7 @@ map("n", "<C-n>", "<cmd>enew<CR>", { desc = "Buffer: New Empty" })
 map({ "n", "x" }, "<leader>=", Conform.Format, { desc = "Buffer: Format Content" })
 map("n", "<leader>w", Conform.FormatSave, { desc = "Buffer: Format and Save" })
 map("n", "<leader>W", "<cmd>silent w<CR>", { desc = "Buffer: Save Without Formatting" })
-map("n", "<C-S-a>", "gg0VG$", { desc = "Buffer: Select Whole File" })
+map("n", "<C-S-a>", "gg0VG$zz", { desc = "Buffer: Select Whole File" })
 map("n", "<C-S-c>", "<cmd>%y+<CR>", { desc = "Buffer: Copy File Content" })
 map("n", ",", "<C-^>", { desc = "Buffer: Goto Previously Edited" })
 map("n", "<", Tabufline.Prev, { desc = "Buffer: Goto Previous" })
