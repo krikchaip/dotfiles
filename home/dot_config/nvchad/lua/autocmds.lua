@@ -29,7 +29,15 @@ autocmd("BufDelete", {
   group = augroup("show-nvdash", { clear = true }),
   callback = function()
     local bufs = vim.t.bufs
-    if #bufs == 1 and vim.api.nvim_buf_get_name(bufs[1]) == "" then vim.cmd "Nvdash" end
+    if #bufs ~= 1 then return end
+
+    local lastbuf = bufs[1]
+    local lastbuf_name = vim.api.nvim_buf_get_name(lastbuf)
+
+    if lastbuf_name == "" then
+      vim.cmd "Nvdash"
+      vim.api.nvim_buf_delete(lastbuf, { force = true })
+    end
   end,
 })
 
