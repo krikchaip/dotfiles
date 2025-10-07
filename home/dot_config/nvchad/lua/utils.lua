@@ -37,7 +37,44 @@ Tabufline = {
     require("nvchad.tabufline").move_buf(-1)
   end,
   Close = function()
-    pcall(require("nvchad.tabufline").close_buffer)
+    local tabpages = vim.api.nvim_list_tabpages()
+    if #tabpages == 1 then return pcall(require("nvchad.tabufline").close_buffer) end
+
+    local curr_tab = vim.api.nvim_get_current_tabpage()
+    local curr_buf = vim.api.nvim_get_current_buf()
+
+    local other_tabs = vim.iter(tabpages):filter(function(tab)
+      return tab ~= curr_tab
+    end)
+
+    local buf_exists = other_tabs:any(function(tab)
+      return vim.tbl_contains(vim.t[tab].bufs, curr_buf)
+    end)
+
+    if not buf_exists then return pcall(require("nvchad.tabufline").close_buffer) end
+
+    vim.o.lazyredraw = true
+
+    vim.t.bufs = vim
+      .iter(vim.t.bufs)
+      :filter(function(buf)
+        return buf ~= curr_buf
+      end)
+      :totable()
+
+    if #vim.t.bufs > 0 then
+      local next_buf_nr = vim.t.bufs[#vim.t.bufs]
+      local wins = vim.api.nvim_tabpage_list_wins(curr_tab)
+
+      for _, win in ipairs(wins) do
+        if vim.api.nvim_win_get_buf(win) == curr_buf then vim.api.nvim_win_set_buf(win, next_buf_nr) end
+      end
+    else
+      vim.cmd "enew"
+    end
+
+    vim.o.lazyredraw = false
+    vim.cmd "redraw!"
   end,
   CloseAll = function()
     require("nvchad.tabufline").closeAllBufs(true)
