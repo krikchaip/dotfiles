@@ -55,21 +55,22 @@ Tabufline = {
     vim.o.lazyredraw = true
     vim.api.nvim_set_current_tabpage(old_tab)
 
-    local new_bufs = vim
+    vim.t.bufs = vim
       .iter(vim.t.bufs)
       :filter(function(b)
         return b ~= bufnr
       end)
       :totable()
 
-    vim.t.bufs = new_bufs
+    if #vim.t.bufs > 0 then
+      local next_buf_nr = vim.t.bufs[#vim.t.bufs]
+      local wins = vim.api.nvim_tabpage_list_wins(old_tab)
 
-    if vim.api.nvim_get_current_buf() == bufnr then
-      if #new_bufs > 0 then
-        vim.api.nvim_set_current_buf(new_bufs[#new_bufs])
-      else
-        vim.cmd "enew"
+      for _, win in ipairs(wins) do
+        if vim.api.nvim_win_get_buf(win) == bufnr then vim.api.nvim_win_set_buf(win, next_buf_nr) end
       end
+    else
+      vim.cmd "enew"
     end
 
     vim.api.nvim_set_current_tabpage(new_tab)
