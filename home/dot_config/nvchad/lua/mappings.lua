@@ -112,6 +112,7 @@ map("n", "<M-S-,>", Tabufline.MoveLeft, { desc = "Buffer: Move Left" })
 map("n", "<M-S-.>", Tabufline.MoveRight, { desc = "Buffer: Move Right" })
 map("n", "q", Tabufline.Close, { desc = "Buffer: Close Current" })
 map("n", "<M-q>", Tabufline.CloseAll, { desc = "Buffer: Close All" })
+map("n", "<C-w><M-t>", Tabufline.BreakTab, { desc = "Buffer: Break Into New Tab" })
 
 for i = 1, 9, 1 do
   local key = string.format("<M-%s>", i)

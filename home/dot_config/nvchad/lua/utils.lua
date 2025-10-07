@@ -42,6 +42,41 @@ Tabufline = {
   CloseAll = function()
     require("nvchad.tabufline").closeAllBufs(true)
   end,
+  BreakTab = function()
+    if #vim.t.bufs <= 1 then return end
+
+    local bufnr = vim.api.nvim_get_current_buf()
+    local old_tab = vim.api.nvim_get_current_tabpage()
+
+    vim.cmd("tab sb " .. bufnr)
+
+    local new_tab = vim.api.nvim_get_current_tabpage()
+
+    vim.o.lazyredraw = true
+    vim.api.nvim_set_current_tabpage(old_tab)
+
+    local new_bufs = vim
+      .iter(vim.t.bufs)
+      :filter(function(b)
+        return b ~= bufnr
+      end)
+      :totable()
+
+    vim.t.bufs = new_bufs
+
+    if vim.api.nvim_get_current_buf() == bufnr then
+      if #new_bufs > 0 then
+        vim.api.nvim_set_current_buf(new_bufs[#new_bufs])
+      else
+        vim.cmd "enew"
+      end
+    end
+
+    vim.api.nvim_set_current_tabpage(new_tab)
+    vim.o.lazyredraw = false
+
+    vim.cmd "redraw!"
+  end,
   Serialize = function()
     return vim
       .iter(vim.api.nvim_list_tabpages())
