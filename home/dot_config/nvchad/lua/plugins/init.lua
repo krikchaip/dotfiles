@@ -77,6 +77,14 @@ return {
   },
 
   {
+    "HakonHarnes/img-clip.nvim",
+    event = "VeryLazy",
+    opts = function(_, opts)
+      return require("configs.img-clip").config(opts)
+    end,
+  },
+
+  {
     "folke/lazydev.nvim",
     ft = "lua",
     opts = { library = { { path = "snacks.nvim", words = { "Snacks" } } } },

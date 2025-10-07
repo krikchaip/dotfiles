@@ -251,3 +251,6 @@ map("n", "<leader>v", Markdown.TogglePreview, { desc = "Markdown: Toggle Preview
 map("n", "<M-a>", LLM.ToggleChat, { desc = "LLM: Toggle Chat" })
 map("v", "<M-a>", LLM.Inline, { desc = "LLM: Inline Visual", expr = true })
 map({ "n", "v" }, "<leader>a", LLM.Actions, { desc = "LLM: Show Actions" })
+
+-- image content
+map("n", "<leader>p", "<cmd>PasteImage<CR>", { desc = "ImgClip: Paste Image from Clipboard" })

@@ -22,6 +22,7 @@ brew "mise"
 brew "neovim"
 brew "nushell"
 brew "pkg-config"
+brew "pngpaste"
 brew "poppler"     # required by `yazi` for pdf previewing
 brew "resvg"       # required by `yazi` for svg previewing
 brew "ripgrep"
