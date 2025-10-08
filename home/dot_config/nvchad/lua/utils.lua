@@ -496,6 +496,15 @@ LLM = {
 }
 
 Clipboard = {
+  YankRelative = function()
+    local raw_path = vim.fn.expand "%"
+
+    ---@diagnostic disable-next-line: param-type-mismatch
+    local relative_path = require("plenary.path").new(raw_path):make_relative()
+
+    vim.fn.setreg("+", relative_path)
+    vim.notify("Copied relative path: " .. relative_path)
+  end,
   PasteImage = function()
     vim.cmd "PasteImage"
   end,

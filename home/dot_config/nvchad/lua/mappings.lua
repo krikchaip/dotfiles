@@ -255,4 +255,5 @@ map("v", "<M-a>", LLM.Inline, { desc = "LLM: Inline Visual", expr = true })
 map({ "n", "v" }, "<leader>a", LLM.Actions, { desc = "LLM: Show Actions" })
 
 -- clipboard management
+map("n", "<leader>yr", Clipboard.YankRelative, { desc = "Clipboard: Yank Relative Path of Current Buffer" })
 map("n", "<leader>pi", Clipboard.PasteImage, { desc = "Clipboard: Paste Image" })
