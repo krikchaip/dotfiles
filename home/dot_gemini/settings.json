@@ -1,0 +1,27 @@
+{
+  "general": {
+    "preferredEditor": "NVIM_APPNAME=nvchad nvim"
+  },
+  "context": {
+    "includeDirectories": ["/tmp/pngpaste"],
+    "loadFromIncludeDirectories": true
+  },
+  "tools": {
+    "allowed": [
+      "run_shell_command(git)",
+      "run_shell_command(npm)",
+      "run_shell_command(pnpm)",
+      "run_shell_command(yarn)"
+    ],
+    "exclude": ["run_shell_command(rm)"],
+    "shell": {
+      "enableInteractiveShell": true,
+      "showColor": true
+    }
+  },
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  }
+}
