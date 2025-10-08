@@ -100,6 +100,8 @@ bind -N "[Scrollback] Clipboard history" +       choose-buffer -Z
 {{ if eq .config.shell "nu" -}}
 bind -N "[Help] List keys" /   display-popup -E "tmux lsk -N | lines | each { str replace -a --regex '\s+' ' ' } | to text | ^sort -k3,3 -k4 | fzf --height=~100%"
 bind -N "[Help] List keys" C-/ display-popup -E "tmux lsk -N | lines | each { str replace -a --regex '\s+' ' ' } | to text | ^sort -k3,3 -k4 | fzf --height=~100%"
+
+bind -N "[Image] Paste from Clipboard" P run-shell "{{ .config.shell_exec }} 'image paste-tmux'"
 {{- end }}
 
 # vim:ft=tmux.chezmoitmpl
