@@ -505,6 +505,12 @@ Clipboard = {
     vim.fn.setreg("+", relative_path)
     vim.notify("Copied relative path: " .. relative_path)
   end,
+  YankAbsolute = function()
+    local absolute_path = vim.fn.expand "%:p"
+
+    vim.fn.setreg("+", absolute_path)
+    vim.notify("Copied absolute path: " .. absolute_path)
+  end,
   PasteImage = function()
     vim.cmd "PasteImage"
   end,
