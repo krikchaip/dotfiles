@@ -496,17 +496,20 @@ LLM = {
 }
 
 Clipboard = {
-  YankRelative = function()
-    local raw_path = vim.fn.expand "%"
+  ---@diagnostic disable: param-type-mismatch
+  YankRelative = function(modifier)
+    modifier = modifier or "%"
 
-    ---@diagnostic disable-next-line: param-type-mismatch
+    local raw_path = vim.fn.expand(modifier)
     local relative_path = require("plenary.path").new(raw_path):make_relative()
 
     vim.fn.setreg("+", relative_path)
     vim.notify("Copied relative path: " .. relative_path)
   end,
-  YankAbsolute = function()
-    local absolute_path = vim.fn.expand "%:p"
+  YankAbsolute = function(modifier)
+    modifier = modifier or "%"
+
+    local absolute_path = vim.fn.expand(modifier .. ":p")
 
     vim.fn.setreg("+", absolute_path)
     vim.notify("Copied absolute path: " .. absolute_path)
