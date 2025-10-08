@@ -107,3 +107,17 @@ def "fuzzy ls" []: nothing -> any {
   let fd = ($env.FZF_CTRL_T_COMMAND | append "--exact-depth=1" | str join " ")
   nu -c $"($fd) | fzf ($env.FZF_CTRL_T_OPTS)" | fzf-join
 }
+
+# saves the image from the clipboard to a temporary PNG file in /tmp
+def "image save-temp" []: [
+  nothing -> string
+  nothing -> nothing
+] {
+  let $filename = date now | format date '%Y%m%d-%H%M%S' | $'/tmp/pngpaste-($in).png'
+  let $data = zsh -c 'pngpaste - 2>/dev/null'
+
+  if ($data | length) == 0 { return }
+  $data | save $filename
+
+  return $filename
+}
