@@ -501,6 +501,8 @@ Clipboard = {
     modifier = modifier or "%"
 
     local raw_path = vim.fn.expand(modifier)
+    if #raw_path == 0 then return end
+
     local relative_path = require("plenary.path").new(raw_path):make_relative()
 
     vim.fn.setreg("+", relative_path)
@@ -510,6 +512,7 @@ Clipboard = {
     modifier = modifier or "%"
 
     local absolute_path = vim.fn.expand(modifier .. ":p")
+    if #absolute_path == 0 then return end
 
     vim.fn.setreg("+", absolute_path)
     vim.notify("Copied absolute path: " .. absolute_path)
