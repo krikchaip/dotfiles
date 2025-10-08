@@ -254,5 +254,5 @@ map("n", "<M-a>", LLM.ToggleChat, { desc = "LLM: Toggle Chat" })
 map("v", "<M-a>", LLM.Inline, { desc = "LLM: Inline Visual", expr = true })
 map({ "n", "v" }, "<leader>a", LLM.Actions, { desc = "LLM: Show Actions" })
 
--- paste content
-map("n", "<leader>pi", "<cmd>PasteImage<CR>", { desc = "Paste: Image From Clipboard" })
+-- clipboard management
+map("n", "<leader>pi", Clipboard.PasteImage, { desc = "Clipboard: Paste Image" })

@@ -494,3 +494,9 @@ LLM = {
     require("codecompanion").actions {}
   end,
 }
+
+Clipboard = {
+  PasteImage = function()
+    vim.cmd "PasteImage"
+  end,
+}
