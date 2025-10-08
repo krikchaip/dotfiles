@@ -1,3 +1,5 @@
+# see: https://github.com/JohnnyMorganz/StyLua for more info
+
 call_parentheses = "None"
 collapse_simple_statement = "ConditionalOnly"
 column_width = 120
@@ -5,3 +7,4 @@ indent_type = "Spaces"
 indent_width = 2
 line_endings = "Unix"
 quote_style = "AutoPreferDouble"
+syntax = "Lua52"
