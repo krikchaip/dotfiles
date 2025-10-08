@@ -2,7 +2,8 @@ local M = {}
 
 M.config = function(opts)
   opts.default = {
-    dir_path = "/tmp/img-clip",
+    dir_path = "/tmp/pngpaste",
+    file_name = "%Y%m%d-%H%M%S",
     use_absolute_path = true,
     prompt_for_file_name = false,
   }
