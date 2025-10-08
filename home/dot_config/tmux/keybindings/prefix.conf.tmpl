@@ -54,8 +54,8 @@ bind -N "[Window] Goto next"              -r ]     next-window
 bind -N "[Window] Goto next"              -r C-]   next-window
 bind -N "[Window] Goto previous"          -r [     previous-window
 bind -N "[Window] Goto previous"          -r C-[   previous-window
-bind -N "[Window] Swap with next"         -r \}     swap-window -d -t +1
-bind -N "[Window] Swap with previous"     -r \{     swap-window -d -t -1
+bind -N "[Window] Swap with next"         -r \}    swap-window -d -t +1
+bind -N "[Window] Swap with previous"     -r \{    swap-window -d -t -1
 bind -N "[Window] Move to session"           M-s   run-shell 'CURR_WINDOW=$(tmux display -p "#S:#I"); tmux choose-tree -Zs "switch-client -t \"%%\"; move-window -s $CURR_WINDOW"'
 bind -N "[Window] Break into new session"    M-S   command-prompt -p "Session name:" { new-session -ds "%%"; move-window -t "%%"; kill-window -t "%%":1; switch-client -t "%%" }
 
