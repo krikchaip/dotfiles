@@ -10,6 +10,9 @@ local ignored = {}
 ---@type table<string,string>
 local fs_type = {}
 
+---@type table<integer, snacks.image.Placement>
+local images = {}
+
 M.config = function(opts)
   opts.content = {
     sort = M.sorter,
@@ -67,7 +70,7 @@ M.setup = function(opts)
         vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
         vim.api.nvim_win_set_height(winnr, 15)
 
-        Snacks.image.placement.new(bufnr, filepath, { inline = true })
+        if images[bufnr] == nil then images[bufnr] = Snacks.image.placement.new(bufnr, filepath, { inline = true }) end
 
         return
       end
@@ -310,6 +313,13 @@ end
 M.reset_cache = function()
   ignored = {}
   fs_type = {}
+
+  for buf, _ in pairs(images) do
+    if vim.api.nvim_buf_is_valid(buf) then goto continue end
+    images[buf] = nil
+
+    ::continue::
+  end
 end
 
 M.fs_type = function(path)
