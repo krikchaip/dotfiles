@@ -121,3 +121,12 @@ def "image save-temp" []: [
 
   return $filename
 }
+
+# paste image content from the clipboard into the current tmux pane
+# ref: https://stackoverflow.com/questions/35509163/insert-the-output-of-a-shell-command-directly-into-a-tmux-pane
+def "image paste-tmux" []: nothing -> nothing {
+  try {
+    image save-temp | tmux load-buffer -b pngpaste -
+    tmux paste-buffer -b pngpaste -d
+  }
+}
