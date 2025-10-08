@@ -522,6 +522,11 @@ Clipboard = {
     Clipboard.YankRelative(modifier)
     vim.cmd [[normal "+gp]]
   end,
+  PasteAbsolute = function()
+    local modifier = #vim.bo.buftype > 0 and "#" or nil
+    Clipboard.YankAbsolute(modifier)
+    vim.cmd [[normal "+gp]]
+  end,
   PasteImage = function()
     vim.cmd "PasteImage"
   end,
