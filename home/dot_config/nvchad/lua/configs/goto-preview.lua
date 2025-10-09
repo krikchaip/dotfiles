@@ -36,7 +36,8 @@ M.get_config = function(data)
     return uri, { range.line + 1, range.character }
   end
 
-  local response = vim.lsp.buf_request_sync(0, data.method, data.params)
+  local response, err = vim.lsp.buf_request_sync(0, data.method, data.params)
+  if err ~= nil then vim.print(err) end
 
   if response == nil then
     uri = data.params.textDocument.uri
