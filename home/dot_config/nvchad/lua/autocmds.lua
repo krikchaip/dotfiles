@@ -29,7 +29,7 @@ autocmd("BufDelete", {
   group = augroup("show-nvdash", { clear = true }),
   callback = function()
     local bufs = vim.t.bufs
-    if #bufs ~= 1 then return end
+    if bufs == nil or #bufs ~= 1 then return end
 
     local lastbuf = bufs[1]
     local lastbuf_name = vim.api.nvim_buf_get_name(lastbuf)
@@ -54,6 +54,8 @@ autocmd("BufAdd", {
     local bufs = vim.t.bufs
     local anchor_idx = -1
     local new_buf_idx = -1
+
+    if bufs == nil then return end
 
     for i, bufnr in ipairs(bufs) do
       if bufnr == anchor_buf then anchor_idx = i end
