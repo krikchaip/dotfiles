@@ -58,6 +58,12 @@ M.config = function(opts)
     inline = { layout = "buffer" },
   }
 
+  if vim.g.minimal then
+    opts.strategies.chat.keymaps.close.modes = { n = "q" }
+    opts.display.chat.intro_message = nil
+    opts.display.chat.window = { layout = "buffer", opts = { number = false, wrap = true } }
+  end
+
   opts.extensions = {
     history = {
       enabled = true,
