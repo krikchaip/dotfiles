@@ -15,12 +15,13 @@ M.ui = {
     theme = "vscode_colored",
   },
   tabufline = {
+    enabled = not vim.g.minimal,
     lazyload = false,
   },
 }
 
 M.nvdash = {
-  load_on_startup = true,
+  load_on_startup = not vim.g.minimal,
   buttons = {
     { txt = "󰾩  Restore Session", keys = "r", cmd = ":lua Session.Load()" },
     { txt = "  Find File", keys = "f", cmd = ":lua Telescope.SearchNode()" },

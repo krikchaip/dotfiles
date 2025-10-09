@@ -3,6 +3,7 @@ vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
 vim.g.auto_reveal_buffer = true
 vim.g.auto_preview_node = false
+vim.g.minimal = os.getenv "NVIM_MINIMAL" == "true" and true or false
 
 -- bootstrap lazy and all plugins
 local lazypath = vim.fn.stdpath "data" .. "/lazy/lazy.nvim"
