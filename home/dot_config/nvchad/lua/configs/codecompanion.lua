@@ -40,6 +40,7 @@ M.config = function(opts)
       keymaps = {
         accept_change = { modes = { n = "<C-a>" } },
         reject_change = { modes = { n = "<C-x>" } },
+        always_accept = { modes = { n = "<C-M-a>" } },
       },
     },
 
@@ -113,6 +114,14 @@ M.setup = function(opts)
     pattern = "CodeCompanionDiffAttached",
     callback = function(args)
       vim.api.nvim_buf_del_keymap(args.buf, "n", "q")
+    end,
+  })
+
+  autocmd("User", {
+    group = augroup("codecompanion.format", { clear = true }),
+    pattern = "CodeCompanionDiffAccepted",
+    callback = function(args)
+      Conform.FormatBuf(args.buf)
     end,
   })
 end

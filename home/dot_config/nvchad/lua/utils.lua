@@ -320,6 +320,9 @@ Conform = {
       vim.cmd "silent write"
     end)
   end,
+  FormatBuf = function(bufnr)
+    require("conform").format { async = false, bufnr = bufnr }
+  end,
 }
 
 Explorer = {
