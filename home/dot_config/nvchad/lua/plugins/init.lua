@@ -127,6 +127,7 @@ return {
 
   {
     "MeanderingProgrammer/render-markdown.nvim",
+    dependencies = { "lewis6991/gitsigns.nvim" },
     ft = { "markdown", "codecompanion" },
     config = function(_, opts)
       require("configs.render-markdown").setup(opts)
