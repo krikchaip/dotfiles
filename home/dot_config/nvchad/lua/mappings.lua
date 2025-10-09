@@ -106,19 +106,20 @@ map("n", "<leader>W", "<cmd>silent w<CR>", { desc = "Buffer: Save Without Format
 map("n", "<C-S-a>", "gg0VG$zz", { desc = "Buffer: Select Whole File" })
 map("n", "<C-S-c>", "<cmd>%y+<CR>", { desc = "Buffer: Copy File Content" })
 map("n", ",", "<C-^>", { desc = "Buffer: Goto Previously Edited" })
-map("n", "<", Tabufline.Prev, { desc = "Buffer: Goto Previous" })
-map("n", ">", Tabufline.Next, { desc = "Buffer: Goto Next" })
-map("n", "<M-S-,>", Tabufline.MoveLeft, { desc = "Buffer: Move Left" })
-map("n", "<M-S-.>", Tabufline.MoveRight, { desc = "Buffer: Move Right" })
-map("n", "q", Tabufline.Close, { desc = "Buffer: Close Current" })
-map("n", "<M-q>", Tabufline.CloseAll, { desc = "Buffer: Close All" })
-map("n", "<C-w><M-t>", Tabufline.BreakTab, { desc = "Buffer: Break Into New Tab" })
+map("n", "<", vim.g.minimal and "<cmd>bp<CR>" or Tabufline.Prev, { desc = "Buffer: Goto Previous" })
+map("n", ">", vim.g.minimal and "<cmd>bn<CR>" or Tabufline.Next, { desc = "Buffer: Goto Next" })
+map("n", "<M-S-,>", vim.g.minimal and "<nop>" or Tabufline.MoveLeft, { desc = "Buffer: Move Left" })
+map("n", "<M-S-.>", vim.g.minimal and "<nop>" or Tabufline.MoveRight, { desc = "Buffer: Move Right" })
+map("n", "q", vim.g.minimal and "<cmd>bd<CR>" or Tabufline.Close, { desc = "Buffer: Close Current" })
+map("n", "<M-q>", vim.g.minimal and "<cmd>bufdo bd<CR>" or Tabufline.CloseAll, { desc = "Buffer: Close All" })
+map("n", "<C-w><M-t>", vim.g.minimal and "<nop>" or Tabufline.BreakTab, { desc = "Buffer: Break Into New Tab" })
 
 for i = 1, 9, 1 do
   local key = string.format("<M-%s>", i)
   local desc = string.format("Buffer: Goto #%s", i)
 
   vim.keymap.set("n", key, function()
+    if vim.g.minimal then return end
     vim.api.nvim_set_current_buf(vim.t.bufs[i])
   end, { desc = desc })
 end
