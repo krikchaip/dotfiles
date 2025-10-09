@@ -107,6 +107,14 @@ M.setup = function(opts)
       M.notify_status(args)
     end,
   })
+
+  autocmd("User", {
+    group = augroup("codecompanion.unmap", { clear = true }),
+    pattern = "CodeCompanionDiffAttached",
+    callback = function(args)
+      vim.api.nvim_buf_del_keymap(args.buf, "n", "q")
+    end,
+  })
 end
 
 M.on_attach = function(bufnr)
