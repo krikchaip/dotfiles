@@ -17,6 +17,44 @@ function MacroStartStop()
   end
 end
 
+---@param block? boolean
+function GetLastVisualSelection(block)
+  local start_pos = vim.fn.getpos "'<"
+  local end_pos = vim.fn.getpos "'>"
+
+  local start_line, end_line = start_pos[2], end_pos[2]
+  local start_col, end_col = start_pos[3], end_pos[3]
+  local line_range = { ["start"] = start_line, ["end"] = end_line }
+
+  local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
+  if #lines == 0 then return "", line_range end
+
+  -- Single line selection
+  if start_line == end_line then return string.sub(lines[1], start_col, end_col), line_range end
+
+  local selected_text = ""
+
+  -- Multi-line selection
+  if block then
+    selected_text = string.sub(lines[1], start_col, end_col) .. "\n"
+  else
+    selected_text = string.sub(lines[1], start_col) .. "\n"
+  end
+
+  for i = 2, #lines - 1 do
+    local line = block and string.sub(lines[i], start_col, end_col) or lines[i]
+    selected_text = selected_text .. line .. "\n"
+  end
+
+  if block then
+    selected_text = selected_text .. string.sub(lines[#lines], start_col, end_col)
+  else
+    selected_text = selected_text .. string.sub(lines[#lines], 1, end_col)
+  end
+
+  return selected_text, line_range
+end
+
 NvChad = {
   Themes = function()
     require("nvchad.themes").open()
