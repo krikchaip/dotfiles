@@ -432,6 +432,26 @@
       ]
     },
     {
+      "description": "Quote (') to Right Control",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "quote",
+            "modifiers": { "optional": ["any"] }
+          },
+          "to": [{ "key_code": "right_control", "lazy": true }],
+          "to_if_alone": [{ "key_code": "quote" }],
+          "conditions": [
+            {
+              "type": "input_source_if",
+              "input_sources": [{ "language": "en" }]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "description": "Tmux prefix keys (s+d and k+l)",
       "manipulators": [
         {
