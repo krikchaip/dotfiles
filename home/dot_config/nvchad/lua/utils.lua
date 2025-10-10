@@ -74,12 +74,12 @@ Tabufline = {
   MoveLeft = function()
     pcall(require("nvchad.tabufline").move_buf, -1)
   end,
-  Close = function()
+  Close = function(bufnr)
     local tabpages = vim.api.nvim_list_tabpages()
-    if #tabpages == 1 then return pcall(require("nvchad.tabufline").close_buffer) end
+    if #tabpages == 1 then return require("nvchad.tabufline").close_buffer(bufnr) end
 
     local curr_tab = vim.api.nvim_get_current_tabpage()
-    local curr_buf = vim.api.nvim_get_current_buf()
+    local curr_buf = bufnr or vim.api.nvim_get_current_buf()
 
     local other_tabs = vim.iter(tabpages):filter(function(tab)
       return tab ~= curr_tab
@@ -89,7 +89,7 @@ Tabufline = {
       return vim.tbl_contains(vim.t[tab].bufs, curr_buf)
     end)
 
-    if not buf_exists then return pcall(require("nvchad.tabufline").close_buffer) end
+    if not buf_exists then return require("nvchad.tabufline").close_buffer(curr_buf) end
 
     vim.o.lazyredraw = true
 
