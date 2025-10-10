@@ -63,16 +63,16 @@ NvChad = {
 
 Tabufline = {
   Next = function()
-    require("nvchad.tabufline").next()
+    pcall(require("nvchad.tabufline").next)
   end,
   Prev = function()
-    require("nvchad.tabufline").prev()
+    pcall(require("nvchad.tabufline").prev)
   end,
   MoveRight = function()
-    require("nvchad.tabufline").move_buf(1)
+    pcall(require("nvchad.tabufline").move_buf, 1)
   end,
   MoveLeft = function()
-    require("nvchad.tabufline").move_buf(-1)
+    pcall(require("nvchad.tabufline").move_buf, -1)
   end,
   Close = function()
     local tabpages = vim.api.nvim_list_tabpages()
