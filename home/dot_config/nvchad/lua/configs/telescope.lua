@@ -160,6 +160,7 @@ M.search_node = function(opts)
   opts.prompt_title = opts.prompt_title or "Search Node"
   opts.cwd = opts.cwd or vim.uv.cwd()
   opts.find_command = opts.find_command or find_command
+  opts.history = opts.history or {}
 
   local function select_default(prompt_bufnr)
     local selection = require("telescope.actions.state").get_selected_entry()
@@ -173,15 +174,39 @@ M.search_node = function(opts)
 
     require("telescope.actions").close(prompt_bufnr)
 
+    table.insert(opts.history, opts.cwd)
+
     M.search_node {
       prompt_title = string.format("Search Node (%s)", filename),
       cwd = filepath,
+      history = opts.history,
+    }
+  end
+
+  local function go_back(prompt_bufnr)
+    if #opts.history == 0 then return end
+
+    require("telescope.actions").close(prompt_bufnr)
+
+    local last_filepath = table.remove(opts.history)
+    local prompt_title = "Search Node"
+
+    if last_filepath ~= vim.uv.cwd() then
+      local relative_path = require("plenary.path").new(last_filepath):make_relative()
+      prompt_title = prompt_title .. string.format(" (%s)", relative_path)
+    end
+
+    M.search_node {
+      prompt_title = prompt_title,
+      cwd = last_filepath,
+      history = opts.history,
     }
   end
 
   local attach_mappings = opts.attach_mappings
   opts.attach_mappings = function(_, map)
     map("i", "<CR>", select_default)
+    map("i", "<S-BS>", go_back)
 
     if attach_mappings then
       return attach_mappings(_, map)
