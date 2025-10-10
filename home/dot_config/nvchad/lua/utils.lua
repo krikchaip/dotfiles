@@ -558,6 +558,40 @@ Clipboard = {
     vim.fn.setreg("+", absolute_path)
     vim.notify("Copied absolute path: " .. absolute_path)
   end,
+  YankRegionWithContext = function()
+    local mode = vim.fn.mode()
+    local visual_modes = { "v", "V", "" }
+
+    if not vim.tbl_contains(visual_modes, mode) then return vim.notify("Not in visual mode", vim.log.levels.WARN) end
+
+    local block = mode == ""
+    local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
+
+    vim.api.nvim_feedkeys(esc, "x", false)
+
+    local content, range = GetLastVisualSelection(block)
+
+    if #content == 0 then return end
+
+    local raw_path = vim.fn.expand "%"
+    if #raw_path == 0 then return end
+
+    local relative_path = require("plenary.path").new(raw_path):make_relative()
+
+    local line_range = ""
+    if range["start"] == range["end"] then
+      line_range = string.format("line %d", range["start"])
+    else
+      line_range = string.format("lines %d-%d", range["start"], range["end"])
+    end
+
+    local context = ""
+      .. string.format("From the following code snippet (%s) in the file %s\n\n", line_range, relative_path)
+      .. string.format("```\n%s\n```\n\n", content)
+
+    vim.fn.setreg("+", context)
+    vim.notify "Copied region with context to clipboard"
+  end,
   PasteRelative = function()
     local modifier = #vim.bo.buftype > 0 and "#" or nil
     Clipboard.YankRelative(modifier)
