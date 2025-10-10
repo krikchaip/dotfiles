@@ -173,8 +173,10 @@ M.search_node = function(opts)
 
     require("telescope.actions").close(prompt_bufnr)
 
-    require("mini.files").open(filepath, true)
-    -- require("configs.mini.files").reset()
+    M.search_node {
+      prompt_title = string.format("Search Node (%s)", filename),
+      cwd = filepath,
+    }
   end
 
   local attach_mappings = opts.attach_mappings
@@ -191,7 +193,7 @@ M.search_node = function(opts)
   require("telescope.builtin").find_files(opts)
 end
 
-M.scope_search = function(prompt_bufnr)
+function M.scope_search(prompt_bufnr)
   local input = require("telescope.actions.state").get_current_line()
 
   local cwd = vim.uv.cwd()
