@@ -120,6 +120,7 @@ M.on_attach = function(bufnr)
   map("n", ",", "''", opts("Go to latest jump", { remap = true }))
   map("n", "<BS>", M.reset, opts "Reset")
   map("n", "f", M.search_node, opts "Search node")
+  map("n", "F", M.search_node_pwd, opts "Search node in PWD")
 
   map("n", "<C-x>", M.split "horizontal", opts "Split horizontally")
   map("n", "<C-t>", M.split "tab", opts "Split tab")
@@ -183,8 +184,12 @@ M.reset = function()
   -- MiniFiles.reveal_cwd()
 end
 
-M.search_node = function()
-  local cwd = vim.uv.cwd()
+M.search_node = function(opts)
+  opts = opts or {}
+
+  local cwd = opts.cwd or vim.uv.cwd()
+  local prompt_title = opts.prompt_title or "Search Node"
+
   local find_command = require("configs.telescope").config().pickers.find_files.find_command
 
   table.insert(find_command, "--type")
@@ -206,7 +211,7 @@ M.search_node = function()
 
   require("mini.files").close()
   require("telescope.builtin").find_files {
-    prompt_title = "Search Node",
+    prompt_title = prompt_title,
     cwd = cwd,
     find_command = find_command,
     attach_mappings = function(_, picker_map)
@@ -215,6 +220,19 @@ M.search_node = function()
       picker_map("i", "<C-q>", close)
       return true
     end,
+  }
+end
+
+M.search_node_pwd = function()
+  local state = MiniFiles.get_explorer_state()
+  if not state then return end
+
+  local absolute_path = state.branch[state.depth_focus]
+  local relative_path = require("plenary.path").new(absolute_path):make_relative()
+
+  M.search_node {
+    cwd = absolute_path,
+    prompt_title = string.format("Search Node (%s)", relative_path),
   }
 end
 
