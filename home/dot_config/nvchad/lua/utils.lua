@@ -174,9 +174,6 @@ Tabufline = {
           end)
           :totable()
       end)
-      :filter(function(tab)
-        return #tab > 0
-      end)
       :totable()
   end,
   Load = function(tabpages)
@@ -187,17 +184,33 @@ Tabufline = {
       end)
       :flatten()
       :fold({}, function(acc, b)
-        acc[vim.api.nvim_buf_get_name(b)] = b
+        if not vim.api.nvim_buf_is_valid(b) then return acc end
+
+        local bufname = vim.api.nvim_buf_get_name(b)
+        if #bufname > 0 then acc[bufname] = b end
+
         return acc
       end)
 
     for t, tab_bufs in ipairs(tabpages) do
+      if not vim.api.nvim_tabpage_is_valid(t) then return end
+
       vim.t[t].bufs = vim
         .iter(tab_bufs)
         :map(function(name)
           return bufs[name]
         end)
         :totable()
+
+      if #vim.t[t].bufs > 0 then
+        for _, win in ipairs(vim.api.nvim_tabpage_list_wins(t)) do
+          local buf = vim.api.nvim_win_get_buf(win)
+          local bufname = vim.api.nvim_buf_get_name(buf)
+          local last_buf = vim.t[t].bufs[#vim.t[t].bufs]
+
+          if #bufname == 0 then vim.api.nvim_win_set_buf(win, last_buf) end
+        end
+      end
     end
   end,
 }
@@ -248,7 +261,11 @@ ScrollPosition = {
       end)
       :flatten()
       :fold({}, function(acc, b)
-        acc[vim.api.nvim_buf_get_name(b)] = b
+        if not vim.api.nvim_buf_is_valid(b) then return acc end
+
+        local bufname = vim.api.nvim_buf_get_name(b)
+        if #bufname > 0 then acc[bufname] = b end
+
         return acc
       end)
 
