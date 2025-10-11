@@ -95,6 +95,10 @@ Tabufline = {
 
     vim.o.lazyredraw = true
 
+    local cur_buf_idx = Tabufline.BufIndex(curr_buf)
+    local next_buf_idx = cur_buf_idx == #vim.t.bufs and -1 or 1
+    local next_buf_nr = vim.t.bufs[cur_buf_idx + next_buf_idx]
+
     vim.t.bufs = vim
       .iter(vim.t.bufs)
       :filter(function(buf)
@@ -103,7 +107,6 @@ Tabufline = {
       :totable()
 
     if #vim.t.bufs > 0 then
-      local next_buf_nr = vim.t.bufs[#vim.t.bufs]
       local wins = vim.api.nvim_tabpage_list_wins(curr_tab)
 
       for _, win in ipairs(wins) do
