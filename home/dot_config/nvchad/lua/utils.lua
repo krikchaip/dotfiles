@@ -292,6 +292,12 @@ Telescope = {
   SearchNode = function()
     require("configs.telescope").search_node()
   end,
+  Buffers = function()
+    vim.cmd "Telescope buffers"
+  end,
+  TabBuffers = function()
+    require("configs.telescope").tab_buffers()
+  end,
 }
 
 Treesitter = {

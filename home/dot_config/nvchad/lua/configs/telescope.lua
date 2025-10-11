@@ -218,6 +218,80 @@ M.search_node = function(opts)
   require("telescope.builtin").find_files(opts)
 end
 
+M.tab_buffers = function(opts)
+  opts = opts or {}
+
+  local bufnrs = vim.t.bufs
+  if not bufnrs or #bufnrs == 0 then
+    vim.notify "No buffers found with the provided options"
+    return
+  end
+
+  opts.bufnr_width = #tostring(math.max(unpack(bufnrs)))
+
+  local buffers = {}
+  local default_selection_idx = 1
+  for i, bufnr in ipairs(bufnrs) do
+    local flag = bufnr == vim.fn.bufnr "" and "%" or (bufnr == vim.fn.bufnr "#" and "#" or " ")
+    local element = { bufnr = bufnr, flag = flag, info = vim.fn.getbufinfo(bufnr)[1] }
+
+    if flag == "%" then default_selection_idx = i end
+    table.insert(buffers, element)
+  end
+
+  local pickers = require "telescope.pickers"
+  local finders = require "telescope.finders"
+  local make_entry = require "telescope.make_entry"
+  local actions = require "telescope.actions"
+  local action_state = require "telescope.actions.state"
+  local conf = require("telescope.config").values
+
+  local function delete_buffer(prompt_bufnr)
+    local current_picker = action_state.get_current_picker(prompt_bufnr)
+
+    current_picker:delete_selection(function(selection)
+      Tabufline.Close(selection.bufnr, function(bufnr)
+        if bufnr ~= current_picker.original_bufnr then return vim.api.nvim_buf_delete(bufnr, { force = true }) end
+
+        if #vim.t.bufs > 1 then
+          local cur_buf_idx = Tabufline.BufIndex(bufnr)
+          local next_buf_idx = cur_buf_idx == #vim.t.bufs and -1 or 1
+          local next_buf_nr = vim.t.bufs[cur_buf_idx + next_buf_idx]
+
+          vim.api.nvim_win_set_buf(current_picker.original_win_id, next_buf_nr)
+          current_picker.original_bufnr = next_buf_nr
+        else
+          local empty_buf = vim.api.nvim_create_buf(true, true)
+
+          vim.api.nvim_win_set_buf(current_picker.original_win_id, empty_buf)
+          current_picker.original_bufnr = empty_buf
+
+          actions.close(prompt_bufnr)
+        end
+
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+      end)
+    end)
+  end
+
+  pickers
+    .new(opts, {
+      prompt_title = "Tab Buffers",
+      finder = finders.new_table {
+        results = buffers,
+        entry_maker = make_entry.gen_from_buffer(opts),
+      },
+      previewer = conf.grep_previewer(opts),
+      sorter = conf.generic_sorter(opts),
+      default_selection_index = default_selection_idx,
+      attach_mappings = function(_, map)
+        map("i", "<C-c>", delete_buffer)
+        return true
+      end,
+    })
+    :find()
+end
+
 function M.scope_search(prompt_bufnr)
   local input = require("telescope.actions.state").get_current_line()
 

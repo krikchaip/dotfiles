@@ -170,7 +170,6 @@ map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit Terminal Mode" })
 
 -- search pickers (telescope)
 map("n", "<leader>h", "<cmd>Telescope help_tags<CR>", { desc = "Search: Help Pages" })
-map("n", "<leader>,", "<cmd>Telescope buffers<CR>", { desc = "Search: Open Buffers" })
 map("n", "<leader>o", "<cmd>Telescope oldfiles only_cwd=true<CR>", { desc = "Search: Buffer History" })
 map("n", "<leader>;", "<cmd>Telescope command_history<CR>", { desc = "Search: Command History" })
 map("n", "<leader>f", Telescope.SearchNode, { desc = "Search: Files" })
@@ -178,6 +177,12 @@ map("n", "<leader>/", "<cmd>Telescope current_buffer_fuzzy_find<CR>", { desc = "
 map("n", "<leader>G", Telescope.Grep, { desc = "Search: Grep" })
 map({ "n", "x" }, "<leader>*", "<cmd>Telescope grep_string<CR>", { desc = "Search: Grep Current Selection" })
 map({ "n", "i" }, "<M-\\>", "<cmd>Telescope luasnip<CR>", { desc = "Search: Snippets" })
+
+if vim.g.minimal then
+  map("n", "<leader>,", Telescope.Buffers, { desc = "Search: Open Buffers" })
+else
+  map("n", "<leader>,", Telescope.TabBuffers, { desc = "Search: Tab Buffers" })
+end
 
 -- user settings (telescope)
 map("n", "<C-,>o", "<cmd>Telescope vim_options<CR>", { desc = "Settings: Vim Options" })
