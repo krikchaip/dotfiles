@@ -155,6 +155,11 @@ Tabufline = {
 
     vim.cmd "redraw!"
   end,
+  BufIndex = function(bufnr)
+    for i, value in ipairs(vim.t.bufs) do
+      if value == bufnr then return i end
+    end
+  end,
   Serialize = function()
     return vim
       .iter(vim.api.nvim_list_tabpages())
