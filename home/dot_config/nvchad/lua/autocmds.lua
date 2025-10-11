@@ -36,7 +36,7 @@ autocmd("BufDelete", {
 
     if lastbuf_name == "" then
       vim.cmd "Nvdash"
-      vim.api.nvim_buf_delete(lastbuf, { force = true })
+      pcall(vim.api.nvim_buf_delete, lastbuf, { force = true })
     end
   end,
 })
