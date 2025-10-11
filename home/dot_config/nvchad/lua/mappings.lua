@@ -120,6 +120,8 @@ for i = 1, 9, 1 do
 
   vim.keymap.set("n", key, function()
     if vim.g.minimal then return end
+    if not vim.t.bufs[i] then return end
+
     vim.api.nvim_set_current_buf(vim.t.bufs[i])
   end, { desc = desc })
 end
