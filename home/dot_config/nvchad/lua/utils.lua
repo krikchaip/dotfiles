@@ -285,17 +285,21 @@ ScrollPosition = {
 }
 
 Term = {
+  Opts = function(opts)
+    local base_opts = { winopts = { winfixbuf = true } }
+    return vim.tbl_deep_extend("force", base_opts, opts)
+  end,
   VSplit = function()
-    require("nvchad.term").new { pos = "vsp" }
+    require("nvchad.term").new(Term.Opts { pos = "vsp" })
   end,
   HSplit = function()
-    require("nvchad.term").new { pos = "sp" }
+    require("nvchad.term").new(Term.Opts { pos = "sp" })
   end,
   VToggle = function()
-    require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm" }
+    require("nvchad.term").toggle(Term.Opts { pos = "vsp", id = "vtoggleTerm" })
   end,
   HToggle = function()
-    require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
+    require("nvchad.term").toggle(Term.Opts { pos = "sp", id = "htoggleTerm" })
   end,
   Toggle = function()
     require("nvchad.term").toggle { pos = "float", id = "floatTerm" }
