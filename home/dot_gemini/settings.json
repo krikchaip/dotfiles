@@ -3,7 +3,6 @@
     "preferredEditor": "NVIM_APPNAME=nvchad nvim"
   },
   "context": {
-    "fileName": ["GEMINI.md", "README.md"],
     "includeDirectories": ["/tmp/pngpaste"],
     "loadFromIncludeDirectories": true
   },
