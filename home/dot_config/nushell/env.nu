@@ -14,6 +14,9 @@ let path_list = (
   # user-defined scripts / downloaded binaries
   | prepend ($env.HOME | path join ".local" "bin")
 
+  # for global bun binaries
+  | prepend ($env.HOME | path join ".bun" "bin")
+
   # for global pnpm binaries
   # ref: https://github.com/pnpm/pnpm/issues/4658
   | append ($env.HOME | path join "Library" "pnpm")
