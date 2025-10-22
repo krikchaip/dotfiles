@@ -131,7 +131,9 @@ end
 
 M.open = function()
   local MiniFiles = require "mini.files"
-  MiniFiles.open(MiniFiles.get_latest_path())
+
+  local ok = pcall(MiniFiles.open, MiniFiles.get_latest_path())
+  if not ok then MiniFiles.open(vim.uv.cwd()) end
 end
 
 -- open and select the current buffer in mini files
