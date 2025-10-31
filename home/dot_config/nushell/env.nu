@@ -45,3 +45,7 @@ $env.DYLD_LIBRARY_PATH = (brew --prefix | path parse | path join "lib")
 # ref: https://stackoverflow.com/questions/26288042/error-installing-psycopg2-library-not-found-for-lssl
 $env.LDFLAGS = $"-L (brew --prefix openssl)/lib"
 $env.CPPFLAGS = $"-I (brew --prefix openssl)/include"
+
+# temporary fix for OSX 15.7.1 permission denied when accessing tmp dir
+# ref: https://github.com/jesseduffield/lazygit/issues/4924
+$env.TMPDIR = (getconf DARWIN_USER_TEMP_DIR)
