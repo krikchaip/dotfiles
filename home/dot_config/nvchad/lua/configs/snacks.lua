@@ -3,6 +3,9 @@ local M = {}
 ---@module 'snacks'
 ---@param opts snacks.Config
 M.config = function(opts)
+  -- force Snacks to detect kitty terminal when rendering images
+  vim.env.SNACKS_KITTY = true
+
   opts.image = { enabled = true }
   opts.input = { enabled = true, expand = false }
   opts.notifier = { enabled = true, filter = M.notifier_filter }
