@@ -30,7 +30,7 @@ M.config = function(opts)
         copilot_stats = { modes = { n = "<localleader>C" } },
       },
       tools = {
-        opts = { default_tools = { "search_web" } },
+        opts = { default_tools = { "web_search" } },
       },
       opts = { goto_file_action = "edit" },
     },
