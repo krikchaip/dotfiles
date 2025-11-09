@@ -16,10 +16,10 @@ ctrl + cmd - y ; yabai
 yabai < escape ; default
 
 #** change window focus
-ctrl + cmd - h : yabai -m window --focus west       || yabai -m display --focus west
-ctrl + cmd - j : yabai -m window --focus south      || yabai -m display --focus south
-ctrl + cmd - k : yabai -m window --focus north      || yabai -m display --focus north
-ctrl + cmd - l : yabai -m window --focus east       || yabai -m display --focus east
+ctrl + cmd - h : yabai -m window --focus west       || (yabai -m display --focus west  && yabai -m window --focus last)
+ctrl + cmd - j : yabai -m window --focus south      || (yabai -m display --focus south && yabai -m window --focus first)
+ctrl + cmd - k : yabai -m window --focus north      || (yabai -m display --focus north && yabai -m window --focus last)
+ctrl + cmd - l : yabai -m window --focus east       || (yabai -m display --focus east  && yabai -m window --focus first)
 ctrl + cmd - n : yabai -m window --focus stack.next || yabai -m window  --focus stack.first
 ctrl + cmd - p : yabai -m window --focus stack.prev || yabai -m window  --focus stack.last
 ctrl + cmd - r : yabai -m window --focus recent
