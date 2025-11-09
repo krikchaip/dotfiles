@@ -60,11 +60,31 @@ yabai < shift - 2 : yabai -m window  --display 2; \
 yabai < shift - 3 : yabai -m window  --display 3; \
                     yabai -m display --focus   3
 
-#** swap window position
-yabai < h : yabai -m window --swap west  || yabai -m window --display west  --focus
+#** swap current window to the left
+yabai < h : yabai -m window --swap west || ( \
+              WIN_ID=$(yabai -m query --windows --window | jq '.id'); \
+              yabai -m display --focus west      && \
+              yabai -m window last --insert east && \
+              yabai -m window --focus $WIN_ID    && \
+              yabai -m window --display west     && \
+              yabai -m window --focus $WIN_ID; \
+            )
+
+#** swap current window to the bottom
 yabai < j : yabai -m window --swap south || yabai -m window --display south --focus
+
+#** swap current window to the top
 yabai < k : yabai -m window --swap north || yabai -m window --display north --focus
-yabai < l : yabai -m window --swap east  || yabai -m window --display east  --focus
+
+#** swap current window to the right
+yabai < l : yabai -m window --swap east || ( \
+              WIN_ID=$(yabai -m query --windows --window | jq '.id'); \
+              yabai -m display --focus east       && \
+              yabai -m window first --insert west && \
+              yabai -m window --focus $WIN_ID     && \
+              yabai -m window --display east      && \
+              yabai -m window --focus $WIN_ID; \
+            )
 
 #** change window rotation
 yabai < x : yabai -m space --mirror x-axis
