@@ -61,10 +61,10 @@ yabai < shift - 3 : yabai -m window  --display 3; \
                     yabai -m display --focus   3
 
 #** swap window position
-yabai < h : yabai -m window --swap west
-yabai < j : yabai -m window --swap south
-yabai < k : yabai -m window --swap north
-yabai < l : yabai -m window --swap east
+yabai < h : yabai -m window --swap west  || yabai -m window --display west  --focus
+yabai < j : yabai -m window --swap south || yabai -m window --display south --focus
+yabai < k : yabai -m window --swap north || yabai -m window --display north --focus
+yabai < l : yabai -m window --swap east  || yabai -m window --display east  --focus
 
 #** change window rotation
 yabai < x : yabai -m space --mirror x-axis
