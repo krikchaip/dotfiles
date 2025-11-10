@@ -97,3 +97,9 @@ alias dj = pipenv run ./manage.py
 
 # gemini
 alias g = gemini
+
+# nodejs
+alias b = bun
+alias bx = bunx
+alias p = pnpm
+alias px = pnpx
