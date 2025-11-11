@@ -62,12 +62,15 @@ yabai < shift - 3 : yabai -m window  --display 3; \
 
 #** swap current window to the left
 yabai < h : yabai -m window --swap west || ( \
-              WIN_ID=$(yabai -m query --windows --window | jq '.id'); \
-              yabai -m display --focus west      && \
-              yabai -m window last --insert east && \
-              yabai -m window --focus $WIN_ID    && \
-              yabai -m window --display west     && \
-              yabai -m window --focus $WIN_ID; \
+              WIN_A=$(yabai -m query --windows --window | jq '.id') && \
+              yabai -m display --focus west && \
+              WIN_B=$(yabai -m query --windows --window last | jq '.id') && \
+              yabai -m window $WIN_B --insert east && \
+              yabai -m window --focus $WIN_A && \
+              yabai -m window --display west && \
+              yabai -m window first --insert west && \
+              yabai -m window --focus $WIN_A && \
+              yabai -m window $WIN_B --display east; \
             )
 
 #** swap current window to the bottom
@@ -77,13 +80,16 @@ yabai < j : yabai -m window --swap south || yabai -m window --display south --fo
 yabai < k : yabai -m window --swap north || yabai -m window --display north --focus
 
 #** swap current window to the right
-yabai < l : yabai -m window --swap east || ( \
-              WIN_ID=$(yabai -m query --windows --window | jq '.id'); \
-              yabai -m display --focus east       && \
-              yabai -m window first --insert west && \
-              yabai -m window --focus $WIN_ID     && \
-              yabai -m window --display east      && \
-              yabai -m window --focus $WIN_ID; \
+yabai < l : yabai -m window --swap east --focus || ( \
+              WIN_A=$(yabai -m query --windows --window | jq '.id') && \
+              yabai -m display --focus east && \
+              WIN_B=$(yabai -m query --windows --window first | jq '.id') && \
+              yabai -m window $WIN_B --insert west && \
+              yabai -m window --focus $WIN_A && \
+              yabai -m window --display east && \
+              yabai -m window last --insert east && \
+              yabai -m window --focus $WIN_A && \
+              yabai -m window $WIN_B --display west; \
             )
 
 #** change window rotation
