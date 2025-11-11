@@ -30,10 +30,10 @@ ctrl + cmd + shift - 2 : yabai -m display --focus 2
 ctrl + cmd + shift - 3 : yabai -m display --focus 3
 
 #** change window focus in yabai mode
-yabai < left  : yabai -m window --focus west       || yabai -m display --focus west
-yabai < down  : yabai -m window --focus south      || yabai -m display --focus south
-yabai < up    : yabai -m window --focus north      || yabai -m display --focus north
-yabai < right : yabai -m window --focus east       || yabai -m display --focus east
+yabai < left  : yabai -m window --focus west       || (yabai -m display --focus west  && yabai -m window --focus last)
+yabai < down  : yabai -m window --focus south      || (yabai -m display --focus south && yabai -m window --focus first)
+yabai < up    : yabai -m window --focus north      || (yabai -m display --focus north && yabai -m window --focus last)
+yabai < right : yabai -m window --focus east       || (yabai -m display --focus east  && yabai -m window --focus first)
 yabai < cmd - up   : yabai -m window --focus stack.next || yabai -m window  --focus stack.first
 yabai < cmd - down : yabai -m window --focus stack.prev || yabai -m window  --focus stack.last
 
