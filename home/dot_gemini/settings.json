@@ -3,7 +3,9 @@
     "preferredEditor": "NVIM_APPNAME=nvchad nvim"
   },
   "context": {
-    "includeDirectories": ["/tmp/pngpaste"],
+    "includeDirectories": [
+      "/tmp/pngpaste"
+    ],
     "loadFromIncludeDirectories": true
   },
   "tools": {
@@ -13,7 +15,9 @@
       "run_shell_command(pnpm)",
       "run_shell_command(yarn)"
     ],
-    "exclude": ["run_shell_command(rm)"],
+    "exclude": [
+      "run_shell_command(rm)"
+    ],
     "shell": {
       "enableInteractiveShell": true,
       "showColor": true
