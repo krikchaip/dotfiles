@@ -119,7 +119,7 @@ M.setup = function(opts)
     group = augroup("codecompanion.unmap", { clear = true }),
     pattern = "CodeCompanionDiffAttached",
     callback = function(args)
-      vim.api.nvim_buf_del_keymap(args.buf, "n", "q")
+      pcall(vim.api.nvim_buf_del_keymap, args.buf, "n", "q")
     end,
   })
 
