@@ -8,6 +8,14 @@
     ],
     "loadFromIncludeDirectories": true
   },
+  "mcpServers": {
+    "github": {
+      "httpUrl": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer $GITHUB_MCP_PAT"
+      }
+    }
+  },
   "tools": {
     "allowed": [
       "run_shell_command(git)",
