@@ -623,7 +623,7 @@ Clipboard = {
     end
 
     local context = ""
-      .. string.format("From the following code snippet (%s) in the file %s\n\n", line_range, relative_path)
+      .. string.format("From the following code snippet (%s) in the file @%s\n\n", line_range, relative_path)
       .. string.format("```\n%s\n```\n\n", content)
 
     vim.fn.setreg("+", context)
