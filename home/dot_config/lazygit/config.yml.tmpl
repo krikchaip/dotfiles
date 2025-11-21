@@ -75,6 +75,7 @@ os:
   edit: 'if ($env.NVIM? | is-empty) { nvim -- {{ "{{" }}filename{{ "}}" }} } else { nvim --server $env.NVIM --remote-send "<M-g>"; nvim --server $env.NVIM --remote {{ "{{" }}filename{{ "}}" }} }'
   editAtLine: 'if ($env.NVIM? | is-empty) { nvim +{{ "{{" }}line{{ "}}" }} -- {{ "{{" }}filename{{ "}}" }} } else { nvim --server $env.NVIM --remote-send "<M-g>"; nvim --server $env.NVIM --remote {{ "{{" }}filename{{ "}}" }}; nvim --server $env.NVIM --remote-send ":{{ "{{" }}line{{ "}}" }}<CR>" }'
   open: '^open {{ "{{" }}filename{{ "}}" }}'
+  openLink: '^open {{ "{{" }}link{{ "}}" }}'
   openDirInEditor: 'if ($env.NVIM? | is-empty) { nvim -- {{ "{{" }}dir{{ "}}" }} } else { nvim --server $env.NVIM --remote-send "<M-g>"; nvim --server $env.NVIM --remote {{ "{{" }}dir{{ "}}" }} }'
   {{ end }}
 
