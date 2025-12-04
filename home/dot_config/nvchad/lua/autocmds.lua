@@ -12,6 +12,17 @@ autocmd("TermOpen", {
   end,
 })
 
+-- Always start in insert mode when switching to a terminal buffer
+-- ref: https://vi.stackexchange.com/questions/3670/how-to-enter-insert-mode-when-entering-neovim-terminal-pane
+autocmd("WinEnter", {
+  desc = "Always start in insert mode when switching to a terminal buffer",
+  group = augroup("term-start-insert", { clear = true }),
+  pattern = "term://*",
+  callback = function()
+    vim.cmd "startinsert"
+  end,
+})
+
 -- highlight text after yanking
 -- ref: https://github.com/nvim-lua/kickstart.nvim/blob/master/init.lua#L196-L205
 autocmd("TextYankPost", {

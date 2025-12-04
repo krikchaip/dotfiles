@@ -165,6 +165,12 @@ map({ "n", "t" }, "<M-v>", Term.VToggle, { desc = "Terminal: Toggleable Vertical
 map({ "n", "t" }, "<M-x>", Term.HToggle, { desc = "Terminal: Toggleable Horizontal Term" })
 map({ "n", "t" }, "<M-t>", Term.Toggle, { desc = "Terminal: Toggle Floating Term" })
 
+-- switching window in terminal mode
+map("t", "<C-h>", "<C-\\><C-n><C-w>h", { desc = "Terminal: Focus Left Window" })
+map("t", "<C-l>", "<C-\\><C-n><C-w>l", { desc = "Terminal: Focus Right Window" })
+map("t", "<C-j>", "<C-\\><C-n><C-w>j", { desc = "Terminal: Focus Lower Window" })
+map("t", "<C-k>", "<C-\\><C-n><C-w>k", { desc = "Terminal: Focus Upper Window" })
+
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit Terminal Mode" })
 
