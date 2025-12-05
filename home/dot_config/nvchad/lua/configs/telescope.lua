@@ -275,6 +275,94 @@ M.tab_buffers = function(opts)
     end)
   end
 
+  local function move_buffer_to_tab(prompt_bufnr)
+    local picker = action_state.get_current_picker(prompt_bufnr)
+    local selections = picker:get_multi_selection()
+
+    if vim.tbl_isempty(selections) then table.insert(selections, action_state.get_selected_entry()) end
+    if vim.tbl_isempty(selections) then return vim.notify("No buffer selected", vim.log.levels.WARN) end
+
+    local bufnrs_to_move = vim.tbl_map(function(s)
+      return s.bufnr
+    end, selections)
+
+    local current_tab = vim.api.nvim_get_current_tabpage()
+    local other_tabs = vim.tbl_filter(function(t)
+      return t ~= current_tab
+    end, vim.api.nvim_list_tabpages())
+
+    if #other_tabs == 0 then return vim.notify("No other tab to move to", vim.log.levels.INFO) end
+
+    local tab_choices = {}
+    local tab_map = {}
+
+    for i, t in ipairs(other_tabs) do
+      local tab_nr = vim.api.nvim_tabpage_get_number(t)
+      table.insert(tab_choices, "Tab " .. tab_nr)
+
+      tab_map[i] = t
+    end
+
+    vim.ui.select(tab_choices, { prompt = "Move buffer to tab:" }, function(_, idx)
+      if not idx then return end
+
+      local target_tab = tab_map[idx]
+
+      -- append to target tab bufs
+      local target_bufs = vim.t[target_tab].bufs or {}
+      for _, bufnr in ipairs(bufnrs_to_move) do
+        if not vim.tbl_contains(target_bufs, bufnr) then table.insert(target_bufs, bufnr) end
+      end
+
+      vim.o.lazyredraw = true
+      vim.t[target_tab].bufs = target_bufs
+
+      -- handle current tab
+      local wins_to_update = {}
+      local wins = vim.api.nvim_tabpage_list_wins(current_tab)
+      for _, win in ipairs(wins) do
+        local win_buf = vim.api.nvim_win_get_buf(win)
+        if vim.tbl_contains(bufnrs_to_move, win_buf) then table.insert(wins_to_update, win) end
+      end
+
+      local remaining_bufs = vim
+        .iter(vim.t[current_tab].bufs)
+        :filter(function(b)
+          return not vim.tbl_contains(bufnrs_to_move, b)
+        end)
+        :totable()
+
+      vim.t[current_tab].bufs = remaining_bufs
+
+      if #remaining_bufs > 0 then
+        local next_buf = remaining_bufs[#remaining_bufs]
+        for _, win in ipairs(wins_to_update) do
+          vim.api.nvim_win_set_buf(win, next_buf)
+        end
+      elseif #wins_to_update > 0 then
+        local original_win = vim.api.nvim_get_current_win()
+
+        vim.api.nvim_set_current_win(wins_to_update[1])
+        vim.cmd "enew"
+
+        local new_buf = vim.api.nvim_get_current_buf()
+
+        vim.t[current_tab].bufs = { new_buf }
+
+        for i = 2, #wins_to_update do
+          vim.api.nvim_win_set_buf(wins_to_update[i], new_buf)
+        end
+
+        vim.api.nvim_set_current_win(original_win)
+      end
+
+      vim.o.lazyredraw = false
+      vim.cmd "redraw!"
+
+      vim.notify(string.format("Moved %d buffer(s) to Tab %d", #bufnrs_to_move, target_tab))
+    end)
+  end
+
   pickers
     .new(opts, {
       prompt_title = "Tab Buffers",
@@ -287,6 +375,7 @@ M.tab_buffers = function(opts)
       default_selection_index = default_selection_idx,
       attach_mappings = function(_, map)
         map("i", "<C-c>", delete_buffer)
+        map("i", "<M-m>", move_buffer_to_tab)
         return true
       end,
     })
