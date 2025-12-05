@@ -221,11 +221,11 @@ def custom-keybindings [] {
       }
     }
 
-    # alt+t -> fuzzy_ls_current_dir
+    # alt+. -> fuzzy_ls_current_dir
     {
       name: fuzzy_ls_current_dir
       modifier: alt
-      keycode: char_t
+      keycode: char_.
       mode: [emacs vi_insert vi_normal]
       event: {
         send: ExecuteHostCommand
