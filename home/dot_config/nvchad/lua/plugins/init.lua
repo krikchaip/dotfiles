@@ -153,6 +153,15 @@ return {
     end,
   },
 
+  {
+    "nvim-telescope/telescope-fzf-native.nvim",
+    build = "make",
+    event = "VeryLazy",
+    config = function()
+      require("configs.telescope-fzf-native").setup()
+    end,
+  },
+
   { "benfowler/telescope-luasnip.nvim" },
 
   {
