@@ -36,13 +36,31 @@ def custom-keybindings [] {
       event: { send: ClearScreen }
     }
 
-    # ctrl+shift+c -> copy_selection
+    # ctrl+alt+c -> copy_selection
     {
       name: copy_selection
-      modifier: control_shift
+      modifier: control_alt
       keycode: char_c
       mode: [emacs vi_insert vi_normal]
       event: { edit: CopySelection }
+    }
+
+    # ctrl+alt+v -> paste
+    {
+      name: paste
+      modifier: control_alt
+      keycode: char_v
+      mode: [emacs vi_insert vi_normal]
+      event: { edit: Paste }
+    }
+
+    # ctrl+alt+x -> cut_selection
+    {
+      name: cut_selection
+      modifier: control_alt
+      keycode: char_x
+      mode: [emacs vi_insert vi_normal]
+      event: { edit: CutSelection }
     }
 
     # alt+right -> complete_word_or_word_right
