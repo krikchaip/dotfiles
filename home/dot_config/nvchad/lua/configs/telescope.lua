@@ -61,6 +61,7 @@ M.config = function(opts)
 
     buffers = {
       select_current = true,
+      path_display = { "filename_first" },
       mappings = {
         i = {
           ["<M-d>"] = false,

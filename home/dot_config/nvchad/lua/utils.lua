@@ -320,7 +320,7 @@ Telescope = {
     vim.cmd "Telescope buffers"
   end,
   TabBuffers = function()
-    require("configs.telescope").tab_buffers()
+    require("configs.telescope").tab_buffers { path_display = { "filename_first" } }
   end,
 }
 
