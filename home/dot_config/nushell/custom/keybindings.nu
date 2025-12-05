@@ -1,12 +1,39 @@
 def custom-keybindings [] {
   [
-    # ctrl+h -> open_help_menu
+    # alt+h -> open_help_menu
     {
       name: open_help_menu
-      modifier: control
+      modifier: alt
       keycode: char_h
       mode: [emacs vi_insert vi_normal]
       event: { send: Menu, name: help_menu }
+    }
+
+    # alt+j -> enter
+    {
+      name: enter
+      modifier: alt
+      keycode: char_j
+      mode: [emacs vi_insert vi_normal]
+      event: { send: Enter }
+    }
+
+    # alt+k -> kill_line
+    {
+      name: kill_line
+      modifier: alt
+      keycode: char_k
+      mode: [emacs vi_insert vi_normal]
+      event: { edit: KillLine }
+    }
+
+    # alt+l -> clear_screen
+    {
+      name: clear_screen
+      modifier: alt
+      keycode: char_l
+      mode: [emacs vi_insert vi_normal]
+      event: { send: ClearScreen }
     }
 
     # ctrl+shift+c -> copy_selection
