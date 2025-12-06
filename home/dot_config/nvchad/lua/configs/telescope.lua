@@ -163,9 +163,12 @@ M.search_node = function(opts)
   opts.find_command = opts.find_command or find_command
   opts.history = opts.history or {}
   opts.default_text = opts.default_text or ""
+  opts.previewer = require("telescope.config").values.file_previewer(opts)
 
   local function select_default(prompt_bufnr)
     local selection = require("telescope.actions.state").get_selected_entry()
+    if not selection then return end
+
     local filename = selection.value or selection.filename or selection[1]
     local filepath = vim.fs.joinpath(selection.cwd, filename)
 
@@ -174,10 +177,24 @@ M.search_node = function(opts)
       return
     end
 
+    local picker = require("telescope.actions.state").get_current_picker(prompt_bufnr)
+    local prompt_input = require("telescope.actions.state").get_current_line()
+
     require("telescope.actions").close(prompt_bufnr)
 
-    local prompt_input = require("telescope.actions.state").get_current_line()
-    table.insert(opts.history, { cwd = opts.cwd, input = prompt_input })
+    local entries = vim
+      .iter(picker.finder.results)
+      :map(function(result)
+        return result[1]
+      end)
+      :totable()
+
+    table.insert(opts.history, {
+      cwd = opts.cwd,
+      input = prompt_input,
+      entries = entries,
+      selection_index = picker._selection_row + 1,
+    })
 
     M.search_node {
       prompt_title = string.format("Search Node (%s)", filename),
@@ -201,9 +218,11 @@ M.search_node = function(opts)
 
     M.search_node {
       prompt_title = prompt_title,
-      cwd = last.cwd,
       history = opts.history,
+      cwd = last.cwd,
       default_text = last.input,
+      entries = last.entries,
+      selection_index = last.selection_index,
     }
   end
 
@@ -217,6 +236,28 @@ M.search_node = function(opts)
     else
       return true
     end
+  end
+
+  -- after pressing go_back
+  if opts.entries and opts.selection_index then
+    local pickers = require "telescope.pickers"
+    local finders = require "telescope.finders"
+    local make_entry = require "telescope.make_entry"
+    local conf = require("telescope.config").values
+
+    pickers
+      .new(opts, {
+        finder = finders.new_table {
+          results = opts.entries,
+          entry_maker = make_entry.gen_from_file(opts),
+        },
+        previewer = conf.file_previewer(opts),
+        sorter = conf.file_sorter(opts),
+        default_selection_index = opts.selection_index,
+      })
+      :find()
+
+    return
   end
 
   require("telescope.builtin").find_files(opts)
