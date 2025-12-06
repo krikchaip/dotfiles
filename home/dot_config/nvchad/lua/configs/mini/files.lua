@@ -216,6 +216,7 @@ M.search_node = function(opts)
     prompt_title = prompt_title,
     cwd = cwd,
     find_command = find_command,
+    previewer = require("telescope.config").values.file_previewer(opts),
     attach_mappings = function(_, picker_map)
       picker_map("i", "<CR>", select_default)
       picker_map("i", "<ESC>", close)
