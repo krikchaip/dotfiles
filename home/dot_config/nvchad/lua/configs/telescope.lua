@@ -162,6 +162,7 @@ M.search_node = function(opts)
   opts.cwd = opts.cwd or vim.uv.cwd()
   opts.find_command = opts.find_command or find_command
   opts.history = opts.history or {}
+  opts.default_text = opts.default_text or ""
 
   local function select_default(prompt_bufnr)
     local selection = require("telescope.actions.state").get_selected_entry()
@@ -175,7 +176,8 @@ M.search_node = function(opts)
 
     require("telescope.actions").close(prompt_bufnr)
 
-    table.insert(opts.history, opts.cwd)
+    local prompt_input = require("telescope.actions.state").get_current_line()
+    table.insert(opts.history, { cwd = opts.cwd, input = prompt_input })
 
     M.search_node {
       prompt_title = string.format("Search Node (%s)", filename),
@@ -189,18 +191,19 @@ M.search_node = function(opts)
 
     require("telescope.actions").close(prompt_bufnr)
 
-    local last_filepath = table.remove(opts.history)
+    local last = table.remove(opts.history)
     local prompt_title = "Search Node"
 
-    if last_filepath ~= vim.uv.cwd() then
-      local relative_path = require("plenary.path").new(last_filepath):make_relative()
+    if last.cwd ~= vim.uv.cwd() then
+      local relative_path = require("plenary.path").new(last.cwd):make_relative()
       prompt_title = prompt_title .. string.format(" (%s)", relative_path)
     end
 
     M.search_node {
       prompt_title = prompt_title,
-      cwd = last_filepath,
+      cwd = last.cwd,
       history = opts.history,
+      default_text = last.input,
     }
   end
 
