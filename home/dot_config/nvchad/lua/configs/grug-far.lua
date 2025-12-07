@@ -17,7 +17,7 @@ M.config = function(opts)
   }
 
   opts.folding = { foldlevel = 999 }
-  opts.openTargetWindow = { preferredLocation = "prev", useScratchBuffer = false }
+  opts.openTargetWindow = { preferredLocation = "prev" }
 
   return opts
 end
