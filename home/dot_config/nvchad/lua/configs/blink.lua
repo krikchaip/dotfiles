@@ -16,7 +16,7 @@ M.config = function(opts)
   opts.keymap["<Tab>"] = false
   opts.keymap["<S-Tab>"] = false
 
-  opts.keymap["<C-.>"] = { "snippet_forward" }
+  opts.keymap["<C-.>"] = { M.snippet_expand, "snippet_forward" }
   opts.keymap["<C-,>"] = { "snippet_backward" }
 
   opts.cmdline.keymap = {
@@ -25,6 +25,15 @@ M.config = function(opts)
   }
 
   return opts
+end
+
+---@param cmp blink.cmp.API
+M.snippet_expand = function(cmp)
+  if cmp.snippet_active() then
+    return cmp.accept()
+  else
+    return cmp.select_and_accept()
+  end
 end
 
 return M
