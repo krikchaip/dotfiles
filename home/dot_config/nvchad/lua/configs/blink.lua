@@ -13,6 +13,10 @@ M.config = function(opts)
     },
   }
 
+  -- ref: https://cmp.saghen.dev/configuration/keymap.html#super-tab
+  opts.completion.trigger = { show_in_snippet = false }
+  opts.completion.list = { selection = { preselect = M.snippet_inactive } }
+
   opts.keymap["<Tab>"] = false
   opts.keymap["<S-Tab>"] = false
 
@@ -34,6 +38,11 @@ M.snippet_expand = function(cmp)
   else
     return cmp.select_and_accept()
   end
+end
+
+---@param ctx blink.cmp.Context
+M.snippet_inactive = function(ctx)
+  return not require("blink.cmp").snippet_active { direction = 1 }
 end
 
 return M
