@@ -106,6 +106,15 @@ return {
   },
 
   {
+    "Equilibris/nx.nvim",
+    cond = require("configs.nx").condition,
+    event = "VeryLazy",
+    config = function(_, opts)
+      require("configs.nx").setup(opts)
+    end,
+  },
+
+  {
     "hedyhli/outline.nvim",
     dependencies = {
       "epheien/outline-treesitter-provider.nvim",
