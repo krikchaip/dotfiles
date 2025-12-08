@@ -1,5 +1,7 @@
 local M = {}
 
+local map = vim.keymap.set
+
 M.condition = function()
   local cwd = vim.uv.cwd()
   local nx_json = vim.fs.joinpath(cwd, "nx.json")
@@ -15,6 +17,19 @@ end
 
 M.setup = function(opts)
   require("nx").setup(M.config(opts))
+  M.on_attach()
+end
+
+M.on_attach = function()
+  local function opts(desc)
+    return { desc = "Nx: " .. desc, noremap = true, silent = true, nowait = true }
+  end
+
+  map("n", "<leader>xa", Nx.Targets, opts "Browse Targets")
+  map("n", "<leader>xm", Nx.RunMany, opts "Browse Targets (Run many)")
+  map("n", "<leader>xf", Nx.RunAffected, opts "Browse Targets (Run affected)")
+  map("n", "<leader>xg", Nx.Generators, opts "Browse Generators")
+  map("n", "<leader>xr", Nx.Reload, opts "Reload Configuration")
 end
 
 ---@param command string

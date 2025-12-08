@@ -643,3 +643,25 @@ Clipboard = {
     vim.cmd "PasteImage"
   end,
 }
+
+Nx = {
+  Targets = function()
+    vim.cmd "Telescope nx actions"
+  end,
+  RunMany = function()
+    vim.cmd "Telescope nx run_many"
+  end,
+  RunAffected = function()
+    vim.cmd "Telescope nx affected"
+  end,
+  Generators = function()
+    vim.cmd "Telescope nx generators"
+  end,
+  Reload = function()
+    require("nx.read-configs").read_nx_root(function()
+      require "nx.on-project-mod"()
+    end)
+
+    vim.notify "Nx configuration reloaded!"
+  end,
+}
