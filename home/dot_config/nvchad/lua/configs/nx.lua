@@ -1,5 +1,7 @@
 local M = {}
 
+local autocmd = vim.api.nvim_create_autocmd
+local augroup = vim.api.nvim_create_augroup
 local map = vim.keymap.set
 
 M.condition = function()
@@ -11,13 +13,26 @@ end
 
 M.config = function(opts)
   opts.nx_cmd_root = M.prefix_package_manager "nx"
+  opts.command_runner = M.terminal_cmd
 
   return opts
 end
 
 M.setup = function(opts)
   require("nx").setup(M.config(opts))
+
   M.on_attach()
+
+  -- Exit from neovim terminal without pressing additional key
+  -- ref: https://www.reddit.com/r/neovim/comments/f2py7h/exit_from_neovim_terminal_without_pressing
+  autocmd("TermClose", {
+    desc = "Enter insert mode after Nx terminal closes",
+    group = augroup("nx-auto-insert", { clear = true }),
+    pattern = "*nx*",
+    callback = function()
+      vim.api.nvim_feedkeys("i", "n", true)
+    end,
+  })
 end
 
 M.on_attach = function()
@@ -49,6 +64,16 @@ M.prefix_package_manager = function(command)
   end) or { cmd = "npm" }
 
   return string.format("%s %s", prefix.cmd, command)
+end
+
+M.terminal_cmd = function(cmd)
+  local commands = {
+    string.format("60vsplit term://%s", cmd),
+    "setlocal winfixbuf bufhidden=delete",
+    "nnoremap <buffer> q <C-w>q",
+  }
+
+  vim.cmd(table.concat(commands, " | "))
 end
 
 return M
