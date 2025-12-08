@@ -36,8 +36,7 @@ M.snippet_expand = function(cmp)
   if cmp.snippet_active() then
     return cmp.accept()
   elseif cmp.is_menu_visible() then
-    cmp.hide()
-    return cmp.accept()
+    return cmp.hide()
   end
 end
 
