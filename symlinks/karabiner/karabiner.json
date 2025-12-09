@@ -270,6 +270,14 @@
                     },
                     "ignore": true,
                     "manipulate_caps_lock_led": false
+                },
+                {
+                    "identifiers": {
+                        "is_keyboard": true,
+                        "product_id": 1121,
+                        "vendor_id": 21972
+                    },
+                    "ignore": true
                 }
             ],
             "fn_function_keys": [
