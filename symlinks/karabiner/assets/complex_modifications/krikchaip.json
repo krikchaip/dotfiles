@@ -446,13 +446,24 @@
             {
               "type": "input_source_if",
               "input_sources": [{ "language": "en" }]
+            },
+            {
+              "type": "device_unless",
+              "identifiers": [
+                {
+                  "description": "W-CORNE",
+                  "vendor_id": 21972,
+                  "product_id": 1121,
+                  "is_keyboard": true
+                }
+              ]
             }
           ]
         }
       ]
     },
     {
-      "description": "Tmux prefix keys (s+d and k+l)",
+      "description": "Tmux prefix keys (s+d, k+l and f13)",
       "manipulators": [
         {
           "description": "Left prefix key (s+d)",
@@ -474,6 +485,18 @@
           "from": {
             "simultaneous": [{ "key_code": "k" }, { "key_code": "l" }]
           },
+          "to": [{ "key_code": "semicolon", "modifiers": ["control"] }],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": ["^net\\.kovidgoyal\\.kitty$"]
+            }
+          ]
+        },
+        {
+          "description": "Special prefix key (f13)",
+          "type": "basic",
+          "from": { "key_code": "f13" },
           "to": [{ "key_code": "semicolon", "modifiers": ["control"] }],
           "conditions": [
             {
