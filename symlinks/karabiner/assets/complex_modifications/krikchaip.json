@@ -1,5 +1,5 @@
 {
-  "title": "krikchaip's keybinding",
+  "title": "krikchaip's keybindings",
   "maintainers": ["krikchaip"],
   "rules": [
     {
@@ -446,17 +446,6 @@
             {
               "type": "input_source_if",
               "input_sources": [{ "language": "en" }]
-            },
-            {
-              "type": "device_unless",
-              "identifiers": [
-                {
-                  "description": "W-CORNE",
-                  "vendor_id": 21972,
-                  "product_id": 1121,
-                  "is_keyboard": true
-                }
-              ]
             }
           ]
         }

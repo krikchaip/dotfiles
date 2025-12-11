@@ -5,6 +5,31 @@
                 "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
                 "rules": [
                     {
+                        "description": "Quote (') to Right Control",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "input_sources": [{ "language": "en" }],
+                                        "type": "input_source_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "quote",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "right_control",
+                                        "lazy": true
+                                    }
+                                ],
+                                "to_if_alone": [{ "key_code": "quote" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
                         "description": "Tmux prefix keys (s+d, k+l and f13)",
                         "manipulators": [
                             {
@@ -72,42 +97,6 @@
                                         "modifiers": ["control"]
                                     }
                                 ],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
-                        "description": "Quote (') to Right Control",
-                        "manipulators": [
-                            {
-                                "conditions": [
-                                    {
-                                        "input_sources": [{ "language": "en" }],
-                                        "type": "input_source_if"
-                                    },
-                                    {
-                                        "identifiers": [
-                                            {
-                                                "description": "W-CORNE",
-                                                "is_keyboard": true,
-                                                "product_id": 1121,
-                                                "vendor_id": 21972
-                                            }
-                                        ],
-                                        "type": "device_unless"
-                                    }
-                                ],
-                                "from": {
-                                    "key_code": "quote",
-                                    "modifiers": { "optional": ["any"] }
-                                },
-                                "to": [
-                                    {
-                                        "key_code": "right_control",
-                                        "lazy": true
-                                    }
-                                ],
-                                "to_if_alone": [{ "key_code": "quote" }],
                                 "type": "basic"
                             }
                         ]
