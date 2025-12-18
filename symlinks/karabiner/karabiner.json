@@ -5,11 +5,41 @@
                 "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
                 "rules": [
                     {
-                        "description": "Open Obsidian and create new note (f15)",
+                        "description": "Open Obsidian and create new note (f18)",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "f18" },
+                                "to": [{ "shell_command": "open 'obsidian://new'" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Open Kitty (f17)",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "f17" },
+                                "to": [{ "shell_command": "open -b net.kovidgoyal.kitty" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Open Web Browser (f16)",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "f16" },
+                                "to": [{ "shell_command": "open -b com.brave.Browser" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Open Obsidian (f15)",
                         "manipulators": [
                             {
                                 "from": { "key_code": "f15" },
-                                "to": [{ "shell_command": "open 'obsidian://new'" }],
+                                "to": [{ "shell_command": "open -b md.obsidian" }],
                                 "type": "basic"
                             }
                         ]
