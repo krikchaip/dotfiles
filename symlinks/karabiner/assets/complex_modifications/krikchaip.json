@@ -545,6 +545,16 @@
           "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 }
         }
       ]
+    },
+    {
+      "description": "Open Obsidian and create new note (f15)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": { "key_code": "f15" },
+          "to": [{ "shell_command": "open 'obsidian://new'" }]
+        }
+      ]
     }
   ]
 }

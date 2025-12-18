@@ -5,6 +5,16 @@
                 "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
                 "rules": [
                     {
+                        "description": "Open Obsidian and create new note (f15)",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "f15" },
+                                "to": [{ "shell_command": "open 'obsidian://new'" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
                         "description": "Quote (') to Right Control",
                         "manipulators": [
                             {
