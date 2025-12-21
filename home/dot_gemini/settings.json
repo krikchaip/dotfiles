@@ -24,7 +24,10 @@
       "run_shell_command(yarn)"
     ],
     "exclude": [
-      "run_shell_command(rm)"
+      "run_shell_command(rm)",
+      "run_shell_command(git commmit)",
+      "run_shell_command(git push)",
+      "run_shell_command(git reset)"
     ],
     "shell": {
       "enableInteractiveShell": true,
