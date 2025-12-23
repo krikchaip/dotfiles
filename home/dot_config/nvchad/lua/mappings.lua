@@ -171,6 +171,9 @@ map("t", "<C-l>", "<C-\\><C-n><C-w>l", { desc = "Terminal: Focus Right Window" }
 map("t", "<C-j>", "<C-\\><C-n><C-w>j", { desc = "Terminal: Focus Lower Window" })
 map("t", "<C-k>", "<C-\\><C-n><C-w>k", { desc = "Terminal: Focus Upper Window" })
 
+-- switching tab in terminal mode
+map("t", "<C-Tab>", "<C-\\><C-n><C-Tab>", { desc = "Terminal: Goto last accessed Tab" })
+
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit Terminal Mode" })
 

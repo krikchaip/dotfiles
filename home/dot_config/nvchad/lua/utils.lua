@@ -302,7 +302,7 @@ Term = {
     require("nvchad.term").toggle(Term.Opts { pos = "sp", id = "htoggleTerm" })
   end,
   Toggle = function()
-    require("nvchad.term").toggle { pos = "float", id = "floatTerm" }
+    require("nvchad.term").toggle(Term.Opts { pos = "float", id = "floatTerm" })
   end,
 }
 
