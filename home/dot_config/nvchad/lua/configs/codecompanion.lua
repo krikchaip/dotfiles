@@ -53,7 +53,17 @@ M.config = function(opts)
     chat = {
       auto_scroll = false,
       intro_message = "",
-      window = { layout = "float", width = 0.5, opts = { number = false, wrap = true, winfixbuf = true } },
+      window = {
+        layout = "float",
+        width = 0.5,
+        opts = {
+          number = false,
+          wrap = true,
+          winfixbuf = true,
+          statuscolumn = "",
+          signcolumn = "no",
+        },
+      },
     },
     inline = { layout = "buffer" },
   }
@@ -61,7 +71,15 @@ M.config = function(opts)
   if vim.g.minimal then
     opts.strategies.chat.keymaps.close.modes = { n = "q" }
     opts.display.chat.intro_message = nil
-    opts.display.chat.window = { layout = "buffer", opts = { number = false, wrap = true } }
+    opts.display.chat.window = {
+      layout = "buffer",
+      opts = {
+        number = false,
+        wrap = true,
+        statuscolumn = "",
+        signcolumn = "no",
+      },
+    }
   end
 
   opts.extensions = {
