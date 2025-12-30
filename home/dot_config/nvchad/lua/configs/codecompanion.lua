@@ -69,7 +69,6 @@ M.config = function(opts)
   }
 
   if vim.g.minimal then
-    opts.strategies.chat.keymaps.close.modes = { n = "q" }
     opts.display.chat.intro_message = nil
     opts.display.chat.window = {
       layout = "buffer",
@@ -156,7 +155,7 @@ M.on_attach = function(bufnr)
     return { desc = desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
   end
 
-  map("n", "q", LLM.ToggleChat, opts "CodeCompanion: Close Chat")
+  map("n", "q", vim.g.minimal and "<cmd>qa!<CR>" or LLM.ToggleChat, opts "CodeCompanion: Close Chat")
 end
 
 -- Snacks.notifier integration for status update displays fidget spinner
