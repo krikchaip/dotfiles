@@ -62,6 +62,7 @@ M.config = function(opts)
           winfixbuf = true,
           statuscolumn = "",
           signcolumn = "no",
+          foldcolumn = "0",
         },
       },
     },
@@ -78,6 +79,7 @@ M.config = function(opts)
         winfixbuf = true,
         statuscolumn = "",
         signcolumn = "no",
+        foldcolumn = "0",
       },
     }
   end
