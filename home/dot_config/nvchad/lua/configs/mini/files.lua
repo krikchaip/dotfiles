@@ -347,8 +347,10 @@ M.fs_type = function(path)
   local type = fs_type[path]
   if type ~= nil then return type end
 
-  type = vim.uv.fs_stat(path).type
-  fs_type[path] = type
+  local stat = vim.uv.fs_stat(path)
+  if stat == nil then return "" end
+
+  fs_type[path] = stat.type
 
   return type
 end
