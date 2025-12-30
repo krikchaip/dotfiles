@@ -1,6 +1,7 @@
 {
   "general": {
-    "preferredEditor": "NVIM_APPNAME=nvchad nvim"
+    "preferredEditor": "NVIM_APPNAME=nvchad nvim",
+    "previewFeatures": true
   },
   "context": {
     "includeDirectories": [
