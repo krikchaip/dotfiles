@@ -28,6 +28,10 @@ M.config = function(opts)
         system_prompt = { modes = { n = "<M-s>" } },
         goto_file_under_cursor = { modes = { n = "gf" }, description = "Open the file under cursor" },
         copilot_stats = { modes = { n = "<localleader>C" } },
+        _acp_allow_once = { modes = { n = "<C-a>" } },
+        _acp_reject_once = { modes = { n = "<C-x>" } },
+        _acp_allow_always = { modes = { n = "<C-M-a>" } },
+        _acp_reject_always = { modes = { n = "<C-M-x>" } },
       },
       tools = {
         opts = { default_tools = { "web_search" } },
