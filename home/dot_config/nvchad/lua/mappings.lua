@@ -174,6 +174,16 @@ map("t", "<C-k>", "<C-\\><C-n><C-w>k", { desc = "Terminal: Focus Upper Window" }
 -- switching tab in terminal mode
 map("t", "<C-Tab>", "<C-\\><C-n><C-Tab>", { desc = "Terminal: Goto last accessed Tab" })
 
+-- switch to specific tab in terminal mode
+for i = 1, 9, 1 do
+  vim.keymap.set(
+    "t",
+    string.format("<C-%s>", i),
+    string.format("<C-\\><C-n>%sgt", i),
+    { desc = string.format("Terminal: Switch to tab #%s", i) }
+  )
+end
+
 -- exit terminal mode
 map("t", "<C-x>", "<C-\\><C-n>", { desc = "Terminal: Exit Terminal Mode" })
 
