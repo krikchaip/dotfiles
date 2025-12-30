@@ -8,7 +8,7 @@ local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇",
 local watch_list = { "ChatStopped", "RequestStarted", "RequestFinished", "DiffAccepted", "DiffRejected" }
 
 M.config = function(opts)
-  opts.strategies = {
+  opts.interactions = {
     chat = {
       adapter = "gemini",
       keymaps = {
@@ -20,8 +20,8 @@ M.config = function(opts)
         clear = { modes = { n = "<localleader>D" } },
         codeblock = { modes = { n = "<localleader>q" } },
         yank_code = { modes = { n = "<localleader>y" } },
-        pin = { modes = { n = "<localleader>>" } },
-        watch = { modes = { n = "<localleader>." } },
+        buffer_sync_all = { modes = { n = "<localleader>>" } },
+        buffer_sync_diff = { modes = { n = "<localleader>." } },
         change_adapter = { modes = { n = "<localleader>a" } },
         fold_code = { modes = { n = "<localleader>z" } },
         debug = { modes = { n = "<localleader>e" } },
