@@ -10,7 +10,7 @@ local watch_list = { "ChatStopped", "RequestStarted", "RequestFinished", "DiffAc
 M.config = function(opts)
   opts.interactions = {
     chat = {
-      adapter = "gemini",
+      adapter = { name = "gemini", model = "gemini-2.5-flash" },
       keymaps = {
         options = { modes = { n = { "?", "g?", "<C-/>" }, i = { "<C-/>" } } },
         send = { modes = { n = "<CR>", i = "<S-CR>" } },
@@ -36,7 +36,7 @@ M.config = function(opts)
     },
 
     inline = {
-      adapter = "gemini",
+      adapter = { name = "gemini", model = "gemini-2.5-flash" },
       keymaps = {
         accept_change = { modes = { n = "<C-a>" } },
         reject_change = { modes = { n = "<C-x>" } },
@@ -45,7 +45,7 @@ M.config = function(opts)
     },
 
     cmd = {
-      adapter = "gemini",
+      adapter = { name = "gemini", model = "gemini-2.5-flash" },
     },
   }
 
@@ -76,6 +76,7 @@ M.config = function(opts)
       opts = {
         number = false,
         wrap = true,
+        winfixbuf = true,
         statuscolumn = "",
         signcolumn = "no",
       },
