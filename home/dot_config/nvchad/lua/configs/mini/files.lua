@@ -56,7 +56,26 @@ M.setup = function(opts)
   })
 
   autocmd("User", {
-    group = augroup("mini-files.preview", { clear = true }),
+    group = augroup("mini-files.preview-setup", { clear = true }),
+    pattern = "MiniFilesWindowOpen",
+    callback = function()
+      local state = MiniFiles.get_explorer_state()
+      if state == nil then return end
+
+      local focus_path = state.branch[#state.branch - 1]
+      local leaf_path = state.branch[#state.branch]
+
+      for entry_name, type in vim.fs.dir(focus_path) do
+        fs_type[vim.fs.joinpath(focus_path, entry_name)] = type
+      end
+
+      -- caches the path of the last window before it becomes active
+      M.fs_type(leaf_path)
+    end,
+  })
+
+  autocmd("User", {
+    group = augroup("mini-files.preview-opts", { clear = true }),
     pattern = "MiniFilesWindowUpdate",
     callback = function(args)
       local bufnr, winnr = args.data.buf_id, args.data.win_id
