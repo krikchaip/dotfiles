@@ -59,8 +59,8 @@ M.setup = function(opts)
     group = augroup("mini-files.preview-setup", { clear = true }),
     pattern = "MiniFilesWindowOpen",
     callback = function()
-      local state = MiniFiles.get_explorer_state()
-      if state == nil then return end
+      local ok, state = pcall(MiniFiles.get_explorer_state)
+      if not ok or state == nil then return end
 
       local focus_path = state.branch[#state.branch - 1]
       local leaf_path = state.branch[#state.branch]
