@@ -9,7 +9,7 @@
                         "manipulators": [
                             {
                                 "from": { "key_code": "f16" },
-                                "to": [{ "shell_command": "open -b company.thebrowser.dia" }],
+                                "to": [{ "shell_command": "open -b app.zen-browser.zen" }],
                                 "type": "basic"
                             }
                         ]
