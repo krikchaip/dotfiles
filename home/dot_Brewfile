@@ -68,6 +68,7 @@ cask "obsidian"
 cask "redis-insight"
 cask "vial"
 cask "visual-studio-code"
+cask "zen"
 
 # App Store applications
 brew "mas"
