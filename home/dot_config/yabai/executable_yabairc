@@ -109,6 +109,7 @@ yabai -m config window_gap $GAP
 #** Disallow these applications from being managed by yabai
 yabai -m rule --add app="^1Password$" manage=off
 yabai -m rule --add app="^Activity Monitor$" manage=off
+yabai -m rule --add app="^Antigravity$" manage=off
 yabai -m rule --add app="^Calculator$" manage=off
 yabai -m rule --add app="^Calendar$" manage=off
 yabai -m rule --add app="^DBeaver" manage=off
