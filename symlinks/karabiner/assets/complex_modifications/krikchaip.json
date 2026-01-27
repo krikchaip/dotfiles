@@ -585,6 +585,16 @@
           "to": [{ "shell_command": "open 'obsidian://new'" }]
         }
       ]
+    },
+    {
+      "description": "Open Code Editor (f19)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": { "key_code": "f19" },
+          "to": [{ "shell_command": "open -b com.google.antigravity" }]
+        }
+      ]
     }
   ]
 }
