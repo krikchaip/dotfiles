@@ -30,6 +30,7 @@ $env.PATH = ($path_list | uniq)
 #      https://www.nushell.sh/book/modules.html#dumping-files-into-directory
 $env.NU_LIB_DIRS = [
   $nu.default-config-dir
+  ($nu.config-path | path dirname)
 ]
 
 # to fix the ERR_PNPM_NO_GLOBAL_BIN_DIR issue
