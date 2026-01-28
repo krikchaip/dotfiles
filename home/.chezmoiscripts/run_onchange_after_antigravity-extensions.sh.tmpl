@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# settings.json hash: {{ include "../symlinks/antigravity/settings.json" | sha256sum }}
+# keybindings.json hash: {{ include "../symlinks/antigravity/keybindings.json" | sha256sum }}
+
+{{- $snippetsGlob := joinPath .chezmoi.sourceDir "../symlinks/antigravity/snippets/*" -}}
+{{ range glob $snippetsGlob }}
+# {{ base . }} hash: {{ include . | sha256sum }}
+{{- end }}
+
+agy --list-extensions 2> /dev/null > {{ .chezmoi.config.sourceDir }}/symlinks/antigravity/extensions.txt
