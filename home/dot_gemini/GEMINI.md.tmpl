@@ -6,5 +6,6 @@
 
 ## Shell Commands
 
-- My default shell is `{{ .config.shell }}`. All commands executed via the `run_shell_command` tool **MUST** be run within this shell.
+- My default shell is `{{ .config.shell }}`.
+- All executed commands **MUST** use the following command line pattern: `{{ .config.shell_exec }} "COMMAND_STRING"`.
 - All suggested shell commands **MUST** use `{{ .config.shell }}` syntax.
