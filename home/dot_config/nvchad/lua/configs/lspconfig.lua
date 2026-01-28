@@ -40,7 +40,8 @@ M.setup = function()
       settings = {
         json = {
           format = { enable = false },
-          validate = { enable = true },
+          validate = { enable = false },
+          allowComments = true,
           schemas = require("configs.schemastore").json(),
         },
       },
