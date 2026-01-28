@@ -1,3 +1,5 @@
+let config_dir = ($nu.config-path | path dirname)
+
 let path_list = (
   # the environment variables inherited from the host process are still strings,
   # so we need to convert them to nushell values before using
@@ -30,7 +32,7 @@ $env.PATH = ($path_list | uniq)
 #      https://www.nushell.sh/book/modules.html#dumping-files-into-directory
 $env.NU_LIB_DIRS = [
   $nu.default-config-dir
-  ($nu.config-path | path dirname)
+  $config_dir
 ]
 
 # to fix the ERR_PNPM_NO_GLOBAL_BIN_DIR issue
@@ -50,3 +52,22 @@ $env.CPPFLAGS = $"-I (brew --prefix openssl)/include"
 # temporary fix for OSX 15.7.1 permission denied when accessing tmp dir
 # ref: https://github.com/jesseduffield/lazygit/issues/4924
 $env.TMPDIR = (getconf DARWIN_USER_TEMP_DIR)
+
+# load environment from .env files if they exist
+[".env.toml", ".env.yaml", ".env.yml", ".env.json"]
+  | each { |file|
+    let path = ($config_dir | path join $file)
+    if ($path | path exists) {
+      let ext = ($path | path parse | get extension)
+      match $ext {
+        "toml" => { open --raw $path | from toml }
+        "yaml" | "yml" => { open --raw $path | from yaml }
+        "json" => { open --raw $path | from json }
+        _ => { {} }
+      }
+    } else {
+      {}
+    }
+  }
+  | reduce -f {} { |it, acc| $acc | merge $it }
+  | load-env
