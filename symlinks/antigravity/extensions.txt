@@ -1,3 +1,4 @@
+dbaeumer.vscode-eslint
 golang.go
 hverlin.mise-vscode
 jlcodes.antigravity-cockpit
