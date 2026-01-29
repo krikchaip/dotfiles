@@ -445,10 +445,7 @@
           "conditions": [
             {
               "type": "input_source_if",
-              "input_sources": [
-                { "language": "en" },
-                { "input_source_id": "^com\\.apple\\.keylayout\\.UnicodeHexInput$" }
-              ]
+              "input_sources": [{ "language": "en" }]
             }
           ]
         }
