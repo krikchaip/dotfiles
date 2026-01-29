@@ -28,6 +28,21 @@
   {
     "key": "cmd+down",
     "command": "-workbench.action.terminal.focus"
+  },
+  {
+    "key": "cmd+alt+e",
+    "command": "workbench.view.explorer",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "cmd+alt+g",
+    "command": "workbench.view.scm",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "alt+t",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "terminalFocus"
   }
 ]
 // vim:ft=jsonc
