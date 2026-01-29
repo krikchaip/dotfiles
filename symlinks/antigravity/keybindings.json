@@ -7,13 +7,11 @@
   },
   {
     "key": "alt+[KeyG]",
-    "command": "workbench.view.scm",
-    "when": "workbench.scm.active"
+    "command": "workbench.view.scm"
   },
   {
     "key": "ctrl+shift+g",
-    "command": "-workbench.view.scm",
-    "when": "workbench.scm.active"
+    "command": "-workbench.view.scm"
   },
   {
     "key": "alt+[KeyE]",
@@ -21,8 +19,15 @@
   },
   {
     "key": "shift+cmd+e",
-    "command": "-workbench.view.explorer",
-    "when": "viewContainer.workbench.view.explorer.enabled"
+    "command": "-workbench.view.explorer"
+  },
+  {
+    "key": "alt+[KeyT]",
+    "command": "workbench.action.terminal.focus"
+  },
+  {
+    "key": "cmd+down",
+    "command": "-workbench.action.terminal.focus"
   }
 ]
 // vim:ft=jsonc

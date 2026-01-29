@@ -10,6 +10,7 @@
   "terminal.integrated.defaultProfile.osx": "Nushell",
   "terminal.integrated.fontLigatures.enabled": true,
   "terminal.integrated.fontSize": 14,
+  "terminal.integrated.macOptionIsMeta": true,
   "window.zoomLevel": 0.5,
   "workbench.colorTheme": "Tokyo Night"
 }
