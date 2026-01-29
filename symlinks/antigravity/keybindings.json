@@ -6,51 +6,51 @@
     "when": "terminalFocus"
   },
   {
-    "key": "alt+g",
-    "command": "workbench.view.scm"
-  },
-  {
-    "key": "ctrl+shift+g",
-    "command": "-workbench.view.scm"
-  },
-  {
-    "key": "alt+e",
-    "command": "workbench.view.explorer"
-  },
-  {
-    "key": "shift+cmd+e",
-    "command": "-workbench.view.explorer"
-  },
-  {
-    "key": "alt+t",
-    "command": "workbench.action.terminal.focus"
-  },
-  {
-    "key": "cmd+down",
-    "command": "-workbench.action.terminal.focus"
-  },
-  {
-    "key": "cmd+alt+e",
-    "command": "workbench.view.explorer",
-    "when": "terminalFocus"
-  },
-  {
-    "key": "cmd+alt+g",
     "command": "workbench.view.scm",
+    "key": "alt+g"
+  },
+  {
+    "command": "-workbench.view.scm",
+    "key": "ctrl+shift+g"
+  },
+  {
+    "command": "workbench.view.explorer",
+    "key": "alt+e"
+  },
+  {
+    "command": "-workbench.view.explorer",
+    "key": "shift+cmd+e"
+  },
+  {
+    "command": "workbench.action.terminal.focus",
+    "key": "alt+t"
+  },
+  {
+    "command": "-workbench.action.terminal.focus",
+    "key": "cmd+down"
+  },
+  {
+    "command": "workbench.view.explorer",
+    "key": "cmd+alt+e",
     "when": "terminalFocus"
   },
   {
-    "key": "alt+t",
+    "command": "workbench.view.scm",
+    "key": "cmd+alt+g",
+    "when": "terminalFocus"
+  },
+  {
     "command": "workbench.action.focusActiveEditorGroup",
+    "key": "alt+t",
     "when": "terminalFocus"
   },
   {
-    "key": "alt+cmd+,",
-    "command": "workbench.action.openAntigravitySettings"
+    "command": "workbench.action.openAntigravitySettings",
+    "key": "alt+cmd+,"
   },
   {
-    "key": "cmd+,",
-    "command": "-workbench.action.openAntigravitySettings"
+    "command": "-workbench.action.openAntigravitySettings",
+    "key": "cmd+,"
   }
 ]
 // vim:ft=jsonc
