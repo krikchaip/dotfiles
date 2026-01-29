@@ -4,6 +4,25 @@
     "command": "workbench.action.terminal.kill",
     "key": "cmd+w",
     "when": "terminalFocus"
+  },
+  {
+    "key": "alt+[KeyG]",
+    "command": "workbench.view.scm",
+    "when": "workbench.scm.active"
+  },
+  {
+    "key": "ctrl+shift+g",
+    "command": "-workbench.view.scm",
+    "when": "workbench.scm.active"
+  },
+  {
+    "key": "alt+[KeyE]",
+    "command": "workbench.view.explorer"
+  },
+  {
+    "key": "shift+cmd+e",
+    "command": "-workbench.view.explorer",
+    "when": "viewContainer.workbench.view.explorer.enabled"
   }
 ]
 // vim:ft=jsonc
