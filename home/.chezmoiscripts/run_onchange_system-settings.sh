@@ -56,6 +56,12 @@ osascript -e 'tell application "System Preferences" to quit'
 #** Appearance > Appearance = Dark
 defaults write -g AppleInterfaceStyle Dark
 
+#** Appearance > Languages
+defaults write -g AppleLanguages -array "en-TH" "th-TH"
+
+#** Appearance > Locale
+defaults write -g AppleLocale -string "en_TH"
+
 #** Accessibility > Display > Reduce motion = ✅
 defaults write com.apple.Accessibility ReduceMotionEnabled -bool true
 
@@ -94,6 +100,20 @@ defaults write -g AppleSpacesSwitchOnActivate -bool true
 
 #** Desktop & Dock > Mission Control > Displays have separate Spaces
 defaults write com.apple.spaces spans-displays -bool false
+
+#** Keyboard > Input Sources
+defaults write com.apple.HIToolbox AppleEnabledInputSources -array \
+  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-26624</integer><key>KeyboardLayout Name</key><string>Thai</string></dict>' \
+  '<dict><key>Bundle ID</key><string>com.apple.CharacterPaletteIM</string><key>InputSourceKind</key><string>Non Keyboard Input Method</string></dict>' \
+  '<dict><key>Bundle ID</key><string>com.apple.PressAndHold</string><key>InputSourceKind</key><string>Non Keyboard Input Method</string></dict>' \
+  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-1</integer><key>KeyboardLayout Name</key><string>Unicode Hex Input</string></dict>'
+
+defaults write com.apple.HIToolbox AppleInputSourceHistory -array \
+  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-1</integer><key>KeyboardLayout Name</key><string>Unicode Hex Input</string></dict>' \
+  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-26624</integer><key>KeyboardLayout Name</key><string>Thai</string></dict>'
+
+defaults write com.apple.HIToolbox AppleSelectedInputSources -array \
+  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-1</integer><key>KeyboardLayout Name</key><string>Unicode Hex Input</string></dict>'
 
 #** Keyboard > Key repeat rate
 defaults write -g KeyRepeat -float 2
