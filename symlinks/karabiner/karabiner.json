@@ -5,6 +5,34 @@
                 "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
                 "rules": [
                     {
+                        "description": "Quote (') to Right Control",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "input_sources": [
+                                            { "language": "en" },
+                                            { "input_source_id": "^com\\.apple\\.keylayout\\.UnicodeHexInput$" }
+                                        ],
+                                        "type": "input_source_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "quote",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "right_control",
+                                        "lazy": true
+                                    }
+                                ],
+                                "to_if_alone": [{ "key_code": "quote" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
                         "description": "Open Code Editor (f19)",
                         "manipulators": [
                             {
@@ -50,31 +78,6 @@
                             {
                                 "from": { "key_code": "f15" },
                                 "to": [{ "shell_command": "open -b md.obsidian" }],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
-                        "description": "Quote (') to Right Control",
-                        "manipulators": [
-                            {
-                                "conditions": [
-                                    {
-                                        "input_sources": [{ "language": "en" }],
-                                        "type": "input_source_if"
-                                    }
-                                ],
-                                "from": {
-                                    "key_code": "quote",
-                                    "modifiers": { "optional": ["any"] }
-                                },
-                                "to": [
-                                    {
-                                        "key_code": "right_control",
-                                        "lazy": true
-                                    }
-                                ],
-                                "to_if_alone": [{ "key_code": "quote" }],
                                 "type": "basic"
                             }
                         ]
