@@ -6,7 +6,7 @@
     "when": "terminalFocus"
   },
   {
-    "key": "alt+[KeyG]",
+    "key": "alt+g",
     "command": "workbench.view.scm"
   },
   {
@@ -14,7 +14,7 @@
     "command": "-workbench.view.scm"
   },
   {
-    "key": "alt+[KeyE]",
+    "key": "alt+e",
     "command": "workbench.view.explorer"
   },
   {
@@ -22,7 +22,7 @@
     "command": "-workbench.view.explorer"
   },
   {
-    "key": "alt+[KeyT]",
+    "key": "alt+t",
     "command": "workbench.action.terminal.focus"
   },
   {

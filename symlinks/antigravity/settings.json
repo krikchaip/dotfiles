@@ -5,6 +5,7 @@
   "editor.fontLigatures": true,
   "editor.fontSize": 16,
   "editor.minimap.enabled": false,
+  "git.autofetch": true,
   "markdown.preview.fontSize": 14,
   "scm.inputFontSize": 12,
   "terminal.integrated.defaultProfile.osx": "Nushell",
