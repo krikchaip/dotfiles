@@ -1,5 +1,6 @@
 golang.go
 hverlin.mise-vscode
+jlcodes.antigravity-cockpit
 meta.pyrefly
 ms-python.debugpy
 ms-python.python

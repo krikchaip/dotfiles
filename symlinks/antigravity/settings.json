@@ -1,4 +1,5 @@
 {
+  "agCockpit.statusBarFormat": "icon",
   "chat.fontSize": 16,
   "debug.console.fontSize": 14,
   "editor.fontFamily": "'FiraCode Nerd Font Mono', Menlo, Monaco, 'Courier New', monospace",
@@ -8,6 +9,7 @@
   "git.allowForcePush": true,
   "git.autofetch": true,
   "git.confirmForcePush": false,
+  "git.confirmSync": false,
   "markdown.preview.fontSize": 14,
   "scm.inputFontSize": 12,
   "terminal.integrated.defaultProfile.osx": "Nushell",

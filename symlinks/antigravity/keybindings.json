@@ -43,6 +43,14 @@
     "key": "alt+t",
     "command": "workbench.action.focusActiveEditorGroup",
     "when": "terminalFocus"
+  },
+  {
+    "key": "alt+cmd+,",
+    "command": "workbench.action.openAntigravitySettings"
+  },
+  {
+    "key": "cmd+,",
+    "command": "-workbench.action.openAntigravitySettings"
   }
 ]
 // vim:ft=jsonc
