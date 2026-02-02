@@ -1,4 +1,5 @@
 {
+  "agCockpit.groupingEnabled": false,
   "agCockpit.statusBarFormat": "icon",
   "chat.fontSize": 16,
   "debug.console.fontSize": 14,
