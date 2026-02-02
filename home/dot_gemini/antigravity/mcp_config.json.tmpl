@@ -6,26 +6,26 @@
         "Authorization": "Bearer {{ env "GITHUB_MCP_PAT" }}"
       },
       "disabledTools": [
-        "add_issue_comment",
         "add_comment_to_pending_review",
+        "add_issue_comment",
         "assign_copilot_to_issue",
         "create_branch",
         "create_or_update_file",
-        "create_pull_request",
         "create_repository",
         "delete_file",
         "fork_repository",
         "get_label",
-        "issue_read",
-        "issue_write",
+        "get_latest_release",
+        "get_release_by_tag",
+        "get_tag",
         "list_issue_types",
-        "list_issues",
+        "list_releases",
         "merge_pull_request",
         "pull_request_review_write",
+        "push_files",
         "request_copilot_review",
         "sub_issue_write",
-        "update_pull_request_branch",
-        "push_files"
+        "update_pull_request_branch"
       ]
     },
     "atlassian": {
@@ -40,18 +40,18 @@
         "https://mcp.atlassian.com/v1/sse"
       ],
       "disabledTools": [
-        "createConfluenceFooterComment",
-        "searchConfluenceUsingCql",
-        "createConfluenceInlineComment",
-        "createJiraIssue",
+        "addCommentToJiraIssue",
         "addWorklogToJiraIssue",
-        "searchJiraIssuesUsingJql",
-        "transitionJiraIssue",
+        "createConfluenceFooterComment",
+        "createConfluenceInlineComment",
+        "createConfluencePage",
+        "createJiraIssue",
+        "editJiraIssue",
         "getJiraProjectIssueTypesMetadata",
         "getTransitionsForJiraIssue",
-        "editJiraIssue",
-        "addCommentToJiraIssue",
-        "createConfluencePage",
+        "searchConfluenceUsingCql",
+        "searchJiraIssuesUsingJql",
+        "transitionJiraIssue",
         "updateConfluencePage"
       ]
     }
