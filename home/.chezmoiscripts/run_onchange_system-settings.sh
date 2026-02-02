@@ -212,22 +212,6 @@ defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 60 "$(ke
 #** Keyboard > Keyboard Shortcuts... > Input Sources > Select next source in Input menu = cmd + space
 defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 61 "$(key-combo 32 49 1048576)"
 
-#** Keyboard > Input Sources
-#** Backup these keyboard layouts: Thai, ABC - Simple
-#** Reference: https://apple.stackexchange.com/questions/44921/how-to-remove-or-disable-a-default-keyboard-layout
-defaults write com.apple.HIToolbox AppleEnabledInputSources -array \
-  '<dict><key>Bundle ID</key><string>com.apple.CharacterPaletteIM</string><key>InputSourceKind</key><string>Non Keyboard Input Method</string></dict>' \
-  '<dict><key>Bundle ID</key><string>com.apple.PressAndHold</string><key>InputSourceKind</key><string>Non Keyboard Input Method</string></dict>' \
-  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-29532</integer><key>KeyboardLayout Name</key><string>ABC - Simple</string></dict>' \
-  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-26624</integer><key>KeyboardLayout Name</key><string>Thai</string></dict>'
-
-defaults write com.apple.HIToolbox AppleSelectedInputSources -array \
-  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-29532</integer><key>KeyboardLayout Name</key><string>ABC - Simple</string></dict>'
-
-defaults write com.apple.HIToolbox AppleInputSourceHistory -array \
-  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-29532</integer><key>KeyboardLayout Name</key><string>ABC - Simple</string></dict>' \
-  '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>-26624</integer><key>KeyboardLayout Name</key><string>Thai</string></dict>'
-
 #** Keyboard > Keyboard Shortcuts... > Spotlight > Show Spotlight search = opt + space
 defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 "$(key-combo 32 49 524288)"
 
