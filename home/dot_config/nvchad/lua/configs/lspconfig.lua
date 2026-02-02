@@ -12,6 +12,11 @@ M.setup = function()
     end,
   })
 
+  -- prioritize the latest Node.js version for LSP servers over project-specific versions
+  local latest_node_bin = vim.fn.trim(vim.fn.system "mise where node@latest") .. "/bin"
+
+  local LSP_PATH = latest_node_bin .. ":" .. vim.env.PATH
+
   -- read :h vim.lsp.config for changing options of lsp servers
   local servers = {
     lua_ls = {},
@@ -88,11 +93,12 @@ M.setup = function()
 
     cssls = {},
     emmet_ls = {},
-    tailwindcss = {},
+    tailwindcss = { cmd_env = { PATH = LSP_PATH } },
 
-    vue_ls = {},
+    vue_ls = { cmd_env = { PATH = LSP_PATH } },
 
     vtsls = {
+      cmd_env = { PATH = LSP_PATH },
       settings = {
         javascript = {
           format = { enable = false },
