@@ -6,42 +6,16 @@
     "when": "terminalFocus"
   },
   {
-    "command": "workbench.view.scm",
-    "key": "alt+g"
-  },
-  {
-    "command": "-workbench.view.scm",
-    "key": "ctrl+shift+g"
-  },
-  {
-    "command": "workbench.view.explorer",
-    "key": "alt+e"
-  },
-  {
-    "command": "-workbench.view.explorer",
-    "key": "shift+cmd+e"
-  },
-  {
     "command": "workbench.action.terminal.focus",
-    "key": "alt+t"
+    "key": "ctrl+t"
   },
   {
     "command": "-workbench.action.terminal.focus",
     "key": "cmd+down"
   },
   {
-    "command": "workbench.view.explorer",
-    "key": "cmd+alt+e",
-    "when": "terminalFocus"
-  },
-  {
-    "command": "workbench.view.scm",
-    "key": "cmd+alt+g",
-    "when": "terminalFocus"
-  },
-  {
     "command": "workbench.action.focusActiveEditorGroup",
-    "key": "alt+t",
+    "key": "ctrl+t",
     "when": "terminalFocus"
   },
   {
