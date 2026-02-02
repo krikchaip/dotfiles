@@ -10,7 +10,7 @@ local watch_list = { "ChatStopped", "RequestStarted", "RequestFinished", "DiffAc
 M.config = function(opts)
   opts.interactions = {
     chat = {
-      adapter = { name = "gemini", model = "gemini-2.5-flash" },
+      adapter = { name = "gemini", model = "gemini-3-flash-preview" },
       keymaps = {
         options = { modes = { n = { "?", "g?", "<C-/>" }, i = { "<C-/>" } } },
         send = { modes = { n = "<CR>", i = "<S-CR>" } },
@@ -40,7 +40,7 @@ M.config = function(opts)
     },
 
     inline = {
-      adapter = { name = "gemini", model = "gemini-2.5-flash" },
+      adapter = { name = "gemini", model = "gemini-3-flash-preview" },
       keymaps = {
         accept_change = { modes = { n = "<C-a>" } },
         reject_change = { modes = { n = "<C-x>" } },
@@ -49,7 +49,7 @@ M.config = function(opts)
     },
 
     cmd = {
-      adapter = { name = "gemini", model = "gemini-2.5-flash" },
+      adapter = { name = "gemini", model = "gemini-3-flash-preview" },
     },
   }
 
@@ -101,13 +101,13 @@ M.config = function(opts)
 
         title_generation_opts = {
           adapter = "gemini",
-          model = "gemini-2.5-flash",
+          model = "gemini-3-flash-preview",
         },
 
         summary = {
           create_summary_keymap = "<localleader>S",
           browse_summaries_keymap = "<localleader>s",
-          generation_opts = { adapter = "gemini", model = "gemini-2.5-flash" },
+          generation_opts = { adapter = "gemini", model = "gemini-3-flash-preview" },
         },
 
         chat_filter = function(chat_data)
