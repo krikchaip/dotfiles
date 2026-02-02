@@ -25,6 +25,11 @@
   {
     "command": "-workbench.action.openAntigravitySettings",
     "key": "cmd+,"
+  },
+  {
+    "command": "workbench.action.toggleMaximizedPanel",
+    "key": "shift+cmd+j",
+    "when": "panelFocus"
   }
 ]
 // vim:ft=jsonc
