@@ -58,6 +58,7 @@ alias mks = minikube status
 # chezmoi
 alias cz = chezmoi
 alias cza = chezmoi apply
+alias czd = chezmoi diff
 alias cze = chezmoi edit
 alias czi = chezmoi init
 alias czm = chezmoi merge-all
