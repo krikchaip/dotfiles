@@ -60,6 +60,7 @@ alias cz = chezmoi
 alias cza = chezmoi apply
 alias cze = chezmoi edit
 alias czi = chezmoi init
+alias czm = chezmoi merge-all
 alias czs = chezmoi status
 
 # yabai
