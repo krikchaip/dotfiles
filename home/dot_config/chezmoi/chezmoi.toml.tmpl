@@ -6,6 +6,10 @@
   args = ["-d", '{{ "{{" }} .Destination {{ "}}" }}', '{{ "{{" }} .Target {{ "}}" }}']
   exclude = ["scripts", "externals"]
 
+[merge]
+  command = "nvim"
+  args = ["-d", '{{ "{{" }} .Source {{ "}}" }}', '{{ "{{" }} .Destination {{ "}}" }}', '{{ "{{" }} .Target {{ "}}" }}']
+
 [edit]
   command = "nvim"
 
