@@ -327,6 +327,16 @@
                             "to": [{ "apple_vendor_keyboard_key_code": "launchpad" }]
                         }
                     ]
+                },
+                {
+                    "identifiers": {
+                        "is_keyboard": true,
+                        "is_pointing_device": true,
+                        "product_id": 24926,
+                        "vendor_id": 7504
+                    },
+                    "ignore": false,
+                    "manipulate_caps_lock_led": false
                 }
             ],
             "fn_function_keys": [
