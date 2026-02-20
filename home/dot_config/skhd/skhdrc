@@ -116,8 +116,12 @@ yabai < p : yabai -m window --toggle float --grid 10:10:2:1:6:8
 #** toggle window fullscreen zoom
 yabai < z : yabai -m window --toggle zoom-fullscreen
 
-#** restart yabai process
+#** restart yabai process (hard reset)
 yabai < cmd - r : yabai --restart-service
+
+#** reload yabai configs (soft reset)
+yabai < cmd - 0x2F : ~/.config/yabai/yabairc && \
+                     osascript -e 'display notification "Yabai configuration reloaded" with title "yabai" sound name "Glass"'
 
 #** switch space layout
 yabai < cmd - l : CURRENT_LAYOUT=$(yabai -m query --spaces --space | jq -r '.type'); \
