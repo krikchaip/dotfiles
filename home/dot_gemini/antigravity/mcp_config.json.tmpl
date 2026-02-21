@@ -46,6 +46,22 @@
         "transitionJiraIssue",
         "updateConfluencePage"
       ]
+    },
+    "obsidian": {
+      "command": "mise",
+      "args": [
+        "exec",
+        "--",
+        "bunx",
+        "--bun",
+        "@mauricio.wolff/mcp-obsidian@latest",
+        "{{ .chezmoi.homeDir }}/Desktop/zettelkasten"
+      ],
+      "disabledTools": [
+        "delete_note",
+        "get_notes_info",
+        "get_vault_stats"
+      ]
     }
   }
 }
