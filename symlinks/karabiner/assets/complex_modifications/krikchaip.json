@@ -598,6 +598,24 @@
           "to": [{ "shell_command": "open -b com.google.antigravity" }]
         }
       ]
+    },
+    {
+      "description": "Force Quit Applications (f19), Open Activity Monitor (shift+f19)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": { "key_code": "f19" },
+          "to": [{ "key_code": "escape", "modifiers": ["command", "option"] }]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "f19",
+            "modifiers": { "mandatory": ["shift"] }
+          },
+          "to": [{ "shell_command": "open -b com.apple.ActivityMonitor" }]
+        }
+      ]
     }
   ]
 }

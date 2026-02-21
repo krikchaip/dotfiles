@@ -5,6 +5,29 @@
                 "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
                 "rules": [
                     {
+                        "description": "Force Quit Applications (f19), Open Activity Monitor (shift+f19)",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "f19" },
+                                "to": [
+                                    {
+                                        "key_code": "escape",
+                                        "modifiers": ["command", "option"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "f19",
+                                    "modifiers": { "mandatory": ["shift"] }
+                                },
+                                "to": [{ "shell_command": "open -b com.apple.ActivityMonitor" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
                         "description": "Open Code Editor (f18)",
                         "manipulators": [
                             {
