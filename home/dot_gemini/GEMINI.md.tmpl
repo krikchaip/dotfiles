@@ -1,13 +1,9 @@
-# Rules
+---
+trigger: always_on
+---
 
-## Output
-
-- When reporting information to me, be **EXTREMELY** consise and sacrifice grammar for the sake of concision.
-- Always respond in English, regardless of the language used in the prompt.
-- Always search the internet first for any information or verification and include reference links.
-
-## Shell Commands
-
-- My default shell is `{{ .config.shell }}`.
+- Always respond in **ENGLISH**, even if the prompt or voice input is in Thai.
+- When reporting information, be **EXTREMELY CONCISE** and sacrifice grammar for the sake of concision.
+- Always search the internet first for any information or verification and **INCLUDE** reference links.
 - All executed commands **MUST** use the following command line pattern: `{{ .config.shell_exec }} "COMMAND_STRING"`.
 - All suggested shell commands **MUST** use `{{ .config.shell }}` syntax.
