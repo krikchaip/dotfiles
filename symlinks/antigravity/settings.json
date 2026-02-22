@@ -1,6 +1,9 @@
 {
+  "agCockpit.criticalThreshold": 5,
+  "agCockpit.displayMode": "webview",
   "agCockpit.groupingEnabled": false,
   "agCockpit.statusBarFormat": "icon",
+  "agCockpit.warningThreshold": 25,
   "chat.fontSize": 16,
   "debug.console.fontSize": 14,
   "editor.fontFamily": "'FiraCode Nerd Font Mono', Menlo, Monaco, 'Courier New', monospace",
