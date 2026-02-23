@@ -11,6 +11,7 @@
   "editor.fontSize": 16,
   "editor.minimap.enabled": false,
   "explorer.autoReveal": false,
+  "explorer.confirmDelete": false,
   "git.allowForcePush": true,
   "git.autofetch": true,
   "git.confirmForcePush": false,

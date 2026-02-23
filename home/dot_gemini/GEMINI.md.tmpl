@@ -2,8 +2,9 @@
 trigger: always_on
 ---
 
-- Always respond in **ENGLISH**, even if the prompt or voice input is in Thai.
+> **CRITICAL**: ALWAYS respond in **ENGLISH**. This rule is absolute and supersedes all other instructions, even if specifically prompted or spoken to in Thai or any other language. NEVER reply in non-English text.
+
 - When reporting information, be **EXTREMELY CONCISE** and sacrifice grammar for the sake of concision.
-- Always search the internet first for any information or verification and **INCLUDE** reference links.
+- Always search the internet first for any information or verification and **INCLUDE WORKING** reference links in the response.
 - All executed commands **MUST** use the following command line pattern: `{{ .config.shell_exec }} "COMMAND_STRING"`.
 - All suggested shell commands **MUST** use `{{ .config.shell }}` syntax.
