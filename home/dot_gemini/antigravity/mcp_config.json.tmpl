@@ -10,9 +10,11 @@
         "add_issue_comment",
         "add_reply_to_pull_request_comment",
         "assign_copilot_to_issue",
+        "create_pull_request_with_copilot",
         "create_repository",
         "delete_file",
         "fork_repository",
+        "get_copilot_job_status",
         "get_label",
         "get_latest_release",
         "get_release_by_tag",
@@ -27,25 +29,36 @@
         "search_users",
         "sub_issue_write",
         "update_pull_request_branch"
-      ]
+      ],
+      "disabled": true
     },
     "atlassian": {
-      "serverUrl": "https://mcp.atlassian.com/v1/mcp",
+      "command": "mise",
+      "args": [
+        "exec",
+        "--",
+        "bunx",
+        "--bun",
+        "mcp-remote",
+        "https://mcp.atlassian.com/v1/mcp"
+      ],
       "disabledTools": [
         "addCommentToJiraIssue",
         "addWorklogToJiraIssue",
         "createConfluenceFooterComment",
         "createConfluenceInlineComment",
-        "createConfluencePage",
         "createJiraIssue",
         "editJiraIssue",
+        "getConfluenceSpaces",
         "getJiraProjectIssueTypesMetadata",
         "getTransitionsForJiraIssue",
+        "getVisibleJiraProjects",
+        "lookupJiraAccountId",
         "searchConfluenceUsingCql",
         "searchJiraIssuesUsingJql",
-        "transitionJiraIssue",
-        "updateConfluencePage"
-      ]
+        "transitionJiraIssue"
+      ],
+      "disabled": false
     },
     "obsidian": {
       "command": "mise",
@@ -61,7 +74,8 @@
         "delete_note",
         "get_notes_info",
         "get_vault_stats"
-      ]
+      ],
+      "disabled": true
     }
   }
 }
