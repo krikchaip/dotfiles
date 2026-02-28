@@ -81,8 +81,8 @@ fi
 {{- end }}
 
 # Install Antigravity extensions
-# extensions.txt hash: {{ include "../symlinks/antigravity/extensions.txt" | sha256sum }}
-if [ -f "{{ .chezmoi.sourceDir }}/../symlinks/antigravity/extensions.txt" ]; then
+# extensions.txt hash: {{ include "../symlinks/vscode/extensions.txt" | sha256sum }}
+if [ -f "{{ .chezmoi.sourceDir }}/../symlinks/vscode/extensions.txt" ]; then
   echo "Installing Antigravity extensions..."
   AGY_BIN="$HOME/.antigravity/antigravity/bin/agy"
   if [ -x "$AGY_BIN" ]; then
@@ -91,7 +91,7 @@ if [ -f "{{ .chezmoi.sourceDir }}/../symlinks/antigravity/extensions.txt" ]; the
         echo "Installing extension: $extension"
         "$AGY_BIN" --install-extension "$extension" --force || true
       fi
-    done < "{{ .chezmoi.sourceDir }}/../symlinks/antigravity/extensions.txt"
+    done < "{{ .chezmoi.sourceDir }}/../symlinks/vscode/extensions.txt"
   else
     echo "Antigravity binary not found at $AGY_BIN. Skipping extensions."
   fi

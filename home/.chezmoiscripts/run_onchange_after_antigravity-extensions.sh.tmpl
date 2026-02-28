@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# settings.json hash: {{ include "../symlinks/antigravity/settings.json" | sha256sum }}
-# keybindings.json hash: {{ include "../symlinks/antigravity/keybindings.json" | sha256sum }}
+# settings.json hash: {{ include "../symlinks/vscode/settings.json" | sha256sum }}
+# keybindings.json hash: {{ include "../symlinks/vscode/keybindings.json" | sha256sum }}
 
-{{- $snippetsGlob := joinPath .chezmoi.sourceDir "../symlinks/antigravity/snippets/*" -}}
+{{- $snippetsGlob := joinPath .chezmoi.sourceDir "../symlinks/vscode/snippets/*" -}}
 {{ range glob $snippetsGlob }}
 # {{ base . }} hash: {{ include . | sha256sum }}
 {{- end }}
 
-agy --list-extensions 2> /dev/null > {{ .chezmoi.config.sourceDir }}/symlinks/antigravity/extensions.txt
+agy --list-extensions 2> /dev/null > {{ .chezmoi.config.sourceDir }}/symlinks/vscode/extensions.txt
