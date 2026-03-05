@@ -42,7 +42,7 @@ The `SKILL.md` must contain:
 
 ### 4. Optimization Best Practices
 - **Resource Offloading**: Never put large static text (like licenses or long docs) directly in `SKILL.md`. Move them to `resources/` and instruct the agent to "Read `resources/template.txt` only when needed".
-- **Procedural Logic**: If a task requires complex regex, specific CLI tools, or strict validation, write a script in `scripts/` and instruct the agent to execute it and interpret its output.
+- **Procedural Logic**: If a task requires complex regex, specific CLI tools, or strict validation, write a script in `scripts/` and instruct the agent to execute it and interpret its output. Scripts should always support `--help` or `-h` flags to allow agents to discover usage without reading the source code.
 - **Rule Integration**: Suggest creating a global Rule to "force" the use of this skill for specific file extensions or context triggers.
 
 ## Resources
