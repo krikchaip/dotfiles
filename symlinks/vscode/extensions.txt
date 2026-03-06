@@ -1,5 +1,6 @@
 bierner.markdown-mermaid
 dbaeumer.vscode-eslint
+eamodio.gitlens
 golang.go
 hverlin.mise-vscode
 jlcodes.antigravity-cockpit
