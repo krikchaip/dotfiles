@@ -30,33 +30,29 @@
         "sub_issue_write",
         "update_pull_request_branch"
       ],
-      "disabled": true
+      "disabled": false
     },
     "atlassian": {
-      "command": "mise",
-      "args": [
-        "exec",
-        "--",
-        "bunx",
-        "--bun",
-        "mcp-remote",
-        "https://mcp.atlassian.com/v1/mcp"
-      ],
+      "serverUrl": "https://mcp.atlassian.com/v1/mcp",
+      "headers": {
+        "Authorization": "Basic {{ printf "%s:%s" (env "ATLASSIAN_ACCOUNT") (env "ATLASSIAN_MCP_TOKEN") | b64enc }}"
+      },
       "disabledTools": [
-        "addCommentToJiraIssue",
         "addWorklogToJiraIssue",
         "createConfluenceFooterComment",
         "createConfluenceInlineComment",
-        "createJiraIssue",
-        "editJiraIssue",
         "getConfluenceSpaces",
         "getJiraProjectIssueTypesMetadata",
+        "getJsmOpsAlerts",
+        "getJsmOpsScheduleInfo",
+        "getJsmOpsTeamInfo",
         "getTransitionsForJiraIssue",
         "getVisibleJiraProjects",
         "lookupJiraAccountId",
         "searchConfluenceUsingCql",
         "searchJiraIssuesUsingJql",
-        "transitionJiraIssue"
+        "transitionJiraIssue",
+        "updateJsmOpsAlert"
       ],
       "disabled": false
     },
@@ -73,7 +69,8 @@
       "disabledTools": [
         "delete_note",
         "get_notes_info",
-        "get_vault_stats"
+        "get_vault_stats",
+        "move_file"
       ],
       "disabled": true
     }
