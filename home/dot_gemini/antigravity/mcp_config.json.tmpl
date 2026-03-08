@@ -35,7 +35,7 @@
     "atlassian": {
       "serverUrl": "https://mcp.atlassian.com/v1/mcp",
       "headers": {
-        "Authorization": "Basic {{ printf "%s:%s" (env "ATLASSIAN_ACCOUNT") (env "ATLASSIAN_MCP_TOKEN") | b64enc }}"
+        "Authorization": "Basic {{ env "ATLASSIAN_MCP_TOKEN" }}"
       },
       "disabledTools": [
         "addWorklogToJiraIssue",
