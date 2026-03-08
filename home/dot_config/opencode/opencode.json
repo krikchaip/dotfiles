@@ -2,8 +2,10 @@
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
   "default_agent": "build",
-  "model": "openrouter/google/gemini-3-flash-preview",
   "instructions": [".agent/rules", ".agents/rules"],
+  "tools": {
+    "mcp-*": false
+  },
   "permission": {
     "bash": {
       "*": "allow",
@@ -19,6 +21,30 @@
     },
     "external_directory": {
       "/tmp/pngpaste/**": "allow"
+    }
+  },
+  "mcp": {
+    "mcp-github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp",
+      "headers": { "Authorization": "Bearer {env:GITHUB_MCP_PAT}" }
+    },
+    "mcp-atlassian": {
+      "type": "remote",
+      "url": "https://mcp.atlassian.com/v1/mcp",
+      "headers": { "Authorization": "Basic {env:ATLASSIAN_MCP_TOKEN}" }
+    },
+    "mcp-obsidian": {
+      "type": "local",
+      "command": [
+        "mise",
+        "exec",
+        "--",
+        "bunx",
+        "--bun",
+        "@mauricio.wolff/mcp-obsidian@latest",
+        "{env:HOME}/Desktop/zettelkasten"
+      ]
     }
   }
 }
