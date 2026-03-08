@@ -108,5 +108,6 @@ alias px = pnpx
 
 # opencode
 alias oc = env OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_ENABLE_EXA=true opencode
+alias occ = oc -c
+alias ocd = oc session delete
 alias ocl = oc session list
-alias ocd = oc session delete 
