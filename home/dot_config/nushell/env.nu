@@ -53,6 +53,10 @@ $env.CPPFLAGS = $"-I (brew --prefix openssl)/include"
 # ref: https://github.com/jesseduffield/lazygit/issues/4924
 $env.TMPDIR = (getconf DARWIN_USER_TEMP_DIR)
 
+# enable lsp servers for opencode
+# ref: https://opencode.ai/docs/tools#lsp-experimental
+$env.OPENCODE_EXPERIMENTAL_LSP_TOOL = true
+
 # load environment from .env files if they exist
 [".env.toml", ".env.yaml", ".env.yml", ".env.json"]
   | each { |file|
