@@ -3,7 +3,7 @@
   "autoupdate": true,
   "model": "opencode/minimax-m2.5-free",
   "small_model": "opencode/gpt-5-nano",
-  "default_agent": "build",
+  "default_agent": "plan",
   "instructions": [".agent/rules/*.md", ".agents/rules/*.md"],
   "tools": {
     "mcp-*": false

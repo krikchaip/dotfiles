@@ -107,7 +107,7 @@ alias p = pnpm
 alias px = pnpx
 
 # opencode
-alias oc = env OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_ENABLE_EXA=true opencode
+alias oc = env OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_ENABLE_EXA=true EDITOR=nvim opencode
 alias occ = oc -c
 alias ocd = oc session delete
 alias ocl = oc session list
