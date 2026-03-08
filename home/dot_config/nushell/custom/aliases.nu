@@ -105,3 +105,8 @@ alias b = bun
 alias bx = bunx
 alias p = pnpm
 alias px = pnpx
+
+# opencode
+alias oc = env OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_ENABLE_EXA=true opencode
+alias ocl = oc session list
+alias ocd = oc session delete 
