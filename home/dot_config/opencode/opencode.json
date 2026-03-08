@@ -2,5 +2,6 @@
   "$schema": "https://opencode.ai/config.json",
   "theme": "tokyonight",
   "autoupdate": true,
-  "default_agent": "build"
+  "default_agent": "build",
+  "instructions": [".agent/rules", ".agents/rules"]
 }
