@@ -2,5 +2,22 @@
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
   "default_agent": "build",
-  "instructions": [".agent/rules", ".agents/rules"]
+  "instructions": [".agent/rules", ".agents/rules"],
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "aws *": "ask",
+      "az *": "ask",
+      "curl *": "ask",
+      "git merge *": "ask",
+      "git push *": "deny",
+      "git reset *": "ask",
+      "git worktree remove *": "ask",
+      "kubectl": "ask",
+      "rm *": "ask"
+    },
+    "external_directory": {
+      "/tmp/pngpaste/**": "allow"
+    }
+  }
 }
