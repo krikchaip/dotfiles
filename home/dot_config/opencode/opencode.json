@@ -3,8 +3,29 @@
   "autoupdate": true,
   "model": "opencode/minimax-m2.5-free",
   "small_model": "opencode/gpt-5-nano",
-  "default_agent": "plan",
   "instructions": [".agent/rules/*.md", ".agents/rules/*.md"],
+  "default_agent": "plan",
+  "agent": {
+    "plan": {
+      "model": "openrouter/anthropic/claude-sonnet-4.6",
+      "variant": "high",
+      "color": "primary"
+    },
+    "build": {
+      "model": "openrouter/google/gemini-3-flash-preview",
+      "variant": "high",
+      "color": "secondary"
+    },
+    "general": {
+      "model": "openrouter/google/gemini-3-flash-preview",
+      "variant": "high",
+      "color": "secondary"
+    },
+    "explore": {
+      "model": "opencode/minimax-m2.5-free",
+      "color": "accent"
+    }
+  },
   "tools": {
     "mcp-*": false
   },
