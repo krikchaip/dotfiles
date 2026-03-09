@@ -26,6 +26,7 @@
   "terminal.integrated.fontSize": 14,
   "terminal.integrated.macOptionIsMeta": true,
   "window.zoomLevel": 0.5,
+  "windsurf.terminal.cascadeProfile.osx": "managed",
   "workbench.colorTheme": "Tokyo Night",
   "workbench.editorAssociations": {
     "*.md": "vscode.markdown.preview.editor",
