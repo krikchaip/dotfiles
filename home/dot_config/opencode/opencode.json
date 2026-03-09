@@ -69,5 +69,8 @@
         "{env:HOME}/Desktop/zettelkasten"
       ]
     }
+  },
+  "watcher": {
+    "ignore": ["node_modules/**", "dist/**", ".git/**"]
   }
 }

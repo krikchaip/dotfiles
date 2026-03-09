@@ -108,6 +108,7 @@ alias px = pnpx
 
 # opencode
 alias oc = env OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_ENABLE_EXA=true EDITOR=nvim opencode
+alias oca = oc attach http://localhost:4096
 alias occ = oc -c
 alias ocd = oc session delete
 alias ocl = oc session list
