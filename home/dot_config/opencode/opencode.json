@@ -13,7 +13,13 @@
         "anthropic/claude-sonnet-4.6": {
           "options": { "reasoning": { "exclude": true } }
         },
+        "google/gemini-3-pro-preview": {
+          "options": { "reasoning": { "exclude": true } }
+        },
         "google/gemini-3-flash-preview": {
+          "options": { "reasoning": { "exclude": true } }
+        },
+        "minimax/minimax-m2.5": {
           "options": { "reasoning": { "exclude": true } }
         }
       }
@@ -21,9 +27,9 @@
   },
   "default_agent": "ask",
   "agent": {
-    "plan": { "model": "openrouter/anthropic/claude-opus-4.6" },
+    "plan": { "model": "openrouter/minimax/minimax-m2.5" },
     "build": { "model": "openrouter/google/gemini-3-flash-preview" },
-    "general": { "model": "openrouter/anthropic/claude-sonnet-4.6" },
+    "general": { "model": "openrouter/minimax/minimax-m2.5" },
     "explore": { "model": "openrouter/google/gemini-3-flash-preview" }
   },
   "tools": {
