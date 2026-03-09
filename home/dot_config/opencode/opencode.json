@@ -1,24 +1,21 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
+  "instructions": [".agent/rules/*.md", ".agents/rules/*.md"],
   "model": "opencode/minimax-m2.5-free",
   "small_model": "opencode/gpt-5-nano",
-  "instructions": [".agent/rules/*.md", ".agents/rules/*.md"],
   "default_agent": "ask",
   "agent": {
     "plan": {
       "model": "openrouter/anthropic/claude-sonnet-4.6",
-      "variant": "high",
       "color": "primary"
     },
     "build": {
       "model": "openrouter/google/gemini-3-flash-preview",
-      "variant": "high",
       "color": "secondary"
     },
     "general": {
       "model": "openrouter/google/gemini-3-flash-preview",
-      "variant": "high",
       "color": "secondary"
     },
     "explore": {
