@@ -4,6 +4,21 @@
   "instructions": [".agent/rules/*.md", ".agents/rules/*.md"],
   "model": "opencode/minimax-m2.5-free",
   "small_model": "opencode/gpt-5-nano",
+  "provider": {
+    "openrouter": {
+      "models": {
+        "anthropic/claude-opus-4.6": {
+          "options": { "reasoning": { "exclude": true } }
+        },
+        "anthropic/claude-sonnet-4.6": {
+          "options": { "reasoning": { "exclude": true } }
+        },
+        "google/gemini-3-flash-preview": {
+          "options": { "reasoning": { "exclude": true } }
+        }
+      }
+    }
+  },
   "default_agent": "ask",
   "agent": {
     "plan": { "model": "openrouter/anthropic/claude-opus-4.6" },
