@@ -580,7 +580,7 @@
       ]
     },
     {
-      "description": "Open Kitty (f17)",
+      "description": "Open Terminal (f17)",
       "manipulators": [
         {
           "type": "basic",
@@ -590,11 +590,19 @@
       ]
     },
     {
-      "description": "Open Code Editor (f18)",
+      "description": "Open Primary Editor (f18), Open Secondary Editor (shift+f18)",
       "manipulators": [
         {
           "type": "basic",
           "from": { "key_code": "f18" },
+          "to": [{ "shell_command": "open -b com.exafunction.windsurf" }]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "f18",
+            "modifiers": { "mandatory": ["shift"] }
+          },
           "to": [{ "shell_command": "open -b com.google.antigravity" }]
         }
       ]

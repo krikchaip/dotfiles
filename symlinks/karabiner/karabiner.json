@@ -5,6 +5,34 @@
                 "parameters": { "basic.simultaneous_threshold_milliseconds": 40 },
                 "rules": [
                     {
+                        "description": "Open Primary Editor (f18), Open Secondary Editor (shift+f18)",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "f18" },
+                                "to": [{ "shell_command": "open -b com.exafunction.windsurf" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "f18",
+                                    "modifiers": { "mandatory": ["shift"] }
+                                },
+                                "to": [{ "shell_command": "open -b com.google.antigravity" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Open Terminal (f17)",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "f17" },
+                                "to": [{ "shell_command": "open -b net.kovidgoyal.kitty" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
                         "description": "Force Quit Applications (f19), Open Activity Monitor (shift+f19)",
                         "manipulators": [
                             {
@@ -23,26 +51,6 @@
                                     "modifiers": { "mandatory": ["shift"] }
                                 },
                                 "to": [{ "shell_command": "open -b com.apple.ActivityMonitor" }],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
-                        "description": "Open Code Editor (f18)",
-                        "manipulators": [
-                            {
-                                "from": { "key_code": "f18" },
-                                "to": [{ "shell_command": "open -b com.google.antigravity" }],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
-                        "description": "Open Kitty (f17)",
-                        "manipulators": [
-                            {
-                                "from": { "key_code": "f17" },
-                                "to": [{ "shell_command": "open -b net.kovidgoyal.kitty" }],
                                 "type": "basic"
                             }
                         ]
