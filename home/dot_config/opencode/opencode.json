@@ -4,7 +4,7 @@
   "model": "opencode/minimax-m2.5-free",
   "small_model": "opencode/gpt-5-nano",
   "instructions": [".agent/rules/*.md", ".agents/rules/*.md"],
-  "default_agent": "plan",
+  "default_agent": "ask",
   "agent": {
     "plan": {
       "model": "openrouter/anthropic/claude-sonnet-4.6",
