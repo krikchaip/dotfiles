@@ -8,4 +8,7 @@
 # {{ base . }} hash: {{ include . | sha256sum }}
 {{- end }}
 
-agy --list-extensions 2> /dev/null > {{ .chezmoi.config.sourceDir }}/symlinks/vscode/extensions.txt
+( \
+  agy --list-extensions 2> /dev/null;     \
+  windsurf --list-extensions 2> /dev/null \
+) | sort -u > {{ .chezmoi.config.sourceDir }}/symlinks/vscode/extensions.txt

@@ -1,4 +1,5 @@
 bierner.markdown-mermaid
+codeium.windsurfpyright
 dbaeumer.vscode-eslint
 eamodio.gitlens
 golang.go

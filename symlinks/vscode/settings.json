@@ -19,6 +19,7 @@
   "git.confirmSync": false,
   "markdown.preview.fontSize": 14,
   "scm.inputFontSize": 12,
+  "security.workspace.trust.untrustedFiles": "open",
   "terminal.integrated.defaultProfile.osx": "Nushell",
   "terminal.integrated.fontLigatures.enabled": true,
   "terminal.integrated.fontSize": 14,

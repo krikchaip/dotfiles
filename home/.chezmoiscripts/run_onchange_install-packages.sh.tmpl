@@ -80,22 +80,31 @@ if command -v ya &>/dev/null; then
 fi
 {{- end }}
 
-# Install Antigravity extensions
-# extensions.txt hash: {{ include "../symlinks/vscode/extensions.txt" | sha256sum }}
-if [ -f "{{ .chezmoi.sourceDir }}/../symlinks/vscode/extensions.txt" ]; then
-  echo "Installing Antigravity extensions..."
-  AGY_BIN="$HOME/.antigravity/antigravity/bin/agy"
-  if [ -x "$AGY_BIN" ]; then
-    while read -r extension; do
-      if [ -n "$extension" ]; then
-        echo "Installing extension: $extension"
-        "$AGY_BIN" --install-extension "$extension" --force || true
-      fi
-    done < "{{ .chezmoi.sourceDir }}/../symlinks/vscode/extensions.txt"
-  else
-    echo "Antigravity binary not found at $AGY_BIN. Skipping extensions."
+# Function to install VSCode extensions for a given editor binary
+install_vscode_extensions() {
+  local editor_name="$1"
+  local editor_bin="$2"
+  local extensions_file="{{ .chezmoi.sourceDir }}/../symlinks/vscode/extensions.txt"
+
+  if [ -f "$extensions_file" ]; then
+    if [ -x "$editor_bin" ]; then
+      echo "Installing $editor_name extensions..."
+      while read -r extension; do
+        if [ -n "$extension" ]; then
+          echo "[$editor_name] Installing extension: $extension"
+          "$editor_bin" --install-extension "$extension" --force || true
+        fi
+      done < "$extensions_file"
+    else
+      echo "Warning: $editor_name binary not found at $editor_bin. Skipping."
+    fi
   fi
-fi
+}
+
+# Install VSCode extensions
+# extensions.txt hash: {{ include "../symlinks/vscode/extensions.txt" | sha256sum }}
+install_vscode_extensions "Antigravity" "$HOME/.antigravity/antigravity/bin/agy"
+install_vscode_extensions "Windsurf" "$HOME/.codeium/windsurf/bin/surf"
 
 # Start/restart yabai & skhd services
 echo "Managing yabai & skhd services..."
