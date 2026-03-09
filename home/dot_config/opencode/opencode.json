@@ -6,22 +6,10 @@
   "small_model": "opencode/gpt-5-nano",
   "default_agent": "ask",
   "agent": {
-    "plan": {
-      "model": "openrouter/anthropic/claude-sonnet-4.6",
-      "color": "primary"
-    },
-    "build": {
-      "model": "openrouter/google/gemini-3-flash-preview",
-      "color": "secondary"
-    },
-    "general": {
-      "model": "openrouter/google/gemini-3-flash-preview",
-      "color": "secondary"
-    },
-    "explore": {
-      "model": "opencode/minimax-m2.5-free",
-      "color": "accent"
-    }
+    "plan": { "model": "openrouter/anthropic/claude-opus-4.6" },
+    "build": { "model": "openrouter/google/gemini-3-flash-preview" },
+    "general": { "model": "openrouter/anthropic/claude-sonnet-4.6" },
+    "explore": { "model": "openrouter/google/gemini-3-flash-preview" }
   },
   "tools": {
     "mcp-*": false
