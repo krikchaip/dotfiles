@@ -70,6 +70,7 @@ cask "obsidian"
 cask "redis-insight"
 cask "vial"
 cask "visual-studio-code"
+cask "windsurf"
 cask "zen"
 
 # App Store applications
