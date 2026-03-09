@@ -45,7 +45,7 @@
       "git push *": "deny",
       "git reset *": "ask",
       "git worktree remove *": "ask",
-      "kubectl": "ask",
+      "kubectl *": "ask",
       "rm *": "ask"
     },
     "external_directory": {
