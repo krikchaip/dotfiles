@@ -63,6 +63,66 @@
     "command": "-markdown.extension.checkTaskList",
     "key": "alt+c",
     "when": "false"
+  },
+  {
+    "command": "workbench.action.editor.nextChange",
+    "key": "ctrl+alt+n",
+    "when": "editorTextFocus && !textCompareEditorActive && quickDiffDecorationCount != '0'"
+  },
+  {
+    "command": "-workbench.action.editor.nextChange",
+    "key": "alt+f5",
+    "when": "editorTextFocus && !textCompareEditorActive && quickDiffDecorationCount != '0'"
+  },
+  {
+    "command": "workbench.action.compareEditor.nextChange",
+    "key": "ctrl+alt+n",
+    "when": "textCompareEditorVisible"
+  },
+  {
+    "command": "-workbench.action.compareEditor.nextChange",
+    "key": "alt+f5",
+    "when": "textCompareEditorVisible"
+  },
+  {
+    "command": "multiDiffEditor.goToNextChange",
+    "key": "ctrl+alt+n",
+    "when": "activeEditor == 'multiDiffEditor'"
+  },
+  {
+    "command": "-multiDiffEditor.goToNextChange",
+    "key": "alt+f5",
+    "when": "activeEditor == 'multiDiffEditor'"
+  },
+  {
+    "command": "multiDiffEditor.goToPreviousChange",
+    "key": "ctrl+alt+p",
+    "when": "activeEditor == 'multiDiffEditor'"
+  },
+  {
+    "command": "-multiDiffEditor.goToPreviousChange",
+    "key": "shift+alt+f5",
+    "when": "activeEditor == 'multiDiffEditor'"
+  },
+  {
+    "command": "workbench.action.compareEditor.previousChange",
+    "key": "ctrl+alt+p",
+    "when": "textCompareEditorVisible"
+  },
+  {
+    "command": "-workbench.action.compareEditor.previousChange",
+    "key": "shift+alt+f5",
+    "when": "textCompareEditorVisible"
+  },
+  {
+    "command": "workbench.action.editor.previousChange",
+    "key": "ctrl+alt+p",
+    "when": "editorTextFocus && !textCompareEditorActive && quickDiffDecorationCount != '0'"
+  },
+  {
+    "command": "-workbench.action.editor.previousChange",
+    "key": "shift+alt+f5",
+    "when": "editorTextFocus && !textCompareEditorActive && quickDiffDecorationCount != '0'"
   }
 ]
 // vim:ft=jsonc
