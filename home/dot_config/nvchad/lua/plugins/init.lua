@@ -204,7 +204,7 @@ return {
 
   {
     "b0o/nvim-tree-preview.lua",
-    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    dependencies = { "nvim-treesitter/nvim-treesitter", "nvim-tree/nvim-tree.lua" },
     config = function(_, opts)
       require("configs.tree-preview").setup(opts)
     end,
@@ -212,7 +212,6 @@ return {
 
   {
     "nvim-tree/nvim-tree.lua",
-    dependencies = { "b0o/nvim-tree-preview.lua" },
     config = function(_, opts)
       require("configs.tree").setup(opts)
     end,

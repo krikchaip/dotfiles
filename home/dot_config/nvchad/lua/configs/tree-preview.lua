@@ -4,6 +4,9 @@ local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
 M.config = function(opts)
+  -- Workaround for nvim-tree-preview accessing old nvim-tree config API
+  require("configs.tree").config_polyfill()
+
   opts.border = "single"
   opts.show_title = false
 

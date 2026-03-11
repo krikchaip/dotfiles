@@ -229,4 +229,26 @@ M.git_add_toggle = function()
   api.tree.reload()
 end
 
+-- Workaround for plugins accessing old nvim-tree config API
+M.config_polyfill = function()
+  local ok_nt, tree = pcall(require, "nvim-tree")
+
+  if ok_nt and type(tree) == "table" and not tree.config then
+    local ok_api, api = pcall(require, "nvim-tree.api")
+    local side = "left"
+
+    if ok_api and type(api) == "table" and api.config then
+      local user_cfg = type(api.config.user) == "function" and api.config.user() or {}
+      local default_cfg = type(api.config.default) == "function" and api.config.default() or {}
+
+      local user_view = type(user_cfg) == "table" and type(user_cfg.view) == "table" and user_cfg.view or {}
+      local default_view = type(default_cfg) == "table" and type(default_cfg.view) == "table" and default_cfg.view or {}
+
+      side = user_view.side or default_view.side or "left"
+    end
+
+    tree.config = { view = { side = side } }
+  end
+end
+
 return M
