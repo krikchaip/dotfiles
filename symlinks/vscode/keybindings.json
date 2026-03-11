@@ -20,19 +20,23 @@
   },
   {
     "command": "workbench.action.openAntigravitySettings",
-    "key": "alt+cmd+,"
+    "key": "alt+cmd+,",
+    "when": "antigravity.agentSidePanel.active"
   },
   {
     "command": "-workbench.action.openAntigravitySettings",
-    "key": "cmd+,"
+    "key": "cmd+,",
+    "when": "antigravity.agentSidePanel.active"
   },
   {
     "command": "workbench.action.openWindsurfSettings",
-    "key": "alt+cmd+,"
+    "key": "alt+cmd+,",
+    "when": "windsurf.cascadePanel.active"
   },
   {
     "command": "-workbench.action.openWindsurfSettings",
-    "key": "cmd+,"
+    "key": "cmd+,",
+    "when": "windsurf.cascadePanel.active"
   },
   {
     "command": "workbench.action.toggleMaximizedPanel",
@@ -123,6 +127,11 @@
     "command": "-workbench.action.editor.previousChange",
     "key": "shift+alt+f5",
     "when": "editorTextFocus && !textCompareEditorActive && quickDiffDecorationCount != '0'"
+  },
+  {
+    "command": "workbench.files.action.showActiveFileInExplorer",
+    "key": "ctrl+alt+r",
+    "when": "editorFocus"
   }
 ]
 // vim:ft=jsonc
