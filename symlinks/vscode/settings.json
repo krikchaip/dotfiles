@@ -14,6 +14,8 @@
   "explorer.autoReveal": false,
   "explorer.confirmDelete": false,
   "explorer.confirmDragAndDrop": false,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
   "git.allowForcePush": true,
   "git.autofetch": true,
   "git.confirmForcePush": false,
@@ -29,7 +31,7 @@
   "windsurf.terminal.cascadeProfile.osx": "managed",
   "workbench.colorTheme": "Tokyo Night",
   "workbench.editorAssociations": {
-    "*.md": "vscode.markdown.preview.editor",
+    // "*.md": "vscode.markdown.preview.editor",
     "**/rules/*.md": "default",
     "**/workflows/*.md": "default"
   }

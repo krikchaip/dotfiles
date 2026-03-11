@@ -25,8 +25,7 @@
   },
   {
     "command": "-workbench.action.openAntigravitySettings",
-    "key": "cmd+,",
-    "when": "antigravity.agentSidePanel.active"
+    "key": "cmd+,"
   },
   {
     "command": "workbench.action.openWindsurfSettings",
@@ -35,8 +34,7 @@
   },
   {
     "command": "-workbench.action.openWindsurfSettings",
-    "key": "cmd+,",
-    "when": "windsurf.cascadePanel.active"
+    "key": "cmd+,"
   },
   {
     "command": "workbench.action.toggleMaximizedPanel",
@@ -132,6 +130,26 @@
     "command": "workbench.files.action.showActiveFileInExplorer",
     "key": "ctrl+alt+r",
     "when": "editorFocus"
+  },
+  {
+    "command": "markdown.showPreview",
+    "key": "ctrl+v",
+    "when": "!notebookEditorFocused && editorLangId =~ /^(markdown|prompt|instructions|chatmode)$/"
+  },
+  {
+    "command": "-markdown.showPreview",
+    "key": "shift+cmd+v",
+    "when": "!notebookEditorFocused && editorLangId =~ /^(markdown|prompt|instructions|chatmode)$/"
+  },
+  {
+    "command": "markdown.extension.closePreview",
+    "key": "ctrl+v",
+    "when": "activeWebviewPanelId == 'markdown.preview'"
+  },
+  {
+    "command": "-markdown.extension.closePreview",
+    "key": "shift+cmd+v",
+    "when": "activeWebviewPanelId == 'markdown.preview'"
   }
 ]
 // vim:ft=jsonc
