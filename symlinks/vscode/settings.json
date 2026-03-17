@@ -6,6 +6,7 @@
   "agCockpit.warningThreshold": 25,
   "chat.fontSize": 14,
   "debug.console.fontSize": 14,
+  "editor.definitionLinkOpensInPeek": true,
   "editor.fontFamily": "'FiraCode Nerd Font Mono', Menlo, Monaco, 'Courier New', monospace",
   "editor.fontLigatures": true,
   "editor.fontSize": 14,
@@ -14,6 +15,7 @@
   "explorer.autoReveal": false,
   "explorer.confirmDelete": false,
   "explorer.confirmDragAndDrop": false,
+  "extensions.ignoreRecommendations": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
   "git.allowForcePush": true,
@@ -31,7 +33,6 @@
   "windsurf.terminal.cascadeProfile.osx": "managed",
   "workbench.colorTheme": "Tokyo Night",
   "workbench.editorAssociations": {
-    // "*.md": "vscode.markdown.preview.editor",
     "**/rules/*.md": "default",
     "**/workflows/*.md": "default"
   }
