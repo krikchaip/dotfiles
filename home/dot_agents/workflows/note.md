@@ -1,16 +1,22 @@
 ---
-description: Create and organize notes in the Obsidian vault
+description: Create, update, and organize notes in the Obsidian vault
 subtask: true
 ---
 
-# Note Creation Workflow
+# Note Capture and Revision Workflow
 
-This workflow provides a complete process for capturing and organizing knowledge within the Obsidian vault
+This workflow defines how to capture, revise, and organize knowledge in the Obsidian vault.
+
+## Core Principle
+
+- Follow Zettelkasten principles: one note must represent one atomic idea that cannot be meaningfully divided further.
+- If input/source material contains multiple ideas, split it into multiple atomic notes and connect them with internal links.
+- When decomposing a broad existing note, keep the original note unchanged.
+- When decomposition happens, also create one new structure note that links the newly created atomic notes.
 
 ## Note Structure
 
-Every note must follow the required formatting rules below.
-The template is an example of the expected shape.
+Every note must follow the required formatting rules below. The template is an example of the expected shape.
 
 Example template (placeholders such as `Section 1 Title` are illustrative, not literal requirements):
 
@@ -18,6 +24,7 @@ Example template (placeholders such as `Section 1 Title` are illustrative, not l
 ---
 aliases:
 created_at: YYYYMMDDHHmm
+updated_at: YYYYMMDDHHmm
 references:
   - "[[Relevant Reference If Applicable]]"
   - https://some-external-reference.com
@@ -34,10 +41,9 @@ references:
 ### 1. Frontmatter (YAML)
 
 - `aliases`: Always YAML null using `aliases:`
-- `created_at`: 12-digit timestamp (Year, Month, Day, Hour, Minute)
-- `references`: Related sources (internal and/or external). Use YAML null (`references:`) when none exist
-  - **Internal Links**: References to notes in the `references/` folder, formatted as `[[Note Name]]` with quotes around the link
-  - **External Links**: Web URLs to external sources or documentation
+- `created_at`: 12-digit timestamp (Year, Month, Day, Hour, Minute). Set when creating a new note
+- `updated_at`: 12-digit timestamp (Year, Month, Day, Hour, Minute). Update when revising an existing note
+- `references`: Include related internal links (notes in `references/`) and/or external URLs. Use YAML null (`references:`) when none exist
 
 ### 2. Tags
 
@@ -49,55 +55,73 @@ Immediately after the frontmatter, provide tags for the note:
 
 ### 3. Content Formatting
 
-- **Headings**: Use `######` (H6) as the base for sections. If sections can be grouped under a broader topic, use a higher hierarchy level (e.g., `#####` (H5) for grouping H6 sections, and so on)
+- **Headings**: Use `######` (H6) as the default section level. Use higher levels only to group related H6 sections.
 - **Definitions**: Use blockquotes for key concepts
   - Example: `> **Atomic Note**: A single idea captured in its simplest form.`
 - **Callouts**: Use Obsidian-style callouts for warnings or tips
   - Example: `> [!important] Keep notes atomic.`
-- **Internal Links**: References to notes in the `knowledge/` and `quick ideas/` folders, formatted as `[[Note Name]]` or `[[Note Name|Alias]]`
+- **Internal Links**: In content, link related notes from `knowledge/` and `quick ideas/` as `[[Note Name]]` or `[[Note Name|Alias]]`.
 
 ## Execution Guide
 
 ### 1. Search for notes related to the user's request
 
-- If **similar** notes already exist, ask the user whether they want to add more information or update the existing notes
-  - **similar**: The core meaning/topic of the user's request closely resembles an existing note, as if this topic has been written about before
-  - If the user does not want to update an existing note, proceed with creating a new note
-- Otherwise, proceed with the next step
+- Search for notes similar to the user's request.
+- If a similar note exists, ask the user to choose one path: update existing, decompose into linked atomic notes, or create a new note.
+  - **similar**: The request's core meaning closely matches an existing note.
+  - If updating, revise the existing note in place.
+  - If decomposing, create smaller linked atomic notes, keep the original note unchanged, and create a new structure note linking the split atomic notes.
+  - If creating new, proceed with a new note in `quick ideas/`.
+- If no similar note exists, proceed to drafting.
 
 ### 2. Draft the note content
 
-- Briefly summarize the user's input
-- Always prioritize up-to-date web information for factual accuracy before drafting
-- If the input is a URL, fetch that URL content first, then supplement/verify via web search
+- Briefly summarize the user's input and map it to one or more atomic notes.
+- If multiple ideas exist, separate them into multiple notes and connect them with internal links.
+- Prioritize up-to-date web information for factual accuracy. If input is a URL, fetch it first, then supplement/verify via web search.
 
 ### 3. Apply formatting according to the note structure
 
 #### Frontmatter
 
 - **aliases**: `aliases:` (followed by newline, no array brackets)
-- **created_at**: Generate with `date +"%Y%m%d%H%M"` (bash command)
+- **created_at**: Generate with `date +"%Y%m%d%H%M"` (bash command) when creating a new note
+- **updated_at**: Generate with `date +"%Y%m%d%H%M"` (bash command) when creating or revising a note
 - **references**:
-  - Include relevant internal links from `references/` and/or relevant external URLs when available
-  - When no related notes or external links exist, use YAML null: `references:` (followed by newline, no array brackets)
+  - Include relevant internal links from `references/` and/or relevant external URLs
+  - If none exist, use YAML null: `references:` (followed by newline, no array brackets)
 
 #### Tags
 
 - Determine appropriate tags based on content analysis
 - Use exactly 1 tag. Only add additional tags when a single tag is insufficient to categorize the note. Maximum 3 tags
+- Canonical format examples:
+  - Default: `#atomic-note`
+  - Optional multi-tag: `#atomic-note #zettelkasten` (maximum 3 tags)
 
 #### Content
 
 - Include internal links referencing related notes if they exist
 
-### 4. Verify everything before creating the note
+#### Structure Note (for decomposition)
+
+- When a note is decomposed, create one new structure note as a table-of-contents-style map for the split notes.
+- The structure note should include:
+  - A clear title for the parent topic
+  - A short overview sentence describing scope
+  - Grouped and/or ordered links to the newly created atomic notes
+  - Optional one-line context per link to explain why each note is in that group
+- Follow the general structure-note pattern; double-hashtag conventions are not required.
+
+### 4. Verify everything before finalizing the note
 
 - Ensure the final note strictly follows the structure and formatting rules above
+- For revised notes, ensure atomicity and link integrity are preserved
 
 ## Constraints
 
 - **Tools**: Always use Obsidian MCP tools for vault operations (search, read, create, update and others).
 - **External Info**: Search the internet to gather or verify information.
 - **New Notes Path**: Always create new notes in `quick ideas/` using note creation tool.
-- **Internal links**: Must not include the folder prefix.
-- **Link Scope**: In frontmatter `references`, point to notes in `references/`; in body content, use links relevant to `knowledge/` and `quick ideas/`.
+- **Existing Notes**: Revise in place when requested. If decomposition is needed, create split-off atomic notes, keep the original unchanged, and create one new structure note linking the split notes.
+- **Internal links**: Must not include folder prefixes. In frontmatter `references`, link notes from `references/`; in content, link notes from `knowledge/` and `quick ideas/`.
