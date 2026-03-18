@@ -17,14 +17,14 @@ This workflow provides a complete process for capturing and organizing knowledge
 
 ### 1. Document Structure
 
-Every note must follow this structure:
+Every note must follow this structure **EXACTLY**:
 
 ```md
 ---
 aliases:
 created_at: YYYYMMDDHHmm
 references:
-  - "[[Some Internal Page If Exists and Relevant to the Note]]"
+  - "[[Relevant Reference Page If Applicable]]"
   - https://some-external-reference.com
 ---
 #tag1 #tag2
@@ -40,7 +40,12 @@ references:
 
 - **aliases**: List of alternative titles. Leave this empty.
 - **created_at**: 12-digit timestamp (Year, Month, Day, Hour, Minute).
-- **references**: Links to sources or related materials.
+  - Generate with: `date +"%Y%m%d%H%M"` (bash command).
+- **references**: Links to sources or related materials. **Strictly limited to these two categories only**:
+  - **Internal Links**: Point to pages **within the `references` folder only** using the format `[[Page Name]]` without including the folder prefix. No internal links from other folders are allowed.
+  - **External Links**: Web URLs to external sources or documentation.
+
+**Note**: When `aliases` or `references` have no content, use the field name followed by a colon and new line (e.g., `aliases:` or `references:`). Do not use empty arrays.
 
 #### 1.2 Tags
 
@@ -50,6 +55,7 @@ Immediately after the frontmatter, provide category tags.
 - Use **object tags**: tag the specific concepts, objects, or entities the note is actually about.
 - Avoid broad topic tags that make search results noisy.
 - Keep tags sparse and precise; use links and structure notes for broader themes.
+- Apply no more than 3 tags, preferably 1.
 
 #### 1.3 Content Formatting
 
@@ -59,11 +65,14 @@ Immediately after the frontmatter, provide category tags.
 - **Callouts**: Use Obsidian-style callouts for warnings or tips.
   - Example: `> [!important] Keep notes atomic.`
 - **Links**: Use internal links `[[Note Name]]` or `[[Note Name|Alias]]`.
+  - Internal links in the body must come from the `knowledge` and `quick ideas` folders only, without needing to include the folder prefix.
 
 ## Execution Guide
 
-1. **Initial Search**: When a note request is provided, search the vault first using Obsidian MCP tools.
-  - If relevant notes exist, ask whether to append to them or create a new "atomic" note with links to the existing notes.
+1. **Initial Search**: When a note request is provided, search the vault first using Obsidian MCP tools to avoid duplicate notes and connect related knowledge.
+  - If similar notes already exist, ask the user whether they want to add more information, edit the existing notes, or create a new note.
+  - If the user decides to create a new note that is related to the existing notes found in the search, include internal links in the new note referencing those notes.
+  - Optionally, the related existing notes can also link back to the new note.
 2. **Synthesis**: Briefly summarize the user's input. If the input is a URL, fetch the URL content to extract the relevant information before drafting.
 3. **Note Preparation**:
   - Use the frontmatter and structure as specified in the Organizational Logic section above.

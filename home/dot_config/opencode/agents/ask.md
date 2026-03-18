@@ -14,6 +14,8 @@ permission:
   read: allow
   webfetch: allow
   websearch: allow
+  "bash":
+    "date *": allow
 ---
 
 # Ask Agent
