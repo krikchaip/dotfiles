@@ -9,7 +9,10 @@ This workflow provides a complete process for capturing and organizing knowledge
 
 ## Note Structure
 
-Every note must follow this structure **EXACTLY**:
+Every note must follow the required formatting rules below.
+The template is an example of the expected shape.
+
+Example template (placeholders such as `Section 1 Title` are illustrative, not literal requirements):
 
 ```md
 ---
@@ -19,7 +22,7 @@ references:
   - "[[Relevant Reference If Applicable]]"
   - https://some-external-reference.com
 ---
-#tag1 #tag2
+#example-tag
 
 ###### Section 1 Title
 ...some details... [[Relevant Knowledge If Applicable]] ...more details...
@@ -30,17 +33,16 @@ references:
 
 ### 1. Frontmatter (YAML)
 
-- `aliases`: List of alternative titles. Leave this field empty
+- `aliases`: Always YAML null using `aliases:`
 - `created_at`: 12-digit timestamp (Year, Month, Day, Hour, Minute)
-- `references`: Links to external sources or related materials
+- `references`: Related sources (internal and/or external). Use YAML null (`references:`) when none exist
   - **Internal Links**: References to notes in the `references/` folder, formatted as `[[Note Name]]` with quotes around the link
   - **External Links**: Web URLs to external sources or documentation
 
 ### 2. Tags
 
-Immediately after the frontmatter, provide object tags:
+Immediately after the frontmatter, provide tags for the note:
 
-- Format: `#tag1 #tag2`
 - Use **object tags**: tag the specific concepts, objects, or entities the note is actually about
 - Avoid broad topic/category tags that make search results noisy
 - Keep tags sparse and precise; use links and structure notes for broader themes
@@ -60,11 +62,14 @@ Immediately after the frontmatter, provide object tags:
 
 - If **similar** notes already exist, ask the user whether they want to add more information or update the existing notes
   - **similar**: The core meaning/topic of the user's request closely resembles an existing note, as if this topic has been written about before
+  - If the user does not want to update an existing note, proceed with creating a new note
 - Otherwise, proceed with the next step
 
 ### 2. Draft the note content
 
-- Briefly summarize the user's input. If the input is a URL, fetch the URL content to extract the relevant information before drafting
+- Briefly summarize the user's input
+- Always prioritize up-to-date web information for factual accuracy before drafting
+- If the input is a URL, fetch that URL content first, then supplement/verify via web search
 
 ### 3. Apply formatting according to the note structure
 
@@ -72,8 +77,9 @@ Immediately after the frontmatter, provide object tags:
 
 - **aliases**: `aliases:` (followed by newline, no array brackets)
 - **created_at**: Generate with `date +"%Y%m%d%H%M"` (bash command)
-- **references**: When no related notes or external links exist, use empty format
-  - `references:` (followed by newline, no array brackets)
+- **references**:
+  - Include relevant internal links from `references/` and/or relevant external URLs when available
+  - When no related notes or external links exist, use YAML null: `references:` (followed by newline, no array brackets)
 
 #### Tags
 
@@ -94,3 +100,4 @@ Immediately after the frontmatter, provide object tags:
 - **External Info**: Search the internet to gather or verify information.
 - **New Notes Path**: Always create new notes in `quick ideas/` using note creation tool.
 - **Internal links**: Must not include the folder prefix.
+- **Link Scope**: In frontmatter `references`, point to notes in `references/`; in body content, use links relevant to `knowledge/` and `quick ideas/`.
