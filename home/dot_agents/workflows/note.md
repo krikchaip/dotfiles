@@ -24,7 +24,7 @@ Every note must follow this structure:
 aliases:
 created_at: YYYYMMDDHHmm
 references:
-  - [[Some Internal Page If Exists and Relevant to the Note]]
+  - "[[Some Internal Page If Exists and Relevant to the Note]]"
   - https://some-external-reference.com
 ---
 #tag1 #tag2
