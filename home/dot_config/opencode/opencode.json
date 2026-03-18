@@ -32,10 +32,8 @@
     "general": { "model": "openrouter/minimax/minimax-m2.5" },
     "explore": { "model": "openrouter/google/gemini-3-flash-preview" }
   },
-  "tools": {
-    "mcp-*": false
-  },
   "permission": {
+    "mcp-*": "deny",
     "bash": {
       "*": "allow",
       "aws *": "ask",

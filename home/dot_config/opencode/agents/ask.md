@@ -3,10 +3,9 @@ description: Specialized agent for answering questions about the codebase or gen
 mode: primary
 model: opencode/minimax-m2.5-free
 temperature: 0.3
-tools:
-  mcp-obsidian: true
 permission:
   "*": deny
+  "mcp-obsidian_*": allow
   glob: allow
   grep: allow
   list: allow
