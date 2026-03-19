@@ -26,16 +26,16 @@ aliases:
 created_at: YYYYMMDDHHmm
 updated_at: YYYYMMDDHHmm
 references:
-  - "[[Relevant Reference If Applicable]]"
+  - "[[Relevant Note in References Folder If Applicable]]"
   - https://some-external-reference.com
 ---
 #example-tag
 
 ###### Section 1 Title
-...some details... [[Relevant Knowledge If Applicable]] ...more details...
+...some details... [[Relevant Note in Knowledge Folder If Applicable]] ...more details...
 
 ###### Section 2 Title
-...some details... [[Relevant Quick Idea If Applicable]] ...more details...
+...some details... [[Relevant Note in Quick Ideas Folder If Applicable]] ...more details...
 ```
 
 ### 1. Frontmatter (YAML)
@@ -124,4 +124,4 @@ Immediately after the frontmatter, provide tags for the note:
 - **External Info**: Search the internet to gather or verify information.
 - **New Notes Path**: Always create new notes in `quick ideas/` using note creation tool.
 - **Existing Notes**: Revise in place when requested. If decomposition is needed, create split-off atomic notes, keep the original unchanged, and create one new structure note linking the split notes.
-- **Internal links**: Must not include folder prefixes. In frontmatter `references`, link notes from `references/`; in content, link notes from `knowledge/` and `quick ideas/`.
+- **Internal links**: Must not include folder prefixes. In frontmatter `references`, link notes ONLY from `references/`; in content, link notes ONLY from `knowledge/` and `quick ideas/`.
