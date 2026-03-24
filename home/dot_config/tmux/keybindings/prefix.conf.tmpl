@@ -59,37 +59,42 @@ bind -N "[Window] Swap with previous"     -r \{    swap-window -d -t -1
 bind -N "[Window] Move to session"           M-s   run-shell 'CURR_WINDOW=$(tmux display -p "#S:#I"); tmux choose-tree -Zs "switch-client -t \"%%\"; move-window -s $CURR_WINDOW"'
 bind -N "[Window] Break into new session"    M-S   command-prompt -p "Session name:" { new-session -ds "%%"; move-window -t "%%"; kill-window -t "%%":1; switch-client -t "%%" }
 
-bind -N "[Pane] Switch to left"            h       select-pane -L
-bind -N "[Pane] Switch to left"            C-h     select-pane -L
-bind -N "[Pane] Switch to below"           j       select-pane -D
-bind -N "[Pane] Switch to below"           C-j     select-pane -D
-bind -N "[Pane] Switch to above"           k       select-pane -U
-bind -N "[Pane] Switch to above"           C-k     select-pane -U
-bind -N "[Pane] Switch to right"           l       select-pane -R
-bind -N "[Pane] Switch to right"           C-l     select-pane -R
-bind -N "[Pane] Switch to last"            \;      last-pane
-bind -N "[Pane] Switch to last"            C-\;    last-pane
-bind -N "[Pane] Switch to selection"       \\      display-panes -d 0
-bind -N "[Pane] Switch to selection"       C-\\    display-panes -d 0
-bind -N "[Pane] Swap with selection"       |       display-panes -d 0 { swap-pane -d -t "%%" }
-bind -N "[Pane] Kill current"              q       kill-pane
-bind -N "[Pane] Kill current"              C-q     kill-pane
-bind -N "[Pane] Resize left"            -r Left    resize-pane -L
-bind -N "[Pane] Resize below"           -r Down    resize-pane -D
-bind -N "[Pane] Resize above"           -r Up      resize-pane -U
-bind -N "[Pane] Resize right"           -r Right   resize-pane -R
-bind -N "[Pane] Resize left++"          -r S-Left  resize-pane -L 5
-bind -N "[Pane] Resize below++"         -r S-Down  resize-pane -D 5
-bind -N "[Pane] Resize above++"         -r S-Up    resize-pane -U 5
-bind -N "[Pane] Resize right++"         -r S-Right resize-pane -R 5
-bind -N "[Pane] Toggle zoom current"       z       resize-pane -Z
-bind -N "[Pane] Toggle zoom current"       C-z     resize-pane -Z
-bind -N "[Pane] Toggle mark current"       m       select-pane -m
-bind -N "[Pane] Toggle mark current"       C-m     select-pane -m
-bind -N "[Pane] Clear marked"              M       select-pane -M
-bind -N "[Pane] Join marked into below"    S       join-pane -v
-bind -N "[Pane] Join marked into right"    V       join-pane -h
-bind -N "[Pane] Break into new window"     M-t     break-pane
+bind -N "[Pane] Switch to left"              h       select-pane -L
+bind -N "[Pane] Switch to left"              C-h     select-pane -L
+bind -N "[Pane] Switch to left (keep zoom)"  H       select-pane -Z -L
+bind -N "[Pane] Switch to below"             j       select-pane -D
+bind -N "[Pane] Switch to below"             C-j     select-pane -D
+bind -N "[Pane] Switch to below (keep zoom)" J       select-pane -Z -D
+bind -N "[Pane] Switch to above"             k       select-pane -U
+bind -N "[Pane] Switch to above"             C-k     select-pane -U
+bind -N "[Pane] Switch to above (keep zoom)" K       select-pane -Z -U
+bind -N "[Pane] Switch to right"             l       select-pane -R
+bind -N "[Pane] Switch to right"             C-l     select-pane -R
+bind -N "[Pane] Switch to right (keep zoom)" L       select-pane -Z -R
+bind -N "[Pane] Switch to last"              \;      last-pane
+bind -N "[Pane] Switch to last"              C-\;    last-pane
+bind -N "[Pane] Switch to last (keep zoom)"  M-\;    last-pane -Z
+bind -N "[Pane] Switch to selection"         \\      display-panes -d 0
+bind -N "[Pane] Switch to selection"         C-\\    display-panes -d 0
+bind -N "[Pane] Swap with selection"         |       display-panes -d 0 { swap-pane -d -t "%%" }
+bind -N "[Pane] Kill current"                q       kill-pane
+bind -N "[Pane] Kill current"                C-q     kill-pane
+bind -N "[Pane] Resize left"              -r Left    resize-pane -L
+bind -N "[Pane] Resize below"             -r Down    resize-pane -D
+bind -N "[Pane] Resize above"             -r Up      resize-pane -U
+bind -N "[Pane] Resize right"             -r Right   resize-pane -R
+bind -N "[Pane] Resize left++"            -r S-Left  resize-pane -L 5
+bind -N "[Pane] Resize below++"           -r S-Down  resize-pane -D 5
+bind -N "[Pane] Resize above++"           -r S-Up    resize-pane -U 5
+bind -N "[Pane] Resize right++"           -r S-Right resize-pane -R 5
+bind -N "[Pane] Toggle zoom current"         z       resize-pane -Z
+bind -N "[Pane] Toggle zoom current"         C-z     resize-pane -Z
+bind -N "[Pane] Toggle mark current"         m       select-pane -m
+bind -N "[Pane] Toggle mark current"         C-m     select-pane -m
+bind -N "[Pane] Clear marked"                M       select-pane -M
+bind -N "[Pane] Join marked into below"      S       join-pane -v
+bind -N "[Pane] Join marked into right"      V       join-pane -h
+bind -N "[Pane] Break into new window"       M-t     break-pane
 
 bind -N "[Scrollback] Enter copy mode"   Space   copy-mode
 bind -N "[Scrollback] Enter copy mode"   C-Space copy-mode
