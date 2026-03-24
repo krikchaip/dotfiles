@@ -1,9 +1,9 @@
 ---
-description: Create, update, and organize notes in the Obsidian vault
+description: Capture, revise, and organize notes in the Obsidian vault
 subtask: true
 ---
 
-# Note Capture and Revision Workflow
+# Note Capture, Revision, and Organization Workflow
 
 This workflow defines how to capture, revise, and organize knowledge in the Obsidian vault
 
@@ -26,7 +26,6 @@ aliases:
 created_at: YYYYMMDDHHmm
 updated_at: YYYYMMDDHHmm
 references:
-  - "[[Relevant Note in References Folder If Applicable]]"
   - https://some-external-reference.com
 ---
 #example-tag
@@ -48,7 +47,7 @@ references:
 - `aliases`: Always YAML null using `aliases:`
 - `created_at`: 12-digit timestamp (Year, Month, Day, Hour, Minute). Set when creating a new note
 - `updated_at`: 12-digit timestamp (Year, Month, Day, Hour, Minute). Update when revising an existing note
-- `references`: Include related internal links (notes in `references/`) and/or external URLs. Use YAML null (`references:`) when none exist
+- `references`: Include related external URLs. Use YAML null (`references:`) when none exist
 
 ### 2. Tags
 
@@ -66,7 +65,6 @@ Immediately after the frontmatter, provide tags for the note:
 - **Callouts**: Use Obsidian-style callouts for warnings or tips
   - Example: `> [!important] Keep notes atomic.`
 - **Internal Links**: In content, link related notes from `knowledge/` and `quick ideas/` as `[[Note Name]]` or `[[Note Name|Alias]]`
-- **Working Examples**: Include at least one practical, working example (e.g., code snippet, mathematical formula, or concrete scenario) followed by a brief explanation of how it works when the note covers technical concepts, code, or procedures
 
 ## Execution Guide
 
@@ -95,7 +93,7 @@ Immediately after the frontmatter, provide tags for the note:
 - **created_at**: Generate with `date +"%Y%m%d%H%M"` (bash command) when creating a new note
 - **updated_at**: Generate with `date +"%Y%m%d%H%M"` (bash command) when creating or revising a note
 - **references**:
-  - Include relevant internal links from `references/` and/or relevant external URLs
+  - Include relevant external URLs
   - If none exist, use YAML null: `references:` (followed by newline, no array brackets)
 
 #### Tags
@@ -109,6 +107,7 @@ Immediately after the frontmatter, provide tags for the note:
 #### Content
 
 - Include internal links referencing related notes if they exist
+- Include at least one practical, working example (e.g., code snippet, mathematical formula, or concrete scenario) followed by an explanation of how it works when the note covers technical concepts, code, or procedures
 
 #### Structure Note (for decomposition)
 
@@ -116,7 +115,7 @@ Immediately after the frontmatter, provide tags for the note:
 - The structure note should include:
   - A clear title for the parent topic
   - A short overview sentence describing scope
-  - Grouped and/or ordered links to the newly created atomic notes
+  - Grouped and/or ordered internal links to the newly created atomic notes
   - Optional one-line context per link to explain why each note is in that group
 - Follow the general structure-note pattern; double-hashtag conventions are not required
 
@@ -131,4 +130,4 @@ Immediately after the frontmatter, provide tags for the note:
 - **External Info**: Search the internet to gather or verify information
 - **New Notes Path**: Always create new notes in `quick ideas/` using note creation tool
 - **Existing Notes**: Revise in place when requested. If decomposition is needed, create split-off atomic notes, keep the original unchanged, and create one new structure note linking the split notes
-- **Internal links**: Must not include folder prefixes. In frontmatter `references`, link notes ONLY from `references/`; in content, link notes ONLY from `knowledge/` and `quick ideas/`
+- **Internal links**: Must not include folder prefixes. In content, link notes ONLY from `knowledge/` and `quick ideas/`
