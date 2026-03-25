@@ -104,8 +104,8 @@ yabai < shift - k : yabai -m window --stack north
 yabai < shift - l : yabai -m window --stack east
 
 #** resize the root window
-yabai < alt - b : yabai -m window --ratio abs:0.666
-yabai < alt - s : yabai -m window --ratio abs:0.333
+yabai < alt - left : yabai -m window --ratio abs:0.666
+yabai < alt - right : yabai -m window --ratio abs:0.333
 
 #** balance the split ratios on the selected space
 yabai < alt - 0 : yabai -m space --balance
