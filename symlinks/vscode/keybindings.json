@@ -1,5 +1,6 @@
 // Place your key bindings in this file to override the defaults
 [
+  // Terminal
   {
     "command": "workbench.action.terminal.kill",
     "key": "cmd+w",
@@ -18,6 +19,7 @@
     "key": "ctrl+t",
     "when": "terminalFocus"
   },
+  // Settings
   {
     "command": "workbench.action.openAntigravitySettings",
     "key": "alt+cmd+,",
@@ -36,11 +38,13 @@
     "command": "-workbench.action.openWindsurfSettings",
     "key": "cmd+,"
   },
+  // Panel
   {
     "command": "workbench.action.toggleMaximizedPanel",
     "key": "shift+cmd+j",
     "when": "panelFocus"
   },
+  // Markdown
   {
     "command": "-markdown.extension.editing.toggleBold",
     "key": "cmd+b",
@@ -66,6 +70,27 @@
     "key": "alt+c",
     "when": "false"
   },
+  {
+    "command": "markdown.showPreview",
+    "key": "ctrl+v",
+    "when": "!notebookEditorFocused && editorLangId =~ /^(markdown|prompt|instructions|chatmode)$/"
+  },
+  {
+    "command": "-markdown.showPreview",
+    "key": "shift+cmd+v",
+    "when": "!notebookEditorFocused && editorLangId =~ /^(markdown|prompt|instructions|chatmode)$/"
+  },
+  {
+    "command": "markdown.extension.closePreview",
+    "key": "ctrl+v",
+    "when": "activeWebviewPanelId == 'markdown.preview'"
+  },
+  {
+    "command": "-markdown.extension.closePreview",
+    "key": "shift+cmd+v",
+    "when": "activeWebviewPanelId == 'markdown.preview'"
+  },
+  // Diff Navigation
   {
     "command": "workbench.action.editor.nextChange",
     "key": "ctrl+alt+n",
@@ -126,30 +151,17 @@
     "key": "shift+alt+f5",
     "when": "editorTextFocus && !textCompareEditorActive && quickDiffDecorationCount != '0'"
   },
+  // File Explorer
   {
     "command": "workbench.files.action.showActiveFileInExplorer",
     "key": "ctrl+alt+r",
     "when": "editorFocus"
   },
+  // Git
   {
-    "command": "markdown.showPreview",
-    "key": "ctrl+v",
-    "when": "!notebookEditorFocused && editorLangId =~ /^(markdown|prompt|instructions|chatmode)$/"
-  },
-  {
-    "command": "-markdown.showPreview",
-    "key": "shift+cmd+v",
-    "when": "!notebookEditorFocused && editorLangId =~ /^(markdown|prompt|instructions|chatmode)$/"
-  },
-  {
-    "command": "markdown.extension.closePreview",
-    "key": "ctrl+v",
-    "when": "activeWebviewPanelId == 'markdown.preview'"
-  },
-  {
-    "command": "-markdown.extension.closePreview",
-    "key": "shift+cmd+v",
-    "when": "activeWebviewPanelId == 'markdown.preview'"
+    "command": "git.openFile",
+    "key": "ctrl+alt+enter",
+    "when": "textCompareEditorVisible"
   }
 ]
 // vim:ft=jsonc
