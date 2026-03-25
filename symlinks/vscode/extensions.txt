@@ -9,7 +9,7 @@ meta.pyrefly
 ms-python.debugpy
 ms-python.python
 ms-python.vscode-python-envs
-sst-dev.opencode
+solomonkinard.bookmark
 tamasfe.even-better-toml
 thenuprojectcontributors.vscode-nushell-lang
 yzhang.markdown-all-in-one
