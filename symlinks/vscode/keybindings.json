@@ -162,6 +162,11 @@
     "command": "git.openFile",
     "key": "ctrl+alt+enter",
     "when": "textCompareEditorVisible"
+  },
+  {
+    "command": "git.openChange",
+    "key": "ctrl+alt+enter",
+    "when": "!textCompareEditorVisible"
   }
 ]
 // vim:ft=jsonc
