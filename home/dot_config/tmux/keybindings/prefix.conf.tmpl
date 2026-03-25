@@ -59,21 +59,16 @@ bind -N "[Window] Swap with previous"     -r \{    swap-window -d -t -1
 bind -N "[Window] Move to session"           M-s   run-shell 'CURR_WINDOW=$(tmux display -p "#S:#I"); tmux choose-tree -Zs "switch-client -t \"%%\"; move-window -s $CURR_WINDOW"'
 bind -N "[Window] Break into new session"    M-S   command-prompt -p "Session name:" { new-session -ds "%%"; move-window -t "%%"; kill-window -t "%%":1; switch-client -t "%%" }
 
-bind -N "[Pane] Switch to left"              h       select-pane -L
-bind -N "[Pane] Switch to left"              C-h     select-pane -L
-bind -N "[Pane] Switch to left (keep zoom)"  H       select-pane -Z -L
-bind -N "[Pane] Switch to below"             j       select-pane -D
-bind -N "[Pane] Switch to below"             C-j     select-pane -D
-bind -N "[Pane] Switch to below (keep zoom)" J       select-pane -Z -D
-bind -N "[Pane] Switch to above"             k       select-pane -U
-bind -N "[Pane] Switch to above"             C-k     select-pane -U
-bind -N "[Pane] Switch to above (keep zoom)" K       select-pane -Z -U
-bind -N "[Pane] Switch to right"             l       select-pane -R
-bind -N "[Pane] Switch to right"             C-l     select-pane -R
-bind -N "[Pane] Switch to right (keep zoom)" L       select-pane -Z -R
-bind -N "[Pane] Switch to last"              \;      last-pane
-bind -N "[Pane] Switch to last"              C-\;    last-pane
-bind -N "[Pane] Switch to last (keep zoom)"  M-\;    last-pane -Z
+bind -N "[Pane] Switch to left"              h       if -F '#{window_zoomed_flag}' 'select-pane -Z -L' 'select-pane -L'
+bind -N "[Pane] Switch to left"              C-h     if -F '#{window_zoomed_flag}' 'select-pane -Z -L' 'select-pane -L'
+bind -N "[Pane] Switch to below"             j       if -F '#{window_zoomed_flag}' 'select-pane -Z -D' 'select-pane -D'
+bind -N "[Pane] Switch to below"             C-j     if -F '#{window_zoomed_flag}' 'select-pane -Z -D' 'select-pane -D'
+bind -N "[Pane] Switch to above"             k       if -F '#{window_zoomed_flag}' 'select-pane -Z -U' 'select-pane -U'
+bind -N "[Pane] Switch to above"             C-k     if -F '#{window_zoomed_flag}' 'select-pane -Z -U' 'select-pane -U'
+bind -N "[Pane] Switch to right"             l       if -F '#{window_zoomed_flag}' 'select-pane -Z -R' 'select-pane -R'
+bind -N "[Pane] Switch to right"             C-l     if -F '#{window_zoomed_flag}' 'select-pane -Z -R' 'select-pane -R'
+bind -N "[Pane] Switch to last"              \;      if -F '#{window_zoomed_flag}' 'last-pane -Z' 'last-pane'
+bind -N "[Pane] Switch to last"              C-\;    if -F '#{window_zoomed_flag}' 'last-pane -Z' 'last-pane'
 bind -N "[Pane] Switch to selection"         \\      display-panes -d 0
 bind -N "[Pane] Switch to selection"         C-\\    display-panes -d 0
 bind -N "[Pane] Swap with selection"         |       display-panes -d 0 { swap-pane -d -t "%%" }
