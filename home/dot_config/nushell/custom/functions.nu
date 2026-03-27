@@ -156,7 +156,11 @@ def "opencode session manager" [] {
           $"($s.id)($t)[($updated_human)]($t)($s.title)"
       }
       | str join (char nl)
-      | fzf --layout=reverse --with-nth=2.. --delimiter="\t" --expect=ctrl-x --header "enter=open, ctrl-x=delete"
+      | (
+        fzf --layout=reverse --with-nth=2.. --delimiter="\t" --expect=ctrl-x
+          --border=rounded --border-label=" OpenCode Sessions " --info=inline-right --prompt="❯ " --pointer="▶"
+          --header $"Keybindings: enter=open, ctrl-x=delete\n\nUpdated                 \tTitle"
+      )
     )
 
     if ($result | is-empty) { break }
