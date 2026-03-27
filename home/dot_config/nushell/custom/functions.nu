@@ -132,3 +132,49 @@ def "image paste-tmux" []: nothing -> nothing {
     tmux paste-buffer -b pngpaste -d
   }
 }
+
+# opencode wrapper with predefined environment variables
+def --wrapped opencode [...rest] {
+  with-env {
+    OPENCODE_EXPERIMENTAL_LSP_TOOL: "true",
+    OPENCODE_ENABLE_EXA: "true",
+    EDITOR: "nvim"
+  } {
+    ^opencode ...$rest
+  }
+}
+
+# opencode session manager with fzf
+def "opencode session manager" [] {
+  loop {
+    let result = (
+      opencode session list --format json
+      | from json
+      | each {|s|
+          let t = (char tab)
+          let updated_human = (($s.updated | into int) * 1000000 | into datetime | format date "%a, %d %b %Y %H:%M")
+          $"($s.id)($t)[($updated_human)]($t)($s.title)"
+      }
+      | str join (char nl)
+      | fzf --layout=reverse --with-nth=2.. --delimiter="\t" --expect=ctrl-x --header "enter=open, ctrl-x=delete"
+    )
+
+    if ($result | is-empty) { break }
+
+    let lines = ($result | lines)
+    let key = ($lines | first)
+    let selection = ($lines | skip 1 | first)
+
+    if ($selection | is-empty) { break }
+
+    let id = ($selection | split row "\t" | first)
+
+    if $key == "ctrl-x" {
+      opencode session delete $id
+      continue
+    }
+
+    opencode --session $id
+    break
+  }
+}
