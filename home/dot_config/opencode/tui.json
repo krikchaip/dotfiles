@@ -2,6 +2,6 @@
   "$schema": "https://opencode.ai/tui.json",
   "theme": "tokyonight",
   "keybinds": {
-    "leader": "ctrl+o"
+    "leader": "ctrl+v"
   }
 }
