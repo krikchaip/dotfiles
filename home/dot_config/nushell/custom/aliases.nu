@@ -109,3 +109,6 @@ alias px = pnpx
 # opencode
 alias oc = opencode
 alias ocm = opencode session manager
+
+# openspec
+alias opsx = openspec
