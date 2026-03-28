@@ -1,0 +1,50 @@
+#!/bin/bash
+set -euo pipefail
+
+# Paths for source-of-truth extension file and editor CLIs.
+extensions_file="{{ .chezmoi.config.sourceDir }}/symlinks/vscode/extensions.txt"
+lock_dir="${TMPDIR:-/tmp}/vscode-extension-sync.lock"
+agy_bin="$HOME/.antigravity/antigravity/bin/agy"
+surf_bin="$HOME/.codeium/windsurf/bin/surf"
+
+# Release lock and temporary file on every exit path.
+tmp_output=""
+cleanup() {
+  rm -rf "$lock_dir"
+  if [ -n "$tmp_output" ] && [ -f "$tmp_output" ]; then
+    rm -f "$tmp_output"
+  fi
+}
+
+# Prevent concurrent runs from clobbering output.
+if ! mkdir "$lock_dir" 2>/dev/null; then
+  exit 0
+fi
+trap cleanup EXIT
+
+# Build new extension snapshot in a temporary file.
+tmp_output="$(mktemp)"
+
+# Return extensions from one editor if its binary exists.
+collect_extensions() {
+  local editor_bin="$1"
+
+  if [ -x "$editor_bin" ]; then
+    "$editor_bin" --list-extensions 2>/dev/null || true
+  fi
+}
+
+# Merge agy + surf extension IDs, then normalize (no blanks, sorted, deduped).
+{
+  collect_extensions "$agy_bin"
+  collect_extensions "$surf_bin"
+} | grep -v '^[[:space:]]*$' | sort -u > "$tmp_output"
+
+# Ensure destination directory exists.
+mkdir -p "$(dirname "$extensions_file")"
+
+# Replace tracked file only when content changed.
+if [ ! -f "$extensions_file" ] || ! cmp -s "$tmp_output" "$extensions_file"; then
+  mv "$tmp_output" "$extensions_file"
+  tmp_output=""
+fi

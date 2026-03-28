@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.r3nniw.vscode-extension-sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/sync-vscode-extensions</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>WatchPaths</key>
+    <array>
+      <string>{{ .chezmoi.homeDir }}/.antigravity/extensions</string>
+      <string>{{ .chezmoi.homeDir }}/.windsurf/extensions</string>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/com.r3nniw.vscode-extension-sync.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/com.r3nniw.vscode-extension-sync.err.log</string>
+  </dict>
+</plist>
