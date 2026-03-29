@@ -5,6 +5,8 @@ temperature: 0.3
 permission:
   "*": deny
   "mcp-obsidian*": allow
+  bash:
+    "date *": allow
   glob: allow
   grep: allow
   list: allow
@@ -13,8 +15,6 @@ permission:
   read: allow
   webfetch: allow
   websearch: allow
-  "bash":
-    "date *": allow
 ---
 
 # Ask Agent
