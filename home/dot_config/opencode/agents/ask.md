@@ -1,11 +1,10 @@
 ---
 description: Specialized agent for answering questions about the codebase or general topics (Ask mode).
 mode: primary
-model: opencode/minimax-m2.5-free
 temperature: 0.3
 permission:
   "*": deny
-  "mcp-obsidian_*": allow
+  "mcp-obsidian*": allow
   glob: allow
   grep: allow
   list: allow
