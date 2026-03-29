@@ -12,6 +12,7 @@ M.config = function(opts)
     vue = { "prettierd" },
 
     json = { "prettierd" },
+    jsonc = { "prettierd" },
     yaml = { "yamlfmt", lsp_format = "fallback" },
 
     markdown = { "prettierd" },
