@@ -89,7 +89,7 @@
       "az *": "ask",
       "curl *": "ask",
       "git merge *": "ask",
-      "git push *": "deny",
+      "git push*": "deny",
       "git reset *": "ask",
       "git worktree remove *": "ask",
       "kubectl *": "ask",
