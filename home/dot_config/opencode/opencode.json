@@ -12,10 +12,10 @@
 
   "default_agent": "ask",
   "agent": {
-    "plan": { "model": "openrouter/minimax/minimax-m2.5" },
-    "build": { "model": "openrouter/google/gemini-3-flash-preview" },
-    "general": { "model": "openrouter/minimax/minimax-m2.5" },
-    "explore": { "model": "openrouter/google/gemini-3-flash-preview" }
+    "build": { "disable": true },
+    "plan": { "disable": true },
+    "general": { "disable": true },
+    "explore": { "disable": true }
   },
 
   "permission": {
