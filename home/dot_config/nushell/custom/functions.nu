@@ -138,6 +138,7 @@ def --wrapped opencode [...rest] {
   with-env {
     OPENCODE_EXPERIMENTAL_LSP_TOOL: "true",
     OPENCODE_ENABLE_EXA: "true",
+    NVIM_APPNAME: "nvchad",
     EDITOR: "nvim"
   } {
     ^opencode ...$rest
