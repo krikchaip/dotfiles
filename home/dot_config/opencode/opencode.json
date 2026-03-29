@@ -8,27 +8,7 @@
   "small_model": "opencode/gpt-5-nano",
 
   "enabled_providers": ["openrouter", "github-copilot", "opencode"],
-  "provider": {
-    "openrouter": {
-      "models": {
-        "anthropic/claude-opus-4.6": {
-          "options": { "reasoning": { "exclude": true } }
-        },
-        "anthropic/claude-sonnet-4.6": {
-          "options": { "reasoning": { "exclude": true } }
-        },
-        "google/gemini-3-pro-preview": {
-          "options": { "reasoning": { "exclude": true } }
-        },
-        "google/gemini-3-flash-preview": {
-          "options": { "reasoning": { "exclude": true } }
-        },
-        "minimax/minimax-m2.5": {
-          "options": { "reasoning": { "exclude": true } }
-        }
-      }
-    }
-  },
+  "provider": {},
 
   "default_agent": "ask",
   "agent": {
