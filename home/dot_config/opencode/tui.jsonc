@@ -23,6 +23,8 @@
     "messages_next": "ctrl+down",
     "messages_previous": "ctrl+up",
     "messages_copy": "ctrl+y",
+    "messages_undo": "alt+u",
+    "messages_redo": "alt+r",
     "messages_toggle_conceal": "none",
 
     "model_list": "alt+m",
