@@ -6,14 +6,27 @@
   "keybinds": {
     "leader": "ctrl+o",
 
-    "session_fork": "<leader>f",
-    "session_child_first": "<leader>J",
-    "session_child_cycle": "<leader>L",
-    "session_child_cycle_reverse": "<leader>H",
-    "session_parent": "<leader>K",
+    "editor_open": "ctrl+return,alt+return",
 
+    "session_new": "ctrl+n",
+    "session_list": "ctrl+l",
+    "session_timeline": "ctrl+g",
+    "session_fork": "<leader>f",
+    "session_rename": "ctrl+r",
+    "session_child_first": "<leader>j",
+    "session_child_cycle": "<leader>l",
+    "session_child_cycle_reverse": "<leader>h",
+    "session_parent": "<leader>k",
+
+    "messages_first": "ctrl+shift+up,home",
+    "messages_last": "ctrl+shift+down,end",
     "messages_next": "ctrl+down",
     "messages_previous": "ctrl+up",
+    "messages_copy": "ctrl+y",
     "messages_toggle_conceal": "none",
+
+    "model_list": "alt+m",
+
+    "display_thinking": "alt+k",
   },
 }
