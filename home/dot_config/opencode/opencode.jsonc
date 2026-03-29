@@ -7,6 +7,7 @@
   "plugin": [
     "opencode-antigravity-auth@1", // https://github.com/NoeFabris/opencode-antigravity-auth
     "@tarquinen/opencode-dcp@3", // https://github.com/Opencode-DCP/opencode-dynamic-context-pruning
+    "opencode-pty@0.2", // https://github.com/shekohex/opencode-pty
   ],
 
   "model": "opencode/big-pickle",
