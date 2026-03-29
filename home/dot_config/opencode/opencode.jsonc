@@ -15,7 +15,7 @@
     "build": { "disable": true },
     "plan": { "disable": true },
     "general": { "disable": true },
-    "explore": { "disable": true }
+    "explore": { "disable": true },
   },
 
   "permission": {
@@ -30,23 +30,23 @@
       "git reset *": "ask",
       "git worktree remove *": "ask",
       "kubectl *": "ask",
-      "rm *": "ask"
+      "rm *": "ask",
     },
     "external_directory": {
-      "/tmp/pngpaste/**": "allow"
-    }
+      "/tmp/pngpaste/**": "allow",
+    },
   },
 
   "mcp": {
     "mcp-github": {
       "type": "remote",
       "url": "https://api.githubcopilot.com/mcp",
-      "headers": { "Authorization": "Bearer {env:GITHUB_MCP_PAT}" }
+      "headers": { "Authorization": "Bearer {env:GITHUB_MCP_PAT}" },
     },
     "mcp-atlassian": {
       "type": "remote",
       "url": "https://mcp.atlassian.com/v1/mcp",
-      "headers": { "Authorization": "Basic {env:ATLASSIAN_MCP_TOKEN}" }
+      "headers": { "Authorization": "Basic {env:ATLASSIAN_MCP_TOKEN}" },
     },
     "mcp-obsidian": {
       "type": "local",
@@ -57,12 +57,12 @@
         "bunx",
         "--bun",
         "@mauricio.wolff/mcp-obsidian@latest",
-        "{env:HOME}/Desktop/zettelkasten"
-      ]
-    }
+        "{env:HOME}/Desktop/zettelkasten",
+      ],
+    },
   },
 
   "watcher": {
-    "ignore": ["node_modules/**", "dist/**", ".git/**"]
-  }
+    "ignore": ["node_modules/**", "dist/**", ".git/**"],
+  },
 }
