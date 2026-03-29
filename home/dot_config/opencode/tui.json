@@ -4,6 +4,16 @@
   "theme": "tokyonight",
 
   "keybinds": {
-    "leader": "ctrl+o"
+    "leader": "ctrl+o",
+
+    "session_fork": "<leader>f",
+    "session_child_first": "<leader>J",
+    "session_child_cycle": "<leader>L",
+    "session_child_cycle_reverse": "<leader>H",
+    "session_parent": "<leader>K",
+
+    "messages_next": "ctrl+down",
+    "messages_previous": "ctrl+up",
+    "messages_toggle_conceal": "none"
   }
 }
