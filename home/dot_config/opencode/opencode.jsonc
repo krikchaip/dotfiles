@@ -5,7 +5,8 @@
   "instructions": [".agent/rules/*.md", ".agents/rules/*.md"],
 
   "plugin": [
-    "opencode-antigravity-auth@latest", // https://github.com/NoeFabris/opencode-antigravity-auth
+    "opencode-antigravity-auth@1", // https://github.com/NoeFabris/opencode-antigravity-auth
+    "@tarquinen/opencode-dcp@3", // https://github.com/Opencode-DCP/opencode-dynamic-context-pruning
   ],
 
   "model": "opencode/big-pickle",
