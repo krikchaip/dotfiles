@@ -9,6 +9,7 @@
     "@tarquinen/opencode-dcp@3", // https://github.com/Opencode-DCP/opencode-dynamic-context-pruning
     "opencode-pty@0.2", // https://github.com/shekohex/opencode-pty
     "@mohak34/opencode-notifier@0.1", // https://github.com/mohak34/opencode-notifier
+    "@plannotator/opencode@0.15", // https://github.com/backnotprop/plannotator
   ],
 
   "model": "opencode/big-pickle",
