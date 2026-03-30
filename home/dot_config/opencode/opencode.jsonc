@@ -84,7 +84,6 @@
   },
 
   "permission": {
-    "mcp-*": "deny",
     "bash": {
       "*": "allow",
       "aws *": "ask",
@@ -97,6 +96,7 @@
       "kubectl *": "ask",
       "rm *": "ask",
     },
+    "mcp-*": "deny",
     "external_directory": {
       "/tmp/pngpaste/**": "allow",
     },
