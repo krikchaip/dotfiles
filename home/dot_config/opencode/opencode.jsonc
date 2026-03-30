@@ -10,6 +10,7 @@
     "opencode-pty@0.2", // https://github.com/shekohex/opencode-pty
     "@mohak34/opencode-notifier@0.1", // https://github.com/mohak34/opencode-notifier
     "@plannotator/opencode@0.16", // https://github.com/backnotprop/plannotator
+    "opencode-scheduler@1", // https://github.com/different-ai/opencode-scheduler
   ],
 
   "model": "opencode/big-pickle",
