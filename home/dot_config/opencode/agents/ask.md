@@ -4,17 +4,22 @@ mode: primary
 temperature: 0.5
 permission:
   "*": deny
-  "mcp-obsidian*": allow
   bash:
     "date *": allow
-  glob: allow
+  edit: deny
+  write: deny
+  read: allow
   grep: allow
+  glob: allow
   list: allow
   lsp: allow
-  question: allow
-  read: allow
+  patch: deny
+  skill: allow
+  todowrite: deny
   webfetch: allow
   websearch: allow
+  question: allow
+  "mcp-obsidian*": allow
 ---
 
 # Ask Agent
