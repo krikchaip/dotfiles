@@ -6,16 +6,12 @@ permission:
   "*": deny
   bash:
     "date *": allow
-  edit: deny
-  write: deny
   read: allow
   grep: allow
   glob: allow
   list: allow
   lsp: allow
-  patch: deny
   skill: allow
-  todowrite: deny
   webfetch: allow
   websearch: allow
   question: allow
