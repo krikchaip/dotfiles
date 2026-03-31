@@ -12,6 +12,7 @@
     "@plannotator/opencode@0", // https://github.com/backnotprop/plannotator
     "opencode-scheduler@1", // https://github.com/different-ai/opencode-scheduler
     "opencode-agent-memory@0", // https://github.com/joshuadavidthomas/opencode-agent-memory
+    "@slkiser/opencode-quota@2", // https://github.com/slkiser/opencode-quota
   ],
 
   "model": "opencode/big-pickle",
@@ -134,5 +135,13 @@
 
   "watcher": {
     "ignore": ["node_modules/**", "dist/**", ".git/**"],
+  },
+
+  "experimental": {
+    // https://github.com/slkiser/opencode-quota#configuration-reference
+    "quotaToast": {
+      "enableToast": false,
+      "googleModels": ["G3FLASH", "G3PRO", "CLAUDE"],
+    },
   },
 }
