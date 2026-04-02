@@ -15,6 +15,7 @@ permission:
   webfetch: allow
   websearch: allow
   question: allow
+  task: allow
   "memory*": allow
   "mcp-obsidian*": allow
 ---
