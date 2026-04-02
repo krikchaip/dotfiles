@@ -1,5 +1,5 @@
 ---
-description: High-autonomy development agent with full tool access (Agentic mode).
+description: High-autonomy development agent with full tool access (Agentic mode)
 mode: primary
 temperature: 0.3
 permission:

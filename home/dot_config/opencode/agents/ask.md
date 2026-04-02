@@ -1,5 +1,5 @@
 ---
-description: Specialized agent for answering questions about the codebase or general topics (Ask mode).
+description: Specialized agent for answering questions about the codebase or general topics (Ask mode)
 mode: primary
 temperature: 0.5
 permission:
