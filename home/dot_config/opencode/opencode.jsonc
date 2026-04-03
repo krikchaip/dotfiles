@@ -17,8 +17,22 @@
   "model": "opencode/big-pickle",
   "small_model": "opencode/gpt-5-nano",
 
-  "enabled_providers": ["openrouter", "github-copilot", "opencode", "google"],
+  "enabled_providers": ["opencode", "openrouter", "google", "github-copilot"],
   "provider": {
+    "openrouter": {
+      "models": {
+        "openai/gpt-oss-20b:nitro": {
+          "id": "openai/gpt-oss-20b:nitro",
+          "name": "GPT OSS 20B (nitro)",
+          "limit": { "context": 131072, "output": 65535 },
+        },
+        "openai/gpt-oss-120b:nitro": {
+          "id": "openai/gpt-oss-120b:nitro",
+          "name": "GPT OSS 120B (nitro)",
+          "limit": { "context": 131072, "output": 65535 },
+        },
+      },
+    },
     "google": {
       "whitelist": [
         "antigravity-gemini-3.1-pro",
@@ -86,6 +100,7 @@
     "explore": { "disable": true },
 
     // custom agents
+    "codesearch": { "model": "openrouter/openai/gpt-oss-20b:nitro" },
   },
 
   "permission": {
