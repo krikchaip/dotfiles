@@ -277,10 +277,10 @@ map("n", "]z", UFO.NextRegion, { desc = "UFO: Next Region" })
 -- markdown
 map("n", "<leader>v", Markdown.TogglePreview, { desc = "Markdown: Toggle Preview" })
 
--- LLM (codecompanion)
-map("n", "<M-a>", LLM.ToggleChat, { desc = "LLM: Toggle Chat" })
-map("v", "<M-a>", LLM.Inline, { desc = "LLM: Inline Visual", expr = true })
-map({ "n", "v" }, "<leader>a", LLM.Actions, { desc = "LLM: Show Actions" })
+-- CodeCompanion
+map("n", "<M-a>", CodeCompanion.ToggleChat, { desc = "CodeCompanion: Toggle Chat" })
+map("v", "<M-a>", CodeCompanion.Inline, { desc = "CodeCompanion: Inline Visual", expr = true })
+map({ "n", "v" }, "<leader>a", CodeCompanion.Actions, { desc = "CodeCompanion: Show Actions" })
 
 -- clipboard management
 map("n", "<leader>yr", Clipboard.YankRelative, { desc = "Clipboard: Yank Relative Path" })

@@ -161,7 +161,7 @@ M.on_attach = function(bufnr)
     return { desc = desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
   end
 
-  map("n", "q", vim.g.minimal and "<cmd>qa!<CR>" or LLM.ToggleChat, opts "CodeCompanion: Close Chat")
+  map("n", "q", vim.g.minimal and "<cmd>qa!<CR>" or CodeCompanion.ToggleChat, opts "CodeCompanion: Close Chat")
 end
 
 -- Snacks.notifier integration for status update displays fidget spinner

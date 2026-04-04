@@ -561,7 +561,7 @@ GrugFar = {
   end,
 }
 
-LLM = {
+CodeCompanion = {
   ToggleChat = function()
     require("codecompanion").toggle()
   end,
