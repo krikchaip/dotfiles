@@ -278,9 +278,14 @@ map("n", "]z", UFO.NextRegion, { desc = "UFO: Next Region" })
 map("n", "<leader>v", Markdown.TogglePreview, { desc = "Markdown: Toggle Preview" })
 
 -- CodeCompanion
-map("n", "<M-a>", CodeCompanion.ToggleChat, { desc = "CodeCompanion: Toggle Chat" })
-map("v", "<M-a>", CodeCompanion.Inline, { desc = "CodeCompanion: Inline Visual", expr = true })
-map({ "n", "v" }, "<leader>a", CodeCompanion.Actions, { desc = "CodeCompanion: Show Actions" })
+-- map("n", "<M-a>", CodeCompanion.ToggleChat, { desc = "CodeCompanion: Toggle Chat" })
+-- map("v", "<M-a>", CodeCompanion.Inline, { desc = "CodeCompanion: Inline Visual", expr = true })
+-- map({ "n", "v" }, "<leader>a", CodeCompanion.Actions, { desc = "CodeCompanion: Show Actions" })
+
+-- OpenCode
+map({ "n", "t" }, "<M-a>", OpenCode.Toggle, { desc = "OpenCode: Toggle" })
+map("x", "<M-a>", OpenCode.AskThis, { desc = "OpenCode: Ask @this" })
+map({ "n", "x" }, "<leader>a", OpenCode.Actions, { desc = "OpenCode: Show Actions" })
 
 -- clipboard management
 map("n", "<leader>yr", Clipboard.YankRelative, { desc = "Clipboard: Yank Relative Path" })

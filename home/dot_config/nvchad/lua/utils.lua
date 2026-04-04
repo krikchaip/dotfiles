@@ -573,6 +573,18 @@ CodeCompanion = {
   end,
 }
 
+OpenCode = {
+  Toggle = function()
+    require("opencode").toggle()
+  end,
+  AskThis = function()
+    require("opencode").ask("@this: ", { submit = true })
+  end,
+  Actions = function()
+    require("opencode").select()
+  end,
+}
+
 Clipboard = {
   ---@diagnostic disable: param-type-mismatch
   YankRelative = function(modifier)
