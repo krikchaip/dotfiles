@@ -39,6 +39,7 @@
   "nvim-ufo": { "branch": "main", "commit": "ab3eb124062422d276fae49e0dd63b3ad1062cfc" },
   "nvim-web-devicons": { "branch": "master", "commit": "40e9d5a6cc3db11b309e39593fc7ac03bb844e38" },
   "nx.nvim": { "branch": "main", "commit": "f8a3a21b3d540889401a40d1f2803083794c0372" },
+  "opencode.nvim": { "branch": "main", "commit": "fa0a495fa2c229115404cb3c1970578f9c6d2f76" },
   "outline-test-blocks-provider.nvim": { "branch": "main", "commit": "0e5b4327a09c914e981ea9096e961b0dd5fda65f" },
   "outline-treesitter-provider.nvim": { "branch": "main", "commit": "08d8f520fdf5a4eb795f251fe0a09488c5d8335f" },
   "outline.nvim": { "branch": "main", "commit": "c293eb56db880a0539bf9d85b4a27816960b863e" },

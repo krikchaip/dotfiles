@@ -88,7 +88,12 @@ return {
   {
     "folke/lazydev.nvim",
     ft = "lua",
-    opts = { library = { { path = "snacks.nvim", words = { "Snacks" } } } },
+    opts = {
+      library = {
+        { path = "snacks.nvim", words = { "Snacks" } },
+        { path = "opencode.nvim", words = { "opencode" } },
+      },
+    },
   },
 
   {
@@ -112,6 +117,13 @@ return {
     event = "VeryLazy",
     config = function(_, opts)
       require("configs.nx").setup(opts)
+    end,
+  },
+
+  {
+    "nickjvandyke/opencode.nvim",
+    config = function(_, opts)
+      require("configs.opencode").setup(opts)
     end,
   },
 
