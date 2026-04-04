@@ -41,6 +41,7 @@ return {
 
   {
     "olimorris/codecompanion.nvim",
+    enabled = false,
     dependencies = { "ravitemer/codecompanion-history.nvim" },
     cmd = { "CodeCompanion", "CodeCompanionChat" },
     config = function(_, opts)
