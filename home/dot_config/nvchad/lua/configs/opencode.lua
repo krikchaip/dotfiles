@@ -3,7 +3,7 @@ local M = {}
 --- @param opts opencode.Opts
 M.config = function(opts)
   opts.ask = {
-    snacks = { icon = "", win = { width = 33, footer_pos = "left" } },
+    snacks = { icon = "", win = { width = 40 } },
   }
 
   opts.server = {
