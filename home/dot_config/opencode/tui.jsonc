@@ -13,7 +13,7 @@
     "editor_open": "ctrl+return,alt+return",
 
     "session_new": "ctrl+n",
-    "session_list": "alt+l",
+    "session_list": "ctrl+s",
     "session_timeline": "ctrl+g",
     "session_fork": "<leader>f",
     "session_rename": "ctrl+r",
