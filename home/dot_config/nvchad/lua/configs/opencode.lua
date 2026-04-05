@@ -27,6 +27,7 @@ local opencode_opts = {
   id = "opencode.server",
   pos = "float",
   cmd = "opencode --port",
+  winopts = { winfixbuf = true },
   float_opts = {
     width = 0.7,
     height = 0.7,
