@@ -19,6 +19,9 @@ M.setup = function(opts)
   -- Required for `opts.events.reload`
   vim.o.autoread = true
 
+  -- Force opencode's select flow to use snacks.picker only.
+  M.patch_select_picker()
+
   ---@type opencode.Opts
   vim.g.opencode_opts = M.config(opts)
 end
@@ -35,6 +38,38 @@ local opencode_opts = {
     col = 0.15,
   },
 }
+
+-- Patch opencode's Promise.select to route through snacks.picker.select,
+-- while keeping global vim.ui.select behavior unchanged.
+M.patch_select_picker = function()
+  local ok_ui, ui = pcall(require, "opencode.promise.ui")
+  if not ok_ui then return end
+
+  ui.select = function(items, opts)
+    local Promise = require "opencode.promise"
+
+    return Promise.new(function(resolve, reject)
+      local ok_snacks, snacks = pcall(require, "snacks")
+
+      local on_choice = function(choice)
+        if choice == nil then
+          reject()
+        else
+          resolve(choice)
+        end
+      end
+
+      if ok_snacks and snacks.picker and snacks.picker.select then
+        snacks.picker.select(items, opts or {}, on_choice)
+      else
+        vim.ui.select(items, opts or {}, on_choice)
+      end
+    end)
+  end
+
+  local Promise = require "opencode.promise"
+  Promise.select = ui.select
+end
 
 M.get_term = function()
   for _, term in pairs(vim.g.nvchad_terms or {}) do
