@@ -283,8 +283,8 @@ map("n", "<leader>v", Markdown.TogglePreview, { desc = "Markdown: Toggle Preview
 -- map({ "n", "v" }, "<leader>a", CodeCompanion.Actions, { desc = "CodeCompanion: Show Actions" })
 
 -- OpenCode
-map({ "n", "t" }, "<M-a>", OpenCode.Toggle, { desc = "OpenCode: Toggle" })
-map("x", "<M-a>", OpenCode.AskThis, { desc = "OpenCode: Ask @this" })
+map({ "n", "t" }, "<M-o>", OpenCode.Toggle, { desc = "OpenCode: Toggle" })
+map({ "n", "x" }, "<M-i>", OpenCode.AskThis, { desc = "OpenCode: Ask @this" })
 map({ "n", "x" }, "<leader>a", OpenCode.Actions, { desc = "OpenCode: Show Actions" })
 
 -- clipboard management
