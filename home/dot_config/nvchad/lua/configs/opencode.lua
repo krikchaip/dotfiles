@@ -29,7 +29,7 @@ end
 local opencode_opts = {
   id = "opencode.server",
   pos = "float",
-  cmd = "opencode --port",
+  cmd = "OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_ENABLE_EXA=true NVIM_APPNAME=nvchad EDITOR=nvim opencode --port",
   winopts = { winfixbuf = true },
   float_opts = {
     width = 0.7,
