@@ -43,9 +43,15 @@ end
 
 M.start_term = function()
   local term = M.get_term()
-  if term and term.buf and vim.api.nvim_buf_is_valid(term.buf) and vim.fn.bufwinid(term.buf) ~= -1 then return end
+  if term and term.buf and vim.api.nvim_buf_is_valid(term.buf) then return end
 
   require("nvchad.term").toggle(opencode_opts)
+
+  term = M.get_term()
+  if not term or not term.buf or not vim.api.nvim_buf_is_valid(term.buf) then return end
+
+  local win = vim.fn.bufwinid(term.buf)
+  if win ~= -1 then vim.api.nvim_win_close(win, true) end
 end
 
 M.stop_term = function()
