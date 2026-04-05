@@ -1,6 +1,5 @@
 ---
 description: Capture, revise, and organize notes in the Obsidian vault
-subtask: true
 ---
 
 # Note Capture, Revision, and Organization Workflow
