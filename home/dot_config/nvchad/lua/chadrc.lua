@@ -46,7 +46,7 @@ M.nvdash = {
 if vim.fn.argc() > 0 then table.remove(M.nvdash.buttons, 1) end
 
 M.term = {
-  sizes = { vsp = 0.3, ["bo vsp"] = 0.3 },
+  sizes = { sp = 0.5, vsp = 0.5, ["bo sp"] = 0.35, ["bo vsp"] = 0.35 },
 }
 
 M.cheatsheet = {

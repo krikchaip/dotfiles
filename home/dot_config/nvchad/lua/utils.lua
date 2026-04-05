@@ -296,10 +296,10 @@ Term = {
     require("nvchad.term").new(Term.Opts { pos = "sp" })
   end,
   VToggle = function()
-    require("nvchad.term").toggle(Term.Opts { pos = "vsp", id = "vtoggleTerm" })
+    require("nvchad.term").toggle(Term.Opts { pos = "bo vsp", id = "vtoggleTerm" })
   end,
   HToggle = function()
-    require("nvchad.term").toggle(Term.Opts { pos = "sp", id = "htoggleTerm" })
+    require("nvchad.term").toggle(Term.Opts { pos = "bo sp", id = "htoggleTerm" })
   end,
   Toggle = function()
     require("nvchad.term").toggle(Term.Opts { pos = "float", id = "floatTerm" })
