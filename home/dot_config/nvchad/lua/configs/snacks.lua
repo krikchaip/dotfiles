@@ -26,12 +26,27 @@ M.config = function(opts)
     modes = { "n", "i" },
   }
 
+  opts.picker = {
+    enabled = true,
+    ui_select = false,
+    win = {
+      input = {
+        keys = {
+          ["<Esc>"] = { "close", mode = { "n", "i" } },
+          ["<C-/>"] = { "toggle_help_input", mode = { "n", "i" } },
+        },
+      },
+    },
+  }
+
   opts.styles = {
     input = {
       title_pos = "left",
       relative = "cursor",
       width = 30,
-      keys = { i_esc = { "<esc>", "cancel", mode = "i", expr = true } },
+      keys = {
+        i_esc = { "<esc>", "cancel", mode = "i", expr = true },
+      },
     },
   }
 
