@@ -1,5 +1,29 @@
 local M = {}
 
+local opencode_envs = {
+  -- disable OSC52 DCS passthrough; prevents base64 clipboard gibberish in nested terminals
+  -- (opencode > nvim float > tmux) ref: opencode.ai #11996 #19982
+  "TMUX=",
+
+  "OPENCODE_EXPERIMENTAL_LSP_TOOL=true",
+  "OPENCODE_ENABLE_EXA=true",
+  "NVIM_APPNAME=nvchad",
+  "EDITOR=nvim",
+}
+
+local opencode_opts = {
+  id = "opencode.server",
+  pos = "float",
+  cmd = table.concat(opencode_envs, " ") .. " opencode --port",
+  winopts = { winfixbuf = true },
+  float_opts = {
+    width = 0.7,
+    height = 0.7,
+    row = 0.15,
+    col = 0.15,
+  },
+}
+
 --- @param opts opencode.Opts
 M.config = function(opts)
   opts.ask = {
@@ -25,19 +49,6 @@ M.setup = function(opts)
   ---@type opencode.Opts
   vim.g.opencode_opts = M.config(opts)
 end
-
-local opencode_opts = {
-  id = "opencode.server",
-  pos = "float",
-  cmd = "OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_ENABLE_EXA=true NVIM_APPNAME=nvchad EDITOR=nvim opencode --port",
-  winopts = { winfixbuf = true },
-  float_opts = {
-    width = 0.7,
-    height = 0.7,
-    row = 0.15,
-    col = 0.15,
-  },
-}
 
 -- Patch opencode's Promise.select to route through snacks.picker.select,
 -- while keeping global vim.ui.select behavior unchanged.
