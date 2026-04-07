@@ -91,7 +91,7 @@
     },
   },
 
-  "default_agent": "ask",
+  "default_agent": "agentic",
   "agent": {
     // disable builtin agents
     "build": { "disable": true },
