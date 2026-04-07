@@ -104,6 +104,7 @@
   },
 
   "permission": {
+    "mcp-*": "deny",
     "bash": {
       "*": "allow",
       "aws *": "ask",
@@ -116,8 +117,14 @@
       "kubectl *": "ask",
       "rm *": "ask",
     },
-    "mcp-*": "deny",
+    "edit": {
+      // this doesn't work until the following issues are addressed
+      // - https://github.com/anomalyco/opencode/issues/18441
+      // - https://github.com/anomalyco/opencode/issues/5395
+      "~/**": "ask",
+    },
     "external_directory": {
+      "~/**": "allow",
       "/tmp/pngpaste/**": "allow",
     },
   },
