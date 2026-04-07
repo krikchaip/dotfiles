@@ -19,7 +19,7 @@ local opencode_opts = {
   float_opts = {
     width = 0.7,
     height = 0.7,
-    row = 0.15,
+    row = 0.1,
     col = 0.15,
   },
 }

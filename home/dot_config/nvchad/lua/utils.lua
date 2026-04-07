@@ -583,6 +583,12 @@ OpenCode = {
   Actions = function()
     require("opencode").select()
   end,
+  AddBuffer = function()
+    return require("opencode").prompt("@buffer "):next(function(prompt)
+      vim.notify "Added current buffer to OpenCode"
+      return prompt
+    end)
+  end,
 }
 
 Clipboard = {

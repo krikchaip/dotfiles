@@ -286,6 +286,7 @@ map("n", "<leader>v", Markdown.TogglePreview, { desc = "Markdown: Toggle Preview
 map({ "n", "t" }, "<M-l>", OpenCode.Toggle, { desc = "OpenCode: Toggle" })
 map({ "n", "x" }, "<M-i>", OpenCode.AskThis, { desc = "OpenCode: Ask @this" })
 map({ "n", "x" }, "<leader>a", OpenCode.Actions, { desc = "OpenCode: Show Actions" })
+map("n", "ga", OpenCode.AddBuffer, { desc = "OpenCode: Add @buffer" })
 
 -- clipboard management
 map("n", "<leader>yr", Clipboard.YankRelative, { desc = "Clipboard: Yank Relative Path" })
