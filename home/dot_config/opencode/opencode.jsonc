@@ -138,7 +138,6 @@
     "mcp-atlassian": {
       "type": "remote",
       "url": "https://mcp.atlassian.com/v1/mcp",
-      "headers": { "Authorization": "Basic {env:ATLASSIAN_MCP_TOKEN}" },
     },
     "mcp-obsidian": {
       "type": "local",
