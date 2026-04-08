@@ -39,8 +39,9 @@ set_layout_if_changed() {
 yabai -m rule --add app=".*" manage=off
 
 #** Allow only these applications to be managed
-yabai -m rule --add app="^Zen$" manage=on
 yabai -m rule --add app="^Obsidian$" manage=on
+yabai -m rule --add app="^Safari$" manage=on
+yabai -m rule --add app="^Zen$" manage=on
 yabai -m rule --add app="^kitty$" manage=on
 
 #** Special rules for unmanaged windows
