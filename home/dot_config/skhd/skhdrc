@@ -42,23 +42,23 @@ yabai < cmd - left  : yabai -m display --focus prev
 yabai < cmd - right : yabai -m display --focus next
 
 #** move window to another space
-yabai < 1 : yabai -m window --space 1
-yabai < 2 : yabai -m window --space 2
-yabai < 3 : yabai -m window --space 3
-yabai < 4 : yabai -m window --space 4
-yabai < 5 : yabai -m window --space 5
-yabai < 6 : yabai -m window --space 6
-yabai < 7 : yabai -m window --space 7
-yabai < 8 : yabai -m window --space 8
-yabai < 9 : yabai -m window --space 9
+yabai < shift - 1 : yabai -m window --space 1
+yabai < shift - 2 : yabai -m window --space 2
+yabai < shift - 3 : yabai -m window --space 3
+yabai < shift - 4 : yabai -m window --space 4
+yabai < shift - 5 : yabai -m window --space 5
+yabai < shift - 6 : yabai -m window --space 6
+yabai < shift - 7 : yabai -m window --space 7
+yabai < shift - 8 : yabai -m window --space 8
+yabai < shift - 9 : yabai -m window --space 9
 
 #** move window to another display
-yabai < shift - 1 : yabai -m window  --display 2; \
-                    yabai -m display --focus   2
-yabai < shift - 2 : yabai -m window  --display 1; \
-                    yabai -m display --focus   1
-yabai < shift - 3 : yabai -m window  --display 3; \
-                    yabai -m display --focus   3
+yabai < 1 : yabai -m window  --display 2; \
+            yabai -m display --focus   2
+yabai < 2 : yabai -m window  --display 1; \
+            yabai -m display --focus   1
+yabai < 3 : yabai -m window  --display 3; \
+            yabai -m display --focus   3
 
 #** swap current window to the left
 yabai < h : WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
