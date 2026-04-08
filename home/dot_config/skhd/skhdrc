@@ -61,8 +61,10 @@ yabai < shift - 3 : yabai -m window  --display 3; \
                     yabai -m display --focus   3
 
 #** swap current window to the left
-yabai < h : yabai -m window --swap west --focus || ( \
-              WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
+yabai < h : WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
+            if yabai -m window --swap west; then \
+              yabai -m window --focus east && yabai -m window --focus $WIN_A; \
+            else \
               DISP_A=$(yabai -m query --displays --display | jq -r '.index') && \
               yabai -m display --focus west && \
               WIN_B=$(yabai -m query --windows --window last | jq -r '.id') && \
@@ -70,17 +72,29 @@ yabai < h : yabai -m window --swap west --focus || ( \
               yabai -m window $WIN_A --display $DISP_B && \
               if [ "$WIN_B" != "null" ] && [ -n "$WIN_B" ]; then yabai -m window $WIN_B --display $DISP_A; fi && \
               yabai -m window --focus $WIN_A; \
-            )
+            fi
 
 #** swap current window to the bottom
-yabai < j : yabai -m window --swap south || yabai -m window --display south --focus
+yabai < j : WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
+            if yabai -m window --swap south; then \
+              yabai -m window --focus north && yabai -m window --focus $WIN_A; \
+            else \
+              yabai -m window --display south --focus; \
+            fi
 
 #** swap current window to the top
-yabai < k : yabai -m window --swap north || yabai -m window --display north --focus
+yabai < k : WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
+            if yabai -m window --swap north; then \
+              yabai -m window --focus south && yabai -m window --focus $WIN_A; \
+            else \
+              yabai -m window --display north --focus; \
+            fi
 
 #** swap current window to the right
-yabai < l : yabai -m window --swap east --focus || ( \
-              WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
+yabai < l : WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
+            if yabai -m window --swap east; then \
+              yabai -m window --focus west && yabai -m window --focus $WIN_A; \
+            else \
               DISP_A=$(yabai -m query --displays --display | jq -r '.index') && \
               yabai -m display --focus east && \
               WIN_B=$(yabai -m query --windows --window first | jq -r '.id') && \
@@ -88,7 +102,7 @@ yabai < l : yabai -m window --swap east --focus || ( \
               yabai -m window $WIN_A --display $DISP_B && \
               if [ "$WIN_B" != "null" ] && [ -n "$WIN_B" ]; then yabai -m window $WIN_B --display $DISP_A; fi && \
               yabai -m window --focus $WIN_A; \
-            )
+            fi
 
 #** change window rotation
 yabai < x : yabai -m space --mirror x-axis
