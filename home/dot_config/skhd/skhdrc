@@ -25,8 +25,8 @@ ctrl + cmd - p : yabai -m window --focus stack.prev || yabai -m window  --focus 
 ctrl + cmd - r : yabai -m window --focus recent
 
 #** change display focus
-ctrl + cmd + shift - 1 : yabai -m display --focus 1
-ctrl + cmd + shift - 2 : yabai -m display --focus 2
+ctrl + cmd + shift - 1 : yabai -m display --focus 2
+ctrl + cmd + shift - 2 : yabai -m display --focus 1
 ctrl + cmd + shift - 3 : yabai -m display --focus 3
 
 #** change window focus in yabai mode
@@ -53,10 +53,10 @@ yabai < 8 : yabai -m window --space 8
 yabai < 9 : yabai -m window --space 9
 
 #** move window to another display
-yabai < shift - 1 : yabai -m window  --display 1; \
-                    yabai -m display --focus   1
-yabai < shift - 2 : yabai -m window  --display 2; \
+yabai < shift - 1 : yabai -m window  --display 2; \
                     yabai -m display --focus   2
+yabai < shift - 2 : yabai -m window  --display 1; \
+                    yabai -m display --focus   1
 yabai < shift - 3 : yabai -m window  --display 3; \
                     yabai -m display --focus   3
 
