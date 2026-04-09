@@ -80,7 +80,8 @@ M.on_attach = function(bufnr)
   local tree = api.tree
   local node = api.node
   local fs = api.fs
-  local live_filter = api.live_filter
+  local filter = api.filter
+  local live_filter = api.filter.live
   local marks = api.marks
 
   local function opts(desc)
@@ -143,13 +144,13 @@ M.on_attach = function(bufnr)
   map("n", "<localleader>F", live_filter.clear, opts "Search: Clear Filter")
 
   -- filters
-  map("n", "<localleader>a", tree.toggle_enable_filters, opts "Filter: Toggle All")
-  map("n", "<localleader>m", tree.toggle_no_bookmark_filter, opts "Filter: Toggle Marks")
-  map("n", "<localleader>b", tree.toggle_no_buffer_filter, opts "Filter: Toggle Buffers")
-  map("n", "<localleader>c", tree.toggle_git_clean_filter, opts "Filter: Toggle Git Clean")
-  map("n", "<localleader>i", tree.toggle_gitignore_filter, opts "Filter: Toggle Git Ignore")
-  map("n", "<localleader>.", tree.toggle_hidden_filter, opts "Filter: Toggle Dotfiles")
-  map("n", "<localleader>h", tree.toggle_custom_filter, opts "Filter: Toggle Hidden")
+  map("n", "<localleader>a", filter.toggle, opts "Filter: Toggle All")
+  map("n", "<localleader>m", filter.no_bookmark.toggle, opts "Filter: Toggle Marks")
+  map("n", "<localleader>b", filter.no_buffer.toggle, opts "Filter: Toggle Buffers")
+  map("n", "<localleader>c", filter.git.clean.toggle, opts "Filter: Toggle Git Clean")
+  map("n", "<localleader>i", filter.git.ignored.toggle, opts "Filter: Toggle Git Ignore")
+  map("n", "<localleader>.", filter.dotfiles.toggle, opts "Filter: Toggle Dotfiles")
+  map("n", "<localleader>h", filter.custom.toggle, opts "Filter: Toggle Hidden")
 
   -- marks
   map("n", ".", marks.toggle, opts "Mark: Toggle")
@@ -170,6 +171,9 @@ M.on_attach = function(bufnr)
   map("n", "[g", node.navigate.git.prev_recursive, opts "Git: Previous Change")
   map("n", "]g", node.navigate.git.next_recursive, opts "Git: Next Change")
   map("n", "s", M.git_add_toggle, opts "Git: Toggle Stage")
+
+  -- opencode
+  map("n", "ga", M.opencode_addpath, opts "OpenCode: Add Node Path")
 end
 
 M.search_node = function()
@@ -249,6 +253,13 @@ M.config_polyfill = function()
 
     tree.config = { view = { side = side } }
   end
+end
+
+M.opencode_addpath = function()
+  local api = require "nvim-tree.api"
+  local n = api.tree.get_node_under_cursor()
+
+  if n then OpenCode.AddPath(n.absolute_path) end
 end
 
 return M

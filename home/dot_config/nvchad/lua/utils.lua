@@ -589,6 +589,13 @@ OpenCode = {
       return prompt
     end)
   end,
+  AddPath = function(path)
+    local relative_path = require("plenary.path").new(path):make_relative()
+    return require("opencode").prompt("@" .. relative_path .. " "):next(function(prompt)
+      vim.notify("Added to OpenCode: @" .. relative_path)
+      return prompt
+    end)
+  end,
 }
 
 Clipboard = {

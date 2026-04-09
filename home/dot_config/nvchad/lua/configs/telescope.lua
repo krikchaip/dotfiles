@@ -226,10 +226,15 @@ M.search_node = function(opts)
     }
   end
 
+  local function opencode_addpath()
+    M.opencode_addpath()
+  end
+
   local attach_mappings = opts.attach_mappings
   opts.attach_mappings = function(_, map)
     map("i", "<CR>", select_default)
     map("i", "<S-BS>", go_back)
+    map("i", "<M-a>", opencode_addpath)
 
     if attach_mappings then
       return attach_mappings(_, map)
@@ -261,6 +266,16 @@ M.search_node = function(opts)
   end
 
   require("telescope.builtin").find_files(opts)
+end
+
+M.opencode_addpath = function()
+  local selection = require("telescope.actions.state").get_selected_entry()
+  if not selection then return end
+
+  local filename = selection.value or selection.filename or selection[1]
+  local filepath = vim.fs.joinpath(selection.cwd, filename)
+
+  OpenCode.AddPath(filepath)
 end
 
 M.tab_buffers = function(opts)
