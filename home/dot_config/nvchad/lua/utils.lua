@@ -584,10 +584,8 @@ OpenCode = {
     require("opencode").select()
   end,
   AddBuffer = function()
-    return require("opencode").prompt("@buffer "):next(function(prompt)
-      vim.notify "Added current buffer to OpenCode"
-      return prompt
-    end)
+    local path = vim.api.nvim_buf_get_name(0)
+    return OpenCode.AddPath(path)
   end,
   AddPath = function(path)
     local relative_path = require("plenary.path").new(path):make_relative()
