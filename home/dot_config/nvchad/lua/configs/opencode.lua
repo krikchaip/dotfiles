@@ -4,18 +4,12 @@ local opencode_envs = {
   -- disable OSC52 DCS passthrough; prevents base64 clipboard gibberish in nested terminals
   -- (opencode > nvim float > tmux) ref: opencode.ai #11996 #19982
   "TMUX=",
-
-  "OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS=30000",
-  "OPENCODE_EXPERIMENTAL_LSP_TOOL=true",
-  "OPENCODE_ENABLE_EXA=true",
-  "NVIM_APPNAME=nvchad",
-  "EDITOR=nvim",
 }
 
 local opencode_opts = {
   id = "opencode.server",
   pos = "float",
-  cmd = table.concat(opencode_envs, " ") .. " opencode --port",
+  cmd = table.concat(opencode_envs, " ") .. " opencode-tmux-popup --port",
   winopts = { winfixbuf = true },
   float_opts = {
     width = 0.7,
