@@ -100,7 +100,7 @@
     "explore": { "disable": true },
 
     // custom agents
-    "codesearch": { "model": "openrouter/openai/gpt-oss-20b:nitro" },
+    // "codesearch": { "model": "" },
   },
 
   "permission": {
