@@ -5,7 +5,7 @@
   "pruneNotificationType": "chat",
 
   "compress": {
-    "maxContextLimit": "60%",
-    "minContextLimit": "30%"
+    "maxContextLimit": 140000,
+    "minContextLimit": 90000
   }
 }
