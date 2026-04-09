@@ -6,6 +6,8 @@ permission:
   question: allow
   plan_enter: deny
   plan_exit: deny
+  "mcp-*": allow
+  "mcp-obsidian*": deny
 ---
 
 # Agentic Agent
