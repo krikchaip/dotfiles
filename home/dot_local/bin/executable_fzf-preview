@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#
+
 # The purpose of this script is to demonstrate how to preview a file,
 # a directory or an image in the preview window of fzf.
 #
