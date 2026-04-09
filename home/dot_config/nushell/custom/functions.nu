@@ -136,6 +136,7 @@ def "image paste-tmux" []: nothing -> nothing {
 # opencode wrapper with predefined environment variables
 def --wrapped opencode [...rest] {
   with-env {
+    OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS: '30000',
     OPENCODE_EXPERIMENTAL_LSP_TOOL: "true",
     OPENCODE_ENABLE_EXA: "true",
     NVIM_APPNAME: "nvchad",

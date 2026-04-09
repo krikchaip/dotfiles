@@ -5,6 +5,7 @@ local opencode_envs = {
   -- (opencode > nvim float > tmux) ref: opencode.ai #11996 #19982
   "TMUX=",
 
+  "OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS=30000",
   "OPENCODE_EXPERIMENTAL_LSP_TOOL=true",
   "OPENCODE_ENABLE_EXA=true",
   "NVIM_APPNAME=nvchad",
