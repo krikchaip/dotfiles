@@ -105,7 +105,7 @@
     "explore": { "disable": true },
 
     // custom agents
-    "codesearch": { "model": "openrouter/qwen/qwen3.5-flash-02-23" },
+    "codesearch": { "model": "google/antigravity-gemini-3-flash" },
   },
 
   "permission": {
