@@ -110,6 +110,7 @@ alias px = pnpx
 alias oc = opencode
 alias occ = opencode -c
 alias ocm = opencode session manager
+alias ocp = opencode --port
 
 # openspec
 alias opsx = openspec
