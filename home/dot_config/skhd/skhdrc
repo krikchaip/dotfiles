@@ -70,7 +70,11 @@ yabai < h : WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
               WIN_B=$(yabai -m query --windows --window last | jq -r '.id') && \
               DISP_B=$(yabai -m query --displays --display | jq -r '.index') && \
               yabai -m window $WIN_A --display $DISP_B && \
-              if [ "$WIN_B" != "null" ] && [ -n "$WIN_B" ]; then yabai -m window $WIN_B --display $DISP_A; fi && \
+              if [ "$WIN_B" != "null" ] && [ -n "$WIN_B" ]; then \
+                yabai -m window $WIN_B --display $DISP_A && \
+                yabai -m display --focus east && \
+                { yabai -m window $WIN_B --warp first || true; }; \
+              fi && \
               yabai -m window --focus $WIN_A; \
             fi
 
@@ -100,7 +104,10 @@ yabai < l : WIN_A=$(yabai -m query --windows --window | jq -r '.id') && \
               WIN_B=$(yabai -m query --windows --window first | jq -r '.id') && \
               DISP_B=$(yabai -m query --displays --display | jq -r '.index') && \
               yabai -m window $WIN_A --display $DISP_B && \
-              if [ "$WIN_B" != "null" ] && [ -n "$WIN_B" ]; then yabai -m window $WIN_B --display $DISP_A; fi && \
+              { yabai -m window $WIN_A --warp first || true; } && \
+              if [ "$WIN_B" != "null" ] && [ -n "$WIN_B" ]; then \
+                yabai -m window $WIN_B --display $DISP_A; \
+              fi && \
               yabai -m window --focus $WIN_A; \
             fi
 
