@@ -21,15 +21,11 @@
   "provider": {
     "openrouter": {
       "models": {
-        "openai/gpt-oss-20b:nitro": {
-          "id": "openai/gpt-oss-20b:nitro",
-          "name": "GPT OSS 20B (nitro)",
-          "limit": { "context": 131072, "output": 65535 },
+        "openai/gpt-oss-20b": {
+          "options": { "provider": { "only": ["wandb/fp4"] } },
         },
-        "openai/gpt-oss-120b:nitro": {
-          "id": "openai/gpt-oss-120b:nitro",
-          "name": "GPT OSS 120B (nitro)",
-          "limit": { "context": 131072, "output": 65535 },
+        "openai/gpt-oss-120b": {
+          "options": { "provider": { "only": ["groq"] } },
         },
         "qwen/qwen3.5-flash-02-23": {
           "id": "qwen/qwen3.5-flash-02-23",
@@ -105,7 +101,8 @@
     "explore": { "disable": true },
 
     // custom agents
-    "codesearch": { "model": "google/antigravity-gemini-3-flash" },
+    "codesearch": { "model": "openrouter/openai/gpt-oss-120b" },
+    "conversation": { "model": "openrouter/openai/gpt-oss-20b" },
   },
 
   "permission": {
@@ -129,8 +126,8 @@
       "~/**": "ask",
     },
     "external_directory": {
+      "/tmp/pngpaste/**": "allow", // screenshots
       "~/**": "allow",
-      "/tmp/pngpaste/**": "allow",
     },
   },
 
