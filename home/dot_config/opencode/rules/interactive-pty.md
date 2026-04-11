@@ -6,7 +6,7 @@ tools:
   - pty_read
 ---
 
-If a command is expected to take `>10s` (e.g. dev servers, watch modes, heavy builds), run it in the background using `pty_spawn`.
+If a command is expected to take long (e.g. integration/e2e tests, heavy builds) or forever (e.g. dev servers, watch modes), run it in the background using `pty_spawn`.
 
 Once spawned:
 
