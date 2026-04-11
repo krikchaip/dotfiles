@@ -5,7 +5,17 @@
   "pruneNotificationType": "chat",
 
   "compress": {
-    "maxContextLimit": 140000,
-    "minContextLimit": 90000
+    "minContextLimit": 100000,
+    "maxContextLimit": 150000,
+
+    "modelMinLimits": {
+      "google/antigravity-gemini-3-flash": 200000,
+      "google/antigravity-gemini-3.1-pro": 200000
+    },
+
+    "modelMaxLimits": {
+      "google/antigravity-gemini-3-flash": 350000,
+      "google/antigravity-gemini-3.1-pro": 350000
+    }
   }
 }
