@@ -107,6 +107,7 @@
 
   "permission": {
     "mcp-*": "deny",
+    "google_search": "deny", // use EXA search instead
     "bash": {
       "*": "allow",
       "aws *": "ask",
