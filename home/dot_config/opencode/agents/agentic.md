@@ -4,10 +4,9 @@ mode: primary
 temperature: 0.3
 permission:
   question: allow
-  plan_enter: deny
-  plan_exit: deny
+  todoread: allow
+  todowrite: allow
   "mcp-*": allow
-  "mcp-obsidian*": deny
 ---
 
 # Agentic Agent
