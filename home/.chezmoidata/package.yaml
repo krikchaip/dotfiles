@@ -1,27 +1,27 @@
 package:
   mise:
-  - bun
-  - go
-  - lua@5.1
-  - nodejs
-  - pipx
-  - python
+    - bun
+    - go
+    - lua@5.1
+    - nodejs
+    - pipx
+    - python
 
   python:
-  - neovim-remote
+    - neovim-remote
 
   npm:
-  - typescript
-  - tree-sitter-cli
-  - "@fission-ai/openspec"
-  - openskills
+    - typescript
+    - tree-sitter-cli
+    - "@fission-ai/openspec"
+    - skills
 
   go:
-  - github.com/mitranim/gow
+    - github.com/mitranim/gow
 
   yazi:
-  - BennyOe/tokyo-night
-  - gosxrgxx/flexoki-dark
-  - 956MB/vscode-dark-plus
-  - yazi-rs/plugins:smart-paste
-  - yazi-rs/plugins:types
+    - BennyOe/tokyo-night
+    - gosxrgxx/flexoki-dark
+    - 956MB/vscode-dark-plus
+    - yazi-rs/plugins:smart-paste
+    - yazi-rs/plugins:types
