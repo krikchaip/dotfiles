@@ -1,8 +1,0 @@
----
-agent:
-  - agentic
-  - ask
----
-
-Use the `codesearch` subagent to find relevant code and references **BEFORE** attempting to search or explore the codebase using other tools.
-Only use `grep`, `glob`, `list`, or `read` once `codesearch` has failed after retries, or for specific local file verification.
