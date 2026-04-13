@@ -29,9 +29,11 @@ updated_at: YYYYMMDDHHmm
 references:
   - https://some-external-reference.com
 ---
+
 #example-tag
 
 ###### Section 1 Title
+
 ...some details... [[Relevant Note in Knowledge Folder If Applicable]] ...more details...
 
 **Example**
@@ -40,6 +42,7 @@ references:
 ...example explanation...
 
 ###### Section 2 Title
+
 ...some details... [[Relevant Note in Quick Ideas Folder If Applicable]] ...more details...
 ```
 
