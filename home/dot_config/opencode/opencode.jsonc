@@ -104,11 +104,28 @@
     // custom agents
     "conversation": { "model": "openrouter/openai/gpt-oss-20b" },
     "quicksearch": { "model": "openrouter/openai/gpt-oss-120b" },
+    "schedule": { "model": "google/antigravity-gemini-3-flash" },
   },
 
   "permission": {
     "mcp-*": "deny",
+
+    // [antigravity-auth]
     "google_search": "deny", // use EXA search instead
+
+    // [scheduler]
+    "schedule_job": "deny", // create a new scheduled job
+    "list_jobs": "deny", // list all scheduled jobs
+    "get_version": "deny", // show scheduler and opencode versions
+    "get_skill": "deny", // get built-in skill templates (best practices)
+    "install_skill": "deny", // install a built-in skill into your repo
+    "get_job": "deny", // fetch job details and metadata
+    "update_job": "deny", // update an existing job
+    "delete_job": "deny", // remove a scheduled job
+    "cleanup_global": "deny", // remove scheduler artifacts across all scopes (dry-run by default)
+    "run_job": "deny", // execute a job immediately (fire-and-forget)
+    "job_logs": "deny", // view the latest logs from a job
+
     "bash": {
       "*": "allow",
       "aws *": "ask",
@@ -121,12 +138,14 @@
       "kubectl *": "ask",
       "rm *": "ask",
     },
+
     "edit": {
       // this doesn't work until the following issues are addressed
       // - https://github.com/anomalyco/opencode/issues/18441
       // - https://github.com/anomalyco/opencode/issues/5395
       "~/**": "ask",
     },
+
     "external_directory": {
       "/tmp/pngpaste/**": "allow", // screenshots
       "~/**": "allow",
