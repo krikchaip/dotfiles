@@ -6,7 +6,6 @@ permission:
   question: allow
   todoread: allow
   todowrite: allow
-  "mcp-*": allow
 ---
 
 # Agentic Agent

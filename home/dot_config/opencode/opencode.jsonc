@@ -105,6 +105,9 @@
     "conversation": { "model": "openrouter/openai/gpt-oss-20b" },
     "quicksearch": { "model": "openrouter/openai/gpt-oss-120b" },
     "schedule": { "model": "google/antigravity-gemini-3-flash" },
+
+    // mcp agents
+    "atlassian": { "model": "google/antigravity-gemini-3-flash" },
   },
 
   "permission": {
