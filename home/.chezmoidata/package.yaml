@@ -11,17 +11,17 @@ package:
     - neovim-remote
 
   npm:
-    - typescript
-    - tree-sitter-cli
     - "@fission-ai/openspec"
     - skills
+    - tree-sitter-cli
+    - typescript
 
   go:
     - github.com/mitranim/gow
 
   yazi:
+    - 956MB/vscode-dark-plus
     - BennyOe/tokyo-night
     - gosxrgxx/flexoki-dark
-    - 956MB/vscode-dark-plus
     - yazi-rs/plugins:smart-paste
     - yazi-rs/plugins:types
