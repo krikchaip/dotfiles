@@ -4,11 +4,6 @@ mode: subagent
 temperature: 0.2
 permission:
   "*": deny
-  skill: allow
-  task:
-    "*": deny
-    conversation: allow
-    quicksearch: allow
 
   # plugin-specific
   schedule_job: allow
