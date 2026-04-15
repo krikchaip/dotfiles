@@ -4,7 +4,7 @@ mode: subagent
 temperature: 0.2
 permission:
   "*": deny
-  "mcp-obsidian*": allow
+  "mcp-obsidian*": ask
 ---
 
 # Obsidian Agent
