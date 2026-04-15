@@ -4,6 +4,8 @@ mode: subagent
 temperature: 0.2
 permission:
   "*": deny
+
+  # mcp-specific
   "mcp-atlassian*": ask
 ---
 
