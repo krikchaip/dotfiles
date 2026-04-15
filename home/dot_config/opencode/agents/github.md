@@ -4,6 +4,7 @@ mode: subagent
 temperature: 0.2
 permission:
   "*": deny
+
   read: allow
   grep: allow
   glob: allow
@@ -31,9 +32,11 @@ permission:
 
   # mcp-specific
   "mcp-github*": ask
+
   "mcp-github_get*": allow
   "mcp-github_list*": allow
   "mcp-github_search*": allow
+
   "mcp-github_issue_read": allow
   "mcp-github_pull_request_read": allow
 ---
