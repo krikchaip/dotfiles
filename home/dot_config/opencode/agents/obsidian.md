@@ -4,6 +4,12 @@ mode: subagent
 temperature: 0.2
 permission:
   "*": deny
+  bash:
+    "date *": allow
+  skill:
+    zettelkasten: allow
+  webfetch: allow
+  websearch: allow
 
   # mcp-specific
   "mcp-obsidian*": ask
