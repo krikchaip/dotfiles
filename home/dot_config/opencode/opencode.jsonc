@@ -108,6 +108,8 @@
 
     // mcp agents
     "atlassian": { "model": "google/antigravity-gemini-3-flash" },
+    "github": { "model": "google/antigravity-gemini-3-flash" },
+    "obsidian": { "model": "google/antigravity-gemini-3-flash" },
   },
 
   "permission": {

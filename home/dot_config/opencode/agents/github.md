@@ -29,7 +29,7 @@ permission:
     "git show *": allow
     "git status *": allow
 
-  # mcp-specific (read-only)
+  # mcp-specific
   "mcp-github*": ask
   "mcp-github_get*": allow
   "mcp-github_list*": allow
