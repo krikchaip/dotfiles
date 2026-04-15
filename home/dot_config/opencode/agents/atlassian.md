@@ -4,7 +4,7 @@ mode: subagent
 temperature: 0.2
 permission:
   "*": deny
-  "mcp-atlassian*": allow
+  "mcp-atlassian*": ask
 ---
 
 # Atlassian Agent
