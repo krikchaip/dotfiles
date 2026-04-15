@@ -1,5 +1,5 @@
 ---
-description: Interacts with Atlassian products like Jira and Confluence to manage issues, projects, pages, and spaces.
+description: Interacts with Atlassian products like Jira and Confluence to manage issues, projects, pages, and spaces
 mode: subagent
 temperature: 0.2
 permission:

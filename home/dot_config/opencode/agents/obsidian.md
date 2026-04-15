@@ -1,5 +1,5 @@
 ---
-description: Interacts with an Obsidian vault to read, write, search, and manage notes, tags, and frontmatter.
+description: Interacts with an Obsidian vault to read, write, search, and manage notes, tags, and frontmatter
 mode: subagent
 temperature: 0.2
 permission:

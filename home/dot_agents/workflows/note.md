@@ -2,8 +2,6 @@
 description: Capture, revise, and organize notes in the Obsidian vault
 ---
 
-> User input: $ARGUMENTS
-
 # Note Capture, Revision, and Organization Workflow
 
 This workflow defines how to capture, revise, and organize knowledge in the Obsidian vault
