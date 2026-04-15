@@ -1,10 +1,11 @@
 ---
-description: Capture, revise, and organize notes in the Obsidian vault
+name: zettelkasten
+description: Capture, revise, and organize notes in the Obsidian vault following Zettelkasten principles
 ---
 
-# Note Capture, Revision, and Organization Workflow
+# Zettelkasten Skill
 
-This workflow defines how to capture, revise, and organize knowledge in the Obsidian vault
+This skill defines how to capture, revise, and organize notes in the Obsidian vault
 
 ## Core Principle
 
