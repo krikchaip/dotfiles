@@ -4,10 +4,12 @@ mode: subagent
 temperature: 0.2
 permission:
   "*": deny
-  bash:
-    "sqlite3 *": "allow"
+
   read: allow
   grep: allow
+
+  bash:
+    "sqlite3 *": "allow"
   external_directory:
     "/tmp/**": allow
 ---
