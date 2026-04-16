@@ -6,11 +6,9 @@ permission:
   "*": deny
 
   bash:
-    "read *": allow
-    "grep *": allow
-    "sqlite3 *": "allow"
-  external_directory:
-    "/tmp/**": allow
+    "*read* /tmp/opencode-conversations/*": allow
+    "*grep* /tmp/opencode-conversations/*": allow
+    "*sqlite3* ~/.local/share/opencode/*": "allow"
 ---
 
 # Conversation Search Agent
@@ -31,10 +29,10 @@ sqlite3 ~/.local/share/opencode/opencode.db "SELECT id, title FROM session WHERE
 Using the retrieved `id`, extract the conversation parts. Because the output can be large, it is best to dump it to a temporary file and read it:
 
 ```bash
-sqlite3 ~/.local/share/opencode/opencode.db "SELECT data FROM part WHERE session_id = '<session_id>' ORDER BY time_created ASC;" > /tmp/conversation_dump.json
+sqlite3 ~/.local/share/opencode/opencode.db "SELECT data FROM part WHERE session_id = '<session_id>' ORDER BY time_created ASC;" > /tmp/opencode-conversations/<session_title>.json
 ```
 
-Then use the `read` or `grep` tools to analyze the file.
+Then use the necessary bash commands/tools to analyze the file.
 
 ## Constraints
 

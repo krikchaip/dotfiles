@@ -117,6 +117,11 @@
   "permission": {
     "mcp-*": "deny",
 
+    // disable built-in read tools (except for `read`, which is required by edit tools)
+    "grep": "deny",
+    "glob": "deny",
+    "list": "deny",
+
     // subagent-specific
     "skill": {
       "zettelkasten": "deny",
@@ -142,6 +147,12 @@
     "job_logs": "deny", // view the latest logs from a job
 
     "bash": {
+      "* /*": "deny",
+      "* /tmp/pngpaste/*.png": "allow", // screenshots
+      "* ~/*": "ask",
+      "* $HOME/*": "ask",
+      "* */../*": "deny",
+
       "aws *": "ask",
       "az *": "ask",
       "curl *": "ask",
@@ -151,18 +162,6 @@
       "git worktree remove *": "ask",
       "kubectl *": "ask",
       "rm *": "ask",
-    },
-
-    "edit": {
-      // this doesn't work until the following issues are addressed
-      // - https://github.com/anomalyco/opencode/issues/18441
-      // - https://github.com/anomalyco/opencode/issues/5395
-      "~/**": "ask",
-    },
-
-    "external_directory": {
-      "/tmp/pngpaste/**": "allow", // screenshots
-      "~/**": "allow",
     },
   },
 

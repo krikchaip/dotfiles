@@ -6,29 +6,29 @@ permission:
   "*": deny
 
   bash:
-    "read *": allow
-    "grep *": allow
-    "find *": allow
-    "ls *": allow
+    "*read* ./*": allow
+    "*grep* ./*": allow
+    "*find* ./*": allow
+    "*ls* ./*": allow
 
     # allow read-only git commands
-    "git *": ask
+    "*git* *": ask
 
-    "git branch": allow
-    "git diff": allow
-    "git log": allow
-    "git ls-files": allow
-    "git stash list": allow
-    "git status": allow
+    "*git* branch": allow
+    "*git* diff": allow
+    "*git* log": allow
+    "*git* ls-files": allow
+    "*git* stash list": allow
+    "*git* status": allow
 
-    "git blame *": allow
-    "git describe *": allow
-    "git diff *": allow
-    "git log *": allow
-    "git ls-files *": allow
-    "git shortlog *": allow
-    "git show *": allow
-    "git status *": allow
+    "*git* blame *": allow
+    "*git* describe *": allow
+    "*git* diff *": allow
+    "*git* log *": allow
+    "*git* ls-files *": allow
+    "*git* shortlog *": allow
+    "*git* show *": allow
+    "*git* status *": allow
 
   # mcp-specific
   "mcp-github*": ask
@@ -47,7 +47,7 @@ You are a specialized GitHub operations agent. Your sole purpose is to execute G
 
 ## Constraints
 
-- **GitHub-first**: Prefer `mcp-github_*` tools for all GitHub operations. Use `read`, `glob`, `grep`, and `list` to inspect local files, and read-only `git` commands (e.g. `git log`, `git diff`) to understand local repo state when needed.
+- **GitHub-first**: Prefer `mcp-github_*` tools for all GitHub operations. Use bash commands or built-in tools to inspect local files, and read-only `git` commands (e.g. `git log`, `git diff`) to understand local repo state when needed.
 - **Precision**: Use exact repo owner/name, issue numbers, and SHAs as provided. Confirm ambiguous identifiers before acting.
 - **Minimal scope**: Request only the data needed; avoid fetching large diffs or full file trees unless required.
 
