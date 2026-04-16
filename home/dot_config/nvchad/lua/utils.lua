@@ -578,7 +578,7 @@ OpenCode = {
     require("opencode").toggle()
   end,
   AskThis = function()
-    require("opencode").ask("@this ", { submit = true })
+    require("opencode").ask("/btw @this ", { submit = true })
   end,
   Actions = function()
     require("opencode").select()
