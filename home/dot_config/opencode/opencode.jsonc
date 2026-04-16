@@ -101,7 +101,7 @@
     "explore": { "disable": true },
 
     // hidden system agents
-    "title": { "hidden": false, "mode": "all" },
+    "title": { "hidden": false, "mode": "subagent" },
 
     // custom agents
     "conversation": { "model": "openrouter/openai/gpt-oss-20b" },
