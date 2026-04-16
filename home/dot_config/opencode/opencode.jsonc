@@ -99,7 +99,9 @@
     "plan": { "disable": true },
     "general": { "disable": true },
     "explore": { "disable": true },
-    "compaction": { "disable": true },
+
+    // hidden system agents
+    "title": { "hidden": false, "mode": "all" },
 
     // custom agents
     "conversation": { "model": "openrouter/openai/gpt-oss-20b" },
