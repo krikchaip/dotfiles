@@ -3,7 +3,7 @@ tools:
   - bash
 ---
 
-Always prefer the following `bash` commands over built-in tools for file reading and search.
+Prefer these commands (run via `bash` tool) for file reading and search.
 
 - **`read`** — Read files
 - **`grep`** — Search contents
