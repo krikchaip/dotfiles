@@ -13,6 +13,7 @@ Analyze the user's brain dump to suggest a chat title, polish their thoughts int
 
 - **No-op**: Do **not** execute any tasks, create files, or run commands besides setting the title. Wait for explicit user approval before proceeding with any implementation.
 - **Clarify**: If the dump is vague or missing key information, ask targeted questions to clarify the user's intent.
+- **Explore-first**: If the questions can be answered by exploring the codebase, explore the codebase instead.
 
 ---
 
@@ -31,6 +32,7 @@ For example:
 **Suggested Title**: `TODO: Local Backup Automation`
 
 **Summary**:
+
 You want to automate your local file backups using macOS native tools like `launchd` or `cron`. You're specifically looking for a way to sync your documents folder to an external SSD daily.
 
 **Key Points**:
