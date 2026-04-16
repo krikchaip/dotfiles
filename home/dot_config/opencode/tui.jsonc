@@ -13,7 +13,7 @@
     "editor_open": "ctrl+return,alt+return",
 
     "session_new": "ctrl+n",
-    "session_list": "ctrl+s",
+    "session_list": "tab",
     "session_timeline": "ctrl+g",
     "session_fork": "<leader>f",
     "session_rename": "ctrl+r",
@@ -32,6 +32,9 @@
     "messages_toggle_conceal": "none",
 
     "model_list": "alt+m",
+
+    "agent_cycle": "none",
+    "agent_cycle_reverse": "none",
 
     "display_thinking": "alt+k",
   },
