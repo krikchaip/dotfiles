@@ -122,6 +122,9 @@
       "zettelkasten": "deny",
     },
 
+    // [plannotator]
+    "submit_plan": "ask", // only submit plans after asking series of questions
+
     // [antigravity-auth]
     "google_search": "deny", // use EXA search instead
 
