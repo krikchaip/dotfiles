@@ -1,7 +1,7 @@
 vim.g.base46_cache = vim.fn.stdpath "data" .. "/base46/"
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
-vim.g.auto_reveal_buffer = true
+vim.g.auto_reveal_buffer = false
 vim.g.auto_preview_node = false
 vim.g.minimal = os.getenv "NVIM_MINIMAL" == "true" and true or false
 
