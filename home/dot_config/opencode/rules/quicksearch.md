@@ -1,7 +1,6 @@
 ---
 agent:
   - agentic
-  - ask
 ---
 
 Use the `quicksearch` subagent to find relevant code and references **BEFORE** attempting to search or explore the codebase using other tools.

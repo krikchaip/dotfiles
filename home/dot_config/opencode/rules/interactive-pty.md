@@ -1,9 +1,6 @@
 ---
-match: all
-tools:
-  - bash
-  - pty_spawn
-  - pty_read
+agent:
+  - agentic
 ---
 
 If a command is expected to take long (e.g. integration/e2e tests, heavy builds) or forever (e.g. dev servers, watch modes), run it in the background using `pty_spawn`.
