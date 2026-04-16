@@ -5,13 +5,13 @@ temperature: 0.2
 permission:
   "*": deny
 
-  read: allow
-  grep: allow
-  glob: allow
-  list: allow
-
-  # allow read-only git commands
   bash:
+    "read *": allow
+    "grep *": allow
+    "find *": allow
+    "ls *": allow
+
+    # allow read-only git commands
     "git *": ask
 
     "git branch": allow

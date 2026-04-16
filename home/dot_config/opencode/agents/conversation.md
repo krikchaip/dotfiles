@@ -5,10 +5,9 @@ temperature: 0.2
 permission:
   "*": deny
 
-  read: allow
-  grep: allow
-
   bash:
+    "read *": allow
+    "grep *": allow
     "sqlite3 *": "allow"
   external_directory:
     "/tmp/**": allow

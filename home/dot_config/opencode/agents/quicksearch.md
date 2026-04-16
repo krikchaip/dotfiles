@@ -5,11 +5,13 @@ temperature: 0.1
 permission:
   "*": deny
 
-  read: allow
-  grep: allow
-  glob: allow
-  list: allow
   lsp: allow
+
+  bash:
+    "read *": allow
+    "grep *": allow
+    "find *": allow
+    "ls *": allow
 ---
 
 # Quick Search Agent
