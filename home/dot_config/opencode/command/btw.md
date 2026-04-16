@@ -18,7 +18,6 @@ Fulfill a quick user request or answer their question. Reference the parent sess
 
 ---
 
-## User Input (optional)
+## User Input (required)
 
 > ...$ARGUMENTS
-
