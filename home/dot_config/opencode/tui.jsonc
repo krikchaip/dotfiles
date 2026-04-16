@@ -11,6 +11,7 @@
     "leader": "ctrl+o",
 
     "editor_open": "ctrl+return,alt+return",
+    "tool_details": "alt+j",
 
     "session_new": "ctrl+n",
     "session_list": "tab",
@@ -33,8 +34,8 @@
 
     "model_list": "alt+m",
 
-    "agent_cycle": "none",
-    "agent_cycle_reverse": "none",
+    "agent_cycle": "<leader>tab",
+    "agent_cycle_reverse": "<leader>shift+tab",
 
     "display_thinking": "alt+k",
   },
