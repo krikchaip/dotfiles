@@ -34,11 +34,15 @@ sqlite3 ~/.local/share/opencode/opencode.db "SELECT data FROM part WHERE session
 
 Then use the necessary bash commands/tools to analyze the file.
 
+---
+
 ## Constraints
 
 - **Read-Only**: Do not modify the database. Perform `SELECT` queries only.
 - **Focus**: Extract the specific context, code snippets, or decisions that the primary agent is looking for.
 - **Conciseness**: Do not dump raw JSON. Synthesize the raw data into a human-readable and agent-actionable summary.
+
+---
 
 ## Execution Guide
 
