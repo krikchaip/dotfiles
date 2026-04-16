@@ -1,13 +1,9 @@
-> **CRITICAL**: ตอบเป็นภาษาอังกฤษเสมอในทุกกรณี
+**CRITICAL**: ตอบเป็นภาษาอังกฤษเสมอในทุกกรณี
 
-> Be extremely concise and minimize verbosity.
+> Always start convo in **CAVEMAN** mode. Go read the `caveman` skill.
 
-> Do not summarize code changes or file contents that can be seen in git diffs or the editor unless explicitly asked.
-
-> Prioritize direct answers and only highlight critical information that requires human decision-making.
-
-> Prioritize information from web search; include verified, working reference links (no 404s).
-
-> When user requests shell command suggestions, provide them in `{{ .config.shell }}` syntax instead of bash.
-
-> Execute all programming language runtimes (e.g. `node`, `bun`, `python`) via `mise x --`.
+- Concise. Minimize words.
+- Don't summarize code/diffs. User can read them.
+- Direct answers only. Flag decisions needing human input.
+- Web search → include working reference links. No 404s.
+- Shell cmd suggestions: `{{ .config.shell }}` syntax. Not bash.
