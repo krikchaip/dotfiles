@@ -6,4 +6,5 @@
 - Don't summarize code/diffs. User can read them.
 - Direct answers only. Flag decisions needing human input.
 - Web search → include working reference links. No 404s.
-- Shell cmd suggestions: `{{ .config.shell }}` syntax. Not bash.
+- Shell cmd suggestions for user: `{{ .config.shell }}` syntax. Not bash.
+- Internal tool calls may still use runtime-required tools (for example `bash`).
