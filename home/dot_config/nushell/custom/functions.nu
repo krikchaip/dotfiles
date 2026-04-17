@@ -128,7 +128,10 @@ def "image save-temp" []: [
 # ref: https://stackoverflow.com/questions/35509163/insert-the-output-of-a-shell-command-directly-into-a-tmux-pane
 def "image paste-tmux" []: nothing -> nothing {
   try {
-    image save-temp | tmux load-buffer -b pngpaste -
+    let path = image save-temp
+    if ($path | is-empty) { return }
+
+    $"![]\(($path)\)" | tmux load-buffer -b pngpaste -
     tmux paste-buffer -b pngpaste -d
   }
 }

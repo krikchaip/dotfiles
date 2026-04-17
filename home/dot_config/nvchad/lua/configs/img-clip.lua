@@ -10,6 +10,7 @@ M.config = function(opts)
 
   opts.filetypes = {
     codecompanion = { template = "[Image]($FILE_PATH)" },
+    markdown = { template = "![]($FILE_PATH)" },
   }
 
   return opts
