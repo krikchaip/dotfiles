@@ -1,6 +1,6 @@
 ---
 description: Project-specific knowledge for chezmoi/Homebrew setup
-label: project
+label: homebrew
 limit: 5000
 read_only: false
 ---
