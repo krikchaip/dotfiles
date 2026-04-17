@@ -156,7 +156,7 @@
       "* /tmp/pngpaste/*.png": "allow", // screenshots
       "* ~/*": "ask",
       "* $HOME/*": "ask",
-      "* */../*": "deny",
+      "* *../*": "deny",
 
       "aws *": "ask",
       "az *": "ask",
