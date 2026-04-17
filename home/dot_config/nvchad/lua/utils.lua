@@ -577,21 +577,35 @@ OpenCode = {
   Toggle = function()
     require("opencode").toggle()
   end,
-  AskThis = function()
-    require("opencode").ask("/btw @this ", { submit = true })
-  end,
   Actions = function()
     require("opencode").select()
+  end,
+  BtwBuffer = function()
+    require("opencode").ask("/btw @buffer ", { submit = true })
+  end,
+  BtwThis = function()
+    require("opencode").ask("/btw @this ", { submit = true })
+  end,
+  AddPath = function(path)
+    local relative_path = require("plenary.path").new(path):make_relative()
+
+    return require("opencode").prompt("@" .. relative_path .. " "):next(function(prompt)
+      vim.notify("Added to OpenCode: @" .. relative_path)
+      return prompt
+    end)
   end,
   AddBuffer = function()
     local path = vim.api.nvim_buf_get_name(0)
     return OpenCode.AddPath(path)
   end,
-  AddPath = function(path)
-    local relative_path = require("plenary.path").new(path):make_relative()
-    return require("opencode").prompt("@" .. relative_path .. " "):next(function(prompt)
-      vim.notify("Added to OpenCode: @" .. relative_path)
-      return prompt
+  AddThis = function()
+    local ctx = require("opencode.context").new()
+
+    local rendered = ctx:render("@this", {})
+    local resolved = ctx.plaintext(rendered.output)
+
+    return require("opencode").prompt(resolved .. " "):next(function()
+      vim.notify("Added to OpenCode: " .. resolved)
     end)
   end,
 }
