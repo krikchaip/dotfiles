@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Wrapper used by prompt/rule instructions that call `ripgrep`.
+# Keep output lean by default; callers can still override via args.
+exec rg --color=never --no-heading --trim $@

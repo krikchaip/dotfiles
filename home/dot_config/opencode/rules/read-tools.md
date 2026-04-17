@@ -3,12 +3,16 @@ tools:
   - bash
 ---
 
-Prefer these commands (run via `bash` tool) for file reading and search.
+Prefer bash-first read/search commands for local file reading and search.
 
-- **`read`** — Read files
-- **`grep`** — Search contents
-- **`find`** — Find files
-- **`ls`** — Directory listing
+```bash
+$ read ./path/to/file  # Read files
+$ ripgrep "package" ./ # Search contents
+$ find ./              # Find files
+$ ls ./path/to/file    # Directory listing
+```
+
+Example usage:
 
 ```bash
 # Read a single file
@@ -26,17 +30,17 @@ read --tail-lines 50 ./app.log
 # Read with aggressive filtering (strip comments, blanks, boilerplate)
 read -l aggressive ./src/main.ts
 
-# Search for a pattern (uses ripgrep under the hood)
-grep "TODO" ./src/
+# Search for a pattern
+ripgrep "TODO" ./src/
 
 # Search case-insensitively
-grep "error" ./ -i
+ripgrep "error" ./ -i
 
 # Search only TypeScript files
-grep "useState" ./ -t ts
+ripgrep "useState" ./ -t ts
 
 # Search with surrounding context lines
-grep "export default" ./ -A 3
+ripgrep "export default" ./ -A 3
 
 # Find files by name
 find ./ -name "*.ts"
