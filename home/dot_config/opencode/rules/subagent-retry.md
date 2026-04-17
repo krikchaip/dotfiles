@@ -3,4 +3,5 @@ agent:
   - agentic
 ---
 
-If a subagent fails or returns unexpected empty results, you **MUST** retry up to 3 times before falling back to other tools.
+Retry failed or unexpectedly empty subagents up to 3 times before falling back.
+Do not blindly retry deterministic provider or tool-schema failures such as `not in request.tools`, `tool call validation failed`, or unsupported tool names. Change approach or fall back immediately.
