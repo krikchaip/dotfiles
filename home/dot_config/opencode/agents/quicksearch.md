@@ -8,10 +8,10 @@ permission:
   lsp: allow
 
   bash:
-    "*read* .*": allow
-    "*ripgrep* .*": allow
-    "*find* .*": allow
-    "*ls* .*": allow
+    "*read* *": allow
+    "*ripgrep* *": allow
+    "*find* *": allow
+    "*ls* *": allow
 ---
 
 # Quick Search Agent
