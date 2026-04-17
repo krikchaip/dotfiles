@@ -172,7 +172,7 @@ def "opencode session manager" [] {
       continue
     }
 
-    opencode --session $id
+    opencode --session --port $id
     break
   }
 }
