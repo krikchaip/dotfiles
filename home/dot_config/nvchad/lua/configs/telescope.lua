@@ -165,6 +165,55 @@ M.search_node = function(opts)
   opts.default_text = opts.default_text or ""
   opts.previewer = require("telescope.config").values.file_previewer(opts)
 
+  local function path_display(_, path)
+    local relative_path = tostring(path or ""):gsub("^%./", ""):gsub("/+$", "")
+    if relative_path == "" then return "" end
+
+    return relative_path
+  end
+
+  local function shift_style(style, offset)
+    if offset == 0 or type(style) ~= "table" then return style end
+
+    local shifted = {}
+
+    for i, item in ipairs(style) do
+      if type(item) == "table" and type(item[1]) == "table" and type(item[1][1]) == "number" and type(item[1][2]) == "number" then
+        shifted[i] = { { item[1][1] + offset, item[1][2] + offset }, item[2] }
+      else
+        shifted[i] = item
+      end
+    end
+
+    return shifted
+  end
+
+  local function entry_maker_for(picker_opts)
+    local base_entry_maker = require("telescope.make_entry").gen_from_file(picker_opts)
+
+    return function(line)
+      local entry = base_entry_maker(line)
+      local original_display = entry.display
+
+      entry.display = function(display_entry)
+        local display, style = original_display(display_entry)
+        if type(display) ~= "string" then return display, style end
+
+        local relative_path = tostring(display_entry.value or display_entry.filename or display_entry[1] or "")
+          :gsub("^%./", "")
+          :gsub("/+$", "")
+        local _, depth = relative_path:gsub("/", "")
+        local indent = string.rep("  ", depth)
+
+        if indent == "" then return display, style end
+
+        return indent .. display, shift_style(style, #indent)
+      end
+
+      return entry
+    end
+  end
+
   local function select_default(prompt_bufnr)
     local selection = require("telescope.actions.state").get_selected_entry()
     if not selection then return end
@@ -247,17 +296,17 @@ M.search_node = function(opts)
   if opts.entries and opts.selection_index then
     local pickers = require "telescope.pickers"
     local finders = require "telescope.finders"
-    local make_entry = require "telescope.make_entry"
     local conf = require("telescope.config").values
+    local picker_opts = vim.tbl_extend("force", opts, { path_display = path_display })
 
     pickers
-      .new(opts, {
+      .new(picker_opts, {
         finder = finders.new_table {
           results = opts.entries,
-          entry_maker = make_entry.gen_from_file(opts),
+          entry_maker = entry_maker_for(picker_opts),
         },
-        previewer = conf.file_previewer(opts),
-        sorter = conf.file_sorter(opts),
+        previewer = conf.file_previewer(picker_opts),
+        sorter = conf.file_sorter(picker_opts),
         default_selection_index = opts.selection_index,
       })
       :find()
@@ -265,7 +314,13 @@ M.search_node = function(opts)
     return
   end
 
-  require("telescope.builtin").find_files(opts)
+  local picker_opts = vim.tbl_extend("force", opts, {
+    path_display = path_display,
+  })
+
+  picker_opts.entry_maker = entry_maker_for(picker_opts)
+
+  require("telescope.builtin").find_files(picker_opts)
 end
 
 M.opencode_addpath = function()
