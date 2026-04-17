@@ -6,10 +6,10 @@ permission:
   "*": deny
 
   bash:
-    "*read* ./*": allow
-    "*ripgrep* ./*": allow
-    "*find* ./*": allow
-    "*ls* ./*": allow
+    "*read* .*": allow
+    "*ripgrep* .*": allow
+    "*find* .*": allow
+    "*ls* .*": allow
 
     # allow read-only git commands
     "*git* *": ask
