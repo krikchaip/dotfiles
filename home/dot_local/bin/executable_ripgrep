@@ -2,4 +2,4 @@
 
 # Wrapper used by prompt/rule instructions that call `ripgrep`.
 # Keep output lean by default; callers can still override via args.
-exec rg --color=never --no-heading --trim $@
+exec rg --color=never --no-heading --line-number --trim $@
