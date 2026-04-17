@@ -30,6 +30,11 @@
   "terminal.integrated.fontSize": 14,
   "terminal.integrated.macOptionIsMeta": true,
   "window.zoomLevel": 0.5,
+  "windsurf.acp.enabledAgents": {
+    "devin-cloud": false
+  },
+  "windsurf.allowCascadeAccessGitignoreFiles": true,
+  "windsurf.autoContinue": 0,
   "windsurf.terminal.cascadeProfile.osx": "managed",
   "workbench.colorTheme": "Tokyo Night",
   "workbench.editorAssociations": {
