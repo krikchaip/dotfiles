@@ -310,11 +310,13 @@ M.search_node = function(opts)
 end
 
 M.search_node_pwd = function()
-  local state = MiniFiles.get_explorer_state()
-  if not state then return end
+  local entry = require("mini.files").get_fs_entry()
+  if not entry then return end
 
-  local absolute_path = state.branch[state.depth_focus]
-  local relative_path = require("plenary.path").new(absolute_path):make_relative()
+  local absolute_path = entry.path
+  if entry.fs_type == "file" then absolute_path = vim.fn.fnamemodify(absolute_path, ":h") end
+
+  local relative_path = vim.fn.fnamemodify(absolute_path, ":.")
 
   M.search_node {
     cwd = absolute_path,
