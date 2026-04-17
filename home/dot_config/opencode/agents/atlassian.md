@@ -7,6 +7,13 @@ permission:
 
   # mcp-specific
   "mcp-atlassian*": ask
+
+  "mcp-atlassian_get*": allow
+  "mcp-atlassian_lookup*": allow
+  "mcp-atlassian_search*": allow
+
+  "mcp-atlassian_atlassianUserInfo": allow
+  "mcp-atlassian_fetch": allow
 ---
 
 # Atlassian Agent
