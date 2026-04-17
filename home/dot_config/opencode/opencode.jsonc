@@ -108,8 +108,8 @@
     },
 
     // custom agents
-    "conversation": { "model": "openrouter/openai/gpt-oss-20b" },
-    "quicksearch": { "model": "openrouter/openai/gpt-oss-120b" },
+    "conversation": { "model": "opencode/big-pickle" },
+    "quicksearch": { "model": "google/antigravity-gemini-3-flash" },
     "schedule": { "model": "google/antigravity-gemini-3-flash" },
 
     // mcp agents
@@ -121,7 +121,8 @@
   "permission": {
     "mcp-*": "deny",
 
-    // disable built-in read tools (except for `read`, which is required by edit tools)
+    // prefer bash-first `read|rg|find|ls` so `rtk` can rewrite commands.
+    // except for `read`, which is required by edit tools
     "grep": "deny",
     "glob": "deny",
     "list": "deny",
