@@ -153,7 +153,7 @@ end
 M.search_node = function(opts)
   opts = opts or {}
 
-  local find_command = M.config().pickers.find_files.find_command
+  local find_command = vim.deepcopy(M.config().pickers.find_files.find_command)
 
   table.insert(find_command, "--type")
   table.insert(find_command, "directory")
@@ -164,6 +164,8 @@ M.search_node = function(opts)
   opts.history = opts.history or {}
   opts.default_text = opts.default_text or ""
   opts.previewer = require("telescope.config").values.file_previewer(opts)
+
+  local tree_style = vim.g.search_node_tree_style ~= false
 
   local function path_display(_, path)
     local relative_path = tostring(path or ""):gsub("^%./", ""):gsub("/+$", "")
@@ -301,14 +303,17 @@ M.search_node = function(opts)
   if opts.entries and opts.selection_index then
     local pickers = require "telescope.pickers"
     local finders = require "telescope.finders"
+    local make_entry = require "telescope.make_entry"
     local conf = require("telescope.config").values
-    local picker_opts = vim.tbl_extend("force", opts, { path_display = path_display })
+    local picker_opts = vim.tbl_extend("force", opts, tree_style and { path_display = path_display } or {})
+
+    picker_opts.entry_maker = tree_style and entry_maker_for(picker_opts) or make_entry.gen_from_file(picker_opts)
 
     pickers
       .new(picker_opts, {
         finder = finders.new_table {
           results = opts.entries,
-          entry_maker = entry_maker_for(picker_opts),
+          entry_maker = picker_opts.entry_maker,
         },
         previewer = conf.file_previewer(picker_opts),
         sorter = conf.file_sorter(picker_opts),
@@ -319,11 +324,11 @@ M.search_node = function(opts)
     return
   end
 
-  local picker_opts = vim.tbl_extend("force", opts, {
+  local picker_opts = vim.tbl_extend("force", opts, tree_style and {
     path_display = path_display,
-  })
+  } or {})
 
-  picker_opts.entry_maker = entry_maker_for(picker_opts)
+  if tree_style then picker_opts.entry_maker = entry_maker_for(picker_opts) end
 
   require("telescope.builtin").find_files(picker_opts)
 end
