@@ -7,7 +7,7 @@ permission:
 
   bash:
     "*read* /tmp/opencode-conversations/*": allow
-    "*grep* /tmp/opencode-conversations/*": allow
+    "*ripgrep* /tmp/opencode-conversations/*": allow
     "*sqlite3* ~/.local/share/opencode/*": "allow"
 ---
 

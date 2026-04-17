@@ -121,7 +121,7 @@
   "permission": {
     "mcp-*": "deny",
 
-    // prefer bash-first `read|rg|find|ls` so `rtk` can rewrite commands.
+    // prefer bash-first `read|ripgrep|find|ls` so `rtk` can rewrite commands.
     // except for `read`, which is required by edit tools
     "grep": "deny",
     "glob": "deny",

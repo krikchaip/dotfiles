@@ -9,7 +9,7 @@ permission:
 
   bash:
     "*read* ./*": allow
-    "*grep* ./*": allow
+    "*ripgrep* ./*": allow
     "*find* ./*": allow
     "*ls* ./*": allow
 ---
