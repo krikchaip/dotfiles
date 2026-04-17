@@ -108,8 +108,8 @@
     },
 
     // custom agents
-    "conversation": { "model": "opencode/big-pickle" },
-    "quicksearch": { "model": "google/antigravity-gemini-3-flash" },
+    "conversation": { "model": "openrouter/qwen/qwen3.5-flash-02-23" },
+    "quicksearch": { "model": "openrouter/qwen/qwen3.5-flash-02-23" },
     "schedule": { "model": "google/antigravity-gemini-3-flash" },
 
     // mcp agents
