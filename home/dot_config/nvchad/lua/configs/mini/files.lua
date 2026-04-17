@@ -218,6 +218,60 @@ M.search_node = function(opts)
   table.insert(find_command, "--type")
   table.insert(find_command, "directory")
 
+  local function path_display(_, path)
+    local relative_path = tostring(path or ""):gsub("^%./", ""):gsub("/+$", "")
+    if relative_path == "" then return "" end
+
+    return relative_path
+  end
+
+  local function shift_style(style, offset)
+    if offset == 0 or type(style) ~= "table" then return style end
+
+    local shifted = {}
+
+    for i, item in ipairs(style) do
+      if
+        type(item) == "table"
+        and type(item[1]) == "table"
+        and type(item[1][1]) == "number"
+        and type(item[1][2]) == "number"
+      then
+        shifted[i] = { { item[1][1] + offset, item[1][2] + offset }, item[2] }
+      else
+        shifted[i] = item
+      end
+    end
+
+    return shifted
+  end
+
+  local function entry_maker_for(picker_opts)
+    local base_entry_maker = require("telescope.make_entry").gen_from_file(picker_opts)
+
+    return function(line)
+      local entry = base_entry_maker(line)
+      local original_display = entry.display
+
+      entry.display = function(display_entry)
+        local display, style = original_display(display_entry)
+        if type(display) ~= "string" then return display, style end
+
+        local relative_path = tostring(display_entry.value or display_entry.filename or display_entry[1] or "")
+          :gsub("^%./", "")
+          :gsub("/+$", "")
+        local _, depth = relative_path:gsub("/", "")
+        local indent = string.rep("  ", depth)
+
+        if indent == "" then return display, style end
+
+        return indent .. display, shift_style(style, #indent)
+      end
+
+      return entry
+    end
+  end
+
   local function select_default(prompt_bufnr)
     local selection = require("telescope.actions.state").get_selected_entry()
     local filename = selection.value or selection.filename or selection[1]
@@ -233,11 +287,15 @@ M.search_node = function(opts)
   end
 
   require("mini.files").close()
-  require("telescope.builtin").find_files {
+
+  local picker_opts = {
     prompt_title = prompt_title,
     cwd = cwd,
     find_command = find_command,
+    path_display = path_display,
+
     previewer = require("telescope.config").values.file_previewer(opts),
+
     attach_mappings = function(_, picker_map)
       picker_map("i", "<CR>", select_default)
       picker_map("i", "<ESC>", close)
@@ -245,6 +303,10 @@ M.search_node = function(opts)
       return true
     end,
   }
+
+  picker_opts.entry_maker = entry_maker_for(picker_opts)
+
+  require("telescope.builtin").find_files(picker_opts)
 end
 
 M.search_node_pwd = function()
