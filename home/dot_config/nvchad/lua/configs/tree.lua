@@ -140,6 +140,7 @@ M.on_attach = function(bufnr)
 
   -- search
   map("n", "f", M.search_node, opts "Search: Node")
+  map("n", "F", M.search_node_scoped, opts "Search: Node Scoped")
   map("n", "<localleader>f", live_filter.start, opts "Search: Start Filter")
   map("n", "<localleader>F", live_filter.clear, opts "Search: Clear Filter")
 
@@ -176,12 +177,23 @@ M.on_attach = function(bufnr)
   map("n", "ga", M.opencode_addpath, opts "OpenCode: Add Node Path")
 end
 
-M.search_node = function()
-  local cwd = vim.uv.cwd()
-  local find_command = require("configs.telescope").config().pickers.find_files.find_command
+M.search_node = function(opts)
+  opts = opts or {}
 
-  table.insert(find_command, "--type")
-  table.insert(find_command, "directory")
+  local cwd = opts.cwd or vim.uv.cwd()
+  local prompt_title = opts.prompt_title or "Search Node"
+
+  local find_command = vim.deepcopy(require("configs.telescope").config().pickers.find_files.find_command)
+
+  if not opts.cwd then
+    table.insert(find_command, "--type")
+    table.insert(find_command, "directory")
+  else
+    table.insert(find_command, "--type")
+    table.insert(find_command, "file")
+    table.insert(find_command, "--type")
+    table.insert(find_command, "directory")
+  end
 
   local function select_default(prompt_bufnr)
     local selection = require("telescope.actions.state").get_selected_entry()
@@ -193,7 +205,7 @@ M.search_node = function()
   end
 
   require("telescope.builtin").find_files {
-    prompt_title = "Search Node",
+    prompt_title = prompt_title,
     cwd = cwd,
     find_command = find_command,
     previewer = require("telescope.config").values.file_previewer {},
@@ -201,6 +213,23 @@ M.search_node = function()
       picker_map("i", "<CR>", select_default)
       return true
     end,
+  }
+end
+
+M.search_node_scoped = function()
+  local api = require "nvim-tree.api"
+  local node = api.tree.get_node_under_cursor()
+
+  if not node then return end
+
+  local absolute_path = node.absolute_path
+  if node.type == "file" then absolute_path = vim.fn.fnamemodify(absolute_path, ":h") end
+
+  local relative_path = vim.fn.fnamemodify(absolute_path, ":.")
+
+  M.search_node {
+    cwd = absolute_path,
+    prompt_title = string.format("Search Node (%s)", relative_path),
   }
 end
 
