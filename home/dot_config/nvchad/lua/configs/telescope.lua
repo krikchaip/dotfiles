@@ -147,7 +147,7 @@ M.dotfiles = function(opts)
   opts.prompt_title = opts.prompt_title or "Dotfiles"
   opts.cwd = "~/.local/share/chezmoi"
 
-  require("telescope.builtin").find_files(opts)
+  M.search_node(opts)
 end
 
 M.search_node = function(opts)
@@ -178,7 +178,12 @@ M.search_node = function(opts)
     local shifted = {}
 
     for i, item in ipairs(style) do
-      if type(item) == "table" and type(item[1]) == "table" and type(item[1][1]) == "number" and type(item[1][2]) == "number" then
+      if
+        type(item) == "table"
+        and type(item[1]) == "table"
+        and type(item[1][1]) == "number"
+        and type(item[1][2]) == "number"
+      then
         shifted[i] = { { item[1][1] + offset, item[1][2] + offset }, item[2] }
       else
         shifted[i] = item

@@ -213,73 +213,12 @@ M.search_node = function(opts)
   local cwd = opts.cwd or vim.uv.cwd()
   local prompt_title = opts.prompt_title or "Search Node"
 
-  local find_command = require("configs.telescope").config().pickers.find_files.find_command
+  local find_command = vim.deepcopy(require("configs.telescope").config().pickers.find_files.find_command)
 
   table.insert(find_command, "--type")
   table.insert(find_command, "directory")
 
-  local function path_display(_, path)
-    local relative_path = tostring(path or ""):gsub("^%./", ""):gsub("/+$", "")
-    if relative_path == "" then return "" end
-
-    return relative_path
-  end
-
-  local function shift_style(style, offset)
-    if offset == 0 or type(style) ~= "table" then return style end
-
-    local shifted = {}
-
-    for i, item in ipairs(style) do
-      if
-        type(item) == "table"
-        and type(item[1]) == "table"
-        and type(item[1][1]) == "number"
-        and type(item[1][2]) == "number"
-      then
-        shifted[i] = { { item[1][1] + offset, item[1][2] + offset }, item[2] }
-      else
-        shifted[i] = item
-      end
-    end
-
-    return shifted
-  end
-
-  local function entry_maker_for(picker_opts)
-    local base_entry_maker = require("telescope.make_entry").gen_from_file(picker_opts)
-
-    return function(line)
-      local entry = base_entry_maker(line)
-      local original_display = entry.display
-
-      entry.display = function(display_entry)
-        local display, style = original_display(display_entry)
-        if type(display) ~= "string" then return display, style end
-
-        local relative_path = tostring(display_entry.value or display_entry.filename or display_entry[1] or "")
-          :gsub("^%./", "")
-          :gsub("/+$", "")
-        local _, depth = relative_path:gsub("/", "")
-        local indent = string.rep("  ", depth)
-
-        if indent == "" then return display, style end
-
-        return indent .. display, shift_style(style, #indent)
-      end
-
-      return entry
-    end
-  end
-
-  local function select_default(prompt_bufnr)
-    local selection = require("telescope.actions.state").get_selected_entry()
-    local filename = selection.value or selection.filename or selection[1]
-    local filepath = vim.fs.joinpath(selection.cwd, filename)
-
-    require("telescope.actions").close(prompt_bufnr)
-    require("mini.files").open(filepath)
-  end
+  local user_attach = opts.attach_mappings
 
   local function close(prompt_bufnr)
     require("telescope.actions").close(prompt_bufnr)
@@ -288,25 +227,31 @@ M.search_node = function(opts)
 
   require("mini.files").close()
 
-  local picker_opts = {
+  require("configs.telescope").search_node(vim.tbl_extend("force", opts, {
     prompt_title = prompt_title,
     cwd = cwd,
     find_command = find_command,
-    path_display = path_display,
-
     previewer = require("telescope.config").values.file_previewer(opts),
+    attach_mappings = function(prompt_bufnr, picker_map)
+      picker_map("i", "<CR>", function()
+        local selection = require("telescope.actions.state").get_selected_entry()
+        if not selection then return end
 
-    attach_mappings = function(_, picker_map)
-      picker_map("i", "<CR>", select_default)
+        local filename = selection.value or selection.filename or selection[1]
+        local filepath = vim.fs.joinpath(selection.cwd, filename)
+
+        require("telescope.actions").close(prompt_bufnr)
+        require("mini.files").open(filepath)
+      end)
+
       picker_map("i", "<ESC>", close)
       picker_map("i", "<C-q>", close)
+
+      if user_attach then return user_attach(prompt_bufnr, picker_map) end
+
       return true
     end,
-  }
-
-  picker_opts.entry_maker = entry_maker_for(picker_opts)
-
-  require("telescope.builtin").find_files(picker_opts)
+  }))
 end
 
 M.search_node_pwd = function()
