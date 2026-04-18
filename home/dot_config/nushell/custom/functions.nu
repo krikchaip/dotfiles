@@ -214,3 +214,41 @@ def "lazygit recent" []: nothing -> nothing {
     return
   }
 }
+
+# add git repositories to Lazygit's recently visited list
+def "lazygit add" [...paths: path] {
+  let state_path = $"($env.HOME)/Library/Application Support/lazygit/state.yml"
+  
+  let targets = if ($paths | is-empty) {
+    [(pwd)]
+  } else {
+    $paths | each {|p| $p | path expand}
+  }
+
+  for target in $targets {
+    if not ($target | path exists) {
+      print $"Error: ($target) does not exist"
+      continue
+    }
+
+    if not ($target | path join ".git" | path exists) {
+      print $"Error: ($target) is not a git repository"
+      continue
+    }
+
+    let query = ('.recentrepos | contains(["' + $target + '"])')
+    let exists = (yq $query $state_path)
+
+    if $exists == "true" {
+      print $"Note: ($target) already in history"
+      continue
+    }
+
+    # using env var to pass path safely to yq to handle spaces/quotes
+    with-env { TARGET: $target } {
+      yq -i ".recentrepos = [strenv(TARGET)] + .recentrepos | .recentrepos |= unique" $state_path
+    }
+
+    print $"Added ($target) to lazygit recent repos"
+  }
+}
