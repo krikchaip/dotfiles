@@ -143,6 +143,15 @@ def --wrapped opencode [...rest] {
   opencode-tmux-popup ...$rest
 }
 
+# delete opencode cache and reinstall plugins
+def "opencode upgrade plugins" []: nothing -> nothing {
+  rm -rf ~/.cache/opencode
+  print "[OpenCode] Cache folder cleared ✅"
+
+  cd ~/.config/opencode
+  bun add @opencode-ai/plugin@latest
+}
+
 # opencode session manager with fzf
 def "opencode session manager" []: nothing -> nothing {
   loop {
