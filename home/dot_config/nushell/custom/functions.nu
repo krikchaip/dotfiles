@@ -212,8 +212,6 @@ def "lazygit recent" []: nothing -> nothing {
     }
 
     ^lazygit -p $selection
-
-    return
   }
 }
 
