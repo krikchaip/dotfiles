@@ -12,12 +12,12 @@ desc = "Quit the process"
 
 [[mgr.prepend_keymap]]
 on = [";"]
-run = "shell '{{ .config.shell }} -c \" $0\"' --interactive --cursor=7"
+run = "shell 'nucmd \" $0\"' --interactive --cursor=7"
 desc = "Run a shell command"
 
 [[mgr.prepend_keymap]]
 on = [":"]
-run = "shell '{{ .config.shell }} -c \" $0\"' --block --interactive --cursor=7"
+run = "shell 'nucmd \" $0\"' --block --interactive --cursor=7"
 desc = "Run a shell command (block until finishes)"
 
 [[mgr.prepend_keymap]]
