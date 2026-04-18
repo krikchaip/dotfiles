@@ -142,7 +142,7 @@ def --wrapped opencode [...rest] {
 }
 
 # opencode session manager with fzf
-def "opencode session manager" [] {
+def "opencode session manager" []: nothing -> nothing {
   loop {
     let result = (
       opencode session list --format json
@@ -177,5 +177,40 @@ def "opencode session manager" [] {
 
     opencode --session --port $id
     break
+  }
+}
+
+# manage Lazygit recently visited repositories
+def "lazygit recent" []: nothing -> nothing {
+  let state_path = $"($env.HOME)/Library/Application Support/lazygit/state.yml"
+
+  loop {
+    let repos = (yq ".recentrepos[]" $state_path | lines)
+    let result = (
+      $repos 
+      | str join (char nl)
+      | (
+        fzf --layout=reverse --expect=ctrl-x
+          --border=rounded --border-label=" Lazygit Recent Repos " --info=inline-right --prompt="❯ " --pointer="▶"
+          --header "Keybindings: enter=open, ctrl-x=delete\n\nPath"
+      )
+    )
+
+    if ($result | is-empty) { return }
+
+    let lines = ($result | lines)
+    let key = ($lines | first)
+    let selection = ($lines | skip 1 | first)
+
+    if ($selection | is-empty) { return }
+
+    if $key == "ctrl-x" {
+      yq -i $".recentrepos -= [\"($selection)\"]" $state_path
+      continue
+    }
+
+    ^lazygit -p $selection
+
+    return
   }
 }
