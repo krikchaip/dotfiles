@@ -126,12 +126,14 @@ def "image save-temp" []: [
 
 # paste image content from the clipboard into the current tmux pane
 # ref: https://stackoverflow.com/questions/35509163/insert-the-output-of-a-shell-command-directly-into-a-tmux-pane
-def "image paste-tmux" []: nothing -> nothing {
+def "image paste-tmux" [--md]: nothing -> nothing {
   try {
     let path = image save-temp
     if ($path | is-empty) { return }
 
-    $"![]\(($path)\)" | tmux load-buffer -b pngpaste -
+    let output = if $md { $"![]\(($path)\)" } else { $path }
+    $output | tmux load-buffer -b pngpaste -
+
     tmux paste-buffer -b pngpaste -d
   }
 }
