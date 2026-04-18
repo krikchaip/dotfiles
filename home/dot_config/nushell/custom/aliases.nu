@@ -79,6 +79,11 @@ alias nvchad = env NVIM_APPNAME=nvchad nvim
 alias neowin = env NVIM_APPNAME=neowin nvim
 alias n = nvchad
 
+# lazygit
+alias lg = lazygit
+alias lga = lazygit add
+alias lgr = lazygit recent
+
 # tmux
 alias t = tmux
 alias ta = tmux attach
