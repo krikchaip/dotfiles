@@ -1,4 +1,5 @@
 brew "agent-browser"
+brew "anomalyco/tap/opencode"
 brew "awscli"
 brew "bash"
 brew "bat"
@@ -26,7 +27,6 @@ brew "minikube"
 brew "mise"
 brew "neovim"
 brew "nushell"
-brew "opencode"
 brew "pkg-config"
 brew "pngpaste"
 brew "poppler"     # required by `yazi` for pdf previewing
