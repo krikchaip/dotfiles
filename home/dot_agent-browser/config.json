@@ -1,4 +1,5 @@
 {
   "$schema": "https://agent-browser.dev/schema.json",
-  "downloadPath": "~/Downloads/agent-browser"
+  "downloadPath": "~/Downloads/agent-browser",
+  "profile": "~/.agent-browser/profiles/amity"
 }
