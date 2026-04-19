@@ -186,7 +186,7 @@ def "opencode session manager" []: nothing -> nothing {
       continue
     }
 
-    opencode --session --port $id
+    opencode --session $id --port
     break
   }
 }
