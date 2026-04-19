@@ -1,3 +1,4 @@
+brew "agent-browser"
 brew "awscli"
 brew "bash"
 brew "bat"
