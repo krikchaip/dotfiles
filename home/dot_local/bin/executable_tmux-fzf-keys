@@ -34,8 +34,14 @@ target=$(echo "$table" | fzf -d '\t' --with-nth 1,2 --height=~100% --header='Sel
 
 [[ -z "$target" ]] && exit 0
 
-# Extract the 3rd column (the command)
-cmd=$(echo "$target" | awk -F'\t' '{print $3}')
+# Extract selected key from col1: "C-; <key>"
+key=$(echo "$target" | awk -F'\t' '{print $1}' | awk '{print $2}')
 
-# Execute via tmux (eval is needed to handle quotes correctly)
-eval tmux "$cmd"
+# Re-trigger real tmux binding after popup exits.
+# Put client into prefix table, then send only selected key.
+client_name=$(tmux display-message -p '#{client_name}')
+
+printf -v inject_cmd 'sleep 0.10; tmux switch-client -T prefix -c %q; tmux send-keys -K -c %q %q' \
+  "$client_name" "$client_name" "$key"
+
+tmux run-shell -b "$inject_cmd"
