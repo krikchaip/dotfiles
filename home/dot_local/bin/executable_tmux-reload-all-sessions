@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+tmux source-file "$HOME/.config/tmux/tmux.conf"
+
+ds=$(tmux show-options -gv default-shell)
+dc=$(tmux show-options -gv default-command)
+
+tmux list-sessions -F "#{session_id}" | while IFS= read -r sid; do
+  tmux set-option -q -u -t "$sid" default-shell
+  tmux set-option -q -u -t "$sid" default-command
+  tmux set-option -q -t "$sid" default-shell "$ds"
+  tmux set-option -q -t "$sid" default-command "$dc"
+done
+
+tmux display -d 1000 "tmux.conf Reloaded! (all sessions)"
