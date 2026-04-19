@@ -152,7 +152,6 @@
     "job_logs": "deny", // view the latest logs from a job
 
     "bash": {
-      "* /*": "deny",
       "* ~/*": "ask",
       "* $HOME/*": "ask",
       "* *../*": "deny",
