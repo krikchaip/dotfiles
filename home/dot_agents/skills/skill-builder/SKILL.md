@@ -16,7 +16,7 @@ To scaffold and implement Agent skills that are optimized for high-level routing
 ### 1. Planning & Scope
 
 - **Determine Type**:
-  - **Global Skill**: Put in `~/.agents/skills/` for cross-project utility.
+  - **Global Skill**: Put in `<chezmoi_src_dir>/home/dot_agents/skills/` for cross-project utility.
   - **Workspace Skill**: Put in `<project-root>/.agents/skills/` for project-specific logic.
 - **Complexity Check**: If the task is simple and always applicable, consider a **Rule** instead. Use a **Skill** for specialized knowledge, large templates, or multi-step procedural logic.
 
@@ -61,4 +61,3 @@ The `SKILL.md` must contain:
 
 - Do not create skills with overlapping descriptions.
 - Do not bloat the `SKILL.md` body with information better suited for `resources/`.
-
