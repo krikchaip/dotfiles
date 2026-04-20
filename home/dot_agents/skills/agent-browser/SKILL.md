@@ -36,10 +36,10 @@ Run `agent-browser skills list` to see everything available on the installed ver
 
 ## Parallel session management
 
-To run multiple browser contexts in parallel, always use unique `--profile` and `--session` combinations.
-
-- **Rule:** Never share a `--profile` directory between two active `--session` instances. This causes Chrome profile locks and data corruption.
-- **Pattern:** `agent-browser --profile ~/.agent-browser/profiles/<unique_name> --session <unique_name>`
+- **Isolated Accounts**: To run multiple accounts or independent tasks, always use unique `--profile` and `--session` combinations.
+- **Rule**: Never share a `--profile` directory between two active `--session` instances. This causes Chrome profile locks and data corruption.
+- **Pattern**: `agent-browser --profile ~/.agent-browser/profiles/<unique_name> --session <unique_name>`
+- **Shared State**: To multi-task as the same user (e.g., Jira + Confluence), use **one** "profile/session" combination and open multiple tabs.
 
 ## Profile Discovery
 
