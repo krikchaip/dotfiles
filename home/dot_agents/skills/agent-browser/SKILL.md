@@ -5,24 +5,20 @@ description: Browser automation CLI for AI agents. Use when the user needs to in
 
 # agent-browser
 
-Fast browser automation CLI for AI agents. Chrome/Chromium via CDP with
-accessibility-tree snapshots and compact `@eN` element refs.
+Fast browser automation CLI for AI agents. Chrome/Chromium via CDP with accessibility-tree snapshots and compact `@eN` element refs.
 
-Install: `brew install agent-browser && agent-browser install`
+**Install**: `brew install agent-browser && agent-browser install`
 
 ## Start here
 
-This file is a discovery stub, not the usage guide. Before running any
-`agent-browser` command, load the actual workflow content from the CLI:
+This file is a discovery stub, not the usage guide. Before running any `agent-browser` command, load the actual workflow content from the CLI:
 
 ```bash
 agent-browser skills get core             # start here — workflows, common patterns, troubleshooting
 agent-browser skills get core --full      # include full command reference and templates
 ```
 
-The CLI serves skill content that always matches the installed version,
-so instructions never go stale. The content in this stub cannot change
-between releases, which is why it just points at `skills get core`.
+The CLI serves skill content that always matches the installed version, so instructions never go stale. The content in this stub cannot change between releases, which is why it just points at `skills get core`.
 
 ## Specialized skills
 
@@ -36,14 +32,17 @@ agent-browser skills get vercel-sandbox    # agent-browser inside Vercel Sandbox
 agent-browser skills get agentcore         # AWS Bedrock AgentCore cloud browsers
 ```
 
-Run `agent-browser skills list` to see everything available on the
-installed version.
+Run `agent-browser skills list` to see everything available on the installed version.
 
-## Why agent-browser
+## Parallel session management
 
-- Fast native Rust CLI, not a Node.js wrapper
-- Works with any AI agent (Cursor, Claude Code, Codex, Continue, Windsurf, etc.)
-- Chrome/Chromium via CDP with no Playwright or Puppeteer dependency
-- Accessibility-tree snapshots with element refs for reliable interaction
-- Sessions, authentication vault, state persistence, video recording
-- Specialized skills for Electron apps, Slack, exploratory testing, cloud providers
+To run multiple browser contexts in parallel, always use unique `--profile` and `--session` combinations.
+
+- **Rule:** Never share a `--profile` directory between two active `--session` instances. This causes Chrome profile locks and data corruption.
+- **Pattern:** `agent-browser --profile ~/.agent-browser/profiles/<unique_name> --session <unique_name>`
+
+## Profile Discovery
+
+When looking for or referring to persistent browser profiles, check the standard storage directory:
+
+**Location**: `~/.agent-browser/profiles/`
