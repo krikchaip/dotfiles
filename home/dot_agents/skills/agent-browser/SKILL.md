@@ -34,15 +34,18 @@ agent-browser skills get agentcore         # AWS Bedrock AgentCore cloud browser
 
 Run `agent-browser skills list` to see everything available on the installed version.
 
-## Parallel session management
+## Profile management
 
-- **Isolated Accounts**: To run multiple accounts or independent tasks, always use unique `--profile` and `--session` combinations.
+- **Discovery**: When looking for or referring to persistent browser profiles, check the standard storage directory: `~/.agent-browser/profiles/`
+- **Mandatory Flag**: If using a custom `--profile`, you **must** pass the flag to **every** command. Commands without the flag will use the default profile and lose your session/login state.
+
+## Parallel sessions
+
+- **Isolated Accounts**: To run multiple accounts or independent tasks, always use unique `--profile` and `--session` combinations in every command.
+  - **Pattern**: `agent-browser --profile ~/.agent-browser/profiles/<unique_name> --session <unique_name> ...command`
 - **Rule**: Never share a `--profile` directory between two active `--session` instances. This causes Chrome profile locks and data corruption.
-- **Pattern**: `agent-browser --profile ~/.agent-browser/profiles/<unique_name> --session <unique_name>`
 - **Shared State**: To multi-task as the same user (e.g., Jira + Confluence), use **one** "profile/session" combination and open multiple tabs.
 
-## Profile Discovery
+## Switching Modes
 
-When looking for or referring to persistent browser profiles, check the standard storage directory:
-
-**Location**: `~/.agent-browser/profiles/`
+Before switching between `--headed` and headless modes (or changing profiles), run `agent-browser close --session <session_name>` or `--all` to release Chrome profile locks.
