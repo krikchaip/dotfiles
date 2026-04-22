@@ -1,5 +1,5 @@
 ---
-description: Interacts with an Obsidian vault to read, write, search, and manage notes, tags, and frontmatter
+description: Obsidian vault agent for Zettelkasten note-taking, research synthesis, and knowledge management. Invoke when user asks to take or save a note, find or recall vault content, manage notes, or work with tags
 mode: subagent
 temperature: 0.2
 permission:
