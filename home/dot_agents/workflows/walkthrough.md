@@ -1,5 +1,5 @@
 ---
-description: An end-to-end guided walkthrough of any codebase feature, architectural aspect, or logic flow, combining deep code analysis with high-level behavioral explanation
+description: An end-to-end guided walkthrough of any codebase feature, architectural aspect, or logic flow, combining deep code analysis with high-level behavioral and system design explanation
 ---
 
 # Walkthrough
@@ -31,18 +31,21 @@ Show the "bones" of the feature:
 Trace the life cycle of a request or the execution of a logic block:
 
 - **Entry Points**: Where does the process start? (e.g., API endpoint, CLI command, UI event).
-- **Interactive Call Stack**: Use LSP tools to dive into the flow step-by-step.
+- **Interactive Exploration**:
+  - **PRIORITIZE LSP**: Always use LSP operations first for maximum precision.
+  - **Fallback**: If LSP is unavailable or fails, fall back to other search methods for callsite discovery and manual file analysis.
 - **Trace Guides**: For every jump, explain _why_ it's happening and what the _business logic_ is at that point.
 
 ---
 
-## Phase 3: The "Why" (Reasoning)
+## Phase 3: The "Why" (Design & Architecture)
 
-Analyze architectural decisions and constraints:
+Analyze decisions and constraints at both code and system levels:
 
-- **Patterns**: Identify used design patterns (e.g., Middleware, Repository, Factory).
-- **Trade-offs**: Explain why it was likely built this way (e.g., performance, security, maintainability).
-- **Side Effects**: What else happens in the system during this process? (e.g., logs, events, cache updates).
+- **Code Patterns**: Identify design patterns (e.g., Middleware, Repository, Factory).
+- **System Design**: Explain how this fits into the broader architecture (e.g., Microservices, Event-driven, Layered). Cover infrastructure (DBs, caches), protocols (REST, gRPC), and reliability (retry logic, concurrency).
+- **Trade-offs**: Explain why it was likely built this way (e.g., performance vs. maintainability).
+- **Side Effects**: What else happens in the system during this process? (e.g., logs, events, cache updates, background jobs).
 
 ---
 
@@ -61,7 +64,7 @@ At any point, the user can:
 
 When finished, generate a "Feature Codemap":
 
-1. **Visual Diagram**: A Mermaid diagram (Flowchart or Sequence diagram) of the process.
+1. **Visual Diagram**: A Mermaid diagram (Flowchart, Sequence, or Component diagram) of the process.
 2. **Key Landmarks**: A curated list of the most important files/lines.
 3. **Behavioral Narrative**: A plain-English walkthrough of the feature from start to finish.
 4. **Maintenance Tips**: Where to look first if this feature breaks or needs changes.
