@@ -2,8 +2,10 @@
 description: Fast retrieval subagent that finds and ranks relevant code locations, returning concise results as `path:line1 (to line2) short reason`
 mode: subagent
 temperature: 0.1
+steps: 10
 permission:
   "*": deny
+  doom_loop: ask
 
   lsp: allow
 
