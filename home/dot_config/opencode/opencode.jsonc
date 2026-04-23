@@ -100,13 +100,6 @@
     "general": { "disable": true },
     "explore": { "disable": true },
 
-    // hidden system agents
-    "title": {
-      "hidden": false,
-      "mode": "subagent",
-      "model": "opencode/gpt-5-nano",
-    },
-
     // custom agents
     "conversation": { "model": "openrouter/qwen/qwen3.5-flash-02-23" },
     "quicksearch": { "model": "openrouter/qwen/qwen3.5-flash-02-23" },
@@ -130,6 +123,7 @@
     // subagent-specific
     "skill": {
       "zettelkasten": "deny",
+      "conversation-manager": "deny",
     },
 
     // [plannotator]
