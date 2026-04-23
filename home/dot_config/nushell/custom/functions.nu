@@ -261,3 +261,8 @@ def "lazygit add" [...paths: path] {
     print $"Added ($target) to lazygit recent repos"
   }
 }
+
+# agent-browser wrapper that wraps the cli with zsh (it doesn't suppport nushell at the moment)
+def --wrapped agent-browser [...rest] {
+  zsh -c $"agent-browser ( $rest | each { |it| $it | to json } | str join ' ' )"
+}
