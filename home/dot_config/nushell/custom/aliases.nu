@@ -120,3 +120,6 @@ alias ocp = opencode --port
 
 # openspec
 alias opsx = openspec
+
+# agent-browser
+alias agb = agent-browser
