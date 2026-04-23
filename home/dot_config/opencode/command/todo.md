@@ -1,6 +1,5 @@
 ---
 description: Analyze a brain dump, name the chat, and polish user ideas into a structured format
-model: opencode/big-pickle
 ---
 
 # "TODO" (Brain dump)
@@ -19,8 +18,10 @@ Analyze the user's brain dump to suggest a chat title, polish their thoughts int
 
 ## Execution Guide
 
-1. **Request Chat Title**: Call the `@title` subagent to suggest and set the chat title.
-2. **First Line**: Output `Suggested Title: "TODO: [Suggested title from @title]"`.
+1. **Request Chat Title**: Call the `@conversation` subagent to suggest and rename the chat title of this conversation.
+   - **Context**: Pass the current session name to the subagent to ensure it renames the current active session correctly.
+   - **Title prefix**: Also ask the subagent to prefix the session title with `TODO: `
+2. **First Line**: Output `Title: [Suggested title from @conversation without 'TODO: ' prefix]`.
 3. **Analyze and Polish**:
    - **Summary**: Provide a clear, professional summary of the user's brain dump.
    - **Key Points**: List any specific goals, platforms, constraints, or decisions identified in the dump.
@@ -29,7 +30,7 @@ Analyze the user's brain dump to suggest a chat title, polish their thoughts int
 For example:
 
 ```md
-**Suggested Title**: `TODO: Local Backup Automation`
+**Title**: Local Backup Automation
 
 **Summary**:
 

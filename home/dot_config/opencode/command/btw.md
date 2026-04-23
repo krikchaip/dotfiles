@@ -1,6 +1,5 @@
 ---
 description: Fulfill a quick request or answer a question in a separate context window
-model: opencode/big-pickle
 subtask: true
 ---
 
