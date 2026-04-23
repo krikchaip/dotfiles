@@ -1,4 +1,7 @@
 {
   "$schema": "https://agent-browser.dev/schema.json",
-  "downloadPath": "~/Downloads/agent-browser"
+  "profile": "Default",
+  "session": "Default",
+  "downloadPath": "~/Downloads/agent-browser",
+  "screenshotDir": "~/Downloads/agent-browser"
 }
