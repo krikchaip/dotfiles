@@ -431,6 +431,41 @@ Git = {
   Status = function()
     require("nvchad.term").toggle(Git.FloatOpts { id = "git.status", cmd = "lazygit" })
   end,
+  Compare = function()
+    require("telescope.builtin").find_files {
+      prompt_title = "Compare Files (Select exactly 2)",
+      attach_mappings = function(prompt_bufnr)
+        local actions = require "telescope.actions"
+        local action_state = require "telescope.actions.state"
+
+        actions.select_default:replace(function()
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local selections = picker:get_multi_selection()
+
+          if #selections < 2 then table.insert(selections, action_state.get_selected_entry()) end
+
+          if #selections ~= 2 then
+            vim.notify("Select exactly 2 files to compare", vim.log.levels.WARN)
+            return
+          end
+
+          actions.close(prompt_bufnr)
+
+          local files = {}
+          for _, s in ipairs(selections) do
+            local filename = s.value or s.filename or s[1]
+            local filepath = vim.fs.joinpath(s.cwd, filename)
+
+            table.insert(files, filepath)
+          end
+
+          vim.cmd(string.format("CodeDiff file %s %s", files[1], files[2]))
+        end)
+
+        return true
+      end,
+    }
+  end,
   Diff = function()
     vim.cmd "CodeDiff"
   end,

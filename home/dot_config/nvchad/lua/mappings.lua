@@ -253,6 +253,7 @@ map("n", "<leader>r", Explorer.MiniReveal, { desc = "Explorer: Reveal File in Mi
 
 -- git (source control)
 map({ "n", "t" }, "<M-g>", Git.Status, { desc = "Git: Status" })
+map("n", "<leader>gc", Git.Compare, { desc = "Git: Compare two files" })
 map("n", "<leader>gd", Git.Diff, { desc = "Git: Show Diff" })
 map("n", "<leader>gD", Git.DiffMerge, { desc = "Git: Show Diff (Merge Base)" })
 map("n", "<leader>gf", Git.FileHistory, { desc = "Git: File History" })
