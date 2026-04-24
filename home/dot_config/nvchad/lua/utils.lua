@@ -431,16 +431,22 @@ Git = {
   Status = function()
     require("nvchad.term").toggle(Git.FloatOpts { id = "git.status", cmd = "lazygit" })
   end,
-  Log = function()
-    require("nvchad.term").toggle(Git.FloatOpts { id = "git.log", cmd = "lazygit log" })
+  Diff = function()
+    vim.cmd "CodeDiff"
   end,
-  Branch = function()
-    require("nvchad.term").toggle(Git.FloatOpts { id = "git.branch", cmd = "lazygit branch" })
+  DiffMerge = function()
+    vim.ui.select({
+      "origin/develop",
+      "origin/main",
+      "origin/master",
+    }, {
+      prompt = "Select base branch:",
+    }, function(choice)
+      if choice then vim.cmd(string.format("CodeDiff %s...HEAD", choice)) end
+    end)
   end,
   FileHistory = function()
-    local filename = vim.fn.expand "%:p"
-    local cmd = table.concat({ "lazygit", "-f", filename }, " ")
-    require("nvchad.term").new(Git.FloatOpts { id = "git.file-history", cmd = cmd })
+    vim.cmd "CodeDiff history %"
   end,
   BlameLine = function()
     require("gitsigns").blame_line { full = true }

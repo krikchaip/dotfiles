@@ -50,6 +50,14 @@ return {
   },
 
   {
+    "esmuellert/codediff.nvim",
+    cmd = "CodeDiff",
+    config = function(_, opts)
+      require("configs.codediff").setup(opts)
+    end,
+  },
+
+  {
     "stevearc/conform.nvim",
     opts = function(_, opts)
       return require("configs.conform").config(opts)

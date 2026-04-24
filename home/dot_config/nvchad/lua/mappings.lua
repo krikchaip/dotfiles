@@ -253,8 +253,8 @@ map("n", "<leader>r", Explorer.MiniReveal, { desc = "Explorer: Reveal File in Mi
 
 -- git (source control)
 map({ "n", "t" }, "<M-g>", Git.Status, { desc = "Git: Status" })
-map({ "n", "t" }, "<M-S-g>", Git.Log, { desc = "Git: Log" })
-map({ "n", "t" }, "<M-b>", Git.Branch, { desc = "Git: Branch" })
+map("n", "<leader>gd", Git.Diff, { desc = "Git: Show Diff" })
+map("n", "<leader>gD", Git.DiffMerge, { desc = "Git: Show Diff (Merge Base)" })
 map("n", "<leader>gf", Git.FileHistory, { desc = "Git: File History" })
 map("n", "<leader>gb", Git.BlameLine, { desc = "Git: Blame Line" })
 map("n", "<leader>gs", Git.StageHunk, { desc = "Git: Stage Hunk" })
