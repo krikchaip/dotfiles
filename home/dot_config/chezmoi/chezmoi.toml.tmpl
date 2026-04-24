@@ -2,13 +2,13 @@
   command = "{{ .config.shell }}"
 
 [diff]
-  command = "nvim"
-  args = ["-d", '{{ "{{" }} .Destination {{ "}}" }}', '{{ "{{" }} .Target {{ "}}" }}']
+  command = "env"
+  args = ["NVIM_APPNAME=nvchad", "nvim", "-d", '{{ "{{" }} .Target {{ "}}" }}', '{{ "{{" }} .Destination {{ "}}" }}']
   exclude = ["scripts", "externals"]
 
 [merge]
-  command = "nvim"
-  args = ["-d", '{{ "{{" }} .Source {{ "}}" }}', '{{ "{{" }} .Destination {{ "}}" }}', '{{ "{{" }} .Target {{ "}}" }}']
+  command = "env"
+  args = ["NVIM_APPNAME=nvchad", "nvim", "-d", '{{ "{{" }} .Source {{ "}}" }}', '{{ "{{" }} .Destination {{ "}}" }}', '{{ "{{" }} .Target {{ "}}" }}']
 
 [edit]
   command = "nvim"
