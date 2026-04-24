@@ -483,6 +483,9 @@ Git = {
   FileHistory = function()
     vim.cmd "CodeDiff history %"
   end,
+  RangeHistory = function()
+    return ":CodeDiff history<CR>"
+  end,
   BlameLine = function()
     require("gitsigns").blame_line { full = true }
   end,
