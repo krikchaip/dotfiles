@@ -3,12 +3,26 @@
 
 [diff]
   command = "env"
-  args = ["NVIM_APPNAME=nvchad", "nvim", "-d", '{{ "{{" }} .Target {{ "}}" }}', '{{ "{{" }} .Destination {{ "}}" }}']
+  args = [
+    "NVIM_APPNAME=nvchad",
+    "nvim",
+    '{{ "{{" }} .Target {{ "}}" }}',
+    '{{ "{{" }} .Destination {{ "}}" }}',
+    "-c",
+    'CodeDiff file {{ "{{" }} .Target {{ "}}" }} {{ "{{" }} .Destination {{ "}}" }}'
+  ]
   exclude = ["scripts", "externals"]
 
 [merge]
   command = "env"
-  args = ["NVIM_APPNAME=nvchad", "nvim", "-d", '{{ "{{" }} .Source {{ "}}" }}', '{{ "{{" }} .Destination {{ "}}" }}', '{{ "{{" }} .Target {{ "}}" }}']
+  args = [
+    "NVIM_APPNAME=nvchad",
+    "nvim",
+    '{{ "{{" }} .Source {{ "}}" }}',
+    '{{ "{{" }} .Destination {{ "}}" }}',
+    "-c",
+    'CodeDiff file {{ "{{" }} .Source {{ "}}" }} {{ "{{" }} .Destination {{ "}}" }}'
+  ]
 
 [edit]
   command = "nvim"
