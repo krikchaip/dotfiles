@@ -5,11 +5,12 @@
   command = "env"
   args = [
     "NVIM_APPNAME=nvchad",
+    "NVIM_MINIMAL=true",
     "nvim",
     '{{ "{{" }} .Target {{ "}}" }}',
     '{{ "{{" }} .Destination {{ "}}" }}',
-    "-c",
-    'CodeDiff file {{ "{{" }} .Target {{ "}}" }} {{ "{{" }} .Destination {{ "}}" }}'
+    "-c", "lua require('base46').load_all_highlights()",
+    "-c", 'CodeDiff file {{ "{{" }} .Target {{ "}}" }} {{ "{{" }} .Destination {{ "}}" }}'
   ]
   exclude = ["scripts", "externals"]
 
@@ -17,11 +18,12 @@
   command = "env"
   args = [
     "NVIM_APPNAME=nvchad",
+    "NVIM_MINIMAL=true",
     "nvim",
     '{{ "{{" }} .Source {{ "}}" }}',
     '{{ "{{" }} .Destination {{ "}}" }}',
-    "-c",
-    'CodeDiff file {{ "{{" }} .Source {{ "}}" }} {{ "{{" }} .Destination {{ "}}" }}'
+    "-c", "lua require('base46').load_all_highlights()",
+    "-c", 'CodeDiff file {{ "{{" }} .Source {{ "}}" }} {{ "{{" }} .Destination {{ "}}" }}'
   ]
 
 [edit]

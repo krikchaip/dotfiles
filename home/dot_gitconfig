@@ -17,7 +17,7 @@
   tool = codediff
 
 [difftool.codediff]
-  cmd = "env NVIM_APPNAME=nvchad nvim \"$LOCAL\" \"$REMOTE\" -c \"CodeDiff file $LOCAL $REMOTE\""
+  cmd = "env NVIM_APPNAME=nvchad NVIM_MINIMAL=true nvim \"$LOCAL\" \"$REMOTE\" -c \"lua require('base46').load_all_highlights()\" -c \"CodeDiff file $LOCAL $REMOTE\""
 
 [merge]
   ; ref: https://github.com/esmuellert/codediff.nvim#git-merge-tool
@@ -27,7 +27,7 @@
   conflictStyle = zdiff3
 
 [mergetool.codediff]
-  cmd = "env NVIM_APPNAME=nvchad nvim \"$MERGED\" -c \"CodeDiff merge $MERGED\""
+  cmd = "env NVIM_APPNAME=nvchad NVIM_MINIMAL=true nvim \"$MERGED\" -c \"lua require('base46').load_all_highlights()\" -c \"CodeDiff merge $MERGED\""
 
 [interactive]
   ; ref: https://dandavison.github.io/delta/full---help-output.html?highlight=interactive#full---help-output

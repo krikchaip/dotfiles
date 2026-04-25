@@ -46,3 +46,6 @@ opt.sessionoptions:append "winpos"
 opt.sessionoptions:remove "blank"
 opt.sessionoptions:remove "help"
 opt.sessionoptions:remove "terminal"
+
+-- hide tabline in minimal mode
+if vim.g.minimal then o.showtabline = 0 end
