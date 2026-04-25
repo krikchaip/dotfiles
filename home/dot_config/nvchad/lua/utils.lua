@@ -470,11 +470,51 @@ Git = {
     vim.cmd "CodeDiff"
   end,
   DiffMerge = function()
-    vim.ui.select({
-      "origin/develop",
-      "origin/main",
-      "origin/master",
-    }, {
+    local function find_git_root(path)
+      local dir = path
+      while dir and dir ~= "/" do
+        if vim.fn.isdirectory(dir .. "/.git") == 1 then return dir end
+        dir = vim.fn.fnamemodify(dir, ":h")
+      end
+      return nil
+    end
+
+    local cwd = vim.fn.getcwd()
+    local git_root = find_git_root(cwd)
+    if not git_root then
+      local buf_path = vim.fn.expand "%:p:h"
+      git_root = find_git_root(buf_path)
+    end
+
+    if not git_root then
+      vim.notify("No git repository found", vim.log.levels.WARN)
+      return
+    end
+
+    local handle = io.popen(string.format("git -C %s branch -r", vim.fn.shellescape(git_root)))
+    local result = handle:read "*a"
+    handle:close()
+
+    local branches = {}
+    for line in result:gmatch "[^\r\n]+" do
+      local branch = line:match "origin/(.*)"
+      if branch and not branch:find "HEAD" then table.insert(branches, "origin/" .. branch) end
+    end
+
+    if #branches == 0 then
+      vim.notify("Not a git repository or no remote branches found", vim.log.levels.WARN)
+      return
+    end
+
+    local priority = { ["origin/main"] = 1, ["origin/develop"] = 2, ["origin/master"] = 3 }
+    table.sort(branches, function(a, b)
+      local pa = priority[a] or 999
+      local pb = priority[b] or 999
+      if pa ~= pb then return pa < pb end
+      return a < b
+    end)
+
+    vim.ui.select(branches, {
       prompt = "Select base branch:",
     }, function(choice)
       if choice then vim.cmd(string.format("CodeDiff %s...HEAD", choice)) end
