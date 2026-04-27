@@ -40,16 +40,16 @@ M.config = function(opts)
       toggle_view_mode = "V", -- Toggle between 'list' and 'tree' views
     },
     conflict = {
-      accept_incoming = "<localleader>ar", -- Accept incoming (theirs) change
-      accept_current = "<localleader>al", -- Accept current (ours) change
+      accept_incoming = "<localleader>al", -- Accept incoming (theirs) change
+      accept_current = "<localleader>ar", -- Accept current (ours) change
       accept_both = "<localleader>ab", -- Accept both changes (incoming first)
       discard = "<localleader>db", -- Discard both, keep base
-      accept_all_incoming = "<localleader>aR", -- Accept ALL incoming (theirs) changes
-      accept_all_current = "<localleader>aL", -- Accept ALL current (ours) changes
+      accept_all_incoming = "<localleader>aL", -- Accept ALL incoming (theirs) changes
+      accept_all_current = "<localleader>aR", -- Accept ALL current (ours) changes
       accept_all_both = "<localleader>aB", -- Accept ALL both changes
       discard_all = "<localleader>dB", -- Discard ALL, reset to base
-      diffget_incoming = "dro", -- Get hunk from incoming (theirs) buffer
-      diffget_current = "dlo", -- Get hunk from current (ours) buffer
+      diffget_incoming = "dlo", -- Get hunk from incoming (theirs) buffer
+      diffget_current = "dro", -- Get hunk from current (ours) buffer
     },
   }
 
