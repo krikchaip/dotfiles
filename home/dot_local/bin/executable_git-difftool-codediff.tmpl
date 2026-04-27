@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+LOCAL="$1"
+REMOTE="$2"
+
+if [ -n "$NVIM" ] && command -v nvr >/dev/null 2>&1; then
+  nvr -cc "lua require('base46').load_all_highlights()" \
+    -c "CodeDiff file $LOCAL $REMOTE" \
+    -c "windo set nu!"
+else
+  env NVIM_APPNAME=nvchad NVIM_MINIMAL=true nvim -c "lua require('base46').load_all_highlights()" \
+    -c "CodeDiff file $LOCAL $REMOTE" \
+    -c "windo set foldlevel=999"
+fi

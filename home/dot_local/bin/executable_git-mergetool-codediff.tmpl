@@ -1,9 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 MERGED="$1"
+MERGED_DIR="$(dirname "$MERGED")"
+REPO_ROOT="$(git -C "$MERGED_DIR" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$MERGED_DIR")"
 
-if [ -n "$NVIM" ]; then
-  nvr --remote-silent "$MERGED" --remote-send 'Q' -c edit "$MERGED" -c 'set nu!' -c CodeDiff
+if [[ "$MERGED" = /* ]]; then
+  MERGED_ABS="$MERGED"
 else
-  env NVIM_APPNAME=nvchad NVIM_MINIMAL=true nvim "$MERGED" -c "lua require('base46').load_all_highlights()" -c CodeDiff
+  MERGED_ABS="$REPO_ROOT/$MERGED"
+fi
+
+# Escape for Ex command argument
+MERGED_ESCAPED="${MERGED_ABS//\\/\\\\}"
+MERGED_ESCAPED="${MERGED_ESCAPED// /\\ }"
+
+if [ -n "$NVIM" ] && command -v nvr >/dev/null 2>&1; then
+  nvr -cc "lua require('base46').load_all_highlights()" \
+    -c "CodeDiff merge $MERGED_ESCAPED" \
+    -c "windo set nu!"
+else
+  env NVIM_APPNAME=nvchad NVIM_MINIMAL=true nvim -c "lua require('base46').load_all_highlights()" \
+    -c "CodeDiff merge $MERGED_ESCAPED" \
+    -c "windo set foldlevel=999"
 fi
