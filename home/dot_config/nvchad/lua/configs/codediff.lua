@@ -2,6 +2,7 @@ local M = {}
 
 M.config = function(opts)
   opts.diff = {
+    hide_merge_artifacts = true, -- Hide merge tool temp files (*.orig, *.BACKUP.*, *.BASE.*, *.LOCAL.*, *.REMOTE.*)
     conflict_ours_position = "left", -- Position of ours (:2) in conflict view: "left" or "right"
     conflict_result_height = 33, -- Height of result pane in bottom layout (% of total height)
   }
