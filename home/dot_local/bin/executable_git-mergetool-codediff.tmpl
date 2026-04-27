@@ -17,9 +17,9 @@ MERGED_ESCAPED="${MERGED_ESCAPED// /\\ }"
 if [ -n "$NVIM" ] && command -v nvr >/dev/null 2>&1; then
   nvr -cc "lua require('base46').load_all_highlights()" \
     -c "CodeDiff merge $MERGED_ESCAPED" \
-    -c "windo set nu!"
+    -c "wincmd p"
 else
   env NVIM_APPNAME=nvchad NVIM_MINIMAL=true nvim -c "lua require('base46').load_all_highlights()" \
     -c "CodeDiff merge $MERGED_ESCAPED" \
-    -c "windo set foldlevel=999"
+    -c "wincmd p"
 fi
