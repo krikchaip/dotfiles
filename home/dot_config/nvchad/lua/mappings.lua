@@ -17,8 +17,8 @@ map("n", "<C-S-x>", "<cmd>Lazy<CR>", { desc = "Lazy: Open Popup" })
 map("n", "<C-S-l>", "<cmd>Mason<CR>", { desc = "Mason: Open Popup" })
 
 -- line number display
-map("n", "<leader>lnn", "<cmd>set nu!<CR>", { desc = "Line Number: Toggle Default" })
-map("n", "<leader>lnr", "<cmd>set rnu!<CR>", { desc = "Line Number: Toggle Relative" })
+map("n", "<leader>lnn", "<cmd>windo set nu!<CR>", { desc = "Line Number: Toggle Default" })
+map("n", "<leader>lnr", "<cmd>windo set rnu!<CR>", { desc = "Line Number: Toggle Relative" })
 
 -- emacs style movement keys
 map({ "i", "c" }, "<C-a>", "<Home>", { desc = "Cursor: Beginning of Line" })
