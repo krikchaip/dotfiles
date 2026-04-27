@@ -1,5 +1,8 @@
 local M = {}
 
+local autocmd = vim.api.nvim_create_autocmd
+local augroup = vim.api.nvim_create_augroup
+
 M.config = function(opts)
   opts.diff = {
     hide_merge_artifacts = true, -- Hide merge tool temp files (*.orig, *.BACKUP.*, *.BASE.*, *.LOCAL.*, *.REMOTE.*)
@@ -58,6 +61,17 @@ end
 
 M.setup = function(opts)
   require("codediff").setup(M.config(opts))
+
+  autocmd("User", {
+    group = augroup("codediff.settings", { clear = true }),
+    pattern = "CodeDiffOpen",
+    callback = function()
+      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+        vim.wo[win].number = true
+        vim.wo[win].foldlevel = 999
+      end
+    end,
+  })
 end
 
 return M
