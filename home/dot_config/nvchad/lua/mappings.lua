@@ -268,6 +268,8 @@ map("n", "<leader>gR", Git.ResetHunkAll, { desc = "Git: Reset All Hunks" })
 map("n", "<leader>gu", Git.Unstage, { desc = "Git: Unstage Buffer" })
 map("n", "[g", Git.NavHunk("prev", "[c"), { desc = "Git: Prev Hunk" })
 map("n", "]g", Git.NavHunk("next", "]c"), { desc = "Git: Next Hunk" })
+map("n", "[G", Git.NavHunk("first", "[c"), { desc = "Git: First Hunk" })
+map("n", "]G", Git.NavHunk("last", "]c"), { desc = "Git: Last Hunk" })
 
 -- notification (messages)
 map("n", "<leader>n", Notification.Show, { desc = "Notification: Show" })
