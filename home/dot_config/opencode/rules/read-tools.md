@@ -3,11 +3,11 @@ tools:
   - bash
 ---
 
-Prefer bash-first read/search commands for local file reading and search.
+Prefer bash-first read/search commands for local file reading and search. **ALWAYS** use `ripgrep` instead of `grep` for better performance.
 
 ```bash
 $ read ./path/to/file  # Read files
-$ ripgrep "package" ./ # Search contents
+$ ripgrep "package" ./ # Search contents (RIPGREP not GREP)
 $ find ./              # Find files
 $ ls ./path/to/file    # Directory listing
 ```
