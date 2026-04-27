@@ -27,7 +27,10 @@
   conflictStyle = zdiff3
 
 [mergetool.codediff]
-  cmd = "env NVIM_APPNAME=nvchad NVIM_MINIMAL=true nvim \"$MERGED\" -c \"lua require('base46').load_all_highlights()\" -c \"CodeDiff merge $MERGED\""
+  cmd = git-mergetool-codediff "$MERGED"
+
+[mergetool]
+    prompt = false
 
 [interactive]
   ; ref: https://dandavison.github.io/delta/full---help-output.html?highlight=interactive#full---help-output

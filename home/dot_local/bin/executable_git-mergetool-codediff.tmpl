@@ -1,0 +1,9 @@
+#!/bin/bash
+
+MERGED="$1"
+
+if [ -n "$NVIM" ]; then
+  nvr --remote-silent "$MERGED" --remote-send 'Q' -c edit "$MERGED" -c 'set nu!' -c CodeDiff
+else
+  env NVIM_APPNAME=nvchad NVIM_MINIMAL=true nvim "$MERGED" -c "lua require('base46').load_all_highlights()" -c CodeDiff
+fi
