@@ -322,6 +322,9 @@ Telescope = {
   TabBuffers = function()
     require("configs.telescope").tab_buffers { path_display = { "filename_first" } }
   end,
+  Filetypes = function()
+    require("configs.telescope").filetypes()
+  end,
 }
 
 Treesitter = {

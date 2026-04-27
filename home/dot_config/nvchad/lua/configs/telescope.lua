@@ -343,6 +343,71 @@ M.opencode_addpath = function()
   OpenCode.AddPath(filepath)
 end
 
+M.filetypes = function(opts)
+  local pickers = require "telescope.pickers"
+  local finders = require "telescope.finders"
+  local conf = require("telescope.config").values
+  local devicons = require "nvim-web-devicons"
+  local entry_display = require "telescope.pickers.entry_display"
+
+  local filetypes = vim.fn.getcompletion("", "filetype")
+  local current_ft = vim.bo.filetype
+
+  pickers
+    .new(
+      require("telescope.themes").get_dropdown {
+        layout_config = { width = 0.3, height = 0.4 },
+      },
+      {
+        prompt_title = "Switch Filetype",
+        default_text = current_ft ~= "" and current_ft or nil,
+        sorter = conf.generic_sorter(opts),
+        finder = finders.new_table {
+          results = filetypes,
+          entry_maker = function(entry)
+            local icon, icon_highlight = devicons.get_icon_by_filetype(entry, { default = false })
+
+            local displayer = entry_display.create {
+              separator = " ",
+              items = {
+                { width = 2 },
+                { remaining = true },
+              },
+            }
+
+            local make_display = function(ent)
+              return displayer {
+                { ent.icon or "  ", ent.icon_highlight },
+                ent.value,
+              }
+            end
+
+            return {
+              value = entry,
+              display = make_display,
+              ordinal = entry,
+              icon = icon,
+              icon_highlight = icon_highlight,
+            }
+          end,
+        },
+        attach_mappings = function(prompt_bufnr, _)
+          local actions = require "telescope.actions"
+          local action_state = require "telescope.actions.state"
+
+          actions.select_default:replace(function()
+            local selection = action_state.get_selected_entry()
+            actions.close(prompt_bufnr)
+            vim.bo.filetype = selection.value
+          end)
+
+          return true
+        end,
+      }
+    )
+    :find()
+end
+
 M.tab_buffers = function(opts)
   opts = opts or {}
 
