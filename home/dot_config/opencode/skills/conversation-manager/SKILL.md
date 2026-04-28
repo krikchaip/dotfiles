@@ -24,8 +24,19 @@ For move/rename requests, always mutate the root session only. If the caller poi
 
 1. **Resolve Requested Conversation**:
    - If the user refers to "this conversation", "this", or "current session", do not assume you are at the top-level conversation.
-   - Use your own session ID to resolve the `parent_id` lineage and identify the root session.
+   - First, check your system prompt or context window for your own session ID.
+   - If not found, query for the most recently updated child session whose parent is a root session (i.e., the direct child of a top-level conversation — which is what a sub-agent session looks like):
+     ```bash
+     sqlite3 ~/.local/share/opencode/opencode.db "
+     SELECT s.id FROM session s
+     JOIN session p ON s.parent_id = p.id
+     WHERE p.parent_id IS NULL
+     ORDER BY s.time_updated DESC LIMIT 1;
+     "
+     ```
+   - Use the retrieved ID as your candidate session and proceed to step 2 to walk the lineage to root.
    - If an explicit session id or unique title is provided, still verify whether it is a child and promote the target to its root ancestor before mutating.
+   - If an explicit `session_id` is provided, verify it exists first; if not found, return an error.
    - Do not use title fallback as the final identifier for move/rename.
 
 2. **Resolve Lineage to Root**: Once a candidate session ID is identified (whether via your own session, an explicit ID, or a title search), walk upward until the root session is found.
@@ -41,13 +52,13 @@ For move/rename requests, always mutate the root session only. If the caller poi
      FROM session s
      JOIN lineage l ON s.id = l.parent_id
    )
-   SELECT id, parent_id, title, directory, depth
+   SELECT id, title, directory
    FROM lineage
-   ORDER BY depth;
+   WHERE parent_id IS NULL;
    "
    ```
 
-   - Use the row with `parent_id IS NULL` as the root conversation for move/rename.
+   - The query returns exactly one row: the root session. Use its `id` for all subsequent move/rename operations.
 
 3. **Search Conversations**: Find session IDs using `sqlite3`. Search `session` table using `LIKE` on `title` for discovery.
    - If multiple matches exist, prioritize the most recent session using `time_updated`.
