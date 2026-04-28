@@ -67,9 +67,33 @@ M.setup = function(opts)
     pattern = "CodeDiffOpen",
     callback = function()
       for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-        vim.wo[win].number = true
-        vim.wo[win].foldlevel = 999
+        local buf = vim.api.nvim_win_get_buf(win)
+        local ft = vim.bo[buf].filetype
+
+        if not ft:match "^codediff%-" then
+          vim.wo[win].number = true
+          vim.wo[win].foldlevel = 999
+        end
       end
+    end,
+  })
+
+  autocmd("User", {
+    group = augroup("codediff.cleanup", { clear = true }),
+    pattern = "CodeDiffClose",
+    callback = function()
+      vim.schedule(function()
+        local buffers = vim.api.nvim_list_bufs()
+        for _, buf in ipairs(buffers) do
+          if vim.api.nvim_buf_is_loaded(buf) then
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name:match "^/private/var/" or name:match "^/tmp/" or name:match "^/var/" then
+              -- Only wipe if not visible in any window
+              if vim.fn.bufwinid(buf) == -1 then vim.api.nvim_buf_delete(buf, { force = true }) end
+            end
+          end
+        end
+      end)
     end,
   })
 end
