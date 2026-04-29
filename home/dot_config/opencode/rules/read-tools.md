@@ -3,7 +3,7 @@ tools:
   - bash
 ---
 
-Prefer `rtk` CLI wrapped bash commands for local file reading and search to maximize token savings. **ALWAYS** use `rtk ripgrep` instead of `rtk grep` for better performance.
+Prefer `rtk` CLI wrapped bash commands for local file reading and search to maximize token savings. ALWAYS use `rtk ripgrep` instead of `rtk grep` for better performance.
 
 These commands (`read`, `ls`, `find`, `ripgrep`) are part of the `rtk` suite, designed to produce token-optimized output.
 
