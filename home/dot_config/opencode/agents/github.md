@@ -37,6 +37,8 @@ permission:
   "mcp-github_list*": allow
   "mcp-github_search*": allow
 
+  "mcp-github_add_issue_comment": allow
+  "mcp-github_create_pull_request": allow
   "mcp-github_issue_read": allow
   "mcp-github_pull_request_read": allow
 ---
