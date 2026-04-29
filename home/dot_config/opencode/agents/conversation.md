@@ -9,6 +9,8 @@ permission:
     "conversation-manager": allow
 
   bash:
+    "*head* /tmp/opencode-conversations/*": allow
+    "*mkdir* /tmp/opencode-conversations/*": allow
     "*read* /tmp/opencode-conversations/*": allow
     "*ripgrep* /tmp/opencode-conversations/*": allow
     "*sqlite3* ~/.local/share/opencode/*": allow
