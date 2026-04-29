@@ -1,5 +1,6 @@
 ---
 description: Fulfill a quick request or answer a question in a separate context window
+model: google/antigravity-gemini-3-flash
 subtask: true
 ---
 
