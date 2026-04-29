@@ -22,44 +22,36 @@ For move/rename requests, always mutate the root session only. If the caller poi
 
 ## Instructions
 
-1. **Resolve Requested Conversation**:
-   - If the user refers to "this conversation", "this", or "current session", do not assume you are at the top-level conversation.
-   - First, check your system prompt or context window for your own session ID.
-   - If not found, check your context for the current working directory, then query for the most recently updated child session whose parent is a root session in the same directory:
+1. **Resolve "This Conversation"**:
+   - If the user refers to "this conversation", "this", or "current session", you need the root user conversation, not your own subagent session.
+   - Execute this single query to directly find the root of the active conversation in your current directory:
      ```bash
      sqlite3 ~/.local/share/opencode/opencode.db "
-     SELECT s.id FROM session s
+     SELECT p.id, p.title, p.directory
+     FROM session s
      JOIN session p ON s.parent_id = p.id
-     WHERE p.parent_id IS NULL
-     AND s.directory = '<current_directory>'
+     WHERE p.parent_id IS NULL AND s.directory = '<current_directory>'
      ORDER BY s.time_updated DESC LIMIT 1;
      "
      ```
-   - Use the retrieved ID as your candidate session and proceed to step 2 to walk the lineage to root.
-   - If an explicit session id or unique title is provided, still verify whether it is a child and promote the target to its root ancestor before mutating.
-   - If an explicit `session_id` is provided, verify it exists first; if not found, return an error.
-   - Do not use title fallback as the final identifier for move/rename.
+   - Use the returned `p.id` as the root session for mutations. You do not need the CTE lineage query.
 
-2. **Resolve Lineage to Root**: Once a candidate session ID is identified (whether via your own session context, an explicit ID, or a title search), walk upward until the root session is found.
-
-   ```bash
-   sqlite3 ~/.local/share/opencode/opencode.db "
-   WITH RECURSIVE lineage(id, parent_id, title, directory, depth) AS (
-     SELECT id, parent_id, title, directory, 0
-     FROM session
-     WHERE id = '<candidate_session_id_from_step_1>'
-     UNION ALL
-     SELECT s.id, s.parent_id, s.title, s.directory, l.depth + 1
-     FROM session s
-     JOIN lineage l ON s.id = l.parent_id
-   )
-   SELECT id, title, directory
-   FROM lineage
-   WHERE parent_id IS NULL;
-   "
-   ```
-
-   - The query returns exactly one row: the root session. Use its `id` for all subsequent move/rename operations.
+2. **Resolve Explicit ID or Title**:
+   - If the user provides an explicit `session_id` or title, locate the candidate ID first.
+   - Once you have the candidate ID, walk its lineage to find the root session:
+     ```bash
+     sqlite3 ~/.local/share/opencode/opencode.db "
+     WITH RECURSIVE lineage(id, parent_id, title, directory, depth) AS (
+       SELECT id, parent_id, title, directory, 0
+       FROM session WHERE id = '<candidate_session_id>'
+       UNION ALL
+       SELECT s.id, s.parent_id, s.title, s.directory, l.depth + 1
+       FROM session s JOIN lineage l ON s.id = l.parent_id
+     )
+     SELECT id, title, directory FROM lineage WHERE parent_id IS NULL;
+     "
+     ```
+   - Do not use title fallback as the final identifier without resolving lineage first.
 
 3. **Search Conversations**: Find session IDs using `sqlite3`. Search `session` table using `LIKE` on `title` for discovery.
    - If multiple matches exist, prioritize the most recent session using `time_updated`.
