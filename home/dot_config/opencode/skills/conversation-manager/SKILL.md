@@ -25,12 +25,13 @@ For move/rename requests, always mutate the root session only. If the caller poi
 1. **Resolve Requested Conversation**:
    - If the user refers to "this conversation", "this", or "current session", do not assume you are at the top-level conversation.
    - First, check your system prompt or context window for your own session ID.
-   - If not found, query for the most recently updated child session whose parent is a root session (i.e., the direct child of a top-level conversation — which is what a sub-agent session looks like):
+   - If not found, check your context for the current working directory, then query for the most recently updated child session whose parent is a root session in the same directory:
      ```bash
      sqlite3 ~/.local/share/opencode/opencode.db "
      SELECT s.id FROM session s
      JOIN session p ON s.parent_id = p.id
      WHERE p.parent_id IS NULL
+     AND s.directory = '<current_directory>'
      ORDER BY s.time_updated DESC LIMIT 1;
      "
      ```
