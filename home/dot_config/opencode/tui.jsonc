@@ -37,6 +37,9 @@
     "agent_cycle": "<leader>tab",
     "agent_cycle_reverse": "<leader>shift+tab",
 
+    "input_undo": "alt+z",
+    "input_redo": "alt+shift+z",
+
     "display_thinking": "alt+k",
   },
 }
