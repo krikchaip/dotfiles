@@ -40,14 +40,14 @@ For move/rename requests, always mutate the root session only. If the caller poi
    - If an explicit `session_id` is provided, verify it exists first; if not found, return an error.
    - Do not use title fallback as the final identifier for move/rename.
 
-2. **Resolve Lineage to Root**: Once a candidate session ID is identified (whether via your own session, an explicit ID, or a title search), walk upward until the root session is found.
+2. **Resolve Lineage to Root**: Once a candidate session ID is identified (whether via your own session context, an explicit ID, or a title search), walk upward until the root session is found.
 
    ```bash
    sqlite3 ~/.local/share/opencode/opencode.db "
    WITH RECURSIVE lineage(id, parent_id, title, directory, depth) AS (
      SELECT id, parent_id, title, directory, 0
      FROM session
-     WHERE id = '<candidate_session_id>'
+     WHERE id = '<candidate_session_id_from_step_1>'
      UNION ALL
      SELECT s.id, s.parent_id, s.title, s.directory, l.depth + 1
      FROM session s
