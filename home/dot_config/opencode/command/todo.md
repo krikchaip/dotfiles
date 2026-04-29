@@ -1,6 +1,5 @@
 ---
 description: Analyze a brain dump, name the chat, and polish user ideas into a structured format
-model: google/antigravity-gemini-3-flash
 ---
 
 # "TODO" (Brain dump)
