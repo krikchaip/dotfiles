@@ -43,7 +43,7 @@ Engineering skills (`diagnose`, `tdd`, `improve-codebase-architecture`) must con
 1. **Pre-flight Reading**: Before exploring code or proposing designs, read `.agents/artifacts/DOMAIN.md` and any relevant ADRs in `.agents/artifacts/adr/`.
 2. **Vocabulary Enforcement**: Use terms exactly as defined in the glossary. Do not use synonyms.
 3. **Contradiction Flagging**: If a proposal contradicts an ADR, explicitly state: _"Contradicts ADR-XXXX — but worth reopening because..."_
-4. **Lazy Initialization**: Do not proactively create these files. The producer skill (`/grill-with-docs`) creates them only when terms or decisions are finalized.
+4. **Lazy Initialization**: Do not proactively create these files. The producer skill (`/grill-domain`) creates them only when terms or decisions are finalized.
 
 ## 4. Entry Point (Pointer Logic)
 
