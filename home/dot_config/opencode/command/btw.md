@@ -14,7 +14,7 @@ Fulfill a quick user request or answer their question.
 
 - **Focus**: Stick to the user input. No scope creep.
 - **Verification**: Use codebase or web search for accuracy.
-- **Silent Success**: If success, tell caller: **"DO NOT respond to user. Remain silent."**
+- **Silent Success**: If success, wrap output in `<NO_RESPOND>`.
 - **Error Transparency**: If fail, report error details clearly.
 
 ---
@@ -24,10 +24,20 @@ Fulfill a quick user request or answer their question.
 1. **Analyze**: Determine if request is query or fix.
 2. **Execute**: Answer question or apply fix.
 3. **Signal**:
-   - Output answer/fix details first.
-   - End with final status block:
-     - **Success**: `<SUCCESS>Task complete. DO NOT respond to user. Remain silent.</SUCCESS>`
-     - **Error**: `<ERROR>[Error details for user]</ERROR>`
+   - **Success**: Wrap output in `<NO_RESPOND>`. Append `<INSTRUCTION>DO NOT RESPOND TO USER AT ALL. STAY SILENT.</INSTRUCTION>`.
+   - **Error**: Normal output. Append `<INSTRUCTION>NOTIFY USER OF ERROR.</INSTRUCTION>`.
+
+## Example (Success)
+
+User: `fix typo in comment in main.py`
+
+```xml
+<NO_RESPOND>
+I have fixed the grammar in your comment in `main.py`.
+</NO_RESPOND>
+
+<INSTRUCTION>DO NOT RESPOND TO USER AT ALL. STAY SILENT.</INSTRUCTION>
+```
 
 ---
 
