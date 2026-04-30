@@ -27,7 +27,7 @@ To scaffold and implement OpenCode subagent `.md` files that follow established 
 3. **Develop System Prompt (Body)**:
    - Use a clear header: `# [Name] Agent`.
    - Define **## Constraints**: Specific "do not" rules and operational boundaries.
-   - Define **## Execution Guide**: A numbered sequence of steps for the agent to follow.
+   - Define **## Execution Guide**: A sequence of steps for the agent to follow.
 
 4. **Reference Examples**:
    - Read `<chezmoi_source_dir>/home/dot_config/opencode/agents/*.md` to see gold-standard implementations.
