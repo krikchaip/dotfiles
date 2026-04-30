@@ -25,7 +25,7 @@ Fulfill a quick user request or answer their question.
 2. **Execute**: Answer question or apply fix.
 3. **Signal**:
    - **Success**: Wrap output in `<NO_RESPOND>`. Append `<INSTRUCTION>RESPOND TO USER WITH ONLY ONE WORD "COMPLETED".</INSTRUCTION>`.
-   - **Error**: Normal output. Append `<INSTRUCTION>NOTIFY USER OF ERROR.</INSTRUCTION>`.
+   - **Error**: Normal output.
 
 ## Example (Success)
 
@@ -37,6 +37,16 @@ I have fixed the grammar in your comment in `main.py`.
 </NO_RESPOND>
 
 <INSTRUCTION>RESPOND TO USER WITH ONLY ONE WORD "COMPLETED".</INSTRUCTION>
+```
+
+---
+
+## Example (Failed)
+
+User: `fix typo in comment in main.py`
+
+```xml
+main.py not found. Are you sure the filename is correct?
 ```
 
 ---
