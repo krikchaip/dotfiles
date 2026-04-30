@@ -102,7 +102,6 @@
 
     // custom agents
     "conversation": { "model": "openrouter/qwen/qwen3.5-flash-02-23" },
-    "quicksearch": { "model": "google/antigravity-gemini-3-flash" },
     "schedule": { "model": "google/antigravity-gemini-3-flash" },
 
     // mcp agents
