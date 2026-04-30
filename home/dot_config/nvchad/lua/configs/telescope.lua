@@ -476,20 +476,19 @@ M.tab_buffers = function(opts)
     end, selections)
 
     local current_tab = vim.api.nvim_get_current_tabpage()
+    local all_tabs = vim.api.nvim_list_tabpages()
     local other_tabs = vim.tbl_filter(function(t)
       return t ~= current_tab
-    end, vim.api.nvim_list_tabpages())
+    end, all_tabs)
 
-    if #other_tabs == 0 then return vim.notify("No other tab to move to", vim.log.levels.INFO) end
-
-    local tab_choices = {}
-    local tab_map = {}
+    local tab_choices = { "New Tab" }
+    local tab_map = { [1] = "new" }
 
     for i, t in ipairs(other_tabs) do
       local tab_nr = vim.api.nvim_tabpage_get_number(t)
       table.insert(tab_choices, "Tab " .. tab_nr)
 
-      tab_map[i] = t
+      tab_map[i + 1] = t
     end
 
     vim.ui.select(tab_choices, { prompt = "Move buffer to tab:" }, function(_, idx)
@@ -497,14 +496,35 @@ M.tab_buffers = function(opts)
 
       local target_tab = tab_map[idx]
 
-      -- append to target tab bufs
-      local target_bufs = vim.t[target_tab].bufs or {}
-      for _, bufnr in ipairs(bufnrs_to_move) do
-        if not vim.tbl_contains(target_bufs, bufnr) then table.insert(target_bufs, bufnr) end
+      if target_tab == "new" then
+        local current_bufs = vim.t[current_tab].bufs or {}
+        if #current_bufs <= #bufnrs_to_move then
+          return vim.notify("Moving all buffers in current tab to a new tab is a no-op.", vim.log.levels.INFO)
+        end
+
+        local empty_buf = vim.api.nvim_create_buf(false, true)
+        vim.cmd("tabnew " .. vim.api.nvim_buf_get_name(empty_buf))
+        target_tab = vim.api.nvim_get_current_tabpage()
+
+        -- Set the moved buffers and delete the temporary empty buffer
+        vim.t[target_tab].bufs = bufnrs_to_move
+        vim.api.nvim_win_set_buf(0, bufnrs_to_move[1])
+        vim.api.nvim_buf_delete(empty_buf, { force = true })
+      else
+        -- append to target tab bufs
+        local target_bufs = vim.t[target_tab].bufs or {}
+        for _, bufnr in ipairs(bufnrs_to_move) do
+          if not vim.tbl_contains(target_bufs, bufnr) then table.insert(target_bufs, bufnr) end
+        end
+
+        vim.t[target_tab].bufs = target_bufs
       end
 
       vim.o.lazyredraw = true
-      vim.t[target_tab].bufs = target_bufs
+
+      -- Focus the first moved buffer in the target tab
+      vim.api.nvim_set_current_tabpage(target_tab)
+      vim.api.nvim_win_set_buf(0, bufnrs_to_move[1])
 
       -- handle current tab
       local wins_to_update = {}
@@ -528,27 +548,36 @@ M.tab_buffers = function(opts)
         for _, win in ipairs(wins_to_update) do
           vim.api.nvim_win_set_buf(win, next_buf)
         end
-      elseif #wins_to_update > 0 then
-        local original_win = vim.api.nvim_get_current_win()
+      else
+        -- No buffers left in current tab, close it if it's not the only one
+        if #all_tabs > 1 then
+          vim.api.nvim_set_current_tabpage(current_tab)
+          vim.cmd "tabclose"
+          vim.api.nvim_set_current_tabpage(target_tab)
+        elseif #wins_to_update > 0 then
+          local original_win = vim.api.nvim_get_current_win()
 
-        vim.api.nvim_set_current_win(wins_to_update[1])
-        vim.cmd "enew"
+          vim.api.nvim_set_current_win(wins_to_update[1])
+          vim.cmd "enew"
 
-        local new_buf = vim.api.nvim_get_current_buf()
+          local new_buf = vim.api.nvim_get_current_buf()
 
-        vim.t[current_tab].bufs = { new_buf }
+          vim.t[current_tab].bufs = { new_buf }
 
-        for i = 2, #wins_to_update do
-          vim.api.nvim_win_set_buf(wins_to_update[i], new_buf)
+          for i = 2, #wins_to_update do
+            vim.api.nvim_win_set_buf(wins_to_update[i], new_buf)
+          end
+
+          vim.api.nvim_set_current_win(original_win)
         end
-
-        vim.api.nvim_set_current_win(original_win)
       end
 
       vim.o.lazyredraw = false
       vim.cmd "redraw!"
 
-      vim.notify(string.format("Moved %d buffer(s) to Tab %d", #bufnrs_to_move, target_tab))
+      vim.notify(
+        string.format("Moved %d buffer(s) to Tab %d", #bufnrs_to_move, vim.api.nvim_tabpage_get_number(target_tab))
+      )
     end)
   end
 
