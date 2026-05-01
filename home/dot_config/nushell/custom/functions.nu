@@ -150,6 +150,7 @@ def "opencode upgrade plugins" []: nothing -> nothing {
 
   cd ~/.config/opencode
   bun add @opencode-ai/plugin@latest
+  chezmoi re-add package.json bun.lock
 }
 
 # opencode session manager with fzf

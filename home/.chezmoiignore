@@ -1,2 +1,3 @@
 **/*.bak
 **/nushell/history.txt
+**/node_modules
