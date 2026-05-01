@@ -12,7 +12,7 @@ export const SessionPlugin: Plugin = async ({ client }) => {
       }),
       session_walk: tool({
         description:
-          "Find the root ancestor session ID for a given session. If not provided, it defaults to the current session ID",
+          "Find the root ancestor session ID for a given session. If not provided, defaults to the current session ID",
         args: {
           sessionID: tool.schema
             .string()
@@ -31,6 +31,24 @@ export const SessionPlugin: Plugin = async ({ client }) => {
 
             currentId = res.data.parentID;
           }
+        },
+      }),
+      session_rename: tool({
+        description:
+          "Rename a given session. If session ID is not provided, defaults to the current session",
+        args: {
+          sessionID: tool.schema.string().optional().describe("The session ID"),
+          title: tool.schema.string().describe("The new title"),
+        },
+        async execute(args, context) {
+          const id = args.sessionID || context.sessionID;
+
+          await client.session.update({
+            path: { id },
+            body: { title: args.title },
+          });
+
+          return `Renamed session ${id} to "${args.title}"`;
         },
       }),
     },
