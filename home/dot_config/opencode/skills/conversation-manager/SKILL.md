@@ -35,6 +35,7 @@ For move/rename requests, always mutate the root session only. If the caller poi
      "
      ```
    - Use the returned `p.id` as the root session for mutations. You do not need the CTE lineage query.
+   - Include the resolved root session ID in your final output/response. This allows the caller to use the explicit ID for subsequent operations instead of resolving it again.
 
 2. **Resolve Explicit ID or Title**:
    - If the user provides an explicit `session_id` or title, locate the candidate ID first.
@@ -97,4 +98,4 @@ For move/rename requests, always mutate the root session only. If the caller poi
 - **Identifier Safety**: For mutating actions, never auto-pick "most relevant/latest" from title search and update immediately.
 - **Target Paths**: Ensure destination `directory` exists and corresponds to a known `project_id`.
 - **Schema**: Use live introspection (`.schema`) to avoid outdated assumptions about table structure.
-- **Minimal Output**: Return concise success confirmations or table-formatted search results.
+- **Minimal Output**: Return concise success confirmations or table-formatted search results. Always include the resolved session ID in your output.
