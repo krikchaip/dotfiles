@@ -1,6 +1,6 @@
 import { type Plugin, tool } from "@opencode-ai/plugin";
 
-export const SessionPlugin: Plugin = async ({ client }) => {
+export const SessionPlugin: Plugin = async ({ client, $ }) => {
   return {
     tool: {
       session_me: tool({
@@ -49,6 +49,39 @@ export const SessionPlugin: Plugin = async ({ client }) => {
           });
 
           return `Renamed session ${id} to "${args.title}"`;
+        },
+      }),
+      session_move: tool({
+        description:
+          "Move a session to a new directory. If session ID is not provided, defaults to the current session",
+        args: {
+          sessionID: tool.schema.string().optional().describe("The session ID"),
+          directory: tool.schema
+            .string()
+            .describe("The absolute path to move the session to"),
+        },
+        async execute(args, context) {
+          const id = args.sessionID || context.sessionID;
+
+          const projectsRes = await client.project.list();
+          const projects = projectsRes.data || [];
+
+          const targetProject = projects
+            .filter(
+              (p: any) =>
+                args.directory === p.worktree ||
+                args.directory.startsWith(
+                  p.worktree.endsWith("/") ? p.worktree : p.worktree + "/",
+                ),
+            )
+            .sort((a: any, b: any) => b.worktree.length - a.worktree.length)[0];
+
+          const projectId = targetProject ? targetProject.id : "global";
+
+          const dbPath = `${process.env.HOME}/.local/share/opencode/opencode.db`;
+          await $`sqlite3 ${dbPath} "UPDATE session SET project_id = '${projectId}', directory = '${args.directory}' WHERE id = '${id}';" `.text();
+
+          return `Moved session ${id} to ${args.directory} (Project: ${projectId})`;
         },
       }),
     },
