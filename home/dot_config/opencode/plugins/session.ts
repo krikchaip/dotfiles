@@ -1,6 +1,18 @@
 import { type Plugin, tool } from "@opencode-ai/plugin";
 
 export const SessionPlugin: Plugin = async ({ client, $ }) => {
+  async function validateSession(id: string) {
+    const valRes = await client.session.get({ path: { id } });
+
+    if ((valRes.error as any)?.data?.message) {
+      throw new Error((valRes.error as any).data.message);
+    }
+
+    if (valRes.error) {
+      throw new Error("Session validation failed: Not Found");
+    }
+  }
+
   return {
     tool: {
       session_me: tool({
@@ -21,6 +33,7 @@ export const SessionPlugin: Plugin = async ({ client, $ }) => {
         },
         async execute(args, context) {
           let currentId = args.sessionID || context.sessionID;
+          await validateSession(currentId);
 
           while (true) {
             const res = await client.session.get({ path: { id: currentId } });
@@ -42,6 +55,7 @@ export const SessionPlugin: Plugin = async ({ client, $ }) => {
         },
         async execute(args, context) {
           const id = args.sessionID || context.sessionID;
+          await validateSession(id);
 
           await client.session.update({
             path: { id },
@@ -62,6 +76,7 @@ export const SessionPlugin: Plugin = async ({ client, $ }) => {
         },
         async execute(args, context) {
           const id = args.sessionID || context.sessionID;
+          await validateSession(id);
 
           const projectsRes = await client.project.list();
           const projects = projectsRes.data || [];
