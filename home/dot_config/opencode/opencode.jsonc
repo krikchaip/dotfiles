@@ -12,6 +12,7 @@
     "opencode-agent-memory@0", // https://github.com/joshuadavidthomas/opencode-agent-memory
     "@slkiser/opencode-quota@2", // https://github.com/slkiser/opencode-quota
     "opencode-rules@0", // https://github.com/frap129/opencode-rules
+    "opencode-history-search@1", // https://github.com/joeyism/opencode-history-search
   ],
 
   "model": "opencode/big-pickle",

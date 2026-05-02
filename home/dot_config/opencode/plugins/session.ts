@@ -83,20 +83,84 @@ export const SessionPlugin: Plugin = async ({ client, $ }) => {
 
           const targetProject = projects
             .filter(
-              (p: any) =>
+              (p) =>
                 args.directory === p.worktree ||
                 args.directory.startsWith(
                   p.worktree.endsWith("/") ? p.worktree : p.worktree + "/",
                 ),
             )
-            .sort((a: any, b: any) => b.worktree.length - a.worktree.length)[0];
+            .sort((a, b) => b.worktree.length - a.worktree.length)[0];
 
           const projectId = targetProject ? targetProject.id : "global";
 
-          const dbPath = `${process.env.HOME}/.local/share/opencode/opencode.db`;
+          const dbPath = `${Bun.env.HOME}/.local/share/opencode/opencode.db`;
           await $`sqlite3 ${dbPath} "UPDATE session SET project_id = '${projectId}', directory = '${args.directory}' WHERE id = '${id}';" `.text();
 
           return `Moved session ${id} to ${args.directory} (Project: ${projectId})`;
+        },
+      }),
+      session_read: tool({
+        description:
+          "Read the full conversation messages for a specific session",
+        args: {
+          sessionID: tool.schema.string().describe("The session ID to read"),
+          mode: tool.schema
+            .enum(["summary", "full"])
+            .optional()
+            .describe("The view mode to return. Defaults to summary"),
+        },
+        async execute(args) {
+          const viewMode = args.mode || "summary";
+          await validateSession(args.sessionID);
+
+          const res = await client.session.messages({
+            path: { id: args.sessionID },
+          });
+
+          if ((res.error as any)?.data?.message) {
+            throw new Error((res.error as any).data.message);
+          }
+
+          if (res.error) {
+            throw new Error("Failed to read session messages: Unknown error");
+          }
+
+          const messages = res.data || [];
+          return messages
+            .map((m) => {
+              const role = m.info?.role || "unknown";
+
+              const formattedParts = (m.parts || [])
+                .map((p) => {
+                  if (p.type === "text") return p.text;
+
+                  if (p.type === "tool" && viewMode === "full") {
+                    const inputStr = p.state?.input
+                      ? JSON.stringify(p.state.input)
+                      : "{}";
+
+                    let out = `[Tool Call: ${p.tool}]\nArguments: ${inputStr}`;
+
+                    if (p.state?.status === "completed" && "output" in p.state) {
+                      out += `\nOutput: ${p.state.output}`;
+                    } else if (p.state?.status === "error" && "error" in p.state) {
+                      out += `\nError: ${p.state.error}`;
+                    }
+                    return out;
+                  }
+
+                  if (p.type === "reasoning" && viewMode === "full") {
+                    return `[Reasoning]\n${p.text}`;
+                  }
+
+                  return null;
+                })
+                .filter(Boolean)
+                .join("\n\n");
+
+              return `[${role.toUpperCase()}]\n${formattedParts}`;
+            })
+            .join("\n\n---\n\n");
         },
       }),
     },
