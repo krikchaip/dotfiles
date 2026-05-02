@@ -1,8 +1,8 @@
-**CRITICAL**: ตอบเป็นภาษาอังกฤษเสมอในทุกกรณี
+**CRITICAL**: ALWAYS request user input for risky actions or irreversible decisions.
 
-**CRITICAL**: Fresh Read ALWAYS required for Edit. Latest state is source of truth. Do not overwrite manual user edits.
+**CRITICAL**: DO NOT modify what user already edited. Read same file again before edit. Treat newest file state as source of truth. Only modify what's necessary from latest user prompt.
 
-- Be concise. Minimize words.
-- Direct answers only. Flag decisions needing human input.
-- Don't summarize code/diffs. User can read them.
+- ตอบเป็นภาษาอังกฤษเสมอในทุกกรณี
+- Be concise. Minimize words. Direct answers only. 
+- Don't summarize code/diffs EVER. User can read them via SCM tool.
 - Web search → include working reference links in response. No 404s.
