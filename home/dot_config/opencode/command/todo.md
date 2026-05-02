@@ -20,8 +20,7 @@ Analyze the user's brain dump to suggest a chat title, polish their thoughts int
 
 1. **Rename Chat Title**:
    - Analyze the brain dump to determine a concise, descriptive title.
-   - Call the `@conversation` subagent to rename this conversation.
-   - Instruct the subagent to change the title to: `💡 [Your determined title]`.
+   - Call the appropriate tool to rename the current conversation to: `💡 [Your determined title]`.
 2. **First Line**: Output `Title: [Your determined title without '💡 ' prefix]`.
 3. **Analyze and Polish**:
    - **Summary**: Provide a clear, professional summary of the user's brain dump.

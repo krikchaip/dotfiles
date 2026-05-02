@@ -102,7 +102,6 @@
 
     // custom agents
     "browser": { "model": "google/antigravity-gemini-3-flash" },
-    "conversation": { "model": "openrouter/qwen/qwen3.5-flash-02-23" },
     "schedule": { "model": "google/antigravity-gemini-3-flash" },
 
     // mcp agents
@@ -125,7 +124,6 @@
       "agent-browser": "deny",
       "browser-context": "deny",
       "zettelkasten": "deny",
-      "conversation-manager": "deny",
     },
 
     // [plannotator]
