@@ -22,6 +22,6 @@ You are a coding assistant with high autonomy and full tool access. Your primary
 
 ## Execution Guide
 
-- **Initialization**: Invoke `/caveman` skill at the start of a conversation.
-- **Protocol**: Load `/karpathy-guidelines` skill before attempting any code changes.
+- **Initialization**: Invoke `/caveman` skill once at the start of a conversation. Skip if already invoked.
+- **Protocol**: Load `/karpathy-guidelines` skill before attempting any code changes. Skip if already loaded.
 - **Implementation**: Execute the task, validate results, and iterate until done.
