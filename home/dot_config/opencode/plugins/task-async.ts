@@ -102,7 +102,7 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
             "",
             "<task_result>",
             "Task started asynchronously in the background. You are unblocked.",
-            "A message will be injected into this session when the subagent finishes.",
+            "Use `task_read` with this task_id to check results once notified.",
             "</task_result>",
           ].join("\n");
         },
@@ -155,6 +155,36 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
             .join("\n");
         },
       }),
+      task_read: tool({
+        description: "Read the latest message from an async task's session",
+        args: {
+          task_id: tool.schema
+            .string()
+            .describe("The task_id (session ID) to read results from"),
+        },
+        async execute(args) {
+          const messages = await client.session.messages({
+            path: { id: args.task_id },
+          });
+          const lastAssistantMsg = (messages.data ?? []).findLast(
+            (m) => m.info.role === "assistant",
+          );
+
+          if (!lastAssistantMsg) {
+            throw new Error("No assistant response found for this task.");
+          }
+
+          const resultText = lastAssistantMsg.parts
+            ?.filter(
+              (p): p is Extract<typeof p, { type: "text" }> =>
+                p.type === "text",
+            )
+            .map((p) => p.text)
+            .join("\n");
+
+          return resultText || "No text content found.";
+        },
+      }),
     },
     event: async ({ event }) => {
       if (event.type !== "session.idle") return;
@@ -166,30 +196,13 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
       activeTasks.delete(sessionID);
 
       try {
-        // Response shape: Array<{ info: Message, parts: Part[] }>
-        const messages = await client.session.messages({
-          path: { id: sessionID },
-        });
-        const lastAssistantMsg = (messages.data ?? []).findLast(
-          (m) => m.info.role === "assistant",
-        );
-
-        const resultText =
-          lastAssistantMsg?.parts
-            ?.filter(
-              (p): p is Extract<typeof p, { type: "text" }> =>
-                p.type === "text",
-            )
-            .map((p) => p.text)
-            .join("\n") || "No response text found.";
-
         await client.session.promptAsync({
           path: { id: parentID },
           body: {
             parts: [
               {
                 type: "text",
-                text: `<task_exited task_id="${sessionID}">\n${resultText}\n</task_exited>`,
+                text: `<task_exited task_id="${sessionID}">\nAsync task completed. Use \`task_read\` with this task_id to retrieve the result.\n</task_exited>`,
               },
             ],
           },
@@ -199,7 +212,7 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
           body: {
             service: "task-async",
             level: "error",
-            message: `Failed to inject result for task ${sessionID}`,
+            message: `Failed to notify parent for task ${sessionID}`,
             extra: { error: String(err) },
           },
         });
