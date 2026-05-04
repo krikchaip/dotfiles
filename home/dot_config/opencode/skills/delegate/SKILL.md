@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Route tasks to specialized subagents or default to agentic. Manages session tracking via aliases and supports Sync (single/parallel) execution. Use when user wants to hand off work or says "delegate"
+description: Route tasks to specialized subagents or default to agentic. Manages session tracking via aliases and handles tasks delegation. Use when user wants to hand off work, run background tasks, or says "delegate"
 ---
 
 # Delegate
@@ -30,8 +30,7 @@ To allow the user to refer back to spawned sub-agents (e.g., to continue a conve
 
 ### 3. Execution
 
-- **Single or Parallel**: You can spawn a single sub-agent or multiple in parallel (waiting for all to finish before proceeding).
-- **Tool**: Call the `task` tool.
+- **Tool**: Call the `task` tool. This will return a `task_id` of the assigned sub-agent.
   - `subagent_type`: The matched sub-agent or `agentic`.
   - `description`: 3-5 word technical label.
   - `prompt`: The exhaustive prompt from Step 1.
@@ -44,4 +43,4 @@ To allow the user to refer back to spawned sub-agents (e.g., to continue a conve
 
 ## Advanced features
 
-- **Parallel Delegation**: To run multiple tasks in parallel, simply invoke multiple `task` tools at the same time.
+- **Parallel Delegation**: To run multiple tasks in parallel, simply invoke multiple `task` tools in the same tool call response. Ensure you generate, map, and clearly communicate a unique alias for each parallel task (e.g., "Agent 1 (F4) is doing X, Agent 2 (B7) is doing Y").
