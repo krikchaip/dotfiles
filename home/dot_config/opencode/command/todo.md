@@ -25,7 +25,7 @@ Analyze the user's brain dump to suggest a chat title, polish their thoughts int
 3. **Analyze and Polish**:
    - **Summary**: Provide a clear, professional summary of the user's brain dump.
    - **Key Points**: List any specific goals, platforms, constraints, or decisions identified in the dump.
-4. **Conclusion**: Explicitly state that no actions have been taken and you are waiting for further instructions or a green light.
+4. **Conclusion**: Explicitly state that no actions have been taken and you are waiting for further instructions or a green light. Once the user gives the green light, update the chat title to: `⏳ [Your determined title]`.
 
 For example:
 
