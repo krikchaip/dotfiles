@@ -50,11 +50,11 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
 
           const toolRestrictions: Record<string, boolean> = {};
 
-          if (!agentDef.tools["task"]) {
+          if (!agentDef.tools?.["task"]) {
             toolRestrictions["task"] = false;
           }
 
-          if (!agentDef.tools["task_async"]) {
+          if (!agentDef.tools?.["task_async"]) {
             toolRestrictions["task_async"] = false;
           }
 
