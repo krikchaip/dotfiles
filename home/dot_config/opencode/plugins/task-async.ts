@@ -1,5 +1,8 @@
 import { type Plugin, tool } from "@opencode-ai/plugin";
 import { Effect } from "effect";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parse as parseJsonc } from "jsonc-parser";
 
 const activeTasks = new Map<string, string>(); // childSessionID → parentSessionID
 
@@ -29,7 +32,45 @@ Async behavior:
 - Never use sleep plus \`task_read\` loops to check completion.
 - Only call \`task_read\` early if: user asks for progress, you need partial output before session ends, or \`<task_exited>\` reported an error.`;
 
+interface TaskAsyncConfig {
+  model?: string; // "provider/model" format override
+}
+
 export const TaskAsyncPlugin: Plugin = async ({ client }) => {
+  // Lazy-loaded plugin config (read raw JSONC from disk — API strips unknown keys)
+  let pluginConfig: TaskAsyncConfig | undefined;
+
+  async function getConfig(): Promise<TaskAsyncConfig> {
+    if (pluginConfig) return pluginConfig;
+
+    try {
+      const paths = await client.path.get();
+
+      const configDir = paths.data!.config;
+      const candidates = ["opencode.jsonc", "opencode.json", "config.json"];
+
+      for (const file of candidates) {
+        try {
+          const raw = readFileSync(join(configDir, file), "utf-8");
+          const parsed = parseJsonc(raw);
+
+          if (parsed?.experimental?.taskAsync) {
+            pluginConfig = parsed.experimental.taskAsync;
+            return pluginConfig!;
+          }
+        } catch {
+          continue;
+        }
+      }
+    } catch {
+      // path API failed, skip config
+    }
+
+    pluginConfig = {};
+
+    return pluginConfig;
+  }
+
   return {
     tool: {
       task: tool({
@@ -69,8 +110,24 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
           const agentDef = (agents.data ?? []).find(
             (a) => a.name === args.subagent_type,
           );
+
           if (!agentDef) {
             return `Error: Unknown agent type "${args.subagent_type}".`;
+          }
+
+          // Resolve model: config override > subagent config > parent agent's model
+          const cfg = await getConfig();
+          const parentAgentDef = (agents.data ?? []).find(
+            (a) => a.name === context.agent,
+          );
+
+          let model: { providerID: string; modelID: string } | undefined;
+
+          if (cfg.model) {
+            const [providerID, ...rest] = cfg.model.split("/");
+            model = { providerID, modelID: rest.join("/") };
+          } else {
+            model = agentDef.model ?? parentAgentDef?.model;
           }
 
           const toolRestrictions: Record<string, boolean> = {};
@@ -85,11 +142,13 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
 
           // Resume existing session or create new one
           let sessionID: string;
+
           if (args.task_id) {
             try {
               const existing = await client.session.get({
                 path: { id: args.task_id },
               });
+
               if (existing.data) {
                 sessionID = args.task_id;
               } else {
@@ -107,6 +166,7 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
                 parentID: context.sessionID,
               },
             });
+
             sessionID = session.data!.id;
           }
 
@@ -119,6 +179,7 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
               body: {
                 parts: [{ type: "text", text: args.prompt }],
                 agent: args.subagent_type,
+                ...(model && { model }),
                 ...(Object.keys(toolRestrictions).length > 0 && {
                   tools: toolRestrictions,
                 }),
@@ -167,6 +228,7 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
                 targets.push(childID);
               }
             }
+
             if (targets.length === 0) {
               throw new Error("No active async tasks to cancel.");
             }
@@ -225,6 +287,7 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
 
       const sessionID = event.properties.sessionID;
       const parentID = activeTasks.get(sessionID);
+
       if (!parentID) return;
 
       activeTasks.delete(sessionID);

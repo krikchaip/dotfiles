@@ -141,8 +141,6 @@
     "job_logs": "deny", // view the latest logs from a job
 
     "bash": {
-      "* ~/*": "ask",
-      "* $HOME/*": "ask",
       "* *../*": "deny",
 
       "*aws *": "ask",
@@ -190,6 +188,13 @@
   },
 
   "experimental": {
+    // [task-async plugin]
+    "taskAsync": {
+      // Override model for all spawned subagents. Format: "provider/model"
+      // If unset, uses subagent's configured model → parent agent's model → server default
+      "model": "google/antigravity-gemini-3-flash",
+    },
+
     // https://github.com/slkiser/opencode-quota#configuration-reference
     "quotaToast": {
       "enableToast": false,
