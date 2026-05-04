@@ -3,12 +3,37 @@ import { Effect } from "effect";
 
 const activeTasks = new Map<string, string>(); // childSessionID → parentSessionID
 
+const DESCRIPTION = `Launch a new agent to handle complex, multistep tasks asynchronously.
+
+This tool returns IMMEDIATELY after spawning the subagent. You are unblocked to continue working.
+
+When to use:
+- Complex, multistep tasks that can run independently in the background
+- Launch multiple agents concurrently for parallel work (use multiple tool calls in one message)
+
+When NOT to use:
+- Reading specific files — use Read or Glob directly
+- Searching for code in 2-3 known files — use Read directly
+- Simple tasks you can do faster yourself
+
+Usage notes:
+1. Each invocation starts fresh unless you provide task_id to resume a prior session.
+2. When starting fresh, include a highly detailed prompt specifying exactly what to do and what to return.
+3. Clearly tell the agent whether to write code or just research. Specify how to verify work if possible.
+4. The result is NOT visible to the user. Summarize it back to them after reading.
+5. Trust agent outputs generally.
+
+Async behavior:
+- Completion signal is a future \`<task_exited>\` message injected into your conversation.
+- If you only need to know whether the task finished, do NOT call \`task_read\`; wait for \`<task_exited>\`.
+- Never use sleep plus \`task_read\` loops to check completion.
+- Only call \`task_read\` early if: user asks for progress, you need partial output before session ends, or \`<task_exited>\` reported an error.`;
+
 export const TaskAsyncPlugin: Plugin = async ({ client }) => {
   return {
     tool: {
-      task_async: tool({
-        description:
-          "Launch a new agent to handle complex, multistep tasks asynchronously",
+      task: tool({
+        description: DESCRIPTION,
         args: {
           description: tool.schema
             .string()
