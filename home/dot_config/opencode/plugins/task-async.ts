@@ -8,7 +8,7 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
     tool: {
       task_async: tool({
         description:
-          "Launch a new agent to handle complex, multistep tasks asynchronously.",
+          "Launch a new agent to handle complex, multistep tasks asynchronously",
         args: {
           description: tool.schema
             .string()
@@ -105,6 +105,54 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
             "A message will be injected into this session when the subagent finishes.",
             "</task_result>",
           ].join("\n");
+        },
+      }),
+      task_cancel: tool({
+        description:
+          "Cancel running async tasks. Leave task_id empty to cancel all active subtasks in this session",
+        args: {
+          task_id: tool.schema
+            .string()
+            .optional()
+            .describe("Task ID to cancel. Omit to cancel all active subtasks"),
+        },
+        async execute(args, context) {
+          const targets: string[] = [];
+
+          if (args.task_id) {
+            if (activeTasks.has(args.task_id)) {
+              targets.push(args.task_id);
+            } else {
+              throw new Error(
+                `No active async task found with id "${args.task_id}"`,
+              );
+            }
+          } else {
+            for (const [childID, parentID] of activeTasks) {
+              if (parentID === context.sessionID) {
+                targets.push(childID);
+              }
+            }
+            if (targets.length === 0) {
+              throw new Error("No active async tasks to cancel.");
+            }
+          }
+
+          const results = await Promise.allSettled(
+            targets.map(async (id) => {
+              await client.session.abort({ path: { id } });
+              activeTasks.delete(id);
+              return id;
+            }),
+          );
+
+          return results
+            .map((r) =>
+              r.status === "fulfilled"
+                ? `Cancelled: ${r.value}`
+                : `Failed: ${String(r.reason)}`,
+            )
+            .join("\n");
         },
       }),
     },
