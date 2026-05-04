@@ -1,8 +1,11 @@
 ---
-description: Stores key details about the person you are conversing with (preferences, habits, constraints), allowing for more personalized collaboration
+description: >-
+  Stores key details about the person you are conversing with (preferences, habits, constraints), allowing for more
+  personalized collaboration
 label: human
 limit: 5000
 read_only: false
 ---
 
 - The user uses `{{ .config.shell }}` shell. Suggest them commands in `{{ .config.shell }}` syntax.
+- The user does not want me to create git commits; they will commit code themselves.
