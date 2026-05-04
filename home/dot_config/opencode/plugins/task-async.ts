@@ -61,7 +61,20 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
           // Resume existing session or create new one
           let sessionID: string;
           if (args.task_id) {
-            sessionID = args.task_id;
+            try {
+              const existing = await client.session.get({
+                path: { id: args.task_id },
+              });
+              if (existing.data) {
+                sessionID = args.task_id;
+              } else {
+                throw new Error("not found");
+              }
+            } catch {
+              throw new Error(
+                `No existing session found for task_id "${args.task_id}". Omit task_id to create a new task.`,
+              );
+            }
           } else {
             const session = await client.session.create({
               body: {
