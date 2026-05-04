@@ -110,14 +110,10 @@ export const TaskAsyncPlugin: Plugin = async ({ client }) => {
               });
             });
 
-          return [
-            `task_id: ${sessionID} (for resuming to continue this task if needed)`,
-            "",
-            "<task_result>",
-            "Task started asynchronously in the background. You are unblocked.",
-            "Use `task_read` with this task_id to check results once notified.",
-            "</task_result>",
-          ].join("\n");
+          return {
+            output: `task_id: ${sessionID} (for resuming to continue this task if needed)\n\n<task_result>\nTask started asynchronously in the background. You are unblocked.\nUse \`task_read\` with this task_id to check results once notified.\n</task_result>`,
+            metadata: { sessionId: sessionID },
+          };
         },
       }),
       task_cancel: tool({
