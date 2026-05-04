@@ -5,6 +5,9 @@ temperature: 0.2
 permission:
   "*": deny
 
+  read: allow
+  glob: allow
+
   skill:
     agent-browser: allow
     browser-context: allow
@@ -13,13 +16,8 @@ permission:
     "*echo* *": allow
     "*printf* *": allow
     "*mkdir* *": allow
-    "*read* *": allow
-    "*find* *": allow
-    "*ls* *": allow
 
     "*mkdir* ~/Downloads/agent-browsers/*": allow
-    "*find* ~/Downloads/agent-browsers/*": allow
-    "*ls* ~/Downloads/agent-browsers/*": allow
 
     "agent-browser *": allow
     "agent-browser * *~/Downloads/agent-browser/*": allow
@@ -44,4 +42,3 @@ You are a specialized browser automation agent. Your purpose is to navigate the 
 - **Initialization**: Call the `agent-browser` skill at the start of your execution to load required tools and instructions.
 - **Context Handling**: Call the `browser-context` skill next if the user mentions anything related to browser context or uses the word "context".
 - **Storage**: Save screenshots and downloaded assets in `~/Downloads/agent-browser/` unless a specific path is requested.
-- **Read for Context**: Use `rtk read` or similar bash tools to inspect local files if needed for context.

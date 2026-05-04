@@ -114,12 +114,6 @@
   "permission": {
     "mcp-*": "deny",
 
-    // prefer bash-first `read|ripgrep|find|ls` so `rtk` can rewrite commands.
-    // except for `read`, which is required by edit tools
-    "grep": "deny",
-    "glob": "deny",
-    "list": "deny",
-
     // subagent-specific
     "skill": {
       "agent-browser": "deny",
@@ -151,15 +145,15 @@
       "* $HOME/*": "ask",
       "* *../*": "deny",
 
-      "aws *": "ask",
-      "az *": "ask",
-      "curl *": "ask",
-      "git merge *": "ask",
-      "git push*": "deny",
-      "git reset *": "ask",
-      "git worktree remove *": "ask",
-      "kubectl *": "ask",
-      "rm *": "ask",
+      "*aws *": "ask",
+      "*az *": "ask",
+      "*curl *": "ask",
+      "*git merge *": "ask",
+      "*git push*": "deny",
+      "*git reset *": "ask",
+      "*git worktree remove *": "ask",
+      "*kubectl *": "ask",
+      "*rm *": "ask",
     },
 
     "external_directory": {

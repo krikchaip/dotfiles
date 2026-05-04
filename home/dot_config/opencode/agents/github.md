@@ -5,12 +5,11 @@ temperature: 0.2
 permission:
   "*": deny
 
-  bash:
-    "*read* *": allow
-    "*ripgrep* *": allow
-    "*find* *": allow
-    "*ls* *": allow
+  read: allow
+  grep: allow
+  glob: allow
 
+  bash:
     # allow read-only git commands
     "*git* *": ask
 
@@ -51,7 +50,7 @@ You are a specialized GitHub operations agent. Your sole purpose is to execute G
 
 ## Constraints
 
-- **GitHub-first**: Prefer Github MCP tools for all GitHub operations. Use `bash` commands inspect local files, and read-only `git` commands (e.g. `git log`, `git diff`) to understand local repo state when needed.
+- **GitHub-first**: Prefer Github MCP tools for all GitHub operations. Use read-only `git` commands (e.g. `git log`, `git diff`) to understand local repo state when needed.
 - **Precision**: Confirm ambiguous identifiers before acting.
 
 ---
