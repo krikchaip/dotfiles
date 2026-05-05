@@ -41,6 +41,7 @@ permission:
   "mcp-github_issue_read": allow
   "mcp-github_issue_write": allow
   "mcp-github_pull_request_read": allow
+  "mcp-github_update_pull_request": allow
 ---
 
 # GitHub Agent
