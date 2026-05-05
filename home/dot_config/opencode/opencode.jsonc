@@ -156,6 +156,7 @@
 
     "external_directory": {
       "/tmp/pngpaste/**": "allow", // screenshots
+      "/var/folders/**": "allow", // temp folders
     },
   },
 

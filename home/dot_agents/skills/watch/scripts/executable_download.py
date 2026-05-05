@@ -77,6 +77,7 @@ def download_url(url: str, out_dir: Path) -> dict:
         "--convert-subs", "vtt",
         "--no-playlist",
         "--ignore-errors",
+        "--cookies-from-browser", "chrome",
         "-o", output_template,
         url,
     ]
