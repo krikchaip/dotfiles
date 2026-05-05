@@ -155,9 +155,9 @@ install_vscode_extensions "Windsurf" "$HOME/.codeium/windsurf/bin/surf"
 setup_vscode_extension_sync_watcher
 
 # Start/restart yabai & skhd services
-echo "Managing yabai & skhd services..."
-if pgrep yabai &>/dev/null; then yabai --restart-service; else yabai --start-service; fi
-if pgrep skhd &>/dev/null; then skhd --restart-service; else skhd --start-service; fi
+# echo "Managing yabai & skhd services..."
+# if pgrep yabai &>/dev/null; then yabai --restart-service; else yabai --start-service; fi
+# if pgrep skhd &>/dev/null; then skhd --restart-service; else skhd --start-service; fi
 
 echo "Installation script finished."
 echo "Note: You may need to restart your shell for all changes to take effect."
