@@ -1,7 +1,7 @@
 ---
 description: High-autonomy development agent with full tool access (Agentic mode)
 mode: all
-temperature: 0.3
+temperature: 0.2
 permission:
   question: allow
   todoread: allow
