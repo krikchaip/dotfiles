@@ -47,9 +47,10 @@ branch:
 match: any
 ---
 
-# Rule Title
+Start with a concise introduction of two to three sentences maximum that defines the rule's scope and purpose. Follow with bullet points only if additional technical details or specific constraints are required.
 
-- Write rules as concrete, actionable instructions.
+- Use concrete, actionable instructions.
+- Prefer imperative voice: "Do X", "Avoid Y", "Always Z".
 ```
 
 ## Matching Strategy
@@ -121,10 +122,11 @@ Conversation extraction examples:
 
 ## Writing Guidelines
 
-- Use imperative voice: "Do X", "Prefer Y", "Avoid Z".
-- Make rules executable: instructions the agent can follow.
-- Stay minimal: avoid restating generic best practices.
-- Prefer examples over prose when a pattern is subtle.
+- **Use imperative voice**: "Do X", "Prefer Y", "Avoid Z", "Always A".
+- **Concise Structure**: If the rule is short, use one to three sentences.
+- **Detailed Rules**: For more complex rules, start with a one to three sentence introduction followed by bullet points.
+- **Executable**: Write instructions the agent can follow directly.
+- **Minimal**: Avoid restating generic best practices.
 
 ## Examples
 
@@ -137,10 +139,7 @@ globs:
   - "**/*.tsx"
 ---
 
-# TypeScript
-
-- Prefer `type` over `interface` unless you need declaration merging.
-- Avoid `any`; use `unknown` and narrow.
+Prefer `type` over `interface` unless you need declaration merging. Avoid `any` in all cases; use `unknown` and narrow types as needed to maintain type safety.
 ```
 
 Keyword-based: unit test guidance (allowlisted terms)
@@ -154,19 +153,13 @@ keywords:
   - "jest"
 ---
 
-# Unit Tests
-
-- Follow Arrange-Act-Assert.
-- Name tests: `it('should <expected> when <condition>')`.
+Follow the Arrange-Act-Assert pattern for all tests. Name test blocks using the `it('should <expected> when <condition>')` convention to ensure clear failure reports.
 ```
 
 Unconditional: always-on standards
 
 ```md
-# Code Style
-
-- Prefer early returns over deep nesting.
-- Extract magic numbers to named constants.
+Prefer early returns over deep nesting to improve readability. Extract magic numbers and strings to named constants at the top of the file or in a shared config.
 ```
 
 Runtime filters with `match: all`: feature branch development
@@ -184,10 +177,23 @@ ci: false
 match: all
 ---
 
-# Feature Branch Dev
+Maintain commit hygiene on feature branches by creating atomic commits. Ensure all local tests pass before pushing to the remote repository.
+```
 
-- Create atomic commits with clear messages.
-- Run tests before pushing.
+Mixed structure: Documentation and Comments
+
+```md
+---
+globs:
+  - "**/*.js"
+  - "**/*.ts"
+---
+
+Ensure all public-facing functions and classes include JSDoc/TSDoc comments. Use clear and descriptive language to explain parameters, return types, and potential side effects.
+
+- Document `@param` and `@returns` explicitly for all exported symbols.
+- Use `@deprecated` tags when phasing out old logic to provide migration paths.
+- Avoid redundant comments for obvious code; focus on the "why" for complex logic.
 ```
 
 ## Common Mistakes
