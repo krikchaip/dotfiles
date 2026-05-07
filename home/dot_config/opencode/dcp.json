@@ -4,6 +4,10 @@
   "pruneNotification": "detailed",
   "pruneNotificationType": "chat",
 
+  "manualMode": {
+    "enabled": false
+  },
+
   "compress": {
     "minContextLimit": 100000,
     "maxContextLimit": 150000,
