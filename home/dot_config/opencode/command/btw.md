@@ -27,6 +27,8 @@ Fulfill a quick user request or answer their question.
    - **Success**: Wrap output in `<NO_RESPOND>`. Append `<INSTRUCTION>RESPOND TO USER WITH ONLY ONE WORD "COMPLETED".</INSTRUCTION>`.
    - **Error**: Normal output.
 
+---
+
 ## Example (Success)
 
 User: `fix typo in comment in main.py`
