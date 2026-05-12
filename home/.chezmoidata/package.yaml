@@ -11,6 +11,7 @@ package:
     - neovim-remote
 
   npm:
+    - "@earendil-works/pi-coding-agent"
     - "@fission-ai/openspec"
     - skills
     - tree-sitter-cli
