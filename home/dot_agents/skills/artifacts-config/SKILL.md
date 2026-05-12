@@ -33,7 +33,7 @@ The five canonical triage roles map 1:1 to these strings for this repo:
 
 ## 3. Domain Documentation (Context & ADRs)
 
-Engineering skills (`diagnose`, `tdd`, `improve-codebase-architecture`) must consume domain knowledge from here:
+Engineering skills (`investigate`, `tdd`, `improve-codebase-architecture`) must consume domain knowledge from here:
 
 - **Primary Domain Context**: `.agents/artifacts/DOMAIN.md`
 - **Architectural Decision Records (ADRs)**: `.agents/artifacts/adr/`
