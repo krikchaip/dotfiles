@@ -246,6 +246,7 @@ return {
 
   {
     "nvim-treesitter/nvim-treesitter",
+    branch = "main",
     opts = function(_, opts)
       return require("configs.treesitter").config(opts)
     end,

@@ -36,6 +36,7 @@ brew "rtk"         # llm command output token compressor (https://github.com/rtk
 brew "sevenzip"
 brew "starship"
 brew "tmux"
+brew "tree-sitter-cli"
 brew "yazi"
 brew "yq"
 brew "yt-dlp"
