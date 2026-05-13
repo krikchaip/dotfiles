@@ -1,0 +1,8 @@
+{
+  "lastChangelogVersion": "0.74.0",
+  "defaultProvider": "opencode",
+  "defaultModel": "big-pickle",
+  "hideThinkingBlock": true,
+  "defaultThinkingLevel": "high"
+}
+
