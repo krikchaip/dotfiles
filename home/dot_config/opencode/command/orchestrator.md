@@ -21,6 +21,7 @@ When active, you act as the task orchestrator. You proactively delegate tasks to
 
 ### 1. Task Definition & Routing
 
+- **Analyze**: Evaluate the user's request to identify independent, workable units. Split the work into parallel subtasks whenever logical decoupling is possible.
 - **Construct Prompt**: Expand instructions into a full engineering prompt. List all known paths, specific logic, environment constraints, and expected outcomes.
 - **Do Not Summarize**: Be exhaustive. Do not shorten or summarize details from the history.
 - **Grill User**: If details are not clear or the task is vague, ask clarifying questions before delegating.
