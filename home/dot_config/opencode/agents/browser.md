@@ -16,6 +16,7 @@ permission:
     "*echo* *": allow
     "*printf* *": allow
     "*mkdir* *": allow
+    "*ls* *": allow
 
     "*mkdir* ~/Downloads/agent-browsers/*": allow
 
