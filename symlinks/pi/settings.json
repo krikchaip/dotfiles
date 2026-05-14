@@ -20,16 +20,7 @@
     "github-copilot/claude-opus-4.6",
     "github-copilot/claude-opus-4.7"
   ],
-  "shellPath": "/opt/homebrew/bin/nu",
-  "shellCommandPrefix": "source-env $nu.env-path; source $nu.config-path;",
-  "npmCommand": [
-    "mise",
-    "exec",
-    "node@26",
-    "--",
-    "npm"
-  ],
-  "packages": [
-    "npm:pi-token-burden"
-  ]
+  "npmCommand": ["mise", "exec", "node@26", "--", "npm"],
+  "packages": ["npm:pi-token-burden"]
 }
+
