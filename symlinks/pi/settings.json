@@ -7,7 +7,7 @@
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "opencode/big-pickle",
-    "opencode/minimax-m2.5-free",
+    "opencode/kimi-k2.6",
     "github-copilot/gemini-3-flash-preview",
     "github-copilot/gemini-3.1-pro-preview",
     "github-copilot/gpt-5.3-codex",
