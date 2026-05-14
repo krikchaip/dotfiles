@@ -2,7 +2,19 @@
   "lastChangelogVersion": "0.74.0",
   "defaultProvider": "opencode",
   "defaultModel": "big-pickle",
+  "treeFilterMode": "no-tools",
   "hideThinkingBlock": true,
-  "defaultThinkingLevel": "high"
+  "defaultThinkingLevel": "high",
+  "enabledModels": [
+    "opencode/big-pickle",
+    "opencode/minimax-m2.5-free",
+    "github-copilot/gemini-3-flash-preview",
+    "github-copilot/gemini-3.1-pro-preview",
+    "github-copilot/gpt-5.3-codex",
+    "github-copilot/gpt-5.4",
+    "github-copilot/gpt-5.5",
+    "github-copilot/claude-sonnet-4.6",
+    "github-copilot/claude-opus-4.6",
+    "github-copilot/claude-opus-4.7"
+  ]
 }
-
