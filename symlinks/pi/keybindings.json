@@ -1,0 +1,18 @@
+{
+  "app.editor.external": ["alt+e"],
+  "app.model.cycleBackward": [],
+  "app.model.cycleForward": [],
+  "app.model.select": ["alt+m"],
+  "app.session.new": ["ctrl+shift+n"],
+  "app.session.resume": ["tab"],
+  "app.session.tree": ["ctrl+g"],
+  "app.thinking.cycle": ["ctrl+t"],
+  "app.thinking.toggle": ["alt+k"],
+  "app.tools.expand": ["alt+j"],
+  "tui.editor.cursorDown": ["down", "ctrl+n"],
+  "tui.editor.cursorUp": ["up", "ctrl+p"],
+  "tui.editor.deleteCharBackward": ["backspace", "ctrl+h"],
+  "tui.editor.undo": ["alt+z"],
+  "tui.editor.yank": ["alt+shift+z"],
+  "tui.input.newLine": ["shift+enter", "ctrl+j"]
+}

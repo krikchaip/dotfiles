@@ -20,7 +20,14 @@
     "github-copilot/claude-opus-4.6",
     "github-copilot/claude-opus-4.7"
   ],
-  "npmCommand": ["mise", "exec", "node@26", "--", "npm"],
-  "packages": ["npm:pi-token-burden"]
+  "npmCommand": [
+    "mise",
+    "exec",
+    "node@26",
+    "--",
+    "npm"
+  ],
+  "packages": [
+    "npm:pi-token-burden"
+  ]
 }
-
