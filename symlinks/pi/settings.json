@@ -22,5 +22,14 @@
   ],
   "shellPath": "/opt/homebrew/bin/nu",
   "shellCommandPrefix": "source-env $nu.env-path; source $nu.config-path;",
-  "npmCommand": ["mise", "exec", "node@26", "--", "npm"]
+  "npmCommand": [
+    "mise",
+    "exec",
+    "node@26",
+    "--",
+    "npm"
+  ],
+  "packages": [
+    "npm:pi-token-burden"
+  ]
 }
