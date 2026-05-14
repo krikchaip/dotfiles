@@ -1,13 +1,7 @@
 ---
 name: watch
-description: Watch a video (URL or local path). Downloads with yt-dlp, extracts auto-scaled frames with ffmpeg, pulls the transcript from captions (or Whisper API fallback), and hands the result to Claude so it can answer questions about what's in the video.
-argument-hint: "<video-url-or-path> [question]"
-allowed-tools: Bash, Read, AskUserQuestion
-homepage: https://github.com/bradautomates/claude-video
-repository: https://github.com/bradautomates/claude-video
-author: bradautomates
-license: MIT
-user-invocable: true
+description: Watch a video (URL or local path). Downloads with yt-dlp, extracts auto-scaled frames with ffmpeg, pulls the transcript from captions (or Whisper API fallback), and hands the result to Claude so it can answer questions about what's in the video
+disable-model-invocation: true
 ---
 
 # /watch — Claude watches a video
@@ -28,11 +22,11 @@ This is a <100ms lookup. On exit 0, the script emits **nothing** — proceed to 
 
 On non-zero exit, follow the table:
 
-| Exit | Meaning | Action |
-|------|---------|--------|
-| `2` | Missing binaries (`ffmpeg` / `ffprobe` / `yt-dlp`) | Run installer |
-| `3` | No Whisper API key | Run installer to scaffold `.env`, then ask user for a key |
-| `4` | Both missing | Run installer, then ask for a key |
+| Exit | Meaning                                            | Action                                                    |
+| ---- | -------------------------------------------------- | --------------------------------------------------------- |
+| `2`  | Missing binaries (`ffmpeg` / `ffprobe` / `yt-dlp`) | Run installer                                             |
+| `3`  | No Whisper API key                                 | Run installer to scaffold `.env`, then ask user for a key |
+| `4`  | Both missing                                       | Run installer, then ask for a key                         |
 
 The installer is idempotent — safe to re-run:
 
@@ -76,6 +70,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/watch.py" "<source>"
 ```
 
 Optional flags:
+
 - `--start T` / `--end T` — focus on a section. Accepts `SS`, `MM:SS`, or `HH:MM:SS`. When either is set, fps auto-scales denser (see "Focusing on a section" below).
 - `--max-frames N` — lower the cap for tighter token budget (e.g. `--max-frames 40`)
 - `--resolution W` — change frame width in px (default 512; bump to 1024 only if the user needs to read on-screen text)
@@ -95,6 +90,7 @@ When the user asks about a specific moment — "what happens at the 2 minute mar
 - 60-180s → ~0.6 fps (100 frames, capped)
 
 Focused mode is the right call for:
+
 - Any moment/range the user names explicitly ("around 2:30", "the intro", "the last 30 seconds").
 - Any video longer than ~10 minutes where the user's question is about a specific part — running focused on the relevant section is far more useful than a sparse scan of the whole thing.
 - Re-runs after a full scan didn't have enough detail in some region.
@@ -102,6 +98,7 @@ Focused mode is the right call for:
 Transcript is auto-filtered to the same range. Frame timestamps are absolute (real video timeline, not offset-from-start).
 
 Examples:
+
 ```bash
 # Last 10 seconds of a 1 minute video
 python3 "${CLAUDE_SKILL_DIR}/scripts/watch.py" video.mp4 --start 50 --end 60
@@ -116,6 +113,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/watch.py" "$URL" --start 1:12:00
 **Step 3 — Read every frame path the script lists.** The Read tool renders JPEGs directly as images for you. Read all frames in a single message (parallel tool calls) so you see them together. The frames are in chronological order with a `t=MM:SS` timestamp so you can align them to the transcript.
 
 **Step 4 — answer the user.** You now have two streams of evidence:
+
 - **Frames** — what's on screen at each timestamp
 - **Transcript** — what's said at each timestamp. The report's header shows the source (`captions` = yt-dlp pulled native subs; `whisper (groq)` or `whisper (openai)` = transcribed by API).
 
@@ -145,6 +143,7 @@ Both keys live in `~/.config/watch/.env`. The script prefers Groq when both are 
 ## Token efficiency
 
 This skill burns tokens primarily on frames. Order of magnitude:
+
 - 80 frames at 512px wide is roughly 50-80k image tokens depending on aspect ratio.
 - The transcript is cheap (a few thousand tokens at most for a 10-minute video).
 - Bumping `--resolution` to 1024 roughly quadruples the image tokens per frame. Only do it when necessary.
@@ -154,6 +153,7 @@ If you already watched a video this session and the user asks a follow-up, do **
 ## Security & Permissions
 
 **What this skill does:**
+
 - Runs `yt-dlp` locally to download the video and pull native captions when the source supports them (public data; the request goes directly to whatever host the URL points at)
 - Runs `ffmpeg` / `ffprobe` locally to extract frames as JPEGs and, when Whisper is needed, a mono 16 kHz audio clip
 - Sends the extracted audio clip to Groq's Whisper API (`api.groq.com/openai/v1/audio/transcriptions`) when `GROQ_API_KEY` is set (preferred — cheaper, faster)
@@ -162,6 +162,7 @@ If you already watched a video this session and the user asks a follow-up, do **
 - Reads / creates `~/.config/watch/.env` (mode `0600`) to store the Whisper API key(s) and a `SETUP_COMPLETE` marker. As a fallback, also reads `.env` in the current working directory
 
 **What this skill does NOT do:**
+
 - Does not upload the video itself to any API — only the extracted audio goes out, and only when native captions are missing AND Whisper is not disabled with `--no-whisper`
 - Does not access any platform account (no login, no session cookies, no posting)
 - Does not share API keys between providers (Groq key only goes to `api.groq.com`, OpenAI key only goes to `api.openai.com`)

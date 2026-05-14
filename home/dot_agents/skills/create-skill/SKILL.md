@@ -1,6 +1,7 @@
 ---
 name: create-skill
 description: Create, structure, and optimize agent skills using progressive disclosure and bundled resources. Use when building new skills, refining existing ones, or when the user wants to create or build a new skill
+disable-model-invocation: true
 ---
 
 # Writing Skills
