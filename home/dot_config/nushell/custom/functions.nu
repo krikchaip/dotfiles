@@ -1,3 +1,13 @@
+# list directory contents in tree view
+def l [dir?: path] {
+  eza --icons --hyperlink --group-directories-first --sort Name -a -T -L 1 ($dir | default ".")
+}
+
+# list directory contents in detail view
+def ll [dir?: path] {
+  eza --icons --hyperlink --group-directories-first --sort Name -a -lh --smart-group --time-style=relative --git --git-repos ($dir | default ".")
+}
+
 # use when "Activity Monitor" starts acting weird
 def "restart activity-monitor" []: nothing -> nothing {
   rm ~/Library/Preferences/com.apple.ActivityMonitor.plist

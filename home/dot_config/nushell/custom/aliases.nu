@@ -7,10 +7,6 @@ alias bbc = brew bundle cleanup --global
 alias bo = brew outdated
 alias bu = brew upgrade
 
-# eza
-alias l = eza --icons --hyperlink --group-directories-first --sort Name -a -TXL 1
-alias ll = eza --icons --hyperlink --group-directories-first --sort Name -a -lh --smart-group --time-style=relative --git --git-repos
-
 # zoxide
 alias cd = __zoxide_z
 alias cdi = __zoxide_zi
