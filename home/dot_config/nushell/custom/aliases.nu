@@ -102,15 +102,6 @@ alias pex = pipenv run
 alias pesh = pipenv shell
 alias dj = pipenv run ./manage.py
 
-# gemini
-alias g = gemini
-
-# nodejs
-alias b = bun
-alias bx = bunx
-alias p = pnpm
-alias px = pnpx
-
 # opencode
 alias oc = opencode
 alias occ = opencode -c
@@ -123,3 +114,6 @@ alias opsx = openspec
 
 # agent-browser
 alias agb = agent-browser
+
+# pi agent
+alias p = env NVIM_APPNAME=nvchad EDITOR=nvim pi
