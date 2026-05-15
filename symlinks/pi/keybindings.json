@@ -8,7 +8,7 @@
   "app.session.toggleNamedFilter": ["alt+n"],
   "app.session.togglePath": ["alt+p"],
   "app.session.toggleSort": ["alt+s"],
-  "app.session.tree": ["ctrl+g"],
+  "app.session.tree": ["alt+t"],
   "app.thinking.cycle": ["ctrl+t"],
   "app.thinking.toggle": ["alt+k"],
   "app.tools.expand": ["alt+j"],
