@@ -28,6 +28,7 @@
     "npm"
   ],
   "packages": [
-    "npm:pi-token-burden"
+    "npm:pi-token-burden",
+    "npm:pi-rewind"
   ]
 }
