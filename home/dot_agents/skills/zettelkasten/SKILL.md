@@ -1,7 +1,6 @@
 ---
 name: zettelkasten
 description: Capture, revise, and organize notes in the Obsidian vault following Zettelkasten principles
-disable-model-invocation: true
 ---
 
 # Zettelkasten Skill

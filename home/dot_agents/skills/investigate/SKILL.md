@@ -1,7 +1,6 @@
 ---
 name: investigate
 description: Disciplined investigation loop for hard bugs and performance regressions. Reproduce → minimise → hypothesise → instrument → fix → regression-test. Use when user says "diagnose this" / "investigate this" / "debug this", reports a bug, says something is broken/throwing/failing, or describes a performance regression
-disable-model-invocation: true
 ---
 
 # Investigate
