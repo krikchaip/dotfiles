@@ -11,6 +11,7 @@ M.config = function(opts)
     openLocation = { n = "<S-CR>" },
     openNextLocation = false,
     openPrevLocation = false,
+    help = { n = "<C-/>", i = "<C-/>" },
     previewLocation = false,
     nextInput = { n = "]]" },
     prevInput = { n = "[[" },
