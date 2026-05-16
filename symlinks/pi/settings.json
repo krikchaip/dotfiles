@@ -28,7 +28,9 @@
     "npm"
   ],
   "packages": [
+    "npm:pi-rewind",
     "npm:pi-token-burden",
-    "npm:pi-rewind"
-  ]
+    "npm:pi-skillful"
+  ],
+  "skills": []
 }

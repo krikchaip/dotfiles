@@ -1,6 +1,7 @@
 ---
 name: artifacts-config
 description: Master configuration for repository artifacts (Issues, PRDs, Domain Docs, ADRs)
+disable-model-invocation: true
 ---
 
 # Artifacts Master Configuration
