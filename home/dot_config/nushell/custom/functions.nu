@@ -273,6 +273,20 @@ def "lazygit add" [...paths: path] {
   }
 }
 
+# override all modified files (MM) in chezmoi to source state
+def "chezmoi override" [] {
+  let mms = (chezmoi status | lines | parse "MM {path}" | get path)
+
+  if ($mms | is-empty) {
+    print "No MM files. Clean."
+    return
+  }
+
+  cd ~
+  $mms | each { |f| print $"override: ($f)" }
+  chezmoi re-add ...$mms
+}
+
 # agent-browser wrapper that wraps the cli with zsh (it doesn't suppport nushell at the moment)
 def --wrapped agent-browser [...rest] {
   zsh -c $"agent-browser ( $rest | each { |it| $it | to json } | str join ' ' )"

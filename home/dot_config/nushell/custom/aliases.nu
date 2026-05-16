@@ -1,4 +1,5 @@
 # system commands
+alias r = exec nu
 alias mime-type = file --mime-type -b
 
 # homebrew
@@ -58,6 +59,7 @@ alias czd = chezmoi diff
 alias cze = chezmoi edit
 alias czi = chezmoi init
 alias czm = chezmoi merge-all
+alias czo = chezmoi override
 alias czs = chezmoi status
 
 # yabai
