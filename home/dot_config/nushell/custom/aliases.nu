@@ -115,4 +115,5 @@ alias agb = agent-browser
 
 # pi agent
 alias p = env NVIM_APPNAME=nvchad EDITOR=nvim pi
-alias pc = p -r
+alias pc = p -c
+alias pr = p -r

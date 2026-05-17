@@ -1,10 +1,10 @@
 {
-  "lastChangelogVersion": "0.74.1",
-  "defaultProvider": "opencode",
-  "defaultModel": "big-pickle",
-  "treeFilterMode": "no-tools",
+  "lastChangelogVersion": "0.75.3",
+  "defaultProvider": "antigravity",
+  "defaultModel": "gemini-3-flash",
+  "treeFilterMode": "user-only",
   "hideThinkingBlock": true,
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "medium",
   "enableInstallTelemetry": false,
   "doubleEscapeAction": "none",
   "autocompleteMaxVisible": 8,
@@ -50,3 +50,4 @@
     }
   }
 }
+
