@@ -20,21 +20,18 @@
     "github-copilot/claude-opus-4.6",
     "github-copilot/claude-opus-4.7"
   ],
-  "npmCommand": [
-    "mise",
-    "exec",
-    "node@26",
-    "--",
-    "npm"
-  ],
+  "npmCommand": ["mise", "exec", "node@26", "--", "npm"],
   "packages": [
-    "npm:pi-rewind",
+    "npm:pi-workspace-history",
     "npm:pi-token-burden",
     "npm:pi-skillful",
-    "npm:@vanillagreen/pi-extension-manager",
-    "npm:@vanillagreen/pi-background-tasks"
+    "npm:@vanillagreen/pi-background-tasks",
+    "npm:@gotgenes/pi-permission-system"
   ],
   "skills": [],
+  "workspaceHistory": {
+    "requireProjectMarker": false
+  },
   "vstack": {
     "extensionManager": {
       "disabledItems": [],
