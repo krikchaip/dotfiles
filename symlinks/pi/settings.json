@@ -32,7 +32,7 @@
   ],
   "skills": [],
   "workspaceHistory": {
-    "requireProjectMarker": false
+    "requireProjectMarker": true
   },
   "vstack": {
     "extensionManager": {
