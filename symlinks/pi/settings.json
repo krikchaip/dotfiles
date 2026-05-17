@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.74.0",
+  "lastChangelogVersion": "0.74.1",
   "defaultProvider": "opencode",
   "defaultModel": "big-pickle",
   "treeFilterMode": "no-tools",
@@ -30,7 +30,26 @@
   "packages": [
     "npm:pi-rewind",
     "npm:pi-token-burden",
-    "npm:pi-skillful"
+    "npm:pi-skillful",
+    "npm:@vanillagreen/pi-extension-manager",
+    "npm:@vanillagreen/pi-background-tasks"
   ],
-  "skills": []
+  "skills": [],
+  "vstack": {
+    "extensionManager": {
+      "disabledItems": [],
+      "config": {
+        "@vanillagreen/pi-background-tasks": {
+          "dashboardShortcut": "",
+          "toolRenderMode": "compact",
+          "autoBackgroundPatterns": "^(yarn|npm|pnpm) (start|dev)",
+          "backgroundBashShortcut": "",
+          "widgetToggleShortcut": ""
+        },
+        "@vanillagreen/pi-extension-manager": {
+          "defaultSaveScope": "user"
+        }
+      }
+    }
+  }
 }
