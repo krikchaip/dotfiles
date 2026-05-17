@@ -4,7 +4,7 @@
   "defaultModel": "gemini-3-flash",
   "treeFilterMode": "user-only",
   "hideThinkingBlock": true,
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "high",
   "enableInstallTelemetry": false,
   "doubleEscapeAction": "none",
   "autocompleteMaxVisible": 8,
@@ -27,7 +27,8 @@
     "npm:pi-skillful",
     "npm:@vanillagreen/pi-background-tasks",
     "npm:@gotgenes/pi-permission-system",
-    "npm:pi-web-access"
+    "npm:pi-web-access",
+    "npm:pi-mcp-adapter"
   ],
   "skills": [],
   "workspaceHistory": {
