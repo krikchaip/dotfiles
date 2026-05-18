@@ -6,21 +6,39 @@
       "apiKey": "google-antigravity",
       "models": [
         {
-          "id": "gemini-3-flash"
+          "id": "gemini-3-flash",
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
         },
         {
-          "id": "gemini-3.1-pro-low"
+          "id": "gemini-3.1-pro-low",
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65535
         },
         {
-          "id": "gemini-3.1-pro-high"
+          "id": "gemini-3.1-pro-high",
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65535
         },
         {
-          "id": "claude-sonnet-4-6"
+          "id": "claude-sonnet-4-6",
+          "input": ["text", "image"],
+          "contextWindow": 200000,
+          "maxTokens": 64000
         },
         {
-          "id": "claude-opus-4-6-thinking"
+          "id": "claude-opus-4-6-thinking",
+          "input": ["text", "image"],
+          "contextWindow": 200000,
+          "maxTokens": 64000
         }
-      ]
+      ],
+      "compat": {
+        "supportsReasoningEffort": false
+      }
     },
     "google-antigravity": {
       "baseUrl": "http://localhost:51200"
