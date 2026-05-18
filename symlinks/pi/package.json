@@ -1,0 +1,6 @@
+{
+  "dependencies": {},
+  "devDependencies": {
+    "prettier-plugin-multiline-arrays": "^4.1.8"
+  }
+}

@@ -11,8 +11,11 @@
   "enabledModels": [
     "opencode/big-pickle",
     "opencode/kimi-k2.6",
-    "github-copilot/gemini-3-flash-preview",
-    "github-copilot/gemini-3.1-pro-preview",
+    "antigravity/gemini-3-flash",
+    "antigravity/gemini-3.1-pro-low",
+    "antigravity/gemini-3.1-pro-high",
+    "antigravity/claude-sonnet-4-6",
+    "antigravity/claude-opus-4-6-thinking",
     "github-copilot/gpt-5.3-codex",
     "github-copilot/gpt-5.4",
     "github-copilot/gpt-5.5",
@@ -20,7 +23,13 @@
     "github-copilot/claude-opus-4.6",
     "github-copilot/claude-opus-4.7"
   ],
-  "npmCommand": ["mise", "exec", "node@26", "--", "npm"],
+  "npmCommand": [
+    "mise",
+    "exec",
+    "node@26",
+    "--",
+    "npm"
+  ],
   "packages": [
     "npm:pi-workspace-history",
     "npm:pi-token-burden",

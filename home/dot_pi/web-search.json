@@ -1,6 +1,6 @@
 {
   "workflow": "summary-review",
   "provider": "exa",
-  "summaryModel": "opencode/qwen3.5-plus",
+  "summaryModel": "antigravity/gemini-3-flash",
   "allowBrowserCookies": true
 }

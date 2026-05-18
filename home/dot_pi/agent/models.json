@@ -1,0 +1,29 @@
+{
+  "providers": {
+    "antigravity": {
+      "baseUrl": "http://localhost:51200/v1",
+      "api": "openai-completions",
+      "apiKey": "google-antigravity",
+      "models": [
+        {
+          "id": "gemini-3-flash"
+        },
+        {
+          "id": "gemini-3.1-pro-low"
+        },
+        {
+          "id": "gemini-3.1-pro-high"
+        },
+        {
+          "id": "claude-sonnet-4-6"
+        },
+        {
+          "id": "claude-opus-4-6-thinking"
+        }
+      ]
+    },
+    "google-antigravity": {
+      "baseUrl": "http://localhost:51200"
+    }
+  }
+}

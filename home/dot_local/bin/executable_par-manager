@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+LABEL="com.r3nniw.pi-antigravity-rotator"
+PLIST_PATH="$HOME/Library/LaunchAgents/${LABEL}.plist"
+SERVICE_TARGET="gui/$(id -u)/${LABEL}"
+OUT_LOG="/tmp/${LABEL}.out.log"
+ERR_LOG="/tmp/${LABEL}.err.log"
+
+usage() {
+  cat <<'EOF'
+par-manager - manage pi-antigravity-rotator LaunchAgent
+
+Usage:
+  par-manager                 Show this help
+  par-manager -h|--help       Show this help
+  par-manager start           Start/enable service
+  par-manager kill            Stop/disable service
+  par-manager restart         Restart service and flush logs
+  par-manager logs [--err]    Follow stdout log (default) or stderr log
+  par-manager status          Show service status
+EOF
+}
+
+require_plist() {
+  if [ ! -f "$PLIST_PATH" ]; then
+    echo "Error: plist not found: $PLIST_PATH" >&2
+    echo "Apply chezmoi first so LaunchAgent is installed." >&2
+    exit 1
+  fi
+}
+
+service_state() {
+  launchctl print "$SERVICE_TARGET" 2>/dev/null \
+    | awk -F'= ' '/^[[:space:]]*state = / { gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit }'
+}
+
+start_service() {
+  require_plist
+
+  local state=""
+  if launchctl print "$SERVICE_TARGET" >/dev/null 2>&1; then
+    state="$(service_state || true)"
+    if [ "$state" = "running" ]; then
+      echo "Already running: $SERVICE_TARGET"
+      return 0
+    fi
+  fi
+
+  # Re-enable first. If service was disabled (e.g. via `par-manager kill`),
+  # bootstrap can fail with opaque I/O errors until re-enabled.
+  launchctl enable "$SERVICE_TARGET" >/dev/null 2>&1 || true
+
+  if launchctl print "$SERVICE_TARGET" >/dev/null 2>&1; then
+    launchctl kickstart -k "$SERVICE_TARGET" >/dev/null 2>&1 || true
+  else
+    launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
+    launchctl kickstart -k "$SERVICE_TARGET" >/dev/null 2>&1 || true
+  fi
+
+  state="$(service_state || true)"
+  if [ "$state" = "running" ]; then
+    echo "Started: $SERVICE_TARGET"
+  else
+    echo "Starting: $SERVICE_TARGET"
+  fi
+}
+
+kill_service() {
+  launchctl disable "$SERVICE_TARGET" >/dev/null 2>&1 || true
+  launchctl bootout "gui/$(id -u)" "$PLIST_PATH" >/dev/null 2>&1 || true
+
+  echo "Stopped/disabled: $SERVICE_TARGET"
+}
+
+restart_service() {
+  kill_service
+  rm -f "$OUT_LOG" "$ERR_LOG"
+  start_service
+
+  echo "Logs flushed: $OUT_LOG, $ERR_LOG"
+}
+
+logs_service() {
+  local file="$OUT_LOG"
+  if [ "${1:-}" = "--err" ]; then
+    file="$ERR_LOG"
+  elif [ -n "${1:-}" ]; then
+    echo "Unknown logs option: $1" >&2
+    usage
+    exit 1
+  fi
+
+  echo "Following: $file"
+  tail -n 200 -F "$file"
+}
+
+status_service() {
+  echo "Label:        $LABEL"
+  echo "Plist:        $PLIST_PATH"
+  echo "Stdout log:   $OUT_LOG"
+  echo "Stderr log:   $ERR_LOG"
+
+  if [ -f "$PLIST_PATH" ]; then
+    echo "Plist exists: yes"
+  else
+    echo "Plist exists: no"
+  fi
+
+  echo
+  if launchctl print "$SERVICE_TARGET" >/dev/null 2>&1; then
+    launchctl print "$SERVICE_TARGET" | grep -E "^(\s*state =|\s*pid =|\s*last exit code =|\s*path =|\s*program =|\s*arguments =|\s*disabled =)" || true
+  else
+    echo "Service not currently loaded in launchd." 
+    if launchctl print-disabled "gui/$(id -u)" 2>/dev/null | grep -q "\"$LABEL\" => true"; then
+      echo "Disabled: true"
+    fi
+  fi
+}
+
+main() {
+  case "${1:-}" in
+    ""|-h|--help)
+      usage
+      ;;
+    start)
+      start_service
+      ;;
+    kill)
+      kill_service
+      ;;
+    restart)
+      restart_service
+      ;;
+    logs)
+      logs_service "${2:-}"
+      ;;
+    status)
+      status_service
+      ;;
+    *)
+      echo "Unknown command: $1" >&2
+      echo >&2
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
