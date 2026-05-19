@@ -79,8 +79,7 @@ alias n = nvchad
 
 # lazygit
 alias lg = lazygit
-alias lga = lazygit add
-alias lgr = lazygit recent
+alias lgr = lazygit-recent
 
 # tmux
 alias t = tmux

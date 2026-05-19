@@ -1,0 +1,325 @@
+#!/usr/bin/env bash
+
+# lazygit-recent - persistent recent repository manager for lazygit
+
+set -euo pipefail
+
+DATA_DIR="${HOME}/.local/share/lazygit-recent"
+REPO_FILE="${DATA_DIR}/repos.json"
+STATE_FILE="${HOME}/Library/Application Support/lazygit/state.yml"
+
+mkdir -p "$DATA_DIR"
+
+if [[ ! -f "$REPO_FILE" ]]; then
+    echo '[]' > "$REPO_FILE"
+fi
+
+is_git_repo() {
+    local path="$1"
+    [[ -d "$path" ]] && git -C "$path" rev-parse --git-dir > /dev/null 2>&1
+}
+
+abs_path_of() {
+    (
+        cd "$1"
+        pwd -P
+    )
+}
+
+show_help() {
+    cat <<'EOF'
+Usage: lazygit-recent [OPTIONS] [PATH...]
+
+Persistent recent repository manager for lazygit.
+Stores an infinite recent repo list in:
+~/.local/share/lazygit-recent/repos.json
+
+Options:
+  -h, --help          Show this help message and exit
+      --add [PATH]    Add git repository(s) to recent list.
+                      Defaults to $PWD if no path is given.
+      --delete PATH   Remove repository(s) from recent list.
+      --migrate       Import LazyGit recentrepos into custom store.
+      --picker        Always start in FZF picker loop.
+
+No arguments:
+  If inside a git repo: open plain lazygit in current repo.
+                        Ctrl+R uses LazyGit builtin recent picker.
+  Otherwise:            open FZF picker, then loop back on quit.
+
+FZF Keybindings:
+  Enter               Open selected repo in lazygit
+  Ctrl-X              Delete selected repo from recent list
+  Esc / Ctrl-C        Exit picker
+EOF
+}
+
+cmd_list() {
+    jq -r '.[]' "$REPO_FILE"
+}
+
+cmd_add() {
+    local paths=("$@")
+
+    if [[ ${#paths[@]} -eq 0 ]]; then
+        paths=("$PWD")
+    fi
+
+    for path in "${paths[@]}"; do
+        if [[ ! -d "$path" ]]; then
+            echo "Error: $path does not exist" >&2
+            continue
+        fi
+
+        if ! is_git_repo "$path"; then
+            echo "Error: $path is not a git repository" >&2
+            continue
+        fi
+
+        local abs_path
+        abs_path=$(abs_path_of "$path")
+
+        jq --arg path "$abs_path" '([$path] + .) | reduce .[] as $repo ([]; if index($repo) then . else . + [$repo] end)' "$REPO_FILE" > "${REPO_FILE}.tmp"
+        mv "${REPO_FILE}.tmp" "$REPO_FILE"
+        echo "Added $abs_path to lazygit recent repos"
+    done
+}
+
+cmd_delete() {
+    local path
+    local target
+
+    for path in "$@"; do
+        if [[ -d "$path" ]]; then
+            target=$(abs_path_of "$path")
+        else
+            target="$path"
+        fi
+
+        jq --arg path "$target" 'del(.[] | select(. == $path))' "$REPO_FILE" > "${REPO_FILE}.tmp"
+        mv "${REPO_FILE}.tmp" "$REPO_FILE"
+    done
+}
+
+prune_invalid_repos() {
+    jq -r '.[]' "$REPO_FILE" | while IFS= read -r repo; do
+        if is_git_repo "$repo"; then
+            abs_path_of "$repo"
+        fi
+    done | jq -R . | jq -s 'reduce .[] as $repo ([]; if index($repo) then . else . + [$repo] end)' > "${REPO_FILE}.tmp"
+
+    mv "${REPO_FILE}.tmp" "$REPO_FILE"
+}
+
+sync_custom_to_lazygit() {
+    mkdir -p "$(dirname "$STATE_FILE")"
+
+    if [[ ! -f "$STATE_FILE" ]]; then
+        printf '{}\n' > "$STATE_FILE"
+    fi
+
+    local repos_json
+    repos_json=$(jq -c . "$REPO_FILE")
+
+    REPOS_JSON="$repos_json" yq -i '.recentrepos = (strenv(REPOS_JSON) | from_json)' "$STATE_FILE"
+}
+
+sync_lazygit_to_custom() {
+    local top_repo
+    top_repo=$(yq -r '.recentrepos[0] // empty' "$STATE_FILE" 2>/dev/null || true)
+
+    if [[ -n "$top_repo" ]] && is_git_repo "$top_repo"; then
+        local abs_path
+        abs_path=$(abs_path_of "$top_repo")
+        jq --arg path "$abs_path" '([$path] + .) | reduce .[] as $repo ([]; if index($repo) then . else . + [$repo] end)' "$REPO_FILE" > "${REPO_FILE}.tmp"
+        mv "${REPO_FILE}.tmp" "$REPO_FILE"
+    fi
+}
+
+cmd_migrate() {
+    local recent_json='[]'
+    local recent_repos
+
+    recent_repos=$(yq -r '.recentrepos[]?' "$STATE_FILE" 2>/dev/null | while IFS= read -r repo; do
+        if [[ -n "$repo" ]] && is_git_repo "$repo"; then
+            abs_path_of "$repo"
+        fi
+    done || true)
+
+    if [[ -n "$recent_repos" ]]; then
+        recent_json=$(printf '%s\n' "$recent_repos" | jq -R . | jq -s 'reduce .[] as $repo ([]; if index($repo) then . else . + [$repo] end)')
+    fi
+
+    jq --argjson recent "$recent_json" '($recent + .) | reduce .[] as $repo ([]; if index($repo) then . else . + [$repo] end)' "$REPO_FILE" > "${REPO_FILE}.tmp"
+    mv "${REPO_FILE}.tmp" "$REPO_FILE"
+
+    sync_custom_to_lazygit
+
+    local count
+    count=$(cmd_list | wc -l | tr -d ' ')
+    echo "Migrated $count repos from lazygit state."
+}
+
+next_repo_after_delete() {
+    local deleted="$1"
+    local repos=()
+
+    mapfile -t repos < <(cmd_list)
+
+    for i in "${!repos[@]}"; do
+        if [[ "${repos[i]}" != "$deleted" ]]; then
+            continue
+        fi
+
+        if (( i + 1 < ${#repos[@]} )); then
+            printf '%s\n' "${repos[i + 1]}"
+            return 0
+        fi
+
+        if (( i > 0 )); then
+            printf '%s\n' "${repos[i - 1]}"
+            return 0
+        fi
+
+        return 1
+    done
+
+    return 1
+}
+
+preferred_repo_after_return() {
+    jq -r '.[1] // .[0] // empty' "$REPO_FILE"
+}
+
+parse_fzf_result() {
+    FZF_KEY=""
+    FZF_SELECTION=""
+
+    local result="$1"
+    local lines=()
+
+    mapfile -t lines <<< "$result"
+
+    if [[ ${#lines[@]} -eq 2 ]]; then
+        FZF_KEY="${lines[0]}"
+        FZF_SELECTION="${lines[1]}"
+        return
+    fi
+
+    FZF_SELECTION="${lines[0]:-}"
+}
+
+run_fzf() {
+    local preferred_selection="${1:-}"
+
+    prune_invalid_repos
+
+    local repos
+    repos=$(cmd_list)
+
+    if [[ -z "$repos" ]]; then
+        echo "No recent repositories found." >&2
+        return 1
+    fi
+
+    local pos=0
+    if [[ -n "$preferred_selection" ]]; then
+        pos=$(printf '%s\n' "$repos" | grep -n -F "$preferred_selection" | head -1 | cut -d: -f1 || echo "0")
+    fi
+
+    local fzf_opts=(
+        --layout=reverse
+        --expect=ctrl-x
+        --bind='ctrl-n:down'
+        --bind='ctrl-p:up'
+        --border=rounded
+        --border-label=" Lazygit Recent Repos "
+        --info=inline-right
+        --prompt="❯ "
+        --pointer="▶"
+        --header=$'Keybindings: enter=open, ctrl-x=delete\n\nPath'
+    )
+
+    if [[ "$pos" -gt 0 ]]; then
+        fzf_opts+=(--bind="load:pos($pos)")
+    fi
+
+    printf '%s\n' "$repos" | env TERM=xterm-256color fzf "${fzf_opts[@]}"
+}
+
+run_lazygit() {
+    local repo="$1"
+    sync_custom_to_lazygit
+    lazygit -p "$repo"
+    sync_lazygit_to_custom
+    sync_custom_to_lazygit
+}
+
+run_picker_loop() {
+    local preferred_selection=""
+
+    while true; do
+        local result
+        result=$(run_fzf "$preferred_selection") || break
+
+        parse_fzf_result "$result"
+
+        if [[ -z "$FZF_SELECTION" ]]; then
+            break
+        fi
+
+        if [[ "$FZF_KEY" == "ctrl-x" ]]; then
+            preferred_selection=$(next_repo_after_delete "$FZF_SELECTION" || true)
+            cmd_delete "$FZF_SELECTION"
+            sync_custom_to_lazygit
+            continue
+        fi
+
+        cmd_add "$FZF_SELECTION" > /dev/null
+        run_lazygit "$FZF_SELECTION"
+        preferred_selection=$(preferred_repo_after_return)
+    done
+}
+
+run_git_repo() {
+    local current_repo
+    current_repo=$(abs_path_of "$PWD")
+
+    cmd_add "$current_repo" > /dev/null
+    run_lazygit "$current_repo"
+}
+
+case "${1:-}" in
+    -h|--help)
+        show_help
+        exit 0
+        ;;
+    --add)
+        shift
+        cmd_add "$@"
+        sync_custom_to_lazygit
+        ;;
+    --delete)
+        shift
+        cmd_delete "$@"
+        sync_custom_to_lazygit
+        ;;
+    --migrate)
+        cmd_migrate
+        sync_custom_to_lazygit
+        ;;
+    --picker)
+        run_picker_loop
+        ;;
+    "")
+        if git rev-parse --git-dir > /dev/null 2>&1; then
+            run_git_repo
+        else
+            run_picker_loop
+        fi
+        ;;
+    *)
+        cmd_add "$@"
+        sync_custom_to_lazygit
+        ;;
+esac

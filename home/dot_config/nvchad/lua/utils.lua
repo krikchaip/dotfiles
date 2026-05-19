@@ -432,7 +432,7 @@ Git = {
     return vim.tbl_deep_extend("force", base_opts, opts)
   end,
   Status = function()
-    require("nvchad.term").toggle(Git.FloatOpts { id = "git.status", cmd = "lazygit" })
+    require("nvchad.term").toggle(Git.FloatOpts { id = "git.status", cmd = "lazygit-recent" })
   end,
   Compare = function()
     require("telescope.builtin").find_files {
