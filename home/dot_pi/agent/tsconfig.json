@@ -4,6 +4,9 @@
     "paths": {
       "@earendil-works/pi-coding-agent": [
         "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent"
+      ],
+      "@earendil-works/pi-tui": [
+        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui"
       ]
     },
     "lib": ["ESNext"]
