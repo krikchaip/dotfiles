@@ -30,7 +30,10 @@ M.setup = function(opts)
     desc = "Detach gitsigns before buffer delete to avoid async blame nil-repo crash",
     group = augroup("gitsigns-safe-detach", { clear = true }),
     callback = function(args)
-      pcall(require("gitsigns").detach, args.buf)
+      -- Check if gitsigns is attached to this buffer before detaching.
+      -- If attached, repo field should exist on the git_obj.
+      local cache = require("gitsigns.cache").cache
+      if cache[args.buf] then pcall(require("gitsigns").detach, args.buf) end
     end,
   })
 end
