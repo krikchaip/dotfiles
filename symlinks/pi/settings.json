@@ -31,7 +31,6 @@
     "npm"
   ],
   "packages": [
-    "npm:pi-workspace-history",
     "npm:pi-token-burden",
     "npm:pi-skillful",
     "npm:@vanillagreen/pi-background-tasks",
@@ -40,9 +39,6 @@
     "npm:pi-mcp-adapter"
   ],
   "skills": [],
-  "workspaceHistory": {
-    "requireProjectMarker": true
-  },
   "vstack": {
     "extensionManager": {
       "disabledItems": [],
