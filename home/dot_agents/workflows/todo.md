@@ -1,5 +1,6 @@
 ---
 description: Analyze a brain dump, name the chat, and polish user ideas into a structured format
+argument-hint: "<brain-dump>"
 ---
 
 # "TODO" (Brain dump)

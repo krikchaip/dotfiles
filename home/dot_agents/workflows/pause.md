@@ -1,5 +1,6 @@
 ---
 description: Pause all executions and collect user instructions/answers until exit command
+argument-hint: "[instructions]"
 ---
 
 # Pause

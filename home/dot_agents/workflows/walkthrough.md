@@ -1,5 +1,6 @@
 ---
 description: An end-to-end guided walkthrough of any codebase feature, architectural aspect, or logic flow, combining deep code analysis with high-level behavioral and system design explanation
+argument-hint: "[topic]"
 ---
 
 # Walkthrough
