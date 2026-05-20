@@ -5,7 +5,7 @@ set -euo pipefail
 # Paths for source-of-truth extension file and editor CLIs.
 extensions_file="{{ .chezmoi.config.sourceDir }}/symlinks/vscode/extensions.txt"
 lock_dir="${TMPDIR:-/tmp}/vscode-extension-sync.lock"
-agy_bin="$HOME/.antigravity/antigravity/bin/agy"
+agy_bin="$HOME/.antigravity-ide/antigravity-ide/bin/agy-ide"
 surf_bin="$HOME/.codeium/windsurf/bin/surf"
 
 # Release lock and temporary file on every exit path.
