@@ -46,7 +46,6 @@ To allow the user to refer back to spawned sub-agents (e.g., to continue a conve
 
 As orchestrator, you must independently validate every subagent's output before accepting it:
 
-- **Immediate Review**: Upon `<task_exited>`, call `task_read` immediately to ingest subagent output.
 - **Deep Validation**: Check code edits for side effects, verify logic against constraints, and confirm all success criteria from the prompt are met.
 - **Protocol for Failure**: If output is buggy, incomplete, or fails criteria:
   1. Identify specific line/logic failures.
