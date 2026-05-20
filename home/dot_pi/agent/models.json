@@ -12,6 +12,18 @@
           "maxTokens": 65536
         },
         {
+          "id": "gemini-3.5-flash-low",
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
+        },
+        {
+          "id": "gemini-3.5-flash-high",
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
+        },
+        {
           "id": "gemini-3.1-pro-low",
           "input": ["text", "image"],
           "contextWindow": 1000000,
