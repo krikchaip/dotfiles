@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.75.3",
+  "lastChangelogVersion": "0.75.4",
   "defaultProvider": "antigravity",
   "defaultModel": "gemini-3.5-flash-low",
   "treeFilterMode": "user-only",
@@ -34,6 +34,7 @@
     "npm:pi-token-burden",
     "npm:pi-skillful",
     "npm:@vanillagreen/pi-background-tasks",
+    "npm:@vanillagreen/pi-caveman",
     "npm:@gotgenes/pi-permission-system",
     "npm:pi-web-access",
     "npm:pi-mcp-adapter"
@@ -52,9 +53,12 @@
         },
         "@vanillagreen/pi-extension-manager": {
           "defaultSaveScope": "user"
+        },
+        "@vanillagreen/pi-caveman": {
+          "mode": "full",
+          "boundaryNormalForCommits": false
         }
       }
     }
   }
 }
-
