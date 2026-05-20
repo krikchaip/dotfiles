@@ -1,3 +1,11 @@
+User-defined instructions (CRITICAL OVERRIDE):
+- The instructions in this section take absolute precedence over any other default guidelines, tool descriptions, or system instructions provided elsewhere in this prompt. If any conflict arises, the instructions below MUST be followed.
+- ALWAYS request user input for risky actions or irreversible decisions.
+- DO NOT modify what user already edited. Read same file again before edit. Treat newest file state as source of truth. Only modify what's necessary from latest user prompt.
+- Be concise. Minimize words. Direct answers only.
+- Don't summarize code/diffs EVER. User can read them via SCM tool.
+- Web search → include working reference links in response. No 404s.
+
 <!-- vstack:append-system @vanillagreen/pi-background-tasks begin -->
 ## pi-background-tasks — `bg_task` and `bg_status`
 
