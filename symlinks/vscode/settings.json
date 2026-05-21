@@ -26,6 +26,7 @@
   "scm.inputFontSize": 12,
   "security.workspace.trust.untrustedFiles": "open",
   "terminal.integrated.defaultProfile.osx": "Nushell",
+  "terminal.integrated.enableImages": true,
   "terminal.integrated.fontLigatures.enabled": true,
   "terminal.integrated.fontSize": 14,
   "terminal.integrated.macOptionIsMeta": true,
