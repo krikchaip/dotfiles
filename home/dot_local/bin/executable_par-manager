@@ -20,6 +20,7 @@ Usage:
   par-manager restart         Restart service and flush logs
   par-manager logs [--err]    Follow stdout log (default) or stderr log
   par-manager status          Show service status
+  par-manager login           Interactive login helper
 EOF
 }
 
@@ -119,6 +120,121 @@ status_service() {
   fi
 }
 
+login_service() {
+  local accounts_file="$HOME/.pi-antigravity-rotator/accounts.json"
+  local port=51200
+  if [ -f "$accounts_file" ]; then
+    port=$(jq -r '.proxyPort // 51200' "$accounts_file")
+  fi
+
+  local rotator_bin
+  rotator_bin="$(command -v pi-antigravity-rotator || echo "$HOME/.local/share/mise/installs/npm-pi-antigravity-rotator/latest/bin/pi-antigravity-rotator")"
+
+  while true; do
+    local api_json
+    api_json=$(curl -s --max-time 2 "http://localhost:${port}/api/status" || true)
+
+    echo ""
+    echo "=== Logged In Accounts ==="
+    if [ -n "$api_json" ] && echo "$api_json" | jq -e '.accounts' >/dev/null 2>&1; then
+      echo "$api_json" | jq -r '.accounts[] | " - \(.email) [\(.status | ascii_upcase)] (label: \(.label // "none"))"'
+    elif [ -f "$accounts_file" ]; then
+      jq -r '.accounts[] | " - \(.email) [OFFLINE] (label: \(.label // "none"))"' "$accounts_file"
+    else
+      echo "No accounts logged in."
+    fi
+    echo "=========================="
+    echo ""
+    echo "1) Login/Add Google account"
+    echo "2) Exit"
+    echo ""
+    read -p "Choose option: " choice
+
+    if [ "$choice" = "1" ]; then
+      local initial_count=0
+      if [ -f "$accounts_file" ]; then
+        initial_count=$(jq '.accounts | length' "$accounts_file")
+      fi
+      local added_any=0
+
+      while true; do
+        echo ""
+        echo "Starting rotator login helper..."
+
+        PAR_LOGIN_LOG_FILE="/tmp/par-login-run.log"
+        rm -f "$PAR_LOGIN_LOG_FILE"
+        touch "$PAR_LOGIN_LOG_FILE"
+
+        # Background monitor
+        (
+          while [ -f "$PAR_LOGIN_LOG_FILE" ]; do
+            if [ -s "$PAR_LOGIN_LOG_FILE" ]; then
+              local url
+              url=$(grep -o -E 'https://accounts\.google\.com\S+' "$PAR_LOGIN_LOG_FILE" | head -n 1)
+              if [ -n "$url" ]; then
+                open "$url"
+                break
+              fi
+            fi
+            sleep 0.5
+          done
+        ) &
+        PAR_LOGIN_MONITOR_PID=$!
+
+        cleanup_login() {
+          rm -f "${PAR_LOGIN_LOG_FILE:-}"
+          if [ -n "${PAR_LOGIN_MONITOR_PID:-}" ]; then
+            kill "$PAR_LOGIN_MONITOR_PID" 2>/dev/null || true
+          fi
+        }
+        trap cleanup_login EXIT INT TERM
+
+        # Run the command with stdin/stdout connected
+        "$rotator_bin" login 2>&1 | tee "$PAR_LOGIN_LOG_FILE"
+
+        trap - EXIT INT TERM
+        cleanup_login
+        wait "${PAR_LOGIN_MONITOR_PID:-}" 2>/dev/null || true
+
+        local current_count=0
+        if [ -f "$accounts_file" ]; then
+          current_count=$(jq '.accounts | length' "$accounts_file")
+        fi
+
+        if [ "$current_count" -gt "$initial_count" ]; then
+          echo ""
+          echo "Account added successfully."
+          added_any=1
+          initial_count=$current_count
+        else
+          echo ""
+          echo "Login finished."
+        fi
+
+        read -p "Do you want to log in to another account? (y/N): " cont
+        if [[ ! "$cont" =~ ^[yY]$ ]]; then
+          break
+        fi
+      done
+
+      if [ "$added_any" -eq 1 ]; then
+        echo ""
+        echo "New account(s) detected."
+        read -p "Restart background service to apply changes? (Y/n): " restart
+        if [[ ! "$restart" =~ ^[nN]$ ]]; then
+          echo "Restarting service..."
+          restart_service
+        fi
+      fi
+
+    elif [ "$choice" = "2" ] || [ -z "$choice" ]; then
+      break
+    else
+      echo "Invalid choice."
+    fi
+  done
+}
+
 main() {
   case "${1:-}" in
     ""|-h|--help)
@@ -138,6 +254,9 @@ main() {
       ;;
     status)
       status_service
+      ;;
+    login)
+      login_service
       ;;
     *)
       echo "Unknown command: $1" >&2
