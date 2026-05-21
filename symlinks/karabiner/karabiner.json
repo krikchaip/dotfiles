@@ -9,7 +9,7 @@
                         "manipulators": [
                             {
                                 "from": { "key_code": "f18" },
-                                "to": [{ "shell_command": "open -b com.google.antigravity" }],
+                                "to": [{ "shell_command": "open -b com.google.antigravity-ide" }],
                                 "type": "basic"
                             },
                             {
@@ -17,7 +17,7 @@
                                     "key_code": "f18",
                                     "modifiers": { "mandatory": ["shift"] }
                                 },
-                                "to": [{ "shell_command": "open -b com.exafunction.windsurf" }],
+                                "to": [{ "shell_command": "open -b com.google.antigravity" }],
                                 "type": "basic"
                             }
                         ]
