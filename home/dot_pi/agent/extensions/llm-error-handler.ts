@@ -9,20 +9,20 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type {
-  ExtensionAPI,
-  ExtensionContext,
-} from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Box, Spacer, Text } from "@earendil-works/pi-tui";
 
 // Helper to dynamically resolve the keybinding for expanding tool outputs
 function getExpandKeyHint(): string {
-  const defaultKey = "Ctrl+O";
+  const defaultKey = "ctrl+o";
+
   try {
     const keybindingsPath = join(homedir(), ".pi", "agent", "keybindings.json");
+
     if (!existsSync(keybindingsPath)) {
       return defaultKey;
     }
+
     const content = readFileSync(keybindingsPath, "utf8");
     const config = JSON.parse(content);
 
@@ -37,11 +37,13 @@ function getExpandKeyHint(): string {
         .trim()
         .split("+")
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("+");
+        .join("+")
+        .toLowerCase();
     }
   } catch (err) {
     // Fall back to default silently
   }
+
   return defaultKey;
 }
 
@@ -56,46 +58,34 @@ export default function (pi: ExtensionAPI) {
       // Render as a beautiful Box block with a subtle toolErrorBg or customMessageBg
       const box = new Box(1, 1, (t) => theme.bg("toolErrorBg", t));
 
-      // Warn header in the theme's warning color (softer yellow/orange instead of bright red)
-      const header = theme.bold(
-        theme.fg("warning", "⚠️ LLM API Error Encountered"),
-      );
-      box.addChild(new Text(header, 0, 0));
-      box.addChild(new Spacer(1));
-
-      // Clean summary of the error
+      // Header + status code + expand hint all on same line
       const summary =
-        typeof message.content === "string"
+        typeof message.content === "string" && message.content
           ? message.content
-          : "An unexpected LLM API error occurred.";
-      box.addChild(new Text(theme.fg("text", summary), 0, 0));
+          : "Unknown error";
+      const expandHint =
+        !expanded && message.details
+          ? " " + theme.fg("dim", `(${expandKeyHint} to expand)`)
+          : "";
+      const header =
+        theme.bold(theme.fg("warning", "⚠️ LLM API Error")) +
+        " " +
+        theme.fg("text", summary) +
+        expandHint;
+      box.addChild(new Text(header, 0, 0));
 
-      // Show details if expanded (Alt+J / Ctrl+O)
+      // Show full JSON only when expanded
       if (expanded && message.details) {
         box.addChild(new Spacer(1));
         box.addChild(
           new Text(theme.fg("dim", "--- Raw JSON Response ---"), 0, 0),
         );
-
         const jsonStr =
           typeof message.details === "string"
             ? message.details
             : JSON.stringify(message.details, null, 2);
-
         box.addChild(new Spacer(1));
         box.addChild(new Text(theme.fg("dim", jsonStr), 0, 0));
-      } else if (message.details) {
-        box.addChild(new Spacer(1));
-        box.addChild(
-          new Text(
-            theme.fg(
-              "dim",
-              `💡 Press ${expandKeyHint} to expand full JSON details`,
-            ),
-            0,
-            0,
-          ),
-        );
       }
 
       return box;
@@ -103,33 +93,12 @@ export default function (pi: ExtensionAPI) {
   );
 
   // Intercept assistant messages that fail with stopReason = "error"
-  pi.on("message_end", async (event, ctx: ExtensionContext) => {
+  pi.on("message_end", async (event) => {
     const message = event.message;
     if (message.role !== "assistant" || message.stopReason !== "error") return;
 
-    // Retrieve retry settings dynamically from the runtime session
-    const session = (ctx as any).session;
-    const settings = session?.settingsManager?.getRetrySettings();
-    const retryEnabled = settings?.enabled ?? true;
-    const maxRetries = settings?.maxRetries ?? 5;
-    const currentAttempt = session?.retryAttempt ?? 0;
-
-    // Regex to match Pi's retryable transient errors
-    const isRetryable =
-      /overloaded|provider.?returned.?error|rate.?limit|too many requests|429|500|502|503|504|service.?unavailable|server.?error|internal.?error|network.?error|connection.?error|connection.?refused|connection.?lost|websocket.?closed|websocket.?error|other side closed|fetch failed|upstream.?connect|reset before headers|socket hang up|ended without|stream ended before message_stop|http2 request did not get a response|timed? out|timeout|terminated|retry delay/i.test(
-        message.errorMessage || "",
-      );
-
-    const willRetry =
-      retryEnabled && isRetryable && currentAttempt < maxRetries;
-
-    if (willRetry) {
-      // Let the default auto-retry and countdown spinner handle it
-      return;
-    }
-
-    // Suppress the default bright red assistant error block
-    // by changing stopReason to "stop" and clearing the errorMessage.
+    // By the time message_end fires, pi has already exhausted its auto-retry.
+    // Format all errors with the custom card.
     const errorMessage = message.errorMessage || "Unknown error";
 
     // Build a short human-readable summary; keep the full error in details
@@ -144,11 +113,12 @@ export default function (pi: ExtensionAPI) {
       details: parsed,
     });
 
+    // Keep stopReason as "error" so pi doesn't retry.
+    // Clear errorMessage to suppress the default red raw text.
     return {
       message: {
         ...message,
-        stopReason: "stop",
-        errorMessage: undefined,
+        errorMessage: "",
       },
     };
   });
@@ -158,6 +128,7 @@ function parseJsonOrString(str: string) {
   // Strip a leading HTTP status code (e.g. "400 {...}") before parsing
   const jsonStart = str.indexOf("{");
   const jsonPart = jsonStart !== -1 ? str.slice(jsonStart) : str;
+
   try {
     return JSON.parse(jsonPart);
   } catch {
@@ -166,27 +137,18 @@ function parseJsonOrString(str: string) {
 }
 
 function extractSummary(raw: string, parsed: unknown): string {
-  // Try to pull a short message from the parsed JSON body
   if (parsed && typeof parsed === "object") {
     const obj = parsed as Record<string, any>;
-    // Gemini / Google style: { error: { code, message, status } }
-    if (obj.error?.message) {
-      const code = obj.error.status ?? obj.error.code ?? "";
-      return code ? `${code}: ${obj.error.message}` : obj.error.message;
-    }
-    // Anthropic style: { type, error: { type, message } }
-    if (obj.type === "error" && obj.error?.message) {
-      return `${obj.error.type ?? "error"}: ${obj.error.message}`;
-    }
-    // OpenAI style: { error: { message, type, code } }
-    if (obj.error?.message) {
-      return obj.error.message;
-    }
-    // Generic top-level message field
-    if (typeof obj.message === "string") {
-      return obj.message;
+    const err = obj.error ?? obj;
+    const code = err.code ?? "";
+    const status = err.status ?? err.type ?? "";
+
+    if (code || status) {
+      return `${[code, status].filter(Boolean).join(" ")}`;
     }
   }
-  // Fall back: strip leading HTTP status number if present, return plain text
-  return raw.replace(/^\d{3}\s+/, "").slice(0, 200);
+
+  // Fall back: grab leading HTTP status code from raw string
+  const match = raw.match(/^(\d{3})/);
+  return match ? `${match[1]}` : "";
 }
