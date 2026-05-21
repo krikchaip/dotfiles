@@ -2,9 +2,9 @@
   "lastChangelogVersion": "0.75.4",
   "defaultProvider": "antigravity",
   "defaultModel": "gemini-3.5-flash-low",
-  "treeFilterMode": "user-only",
+  "treeFilterMode": "no-tools",
   "hideThinkingBlock": true,
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "medium",
   "enableInstallTelemetry": false,
   "doubleEscapeAction": "none",
   "autocompleteMaxVisible": 8,
@@ -31,13 +31,14 @@
     "npm"
   ],
   "packages": [
-    "npm:pi-token-burden",
-    "npm:pi-skillful",
+    "npm:@gotgenes/pi-permission-system",
     "npm:@vanillagreen/pi-background-tasks",
     "npm:@vanillagreen/pi-caveman",
-    "npm:@gotgenes/pi-permission-system",
-    "npm:pi-web-access",
-    "npm:pi-mcp-adapter"
+    "npm:@victor-software-house/pi-curated-themes",
+    "npm:pi-mcp-adapter",
+    "npm:pi-skillful",
+    "npm:pi-token-burden",
+    "npm:pi-web-access"
   ],
   "skills": [],
   "vstack": {
@@ -60,5 +61,7 @@
         }
       }
     }
-  }
+  },
+  "theme": "brogrammer"
 }
+
