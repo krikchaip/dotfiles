@@ -34,13 +34,22 @@
     "npm:@gotgenes/pi-permission-system",
     "npm:@vanillagreen/pi-background-tasks",
     "npm:@vanillagreen/pi-caveman",
-    "npm:@victor-software-house/pi-curated-themes",
     "npm:pi-mcp-adapter",
     "npm:pi-skillful",
     "npm:pi-token-burden",
-    "npm:pi-web-access"
+    {
+      "source": "npm:pi-web-access",
+      "skills": [
+        "-skills/librarian/SKILL.md"
+      ]
+    },
+    {
+      "source": "npm:@victor-software-house/pi-curated-themes",
+      "skills": [
+        "-skills/adapt-ghostty-theme-to-pi/SKILL.md"
+      ]
+    }
   ],
-  "skills": [],
   "vstack": {
     "extensionManager": {
       "disabledItems": [],
@@ -62,6 +71,6 @@
       }
     }
   },
-  "theme": "brogrammer"
+  "theme": "everforest-dark-hard"
 }
 
