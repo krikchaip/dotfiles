@@ -3,7 +3,7 @@
   "app.model.cycleBackward": [],
   "app.model.cycleForward": [],
   "app.model.select": ["alt+m"],
-  "app.session.new": ["ctrl+shift+n"],
+  "app.session.new": ["alt+n"],
   "app.session.resume": ["alt+r"],
   "app.session.toggleNamedFilter": ["alt+n"],
   "app.session.togglePath": ["alt+p"],
