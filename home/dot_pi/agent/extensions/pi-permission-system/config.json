@@ -6,12 +6,16 @@
 
     "path": {
       "*": "allow",
+
       "*.env": "deny",
       "*.env.*": "deny",
       "*.env.example": "allow",
-      "*.pem": "deny",
+
       "*.cer": "deny",
-      "~/.ssh*": "deny"
+      "*.pem": "deny",
+
+      ".git/*": "ask",
+      "~/.ssh/*": "deny"
     },
 
     "bash": {
