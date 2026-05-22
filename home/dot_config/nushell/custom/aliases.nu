@@ -116,4 +116,5 @@ alias agb = agent-browser
 alias p = env NVIM_APPNAME=nvchad EDITOR=nvim pi
 alias pc = p -c
 alias pr = p -r
+alias pns = p --no-session
 alias par = pi-antigravity-rotator
