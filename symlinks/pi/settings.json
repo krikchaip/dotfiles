@@ -7,7 +7,7 @@
   "defaultThinkingLevel": "medium",
   "enableInstallTelemetry": false,
   "doubleEscapeAction": "none",
-  "autocompleteMaxVisible": 8,
+  "autocompleteMaxVisible": 10,
   "enabledModels": [
     "antigravity/gemini-3.5-flash-low",
     "antigravity/gemini-3.5-flash-high",
@@ -40,7 +40,7 @@
     {
       "source": "npm:pi-web-access",
       "skills": [
-        "-skills/librarian/SKILL.md"
+        "+skills/librarian/SKILL.md"
       ]
     },
     {
@@ -71,6 +71,8 @@
       }
     }
   },
-  "theme": "everforest-dark-hard"
+  "theme": "everforest-dark-hard",
+  "quietStartup": false,
+  "skills": []
 }
 
