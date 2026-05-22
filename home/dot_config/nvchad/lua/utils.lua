@@ -734,21 +734,40 @@ Clipboard = {
 
     if #content == 0 then return end
 
-    local raw_path = vim.fn.expand "%"
-    if #raw_path == 0 then return end
+    local lines = vim.split(content, "\n")
+    local min_indent = nil
+    for _, line in ipairs(lines) do
+      if line:match "%S" then
+        local indent = line:match "^%s*"
+        local indent_len = #indent
+        if min_indent == nil or indent_len < min_indent then min_indent = indent_len end
+      end
+    end
 
-    local relative_path = require("plenary.path").new(raw_path):make_relative()
+    if min_indent and min_indent > 0 then
+      for i, line in ipairs(lines) do
+        if line:match "%S" then
+          lines[i] = line:sub(min_indent + 1)
+        else
+          lines[i] = ""
+        end
+      end
+      content = table.concat(lines, "\n")
+    end
+
+    local raw_path = vim.fn.expand "%:p"
+    if #raw_path == 0 then return end
 
     local line_range = ""
     if range["start"] == range["end"] then
-      line_range = string.format("line %d", range["start"])
+      line_range = string.format("L%d", range["start"])
     else
-      line_range = string.format("lines %d-%d", range["start"], range["end"])
+      line_range = string.format("L%d-%d", range["start"], range["end"])
     end
 
     local context = ""
-      .. string.format("From the following code snippet (%s) in the file @%s\n\n", line_range, relative_path)
-      .. string.format("```\n%s\n```\n\n", content)
+      .. string.format("%s:%s\n\n", raw_path, line_range)
+      .. string.format("```%s\n%s\n```\n\n", vim.bo.filetype, content)
 
     vim.fn.setreg("+", context)
     vim.notify "Copied region with context to clipboard"

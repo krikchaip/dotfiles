@@ -128,7 +128,7 @@ M.on_attach = function(bufnr)
   map("n", "Y", fs.copy.filename, opts "Copy: Filename")
   map("n", "yy", fs.copy.filename, opts "Copy: Filename")
   map("n", "yr", fs.copy.relative_path, opts "Copy: Relative Path")
-  map("n", "ya", fs.copy.absolute_path, opts "Copy: Absolute Path")
+  map("n", "yA", fs.copy.absolute_path, opts "Copy: Absolute Path")
   map("n", "yb", fs.copy.basename, opts "Copy: Basename")
 
   -- rename

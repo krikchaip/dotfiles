@@ -296,9 +296,9 @@ map("n", "ga", OpenCode.AddBuffer, { desc = "OpenCode: Add @buffer" })
 map("x", "ga", OpenCode.AddThis, { desc = "OpenCode: Add @this" })
 
 -- clipboard management
-map("n", "<leader>yr", Clipboard.YankRelative, { desc = "Clipboard: Yank Relative Path" })
-map("n", "<leader>ya", Clipboard.YankAbsolute, { desc = "Clipboard: Yank Absolute Path" })
-map("x", "<leader>yc", Clipboard.YankRegionWithContext, { desc = "Clipboard: Yank Region with Prompt Context" })
+map("n", "yr", Clipboard.YankRelative, { desc = "Clipboard: Yank Relative Path" })
+map("n", "yA", Clipboard.YankAbsolute, { desc = "Clipboard: Yank Absolute Path" })
+map("x", "gy", Clipboard.YankRegionWithContext, { desc = "Clipboard: Yank Region with Prompt Context" })
 map("n", "<leader>pr", Clipboard.PasteRelative, { desc = "Clipboard: Paste Relative Path" })
-map("n", "<leader>pa", Clipboard.PasteAbsolute, { desc = "Clipboard: Paste Absolute Path" })
+map("n", "<leader>pA", Clipboard.PasteAbsolute, { desc = "Clipboard: Paste Absolute Path" })
 map("n", "<leader>pi", Clipboard.PasteImage, { desc = "Clipboard: Paste Image" })

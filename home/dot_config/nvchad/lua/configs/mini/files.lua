@@ -124,7 +124,7 @@ M.on_attach = function(bufnr)
 
   map("n", "ga", M.opencode_addpath, opts "Add entry path to OpenCode")
 
-  map("n", "ya", M.copy_absolute, opts "Copy absolute path")
+  map("n", "yA", M.copy_absolute, opts "Copy absolute path")
   map("n", "yr", M.copy_relative, opts "Copy relative path")
 
   map("n", "L", M.go_in, opts "Go in entry")
