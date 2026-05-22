@@ -12,41 +12,6 @@ import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Box, Spacer, Text } from "@earendil-works/pi-tui";
 
-// Helper to dynamically resolve the keybinding for expanding tool outputs
-function getExpandKeyHint(): string {
-  const defaultKey = "ctrl+o";
-
-  try {
-    const keybindingsPath = join(homedir(), ".pi", "agent", "keybindings.json");
-
-    if (!existsSync(keybindingsPath)) {
-      return defaultKey;
-    }
-
-    const content = readFileSync(keybindingsPath, "utf8");
-    const config = JSON.parse(content);
-
-    const bindings = config["app.tools.expand"];
-    if (!bindings) {
-      return defaultKey;
-    }
-
-    const rawKey = Array.isArray(bindings) ? bindings[0] : bindings;
-    if (typeof rawKey === "string" && rawKey.trim()) {
-      return rawKey
-        .trim()
-        .split("+")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("+")
-        .toLowerCase();
-    }
-  } catch (err) {
-    // Fall back to default silently
-  }
-
-  return defaultKey;
-}
-
 export default function (pi: ExtensionAPI) {
   // Resolve the keybinding dynamic hint once on startup
   const expandKeyHint = getExpandKeyHint();
@@ -122,6 +87,46 @@ export default function (pi: ExtensionAPI) {
       },
     };
   });
+}
+
+let cachedExpandKeyHint: string | undefined;
+
+// Helper to dynamically resolve the keybinding for expanding tool outputs
+function getExpandKeyHint(): string {
+  if (cachedExpandKeyHint !== undefined) {
+    return cachedExpandKeyHint;
+  }
+
+  const defaultKey = "ctrl+o";
+
+  try {
+    const keybindingsPath = join(homedir(), ".pi", "agent", "keybindings.json");
+
+    if (!existsSync(keybindingsPath)) {
+      cachedExpandKeyHint = defaultKey;
+      return defaultKey;
+    }
+
+    const content = readFileSync(keybindingsPath, "utf8");
+    const config = JSON.parse(content);
+
+    const bindings = config["app.tools.expand"];
+    if (!bindings) {
+      cachedExpandKeyHint = defaultKey;
+      return defaultKey;
+    }
+
+    const rawKey = Array.isArray(bindings) ? bindings[0] : bindings;
+    if (typeof rawKey === "string" && rawKey.trim()) {
+      cachedExpandKeyHint = rawKey.trim().toLowerCase();
+      return cachedExpandKeyHint;
+    }
+  } catch (err) {
+    // Fall back to default silently
+  }
+
+  cachedExpandKeyHint = defaultKey;
+  return defaultKey;
 }
 
 function parseJsonOrString(str: string) {
