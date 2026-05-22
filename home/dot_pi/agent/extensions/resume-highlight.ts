@@ -77,6 +77,39 @@ export default function (_pi: ExtensionAPI) {
               }
             }
           };
+
+          const originalOnDeleteSession = selector.sessionList.onDeleteSession;
+          const interactiveMode = this as any;
+
+          selector.sessionList.startDeleteConfirmationForSelectedSession = function (
+            this: any,
+          ) {
+            const selected = this.filteredSessions[this.selectedIndex];
+            if (!selected) return;
+
+            // Bypass the active session check
+            this.setConfirmingDeletePath(selected.session.path);
+          };
+
+          selector.sessionList.onDeleteSession = async function (
+            this: any,
+            sessionPath: string,
+          ) {
+            const isCurrent = this.isCurrentSessionPath(sessionPath);
+
+            if (isCurrent) {
+              // Create a new session (clears screen like /new)
+              await interactiveMode.handleClearCommand();
+
+              // Then remove the previously active session
+              await originalOnDeleteSession.call(this, sessionPath);
+
+              // Close the session selector
+              done();
+            } else {
+              await originalOnDeleteSession.call(this, sessionPath);
+            }
+          };
         }
 
         return result;
