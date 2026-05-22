@@ -9,6 +9,8 @@
         "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui"
       ]
     },
-    "lib": ["ESNext"]
+    "lib": ["ESNext"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   }
 }
