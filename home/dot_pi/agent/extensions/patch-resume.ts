@@ -1,8 +1,9 @@
 /**
- * Resume Highlight
+ * Patch /resume
  *
- * Monkey-patches InteractiveMode's session selector at runtime so that the
- * currently active session is selected by default when opening `/resume`.
+ * Monkey-patches InteractiveMode's session selector at runtime so that:
+ * 1. The currently active session is selected by default when opening `/resume`.
+ * 2. Deleting the active session is permitted (clears screen + starts new session).
  */
 
 import { createRequire } from "node:module";
@@ -81,15 +82,14 @@ export default function (_pi: ExtensionAPI) {
           const originalOnDeleteSession = selector.sessionList.onDeleteSession;
           const interactiveMode = this as any;
 
-          selector.sessionList.startDeleteConfirmationForSelectedSession = function (
-            this: any,
-          ) {
-            const selected = this.filteredSessions[this.selectedIndex];
-            if (!selected) return;
+          selector.sessionList.startDeleteConfirmationForSelectedSession =
+            function (this: any) {
+              const selected = this.filteredSessions[this.selectedIndex];
+              if (!selected) return;
 
-            // Bypass the active session check
-            this.setConfirmingDeletePath(selected.session.path);
-          };
+              // Bypass the active session check
+              this.setConfirmingDeletePath(selected.session.path);
+            };
 
           selector.sessionList.onDeleteSession = async function (
             this: any,
