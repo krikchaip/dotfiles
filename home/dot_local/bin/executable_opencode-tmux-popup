@@ -4,4 +4,4 @@ OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS=30000 \
 OPENCODE_ENABLE_EXA=true \
 NVIM_APPNAME=nvchad \
 EDITOR=nvim \
-opencode $@
+exec opencode $@

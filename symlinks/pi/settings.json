@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.75.4",
+  "lastChangelogVersion": "0.75.5",
   "defaultProvider": "antigravity",
   "defaultModel": "gemini-3.5-flash-low",
   "treeFilterMode": "no-tools",
@@ -21,7 +21,9 @@
     "github-copilot/claude-sonnet-4.6",
     "github-copilot/claude-opus-4.6",
     "github-copilot/claude-opus-4.7",
-    "opencode/kimi-k2.6"
+    "opencode/big-pickle",
+    "opencode/kimi-k2.6",
+    "openrouter/openrouter/free"
   ],
   "npmCommand": [
     "mise",
