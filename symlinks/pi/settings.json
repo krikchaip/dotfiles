@@ -73,6 +73,7 @@
   },
   "theme": "everforest-dark-hard",
   "quietStartup": false,
-  "skills": []
+  "skills": [],
+  "extensions": []
 }
 
