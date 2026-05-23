@@ -58,6 +58,7 @@ export default function (_pi: ExtensionAPI) {
         // Verify it is the SessionSelectorComponent containing a SessionList
         if (selector?.sessionList) {
           const originalSetSessions = selector.sessionList.setSessions;
+          let hasInitialSelected = false;
 
           // Override setSessions to adjust the selected index after items load
           selector.sessionList.setSessions = function (
@@ -67,14 +68,15 @@ export default function (_pi: ExtensionAPI) {
           ) {
             originalSetSessions.call(this, sessions, showCwd);
 
-            // Only auto-highlight if the user hasn't typed a search query
-            if (!this.searchInput.getValue()) {
+            // Only auto-highlight on first load, so renaming/deleting doesn't reset focus
+            if (!this.searchInput.getValue() && !hasInitialSelected) {
               const idx = this.filteredSessions.findIndex((s: any) =>
                 this.isCurrentSessionPath(s.session.path),
               );
 
               if (idx !== -1) {
                 this.selectedIndex = idx;
+                hasInitialSelected = true;
               }
             }
           };
