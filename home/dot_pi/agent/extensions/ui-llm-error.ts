@@ -17,17 +17,19 @@ export default function (pi: ExtensionAPI) {
   const expandKeyHint = getExpandKeyHint();
 
   // Intercept assistant messages that fail with stopReason = "error"
+  // Hide default red error text by injecting a fake tool call in message_end.
+  // The AssistantMessage TUI renderer skips the error text if hasToolCalls is true.
   pi.on("message_end", async (event) => {
     const message = event.message;
     if (message.role !== "assistant" || message.stopReason !== "error") return;
 
     // By the time message_end fires, pi has already exhausted its auto-retry.
     // Format all errors with the custom card.
-    const errorMessage = message.errorMessage || "Unknown error";
+    const rawError = message.errorMessage || "Unknown error";
 
     // Build a short human-readable summary; keep the full error in details
-    const parsed = parseJsonOrString(errorMessage);
-    const summary = extractSummary(errorMessage, parsed);
+    const parsed = parseJsonOrString(rawError);
+    const summary = extractSummary(rawError, parsed);
 
     // Send a beautifully styled custom "llm-error-card" message in its place
     pi.sendMessage({
@@ -37,8 +39,9 @@ export default function (pi: ExtensionAPI) {
       details: parsed,
     });
 
-    // Keep stopReason as "error" so pi doesn't retry.
-    // Clear errorMessage to suppress the default red raw text.
+    // message_end fires AFTER pi has exhausted all auto-retries, so clearing
+    // errorMessage here is safe — the retry regex check already ran and passed.
+    // Clearing it suppresses the default red "Error: <msg>" block in the TUI.
     return {
       message: {
         ...message,
