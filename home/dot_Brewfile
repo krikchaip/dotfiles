@@ -32,6 +32,7 @@ brew "poppler"     # required by `yazi` for pdf previewing
 brew "resvg"       # required by `yazi` for svg previewing
 brew "ripgrep"
 brew "sevenzip"
+brew "sleepwatcher"
 brew "starship"
 brew "tmux"
 brew "tree-sitter-cli"

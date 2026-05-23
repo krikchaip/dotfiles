@@ -3,10 +3,15 @@
 set -euo pipefail
 
 LABEL="com.r3nniw.pi-antigravity-rotator"
+
 PLIST_PATH="$HOME/Library/LaunchAgents/${LABEL}.plist"
 SERVICE_TARGET="gui/$(id -u)/${LABEL}"
 OUT_LOG="/tmp/${LABEL}.out.log"
 ERR_LOG="/tmp/${LABEL}.err.log"
+
+PAR_BIN="${PAR_BIN:-$(command -v pi-antigravity-rotator 2>/dev/null || echo "$HOME/.local/share/mise/installs/npm-pi-antigravity-rotator/latest/bin/pi-antigravity-rotator")}"
+PAR_PIDFILE="/tmp/${LABEL}.pid"
+PAR_LOG="/tmp/${LABEL}.par.log"
 
 usage() {
   cat <<'EOF'
@@ -23,6 +28,100 @@ Usage:
   par-manager login           Interactive login helper
 EOF
 }
+
+log_event() {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [par-manager] $*" >> "$OUT_LOG"
+}
+
+# ---------- PAR process management (direct, not via launchd) ----------
+
+par_pid() {
+  if [ -f "$PAR_PIDFILE" ]; then
+    local pid
+    pid=$(cat "$PAR_PIDFILE")
+
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "$pid"
+      return 0
+    fi
+
+    rm -f "$PAR_PIDFILE"
+  fi
+
+  return 1
+}
+
+PAR_STATE_CHANGED=""
+
+par_start() {
+  PAR_STATE_CHANGED=""
+
+  if pid=$(par_pid); then
+    log_event "PAR already running (pid $pid)"
+    return 0
+  fi
+
+  nohup "$PAR_BIN" start >> "$PAR_LOG" 2>&1 &
+
+  local new_pid=$!
+
+  echo "$new_pid" > "$PAR_PIDFILE"
+  log_event "PAR started (pid $new_pid)"
+
+  PAR_STATE_CHANGED="1"
+}
+
+par_kill() {
+  PAR_STATE_CHANGED=""
+
+  if pid=$(par_pid); then
+    kill "$pid" 2>/dev/null || true
+
+    local i=0
+    while kill -0 "$pid" 2>/dev/null && [ $i -lt 10 ]; do
+      sleep 0.5
+      i=$((i + 1))
+    done
+
+    kill -9 "$pid" 2>/dev/null || true
+    rm -f "$PAR_PIDFILE"
+    log_event "PAR killed (pid $pid)"
+
+    PAR_STATE_CHANGED="1"
+  else
+    log_event "PAR not running, nothing to kill"
+  fi
+}
+
+notify() {
+  local msg="$1"
+  osascript -e "display notification \"$msg\" with title \"PAR Manager\"" 2>/dev/null || true
+}
+
+# ---------- sleepwatcher hooks (internal, called by launchd plist) ----------
+
+on_sleep() {
+  log_event "Event: sleep/display-sleep"
+  par_kill
+
+  # [ -n "$PAR_STATE_CHANGED" ] && notify "System sleeping — PAR process stopped."
+}
+
+on_wake() {
+  log_event "Event: wake/display-wake/idle-resume"
+  par_start
+
+  # [ -n "$PAR_STATE_CHANGED" ] && notify "Resuming — PAR process started."
+}
+
+on_idle() {
+  log_event "Event: idle timeout"
+  par_kill
+
+  # [ -n "$PAR_STATE_CHANGED" ] && notify "Idle detected — PAR process stopped."
+}
+
+# ---------- public commands ----------
 
 require_plist() {
   if [ ! -f "$PLIST_PATH" ]; then
@@ -60,6 +159,9 @@ start_service() {
     launchctl kickstart -k "$SERVICE_TARGET" >/dev/null 2>&1 || true
   fi
 
+  # Also start PAR immediately since user is active
+  par_start
+
   state="$(service_state || true)"
   if [ "$state" = "running" ]; then
     echo "Started: $SERVICE_TARGET"
@@ -69,6 +171,8 @@ start_service() {
 }
 
 kill_service() {
+  par_kill
+
   launchctl disable "$SERVICE_TARGET" >/dev/null 2>&1 || true
   launchctl bootout "gui/$(id -u)" "$PLIST_PATH" >/dev/null 2>&1 || true
 
@@ -77,7 +181,7 @@ kill_service() {
 
 restart_service() {
   kill_service
-  rm -f "$OUT_LOG" "$ERR_LOG"
+  rm -f "$OUT_LOG" "$ERR_LOG" "$PAR_LOG"
   start_service
 
   echo "Logs flushed: $OUT_LOG, $ERR_LOG"
@@ -102,6 +206,7 @@ status_service() {
   echo "Plist:        $PLIST_PATH"
   echo "Stdout log:   $OUT_LOG"
   echo "Stderr log:   $ERR_LOG"
+  echo "PAR log:      $PAR_LOG"
 
   if [ -f "$PLIST_PATH" ]; then
     echo "Plist exists: yes"
@@ -110,13 +215,22 @@ status_service() {
   fi
 
   echo
+  echo "=== Sleepwatcher (launchd) ==="
   if launchctl print "$SERVICE_TARGET" >/dev/null 2>&1; then
-    launchctl print "$SERVICE_TARGET" | grep -E "^(\s*state =|\s*pid =|\s*last exit code =|\s*path =|\s*program =|\s*arguments =|\s*disabled =)" || true
+    launchctl print "$SERVICE_TARGET" | grep -E "^\t(state =|pid =|last exit code =|path =|program =|disabled =)" || true
   else
-    echo "Service not currently loaded in launchd." 
+    echo "Service not currently loaded in launchd."
     if launchctl print-disabled "gui/$(id -u)" 2>/dev/null | grep -q "\"$LABEL\" => true"; then
       echo "Disabled: true"
     fi
+  fi
+
+  echo
+  echo "=== PAR Process ==="
+  if pid=$(par_pid); then
+    echo "Running (pid $pid)"
+  else
+    echo "Not running"
   fi
 }
 
@@ -258,6 +372,12 @@ main() {
     login)
       login_service
       ;;
+
+    # Internal hooks called by sleepwatcher (via launchd plist)
+    _on-sleep) on_sleep ;;
+    _on-wake)  on_wake  ;;
+    _on-idle)  on_idle  ;;
+
     *)
       echo "Unknown command: $1" >&2
       echo >&2

@@ -7,8 +7,36 @@
 
     <key>ProgramArguments</key>
     <array>
-      <string>{{ .chezmoi.homeDir }}/.local/share/mise/installs/npm-pi-antigravity-rotator/latest/bin/pi-antigravity-rotator</string>
-      <string>start</string>
+      <string>/opt/homebrew/sbin/sleepwatcher</string>
+      <string>--verbose</string>
+
+      <!-- system sleep → kill PAR -->
+      <string>--sleep</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-sleep</string>
+
+      <!-- system wake → start PAR -->
+      <string>--wakeup</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-wake</string>
+
+      <!-- display sleep → kill PAR -->
+      <string>--displaysleep</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-sleep</string>
+
+      <!-- display wake → start PAR -->
+      <string>--displaywakeup</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-wake</string>
+
+      <!-- idle timeout (150 = 15s in 0.1s units; 36000 = 1hr) -->
+      <string>--timeout</string>
+      <string>36000</string>
+
+      <!-- after idle timeout -> kill PAR -->
+      <string>--idle</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-idle</string>
+
+      <!-- resume from idle → start PAR -->
+      <string>--idleresume</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-wake</string>
     </array>
 
     <key>EnvironmentVariables</key>
@@ -22,9 +50,6 @@
 
     <key>KeepAlive</key>
     <true/>
-
-    <key>ThrottleInterval</key>
-    <integer>5</integer>
 
     <key>StandardOutPath</key>
     <string>/tmp/com.r3nniw.pi-antigravity-rotator.out.log</string>
