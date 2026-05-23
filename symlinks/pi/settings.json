@@ -57,11 +57,11 @@
       "disabledItems": [],
       "config": {
         "@vanillagreen/pi-background-tasks": {
-          "dashboardShortcut": "",
           "toolRenderMode": "compact",
           "autoBackgroundPatterns": "^(yarn|npm|pnpm) (start|dev)",
-          "backgroundBashShortcut": "",
-          "widgetToggleShortcut": ""
+          "backgroundBashShortcut": "none",
+          "widgetToggleShortcut": "alt+h",
+          "dashboardShortcut": "alt+shift+h"
         },
         "@vanillagreen/pi-extension-manager": {
           "defaultSaveScope": "user"
@@ -78,4 +78,3 @@
   "skills": [],
   "extensions": []
 }
-
