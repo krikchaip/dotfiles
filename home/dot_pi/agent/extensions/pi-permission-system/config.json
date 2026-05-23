@@ -14,9 +14,9 @@
       "*.cer": "deny",
       "*.pem": "deny",
 
-      ".git/*": "ask",
-      "~/.kube/*": "deny",
-      "~/.ssh/*": "deny"
+      "*.git/*": "ask",
+      "*.kube/*": "deny",
+      "*.ssh/*": "deny"
     },
 
     "bash": {
