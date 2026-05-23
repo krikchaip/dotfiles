@@ -1,5 +1,5 @@
 /**
- * Custom LLM Error Handler Extension
+ * Custom LLM Error UI box
  *
  * Suppresses default raw red LLM API error outputs in the TUI,
  * replacing them with a beautifully formatted block/card.
@@ -15,6 +15,37 @@ import { Box, Spacer, Text } from "@earendil-works/pi-tui";
 export default function (pi: ExtensionAPI) {
   // Resolve the keybinding dynamic hint once on startup
   const expandKeyHint = getExpandKeyHint();
+
+  // Intercept assistant messages that fail with stopReason = "error"
+  pi.on("message_end", async (event) => {
+    const message = event.message;
+    if (message.role !== "assistant" || message.stopReason !== "error") return;
+
+    // By the time message_end fires, pi has already exhausted its auto-retry.
+    // Format all errors with the custom card.
+    const errorMessage = message.errorMessage || "Unknown error";
+
+    // Build a short human-readable summary; keep the full error in details
+    const parsed = parseJsonOrString(errorMessage);
+    const summary = extractSummary(errorMessage, parsed);
+
+    // Send a beautifully styled custom "llm-error-card" message in its place
+    pi.sendMessage({
+      customType: "llm-error-card",
+      content: summary,
+      display: true,
+      details: parsed,
+    });
+
+    // Keep stopReason as "error" so pi doesn't retry.
+    // Clear errorMessage to suppress the default red raw text.
+    return {
+      message: {
+        ...message,
+        errorMessage: "",
+      },
+    };
+  });
 
   // Register custom renderer for "llm-error-card"
   pi.registerMessageRenderer(
@@ -56,37 +87,6 @@ export default function (pi: ExtensionAPI) {
       return box;
     },
   );
-
-  // Intercept assistant messages that fail with stopReason = "error"
-  pi.on("message_end", async (event) => {
-    const message = event.message;
-    if (message.role !== "assistant" || message.stopReason !== "error") return;
-
-    // By the time message_end fires, pi has already exhausted its auto-retry.
-    // Format all errors with the custom card.
-    const errorMessage = message.errorMessage || "Unknown error";
-
-    // Build a short human-readable summary; keep the full error in details
-    const parsed = parseJsonOrString(errorMessage);
-    const summary = extractSummary(errorMessage, parsed);
-
-    // Send a beautifully styled custom "llm-error-card" message in its place
-    pi.sendMessage({
-      customType: "llm-error-card",
-      content: summary,
-      display: true,
-      details: parsed,
-    });
-
-    // Keep stopReason as "error" so pi doesn't retry.
-    // Clear errorMessage to suppress the default red raw text.
-    return {
-      message: {
-        ...message,
-        errorMessage: "",
-      },
-    };
-  });
 }
 
 let cachedExpandKeyHint: string | undefined;
