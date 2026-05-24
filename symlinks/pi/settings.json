@@ -87,9 +87,10 @@
   "powerlineShortcuts": {
     "copyEditor": "ctrl+alt+c",
     "cutEditor": "ctrl+alt+x",
-    "editorStart": "ctrl+shift+a",
     "editorEnd": "ctrl+shift+e",
-    "jumpChatBottom": "ctrl+shift+g",
+    "editorStart": "ctrl+shift+a",
+    "jumpChatBottom": "ctrl+shift+down",
+    "jumpChatTop": "ctrl+shift+up",
     "jumpNextLlmMessage": "ctrl+alt+.",
     "jumpNextUserMessage": "ctrl+shift+i",
     "jumpPreviousLlmMessage": "ctrl+alt+,",
@@ -102,3 +103,4 @@
   "workingVibeMode": "file",
   "workingVibeModel": "openrouter/openrouter/free"
 }
+
