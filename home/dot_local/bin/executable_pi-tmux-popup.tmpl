@@ -42,6 +42,7 @@ exec pi --no-session \
   --model openrouter/openrouter/free \
   -e ~/.pi/agent/extensions/patch-keybindings.ts \
   -e ~/.pi/agent/extensions/ui-llm-error.ts \
+  -e npm:pi-powerline-footer \
   -e npm:@gotgenes/pi-permission-system \
   -e npm:pi-web-access \
   --tools read,grep,find,ls,web_search,code_search,fetch_content,get_search_content \

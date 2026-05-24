@@ -37,18 +37,19 @@
     "npm:@vanillagreen/pi-background-tasks",
     "npm:@vanillagreen/pi-caveman",
     "npm:pi-mcp-adapter",
+    "npm:pi-powerline-footer",
     "npm:pi-skillful",
     "npm:pi-token-burden",
-    {
-      "source": "npm:pi-web-access",
-      "skills": [
-        "+skills/librarian/SKILL.md"
-      ]
-    },
     {
       "source": "npm:@victor-software-house/pi-curated-themes",
       "skills": [
         "-skills/adapt-ghostty-theme-to-pi/SKILL.md"
+      ]
+    },
+    {
+      "source": "npm:pi-web-access",
+      "skills": [
+        "+skills/librarian/SKILL.md"
       ]
     }
   ],
@@ -76,5 +77,5 @@
   "theme": "everforest-dark-hard",
   "quietStartup": false,
   "skills": [],
-  "extensions": []
+  "extensions": [],
 }
