@@ -1,62 +1,65 @@
-import {
-  type ExtensionContext,
-  ExtensionAPI,
-} from "@earendil-works/pi-coding-agent";
+import { createRequire } from "node:module";
+import { realpathSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 
-let _originalFn: ((msg?: string) => void) | null = null;
-let _lastPureMsg: string | null = null;
-let _defaultMsg = "Working...";
+const PATCH_FLAG = "__powerlineSpacerPatched";
 
-export default function (pi: ExtensionAPI) {
-  function wrap(ctx: ExtensionContext): void {
-    if (!ctx.hasUI) return;
-
-    if (!_originalFn) {
-      _originalFn = ctx.ui.setWorkingMessage.bind(ctx.ui);
-    }
-
-    // Always re-wrap — handles any un-patching between turns
-    ctx.ui.setWorkingMessage = (msg?: string) => {
-      if (typeof msg === "string" && msg.trim() !== "") {
-        _lastPureMsg = msg;
-        _originalFn!(msg + "\n");
-      } else {
-        // When cleared (undefined), the next non-null setWorkingMessage
-        // in this turn will use the default. Capture the default text
-        // for bg_task fallback.
-        _lastPureMsg = null;
-        _originalFn!(msg);
-      }
-    };
+function shouldAddSpacer(loader: any): boolean {
+  // Walk parent chain — skip loaders nested inside BorderedLoader
+  // or BashExecutionComponent (not status-container loaders).
+  let parent = loader.parent;
+  while (parent) {
+    const name = parent.constructor?.name;
+    if (name === "BorderedLoader" || name === "BashExecutionComponent")
+      return false;
+    parent = parent.parent;
   }
+  return true;
+}
 
-  // Patch on events that fire before setWorkingMessage is written
-  pi.on("session_start", async (_e: unknown, ctx: ExtensionContext) =>
-    wrap(ctx),
-  );
-  pi.on("before_agent_start", async (_e: unknown, ctx: ExtensionContext) =>
-    wrap(ctx),
-  );
-  pi.on("tool_call", async (_e: unknown, ctx: ExtensionContext) => wrap(ctx));
+function applyPatch(Loader: any) {
+  if ((Loader.prototype as any)[PATCH_FLAG]) return;
 
-  // After internal agent_start creates the Loader, re-apply spacer so it
-  // reaches the live animation (catches edge cases where the Loader was
-  // created without our patched message).
-  pi.on("agent_start", async (_e: unknown, ctx: ExtensionContext) => {
-    if (!ctx.hasUI || !_originalFn) return;
-
-    if (_lastPureMsg) {
-      // Normal turn: a vibe was set via before_agent_start, re-apply with spacer
-      _originalFn(_lastPureMsg + "\n");
-    } else {
-      // bg_task / triggerTurn path: no vibe was set, Loader has plain "Working...".
-      // Add spacer to the default message so bg_task turns also get breathing room.
-      _originalFn(_defaultMsg + "\n");
+  const _origUpdateDisplay = (Loader.prototype as any).updateDisplay;
+  (Loader.prototype as any).updateDisplay = function () {
+    if (
+      typeof this.message === "string" &&
+      this.message.trim() !== "" &&
+      !this.message.endsWith("\n ") &&
+      shouldAddSpacer(this)
+    ) {
+      this.message += "\n ";
     }
-  });
+    return _origUpdateDisplay.call(this);
+  };
 
-  // Clear stored message at turn end so we don't carry stale vibes across turns
-  pi.on("turn_end", async () => {
-    _lastPureMsg = null;
-  });
+  (Loader.prototype as any)[PATCH_FLAG] = true;
+}
+
+try {
+  // @ts-ignore
+  const req = createRequire(import.meta.url || __filename);
+  const cliPath = realpathSync(process.argv[1]);
+  const distPath = dirname(cliPath);
+  const piRoot = dirname(distPath);
+  const loaderPath = join(
+    piRoot,
+    "node_modules",
+    "@earendil-works",
+    "pi-tui",
+    "dist",
+    "components",
+    "loader.js",
+  );
+
+  if (existsSync(loaderPath)) {
+    const mod = req(loaderPath);
+    applyPatch(mod.Loader);
+  }
+} catch {
+  // Silently skip if resolution fails.
+}
+
+export default function () {
+  // Patch applied at module init.
 }
