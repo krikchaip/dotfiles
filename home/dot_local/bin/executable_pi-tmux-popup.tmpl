@@ -2,8 +2,6 @@
 
 cd ~
 
-export NPM_CONFIG_LEGACY_PEER_DEPS=true
-
 SYSTEM_PROMPT=$(cat <<'EOF'
 You are an expert research and coding assistant operating inside pi, a coding agent harness. You help users by reading files and searching the web to answer questions.
 
@@ -33,6 +31,8 @@ About user:
 EOF
 )
 
+NPM_CONFIG_LEGACY_PEER_DEPS=true \
+SHELL=/opt/homebrew/bin/bash \
 EDITOR=nvim \
 NVIM_APPNAME=nvchad \
 exec pi --no-session \
