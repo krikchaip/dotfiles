@@ -62,7 +62,8 @@
           "autoBackgroundPatterns": "^(yarn|npm|pnpm) (start|dev)",
           "backgroundBashShortcut": "none",
           "widgetToggleShortcut": "alt+h",
-          "dashboardShortcut": "alt+shift+h"
+          "dashboardShortcut": "alt+shift+h",
+          "widgetPlacement": "aboveEditor"
         },
         "@vanillagreen/pi-extension-manager": {
           "defaultSaveScope": "user"
@@ -78,4 +79,24 @@
   "quietStartup": false,
   "skills": [],
   "extensions": [],
+  "powerline": {
+    "preset": "default"
+  },
+  "powerlineShortcuts": {
+    "copyEditor": "ctrl+alt+c",
+    "cutEditor": "ctrl+alt+x",
+    "editorEnd": "cmd+shift+down",
+    "editorStart": "cmd+shift+up",
+    "jumpChatBottom": "ctrl+shift+g",
+    "jumpNextLlmMessage": "ctrl+alt+.",
+    "jumpNextUserMessage": "ctrl+shift+i",
+    "jumpPreviousLlmMessage": "ctrl+alt+,",
+    "jumpPreviousUserMessage": "ctrl+shift+u",
+    "scrollChatDown": "cmd+down",
+    "scrollChatUp": "cmd+up",
+    "stashHistory": "ctrl+alt+h"
+  },
+  "workingVibe": "zen",
+  "workingVibeMode": "file",
+  "workingVibeModel": "opencode/big-pickle"
 }
