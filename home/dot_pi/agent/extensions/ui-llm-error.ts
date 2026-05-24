@@ -1,9 +1,20 @@
 /**
  * Custom LLM Error UI box
  *
- * Suppresses default raw red LLM API error outputs in the TUI,
- * replacing them with a beautifully formatted block/card.
- * Hides the full JSON details by default, allowing toggle expansion with the user's active keybinding.
+ * Strategy (Approach A):
+ * - Retryable errors (503, 429, timeout, etc.): let Pi's native UI handle
+ *   (red text → retry countdown → red text if exhausted). No interference.
+ * - Non-retryable errors (auth, bad model, etc.): suppress native red text,
+ *   render custom llm-error-card instead.
+ *
+ * How suppression works:
+ *   message_end: change stopReason from "error" to "stop" so that
+ *   AssistantMessageComponent skips the error rendering block entirely.
+ *   agent_end: restore stopReason and errorMessage before Pi's retry check
+ *   runs (same object ref → propagates to _lastAssistantMessage).
+ *
+ * No session pollution: we don't inject fake content (like toolCall) into
+ * the message, so rebuilds and LLM context stay clean.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -12,52 +23,83 @@ import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Box, Spacer, Text } from "@earendil-works/pi-tui";
 
+// Pi's internal retry regex from agent-session.js _isRetryableError (line 1942)
+const RETRYABLE_REGEX =
+  /overloaded|provider.?returned.?error|rate.?limit|too many requests|429|500|502|503|504|service.?unavailable|server.?error|internal.?error|network.?error|connection.?error|connection.?refused|connection.?lost|websocket.?closed|websocket.?error|other side closed|fetch failed|upstream.?connect|reset before headers|socket hang up|ended without|stream ended before message_stop|http2 request did not get a response|timed? out|timeout|terminated|retry delay/i;
+
 export default function (pi: ExtensionAPI) {
-  // Resolve the keybinding dynamic hint once on startup
   const expandKeyHint = getExpandKeyHint();
 
-  // Intercept assistant messages that fail with stopReason = "error"
-  // Hide default red error text by injecting a fake tool call in message_end.
-  // The AssistantMessage TUI renderer skips the error text if hasToolCalls is true.
-  pi.on("message_end", async (event) => {
+  // Saved original errorMessage so we can restore it in agent_end
+  // for Pi's retry check (_willRetryAfterAgentEnd / _handlePostAgentRun).
+  let savedErrorMessage: string | null = null;
+
+  // ── message_end ──────────────────────────────────────────────────
+  // Runs BEFORE TUI renders. We mutate the message to suppress red text
+  // for non-retryable errors.
+  pi.on("message_end", async (event: any) => {
     const message = event.message;
     if (message.role !== "assistant" || message.stopReason !== "error") return;
 
-    // By the time message_end fires, pi has already exhausted its auto-retry.
-    // Format all errors with the custom card.
-    const rawError = message.errorMessage || "Unknown error";
+    const errorMsg = message.errorMessage || "";
 
-    // Build a short human-readable summary; keep the full error in details
+    // Approach A: retryable errors → let Pi's native UI handle
+    if (RETRYABLE_REGEX.test(errorMsg)) return;
+
+    // Non-retryable: swap stopReason so AssistantMessageComponent skips
+    // the error rendering block. We restore this in agent_end.
+    savedErrorMessage = errorMsg;
+
+    return {
+      message: {
+        ...message,
+        stopReason: "stop",
+        errorMessage: "",
+      },
+    };
+  });
+
+  // ── agent_end ────────────────────────────────────────────────────
+  // Runs AFTER TUI render, BEFORE _willRetryAfterAgentEnd.
+  // Restore original error data, then decide whether to show card.
+  pi.on("agent_end", async (event: any) => {
+    const lastMsg = event.messages[event.messages.length - 1];
+    if (lastMsg?.role !== "assistant") {
+      savedErrorMessage = null;
+      return;
+    }
+
+    // Restore error data if we suppressed it in message_end
+    if (savedErrorMessage !== null && lastMsg.stopReason !== "error") {
+      lastMsg.stopReason = "error";
+      lastMsg.errorMessage = savedErrorMessage;
+    }
+
+    const rawError = lastMsg.errorMessage || "";
+    savedErrorMessage = null;
+
+    // Retryable → let Pi's retry countdown handle
+    if (lastMsg.stopReason !== "error" || RETRYABLE_REGEX.test(rawError))
+      return;
+
+    // Non-retryable → render custom card
     const parsed = parseJsonOrString(rawError);
     const summary = extractSummary(rawError, parsed);
 
-    // Send a beautifully styled custom "llm-error-card" message in its place
     pi.sendMessage({
       customType: "llm-error-card",
       content: summary,
       display: true,
       details: parsed,
     });
-
-    // message_end fires AFTER pi has exhausted all auto-retries, so clearing
-    // errorMessage here is safe — the retry regex check already ran and passed.
-    // Clearing it suppresses the default red "Error: <msg>" block in the TUI.
-    return {
-      message: {
-        ...message,
-        errorMessage: "",
-      },
-    };
   });
 
-  // Register custom renderer for "llm-error-card"
+  // ── Custom card renderer ─────────────────────────────────────────
   pi.registerMessageRenderer(
     "llm-error-card",
-    (message, { expanded }, theme) => {
-      // Render as a beautiful Box block with a subtle toolErrorBg or customMessageBg
-      const box = new Box(1, 1, (t) => theme.bg("toolErrorBg", t));
+    (message: any, { expanded }: any, theme: any) => {
+      const box = new Box(1, 1, (t: string) => theme.bg("toolErrorBg", t));
 
-      // Header + status code + expand hint all on same line
       const summary =
         typeof message.content === "string" && message.content
           ? message.content
@@ -73,7 +115,6 @@ export default function (pi: ExtensionAPI) {
         expandHint;
       box.addChild(new Text(header, 0, 0));
 
-      // Show full JSON only when expanded
       if (expanded && message.details) {
         box.addChild(new Spacer(1));
         box.addChild(
@@ -92,13 +133,12 @@ export default function (pi: ExtensionAPI) {
   );
 }
 
+// ── Helpers ────────────────────────────────────────────────────────
+
 let cachedExpandKeyHint: string | undefined;
 
-// Helper to dynamically resolve the keybinding for expanding tool outputs
 function getExpandKeyHint(): string {
-  if (cachedExpandKeyHint !== undefined) {
-    return cachedExpandKeyHint;
-  }
+  if (cachedExpandKeyHint !== undefined) return cachedExpandKeyHint;
 
   const defaultKey = "ctrl+o";
 
@@ -124,16 +164,15 @@ function getExpandKeyHint(): string {
       cachedExpandKeyHint = rawKey.trim().toLowerCase();
       return cachedExpandKeyHint;
     }
-  } catch (err) {
-    // Fall back to default silently
+  } catch {
+    // Fall back silently
   }
 
   cachedExpandKeyHint = defaultKey;
   return defaultKey;
 }
 
-function parseJsonOrString(str: string) {
-  // Strip a leading HTTP status code (e.g. "400 {...}") before parsing
+function parseJsonOrString(str: string): unknown {
   const jsonStart = str.indexOf("{");
   const jsonPart = jsonStart !== -1 ? str.slice(jsonStart) : str;
 
@@ -156,7 +195,6 @@ function extractSummary(raw: string, parsed: unknown): string {
     }
   }
 
-  // Fall back: grab leading HTTP status code from raw string
   const match = raw.match(/^(\d{3})/);
   return match ? `${match[1]}` : "";
 }
