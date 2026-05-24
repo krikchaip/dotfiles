@@ -1,20 +1,16 @@
 /**
  * Custom LLM Error UI box
  *
- * Strategy (Approach A):
- * - Retryable errors (503, 429, timeout, etc.): let Pi's native UI handle
- *   (red text → retry countdown → red text if exhausted). No interference.
- * - Non-retryable errors (auth, bad model, etc.): suppress native red text,
- *   render custom llm-error-card instead.
+ * Strategy:
+ * - ALL errors: suppress red text in message_end by injecting a harmless
+ *   toolCall content item, making hasToolCalls=true so
+ *   AssistantMessageComponent skips the error rendering block.
+ * - Keep stopReason="error" and errorMessage intact — Pi's retry
+ *   mechanism (stopReason check, _retryAttempt counter) works unchanged.
+ * - agent_end: remove the suppression toolCall from content, restore
+ *   history cleanliness.
  *
- * How suppression works:
- *   message_end: change stopReason from "error" to "stop" so that
- *   AssistantMessageComponent skips the error rendering block entirely.
- *   agent_end: restore stopReason and errorMessage before Pi's retry check
- *   runs (same object ref → propagates to _lastAssistantMessage).
- *
- * No session pollution: we don't inject fake content (like toolCall) into
- * the message, so rebuilds and LLM context stay clean.
+ * Simple: no counters, timers, retry-tracking, or stopReason tricks.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -23,68 +19,22 @@ import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Box, Spacer, Text } from "@earendil-works/pi-tui";
 
-// Pi's internal retry regex from agent-session.js _isRetryableError (line 1942)
-const RETRYABLE_REGEX =
-  /overloaded|provider.?returned.?error|rate.?limit|too many requests|429|500|502|503|504|service.?unavailable|server.?error|internal.?error|network.?error|connection.?error|connection.?refused|connection.?lost|websocket.?closed|websocket.?error|other side closed|fetch failed|upstream.?connect|reset before headers|socket hang up|ended without|stream ended before message_stop|http2 request did not get a response|timed? out|timeout|terminated|retry delay/i;
+const SUPPRESS_ID = "__llm_err_suppress__";
 
 export default function (pi: ExtensionAPI) {
   const expandKeyHint = getExpandKeyHint();
 
-  // Saved original errorMessage so we can restore it in agent_end
-  // for Pi's retry check (_willRetryAfterAgentEnd / _handlePostAgentRun).
-  let savedErrorMessage: string | null = null;
-
   // ── message_end ──────────────────────────────────────────────────
-  // Runs BEFORE TUI renders. We mutate the message to suppress red text
-  // for non-retryable errors.
+  // Inject fake toolCall to suppress red text. Send custom card.
+  // Keep stopReason="error" + original errorMessage intact so Pi's
+  // retry mechanism and _retryAttempt counter work correctly.
   pi.on("message_end", async (event: any) => {
     const message = event.message;
     if (message.role !== "assistant" || message.stopReason !== "error") return;
 
     const errorMsg = message.errorMessage || "";
-
-    // Approach A: retryable errors → let Pi's native UI handle
-    if (RETRYABLE_REGEX.test(errorMsg)) return;
-
-    // Non-retryable: swap stopReason so AssistantMessageComponent skips
-    // the error rendering block. We restore this in agent_end.
-    savedErrorMessage = errorMsg;
-
-    return {
-      message: {
-        ...message,
-        stopReason: "stop",
-        errorMessage: "",
-      },
-    };
-  });
-
-  // ── agent_end ────────────────────────────────────────────────────
-  // Runs AFTER TUI render, BEFORE _willRetryAfterAgentEnd.
-  // Restore original error data, then decide whether to show card.
-  pi.on("agent_end", async (event: any) => {
-    const lastMsg = event.messages[event.messages.length - 1];
-    if (lastMsg?.role !== "assistant") {
-      savedErrorMessage = null;
-      return;
-    }
-
-    // Restore error data if we suppressed it in message_end
-    if (savedErrorMessage !== null && lastMsg.stopReason !== "error") {
-      lastMsg.stopReason = "error";
-      lastMsg.errorMessage = savedErrorMessage;
-    }
-
-    const rawError = lastMsg.errorMessage || "";
-    savedErrorMessage = null;
-
-    // Retryable → let Pi's retry countdown handle
-    if (lastMsg.stopReason !== "error" || RETRYABLE_REGEX.test(rawError))
-      return;
-
-    // Non-retryable → render custom card
-    const parsed = parseJsonOrString(rawError);
-    const summary = extractSummary(rawError, parsed);
+    const parsed = parseJsonOrString(errorMsg);
+    const summary = extractSummary(errorMsg, parsed);
 
     pi.sendMessage({
       customType: "llm-error-card",
@@ -92,6 +42,36 @@ export default function (pi: ExtensionAPI) {
       display: true,
       details: parsed,
     });
+
+    // Inject a fake toolCall so hasToolCalls=true → error block skipped.
+    // toolCall type isn't rendered by AssistantMessageComponent
+    // (only text/thinking types render there). Cleaned up in agent_end.
+    const content = [...(message.content || [])];
+    content.push({
+      type: "toolCall",
+      id: SUPPRESS_ID,
+      name: "__suppress__",
+      arguments: "{}",
+    });
+
+    return {
+      message: {
+        ...message,
+        content,
+      },
+    };
+  });
+
+  // ── agent_end ────────────────────────────────────────────────────
+  // Remove the suppression toolCall from content so rebuilds don't
+  // create ghost ToolExecutionComponents.
+  pi.on("agent_end", async (event: any) => {
+    const lastMsg = event.messages[event.messages.length - 1];
+    if (lastMsg?.role === "assistant" && lastMsg.content) {
+      lastMsg.content = lastMsg.content.filter(
+        (c: any) => c.id !== SUPPRESS_ID,
+      );
+    }
   });
 
   // ── Custom card renderer ─────────────────────────────────────────

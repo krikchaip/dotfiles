@@ -78,7 +78,9 @@
   "theme": "everforest-dark-hard",
   "quietStartup": false,
   "skills": [],
-  "extensions": [],
+  "extensions": [
+    "-extensions/ui-llm-error.ts"
+  ],
   "powerline": {
     "preset": "default"
   },
