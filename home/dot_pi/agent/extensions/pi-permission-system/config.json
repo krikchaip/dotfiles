@@ -20,26 +20,27 @@
     },
 
     "bash": {
-      "agent-browser *--profile*": "deny",
-      "agent-browser *--session*": "deny",
-      "agent-browser *--session-name*": "deny",
+      "*agent-browser *--profile*": "deny",
+      "*agent-browser *--session*": "deny",
+      "*agent-browser *--session-name*": "deny",
 
-      "aws *": "ask",
-      "az *": "ask",
+      "*aws *": "ask",
+      "*az *": "ask",
 
-      "curl *": "ask",
+      "*curl *": "ask",
 
-      "git commit *": "deny",
-      "git merge *": "ask",
-      "git push *": "deny",
-      "git reset *": "ask",
-      "git worktree remove *": "ask",
+      "*git add *": "deny",
+      "*git commit *": "deny",
+      "*git merge *": "ask",
+      "*git push *": "deny",
+      "*git reset *": "ask",
+      "*git worktree remove *": "ask",
 
-      "kubectl *": "ask",
+      "*kubectl *": "ask",
 
-      "rm *": "ask",
-      "rm -rf *": "ask",
-      "sudo *": "ask"
+      "*rm *": "ask",
+      "*rm -rf *": "ask",
+      "*sudo *": "ask"
     },
 
     "external_directory": "allow"
