@@ -9,7 +9,7 @@ export default function (pi: ExtensionAPI) {
   // Injects enough pageUp sequences to guarantee the compositor clamps at maxScrollOffset.
   // Each pageUp scrolls 10 lines; 9999 pageUps covers any realistic chat history.
   pi.registerShortcut("ctrl+g", {
-    description: "Scroll to chat start",
+    description: "Jump chat to start",
     handler: async () => {
       const pageUp = "\x1b[5~";
       process.stdin.emit("data", Buffer.from(pageUp.repeat(9999)));
