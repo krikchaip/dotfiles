@@ -78,9 +78,7 @@
   "theme": "everforest-dark-hard",
   "quietStartup": false,
   "skills": [],
-  "extensions": [
-    "-extensions/ui-llm-error.ts"
-  ],
+  "extensions": [],
   "powerline": {
     "preset": "default"
   },
@@ -103,4 +101,3 @@
   "workingVibeMode": "file",
   "workingVibeModel": "openrouter/openrouter/free"
 }
-
