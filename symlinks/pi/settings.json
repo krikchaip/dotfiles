@@ -33,11 +33,11 @@
     "npm"
   ],
   "packages": [
+    "git:github.com/krikchaip/pi-powerline-footer@personal",
     "npm:@gotgenes/pi-permission-system",
     "npm:@vanillagreen/pi-background-tasks",
     "npm:@vanillagreen/pi-caveman",
     "npm:pi-mcp-adapter",
-    "npm:pi-powerline-footer",
     "npm:pi-skillful",
     "npm:pi-token-burden",
     {
