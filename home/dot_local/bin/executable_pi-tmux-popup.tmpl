@@ -40,10 +40,12 @@ exec pi --no-session \
   --no-context-files \
   --no-skills \
   --model openrouter/openrouter/free \
-  -e ~/.pi/agent/extensions/patch-keybindings.ts \
+  --thinking high \
+  -e git:github.com/krikchaip/pi-cc-tools@personal \
   -e git:github.com/krikchaip/pi-powerline-footer@personal \
   -e npm:@gotgenes/pi-permission-system \
   -e npm:pi-web-access \
+  -e ~/.pi/agent/extensions/patch-keybindings.ts \
   --tools read,grep,find,ls,web_search,code_search,fetch_content,get_search_content \
   --system-prompt "$SYSTEM_PROMPT" \
   --append-system-prompt "$APPEND_SYSTEM_PROMPT" \
