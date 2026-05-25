@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 
 MERGED="$1"
-MERGED_DIR="$(dirname "$MERGED")"
-REPO_ROOT="$(git -C "$MERGED_DIR" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$MERGED_DIR")"
 
 if [[ "$MERGED" = /* ]]; then
   MERGED_ABS="$MERGED"
 else
-  MERGED_ABS="$REPO_ROOT/$MERGED"
+  MERGED_ABS="$(cd "$(dirname "$MERGED")" && pwd)/$(basename "$MERGED")"
 fi
 
 # Escape for Ex command argument
