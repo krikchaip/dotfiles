@@ -10,11 +10,12 @@
 
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { closeSync, openSync, readSync, realpathSync, statSync } from "node:fs";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const PATCHED = "__renameBumpPatched";
-const PATCH_VERSION = 2;
+const PATCH_VERSION = 3;
+const SESSION_INFO_TAIL_BYTES = 256 * 1024;
 const renameTimestamps = new Map<string, number>();
 const sessionInfoTimestampCache = new Map<
   string,
@@ -30,17 +31,33 @@ function latestSessionInfoTimestamp(sessionPath: string) {
     }
 
     let timestamp: number | undefined;
-    const content = readFileSync(sessionPath, "utf8");
-    for (const line of content.split("\n")) {
-      if (!line.includes("session_info")) continue;
-      try {
-        const entry = JSON.parse(line);
-        if (entry?.type !== "session_info") continue;
-        const t = Date.parse(entry.timestamp);
-        if (!Number.isNaN(t)) timestamp = Math.max(timestamp ?? 0, t);
-      } catch {
-        // Ignore malformed JSONL lines, matching core session loader behavior.
+    const fd = openSync(sessionPath, "r");
+    try {
+      const length = Math.min(st.size, SESSION_INFO_TAIL_BYTES);
+      const start = Math.max(0, st.size - length);
+      const buffer = Buffer.alloc(length);
+      const bytesRead = readSync(fd, buffer, 0, length, start);
+      const content = buffer.toString("utf8", 0, bytesRead);
+      const lines = content.split("\n");
+      if (start > 0) lines.shift(); // drop partial first line
+
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+        if (!line.includes("session_info")) continue;
+        try {
+          const entry = JSON.parse(line);
+          if (entry?.type !== "session_info") continue;
+          const t = Date.parse(entry.timestamp);
+          if (!Number.isNaN(t)) {
+            timestamp = t;
+            break;
+          }
+        } catch {
+          // Ignore malformed JSONL lines, matching core session loader behavior.
+        }
       }
+    } finally {
+      closeSync(fd);
     }
 
     sessionInfoTimestampCache.set(sessionPath, {
@@ -63,7 +80,7 @@ export default function (_pi: ExtensionAPI) {
 
   const { SessionManager } = req(join(distPath, "core", "session-manager.js"));
   const patchState = (SessionManager.prototype as any)[PATCHED];
-  if (patchState?.version !== PATCH_VERSION) {
+  if (!patchState) {
     (SessionManager.prototype as any)[PATCHED] = { version: PATCH_VERSION };
 
     // Track rename — intercept appendSessionInfo to record timestamp
@@ -83,7 +100,7 @@ export default function (_pi: ExtensionAPI) {
         .map((s) => {
           const t = Math.max(
             renameTimestamps.get(s.path) ?? 0,
-            latestSessionInfoTimestamp(s.path) ?? 0,
+            s.name ? (latestSessionInfoTimestamp(s.path) ?? 0) : 0,
           );
           return t && t > s.modified.getTime()
             ? { ...s, modified: new Date(t) }
@@ -104,6 +121,8 @@ export default function (_pi: ExtensionAPI) {
     SessionManager.listAll = async function (onProgress?: any) {
       return bumpModified(await origListAll(onProgress));
     };
+  } else if (patchState.version !== PATCH_VERSION) {
+    patchState.version = PATCH_VERSION;
   }
 
   // ── Patch SessionSelectorComponent (interactive mode) ──
@@ -121,7 +140,7 @@ export default function (_pi: ExtensionAPI) {
     );
 
     const selectorState = (SessionSelectorComponent.prototype as any)[PATCHED];
-    if (selectorState?.version !== PATCH_VERSION) {
+    if (!selectorState) {
       (SessionSelectorComponent.prototype as any)[PATCHED] = {
         version: PATCH_VERSION,
       };
@@ -143,6 +162,8 @@ export default function (_pi: ExtensionAPI) {
           }
         }
       };
+    } else if (selectorState.version !== PATCH_VERSION) {
+      selectorState.version = PATCH_VERSION;
     }
   } catch {
     // Not interactive mode (print/rpc) — skip

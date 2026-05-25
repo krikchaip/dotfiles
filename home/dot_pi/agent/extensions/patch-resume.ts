@@ -37,97 +37,121 @@ export default function (_pi: ExtensionAPI) {
   const proto = InteractiveMode.prototype as PatchedInteractiveMode;
 
   // Prevent multiple patch applications across session reloads
-  if (proto.__patched) {
-    return;
-  }
+  if (!proto.__patched) {
+    const originalShow = proto.showSessionSelector;
 
-  const originalShow = proto.showSessionSelector;
+    proto.showSessionSelector = function (this: PatchedInteractiveMode) {
+      const originalShowSelector = this.showSelector;
 
-  proto.showSessionSelector = function (this: PatchedInteractiveMode) {
-    const originalShowSelector = this.showSelector;
+      // Intercept `showSelector` to wrap the component factory injected by `/resume`
+      this.showSelector = function (
+        this: PatchedInteractiveMode,
+        factory: (done: () => void) => any,
+      ) {
+        return originalShowSelector.call(this, (done: any) => {
+          const result = factory(done);
+          const selector = result.component;
 
-    // Intercept `showSelector` to wrap the component factory injected by `/resume`
-    this.showSelector = function (
-      this: PatchedInteractiveMode,
-      factory: (done: () => void) => any,
-    ) {
-      return originalShowSelector.call(this, (done: any) => {
-        const result = factory(done);
-        const selector = result.component;
+          // Verify it is the SessionSelectorComponent containing a SessionList
+          if (selector?.sessionList) {
+            const originalSetSessions = selector.sessionList.setSessions;
+            let hasInitialSelected = false;
 
-        // Verify it is the SessionSelectorComponent containing a SessionList
-        if (selector?.sessionList) {
-          const originalSetSessions = selector.sessionList.setSessions;
-          let hasInitialSelected = false;
+            // Override setSessions to adjust the selected index after items load
+            selector.sessionList.setSessions = function (
+              this: any,
+              sessions: any[],
+              showCwd: boolean,
+            ) {
+              originalSetSessions.call(this, sessions, showCwd);
 
-          // Override setSessions to adjust the selected index after items load
-          selector.sessionList.setSessions = function (
-            this: any,
-            sessions: any[],
-            showCwd: boolean,
-          ) {
-            originalSetSessions.call(this, sessions, showCwd);
+              // Only auto-highlight on first load, so renaming/deleting doesn't reset focus
+              if (!this.searchInput.getValue() && !hasInitialSelected) {
+                const idx = this.filteredSessions.findIndex((s: any) =>
+                  this.isCurrentSessionPath(s.session.path),
+                );
 
-            // Only auto-highlight on first load, so renaming/deleting doesn't reset focus
-            if (!this.searchInput.getValue() && !hasInitialSelected) {
-              const idx = this.filteredSessions.findIndex((s: any) =>
-                this.isCurrentSessionPath(s.session.path),
-              );
-
-              if (idx !== -1) {
-                this.selectedIndex = idx;
-                hasInitialSelected = true;
+                if (idx !== -1) {
+                  this.selectedIndex = idx;
+                  hasInitialSelected = true;
+                }
               }
-            }
-          };
-
-          const originalOnDeleteSession = selector.sessionList.onDeleteSession;
-          const interactiveMode = this as any;
-
-          selector.sessionList.startDeleteConfirmationForSelectedSession =
-            function (this: any) {
-              const selected = this.filteredSessions[this.selectedIndex];
-              if (!selected) return;
-
-              // Bypass the active session check
-              this.setConfirmingDeletePath(selected.session.path);
             };
 
-          selector.sessionList.onDeleteSession = async function (
-            this: any,
-            sessionPath: string,
-          ) {
-            const isCurrent = this.isCurrentSessionPath(sessionPath);
+            const originalOnDeleteSession =
+              selector.sessionList.onDeleteSession;
+            const interactiveMode = this as any;
 
-            if (isCurrent) {
-              // Create a new session (clears screen like /new)
-              await interactiveMode.handleClearCommand();
+            selector.sessionList.startDeleteConfirmationForSelectedSession =
+              function (this: any) {
+                const selected = this.filteredSessions[this.selectedIndex];
+                if (!selected) return;
 
-              // Then remove the previously active session
-              await originalOnDeleteSession.call(this, sessionPath);
+                // Bypass the active session check
+                this.setConfirmingDeletePath(selected.session.path);
+              };
 
-              // Close the session selector
-              done();
-            } else {
-              await originalOnDeleteSession.call(this, sessionPath);
-            }
-          };
+            selector.sessionList.onDeleteSession = async function (
+              this: any,
+              sessionPath: string,
+            ) {
+              const isCurrent = this.isCurrentSessionPath(sessionPath);
+
+              if (isCurrent) {
+                // Create a new session (clears screen like /new)
+                await interactiveMode.handleClearCommand();
+
+                // Then remove the previously active session
+                await originalOnDeleteSession.call(this, sessionPath);
+
+                // Close the session selector
+                done();
+              } else {
+                await originalOnDeleteSession.call(this, sessionPath);
+              }
+            };
+          }
+
+          return result;
+        });
+      };
+
+      try {
+        return originalShow.call(this);
+      } finally {
+        // Clean up the instance-level shadow method so the prototype method is restored
+        if (Object.prototype.hasOwnProperty.call(this, "showSelector")) {
+          delete (this as any).showSelector;
         }
+      }
+    };
 
-        return result;
+    // Mark prototype as patched
+    proto.__patched = true;
+  }
+
+  const sessionSelectorPath = join(
+    distPath,
+    "modes",
+    "interactive",
+    "components",
+    "session-selector.js",
+  );
+  const { SessionSelectorComponent } = req(sessionSelectorPath);
+  const selectorProto = SessionSelectorComponent.prototype as any;
+
+  if (!selectorProto.__resumeSnapPatched) {
+    const originalLoadCurrentSessions = selectorProto.loadCurrentSessions;
+
+    selectorProto.loadCurrentSessions = function (this: any) {
+      this.currentLoading = true;
+      this.header?.setLoading(true);
+      this.requestRender?.();
+      setImmediate(() => {
+        void originalLoadCurrentSessions.call(this);
       });
     };
 
-    try {
-      return originalShow.call(this);
-    } finally {
-      // Clean up the instance-level shadow method so the prototype method is restored
-      if (Object.prototype.hasOwnProperty.call(this, "showSelector")) {
-        delete (this as any).showSelector;
-      }
-    }
-  };
-
-  // Mark prototype as patched
-  proto.__patched = true;
+    selectorProto.__resumeSnapPatched = true;
+  }
 }
