@@ -40,6 +40,7 @@
     "npm:pi-mcp-adapter",
     "npm:pi-skillful",
     "npm:pi-token-burden",
+    "npm:pi-treex",
     {
       "source": "npm:@victor-software-house/pi-curated-themes",
       "skills": [
