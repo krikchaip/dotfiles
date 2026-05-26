@@ -52,6 +52,17 @@ const sessionInfoTimestampCache = new Map<
   { mtimeMs: number; size: number; timestamp: number | undefined }
 >();
 
+// SessionInfo cache: avoids re-reading/parsing unchanged JSONL files on each /resume.
+const sessionInfoCache = new Map<
+  string,
+  { mtimeMs: number; size: number; info: any }
+>();
+
+// Module-level vars set during showSessionSelector so the sync cache path
+// in loadCurrentSessions can locate the session directory without async.
+let _resumeCwd: string | undefined;
+let _resumeSessionDir: string | undefined;
+
 interface PatchedInteractiveMode {
   showSessionSelector(): void;
   showSelector(factory: (done: () => void) => any): any;
@@ -138,17 +149,90 @@ function applyRenameBumpPatch(req: NodeRequire, distPath: string) {
         .sort((a, b) => b.modified.getTime() - a.modified.getTime());
 
     const origList = SessionManager.list;
+    const { getDefaultSessionDir } = req(
+      join(distPath, "core", "session-manager.js"),
+    );
+    const { readdir } = req("node:fs/promises");
+
     SessionManager.list = async function (
       cwd: string,
       sessionDir?: string,
       onProgress?: any,
     ) {
-      return bumpModified(await origList(cwd, sessionDir, onProgress));
+      // Fast path: check if all files in dir are cached and unchanged
+      const dir = sessionDir ? sessionDir : getDefaultSessionDir(cwd);
+
+      try {
+        const dirEntries = await readdir(dir);
+        const files = dirEntries
+          .filter((f: string) => f.endsWith(".jsonl"))
+          .map((f: string) => join(dir, f));
+
+        let allCached = true;
+        const cachedSessions: any[] = [];
+
+        for (const filePath of files) {
+          try {
+            const st = statSync(filePath);
+            const cached = sessionInfoCache.get(filePath);
+            if (
+              cached &&
+              cached.mtimeMs === st.mtimeMs &&
+              cached.size === st.size
+            ) {
+              cachedSessions.push(cached.info);
+            } else {
+              allCached = false;
+              break;
+            }
+          } catch {
+            allCached = false;
+            break;
+          }
+        }
+
+        if (allCached && files.length > 0) {
+          onProgress?.(files.length, files.length);
+          return bumpModified(cachedSessions);
+        }
+      } catch {
+        // fall through to full load
+      }
+
+      const sessions: any[] = await origList(cwd, sessionDir, onProgress);
+      for (const s of sessions) {
+        if (!s?.path) continue;
+        try {
+          const st = statSync(s.path);
+          sessionInfoCache.set(s.path, {
+            mtimeMs: st.mtimeMs,
+            size: st.size,
+            info: s,
+          });
+        } catch {
+          // ignore
+        }
+      }
+      return bumpModified(sessions);
     };
 
     const origListAll = SessionManager.listAll;
     SessionManager.listAll = async function (onProgress?: any) {
-      return bumpModified(await origListAll(onProgress));
+      const sessions: any[] = await origListAll(onProgress);
+      for (const s of sessions) {
+        if (!s?.path) continue;
+        try {
+          const st = statSync(s.path);
+          sessionInfoCache.set(s.path, {
+            mtimeMs: st.mtimeMs,
+            size: st.size,
+            info: s,
+          });
+        } catch {
+          // ignore
+        }
+      }
+      return bumpModified(sessions);
     };
   } else if (patchState.version !== RENAME_PATCH_VERSION) {
     patchState.version = RENAME_PATCH_VERSION;
@@ -750,6 +834,11 @@ export default function (_pi: ExtensionAPI) {
       this.__resumePreviewMarkdownTheme = getMarkdownTheme();
       this.__resumePreviewLoadEntriesFromFile = loadEntriesFromFile;
       this.__resumePreviewComponents = resumePreviewComponents;
+
+      // Set module-level vars so sync cache path in loadCurrentSessions works.
+      _resumeCwd = this.sessionManager?.getCwd?.();
+      _resumeSessionDir = this.sessionManager?.getSessionDir?.();
+
       const originalShowSelector = this.showSelector;
 
       this.showSelector = function (
@@ -776,6 +865,8 @@ export default function (_pi: ExtensionAPI) {
       try {
         return originalShow.call(this);
       } finally {
+        _resumeCwd = undefined;
+        _resumeSessionDir = undefined;
         if (Object.prototype.hasOwnProperty.call(this, "showSelector")) {
           delete (this as any).showSelector;
         }
@@ -792,8 +883,91 @@ export default function (_pi: ExtensionAPI) {
 
   if (!selectorProto[LOAD_PATCHED]) {
     const originalLoadCurrentSessions = selectorProto.loadCurrentSessions;
+    const { getDefaultSessionDir } = req(
+      join(distPath, "core", "session-manager.js"),
+    );
+    const { readdirSync } = req("node:fs") as typeof import("node:fs");
 
     selectorProto.loadCurrentSessions = function (this: any) {
+      // Fast path: if we have cached SessionInfo for files in this dir,
+      // show them immediately (even if slightly stale for active session).
+      // Then kick off a background refresh to correct any stale entries.
+      if (_resumeCwd) {
+        try {
+          const dir = _resumeSessionDir ?? getDefaultSessionDir(_resumeCwd);
+          const dirEntries: string[] = readdirSync(dir);
+          const files = dirEntries
+            .filter((f: string) => f.endsWith(".jsonl"))
+            .map((f: string) => join(dir, f));
+
+          if (files.length > 0) {
+            const cachedSessions: any[] = [];
+            let hitCount = 0;
+
+            for (const filePath of files) {
+              const cached = sessionInfoCache.get(filePath);
+              if (cached?.info) {
+                cachedSessions.push(cached.info);
+                hitCount++;
+              }
+            }
+
+            // Show cached results if we have most files cached (>50%)
+            if (hitCount > files.length / 2) {
+              cachedSessions.sort(
+                (a, b) => b.modified.getTime() - a.modified.getTime(),
+              );
+              this.currentSessions = cachedSessions;
+              this.currentLoading = false;
+              this.header?.setLoading(false);
+              this.sessionList?.setSessions(cachedSessions, false);
+              this.requestRender?.();
+
+              // Background refresh to update stale entries silently.
+              // Suppress progress/loading indicators by patching header temporarily.
+              setImmediate(() => {
+                const header = this.header;
+                const origSetLoading = header?.setLoading;
+                const origSetProgress = header?.setProgress;
+                if (header) {
+                  header.setLoading = () => {};
+                  header.setProgress = () => {};
+                }
+                const origRequestRender = this.requestRender;
+                let loadDone = false;
+                this.requestRender = () => {
+                  if (loadDone) origRequestRender?.();
+                };
+
+                const origLoadScope = this.loadScope;
+                this.loadScope = async function (
+                  this: any,
+                  scope: string,
+                  reason: string,
+                ) {
+                  await origLoadScope.call(this, scope, reason);
+                  // Restore
+                  loadDone = true;
+                  if (header) {
+                    header.setLoading = origSetLoading;
+                    header.setProgress = origSetProgress;
+                    header.setLoading(false);
+                  }
+                  this.requestRender = origRequestRender;
+                  delete this.loadScope;
+                  this.requestRender?.();
+                };
+
+                void originalLoadCurrentSessions.call(this);
+              });
+              return;
+            }
+          }
+        } catch {
+          // fall through to normal async load
+        }
+      }
+
       this.currentLoading = true;
       this.header?.setLoading(true);
       this.requestRender?.();
