@@ -173,7 +173,9 @@ function appendRightHint(
   const hintWidth = visibleWidth(hint);
   if (width <= hintWidth) return fitLine(hint, width);
 
-  return `${truncateToWidth(line, Math.max(1, width - hintWidth), "")}${hint}`;
+  const left = truncateToWidth(line, Math.max(1, width - hintWidth), "");
+  const pad = Math.max(0, width - visibleWidth(left) - hintWidth);
+  return `${left}${" ".repeat(pad)}${hint}`;
 }
 
 function compactSelectorLines(lines: string[]) {
@@ -232,6 +234,17 @@ function normalizeAssistantMessage(message: any) {
 
 function compactLines(lines: string[]) {
   return lines.filter((line) => visibleWidth(line.trim()) > 0);
+}
+
+function separateBlocks(blocks: string[][]) {
+  const lines: string[] = [];
+  for (const block of blocks) {
+    const compact = compactLines(block);
+    if (compact.length === 0) continue;
+    if (lines.length > 0) lines.push("");
+    lines.push(...compact);
+  }
+  return lines;
 }
 
 class SessionEntryRenderer {
@@ -360,8 +373,9 @@ class SessionEntryRenderer {
       )
       .slice(-EXPANDED_PREVIEW_ENTRIES);
 
-    const lines = entries.flatMap((entry) => this.renderEntry(entry, width));
-    const result = compactLines(lines);
+    const result = separateBlocks(
+      entries.map((entry) => this.renderEntry(entry, width)),
+    );
     const finalLines = result.length > 0 ? result : ["(no preview)"];
     this.lineCache.set(key, { width, lines: finalLines });
     return finalLines;
