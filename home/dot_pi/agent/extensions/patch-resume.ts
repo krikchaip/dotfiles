@@ -28,6 +28,7 @@ const LOAD_PATCHED = "__resumeSnapPatched";
 const SESSION_INFO_TAIL_BYTES = 256 * 1024;
 const COLLAPSED_PREVIEW_LINES = 3;
 const PREVIEW_TAIL_CHARS = 60_000;
+const EXPANDED_PREVIEW_ENTRIES = 20;
 const EXPAND_KEY = "ctrl+shift+r";
 const EXPAND_KEY_HINT = "Ctrl+Shift+R";
 
@@ -158,14 +159,21 @@ function fitLine(line: string, width: number) {
   return truncateToWidth(line, Math.max(0, width), "…");
 }
 
-function joinRight(left: string, right: string, width: number) {
-  const rightWidth = visibleWidth(right);
-  if (rightWidth >= width) return fitLine(right, width);
+function borderLine(theme: any, width: number) {
+  return theme.fg("accent", "─".repeat(Math.max(0, width)));
+}
 
-  const leftWidth = Math.max(0, width - rightWidth - 1);
-  const fittedLeft = fitLine(left, leftWidth);
-  const spacing = Math.max(1, width - visibleWidth(fittedLeft) - rightWidth);
-  return `${fittedLeft}${" ".repeat(spacing)}${right}`;
+function appendRightHint(
+  line: string,
+  width: number,
+  theme: any,
+  hintText: string,
+) {
+  const hint = theme.fg("dim", hintText);
+  const hintWidth = visibleWidth(hint);
+  if (width <= hintWidth) return fitLine(hint, width);
+
+  return `${truncateToWidth(line, Math.max(1, width - hintWidth), "")}${hint}`;
 }
 
 function compactSelectorLines(lines: string[]) {
@@ -208,15 +216,179 @@ function previewText(session: any) {
   return `… ${raw.slice(-PREVIEW_TAIL_CHARS)}`;
 }
 
+function textContent(content: any) {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter((block) => block?.type === "text")
+    .map((block) => block.text ?? "")
+    .join("");
+}
+
+function normalizeAssistantMessage(message: any) {
+  if (typeof message?.content !== "string") return message;
+  return { ...message, content: [{ type: "text", text: message.content }] };
+}
+
+function compactLines(lines: string[]) {
+  return lines.filter((line) => visibleWidth(line.trim()) > 0);
+}
+
+class SessionEntryRenderer {
+  private entryCache = new Map<string, { mtimeMs: number; entries: any[] }>();
+  private lineCache = new Map<string, { width: number; lines: string[] }>();
+
+  constructor(
+    private readonly interactiveMode: any,
+    private readonly loadEntriesFromFile: (path: string) => any[],
+    private readonly components: any,
+  ) {}
+
+  private markdownTheme() {
+    return (
+      this.interactiveMode.getMarkdownThemeWithSettings?.() ??
+      this.interactiveMode.__resumePreviewMarkdownTheme
+    );
+  }
+
+  private entries(session: any) {
+    const path = session?.path;
+    if (!path) return [];
+
+    try {
+      const mtimeMs = statSync(path).mtimeMs;
+      const cached = this.entryCache.get(path);
+      if (cached?.mtimeMs === mtimeMs) return cached.entries;
+
+      const entries = this.loadEntriesFromFile(path);
+      this.entryCache.set(path, { mtimeMs, entries });
+      return entries;
+    } catch {
+      return [];
+    }
+  }
+
+  private renderEntry(entry: any, width: number) {
+    const markdownTheme = this.markdownTheme();
+
+    if (entry.type === "message") {
+      const message = entry.message;
+      if (message?.role === "user") {
+        return new this.components.UserMessageComponent(
+          textContent(message.content),
+          markdownTheme,
+        ).render(width);
+      }
+      if (message?.role === "assistant") {
+        return new this.components.AssistantMessageComponent(
+          normalizeAssistantMessage(message),
+          this.interactiveMode.hideThinkingBlock,
+          markdownTheme,
+          this.interactiveMode.hiddenThinkingLabel,
+        ).render(width);
+      }
+      if (message?.role === "bashExecution") {
+        const component = new this.components.BashExecutionComponent(
+          message.command ?? "",
+          this.interactiveMode.ui,
+          message.excludeFromContext,
+        );
+        if (message.output) component.appendOutput(message.output);
+        component.setExpanded(true);
+        component.setComplete(
+          message.exitCode,
+          message.cancelled,
+          message.truncated ? { truncated: true } : undefined,
+          message.fullOutputPath,
+        );
+        return component.render(width);
+      }
+    }
+
+    if (entry.type === "compaction") {
+      const component = new this.components.CompactionSummaryMessageComponent(
+        entry,
+        markdownTheme,
+      );
+      component.setExpanded(true);
+      return component.render(width);
+    }
+
+    if (entry.type === "branch_summary") {
+      const component = new this.components.BranchSummaryMessageComponent(
+        entry,
+        markdownTheme,
+      );
+      component.setExpanded(true);
+      return component.render(width);
+    }
+
+    if (entry.type === "custom_message" && entry.display) {
+      const renderer =
+        this.interactiveMode.session?.extensionRunner?.getMessageRenderer?.(
+          entry.customType,
+        );
+      const component = new this.components.CustomMessageComponent(
+        entry,
+        renderer,
+        markdownTheme,
+      );
+      component.setExpanded(true);
+      return component.render(width);
+    }
+
+    return [];
+  }
+
+  render(session: any, width: number) {
+    const key = [
+      session?.path ?? "",
+      session?.modified?.getTime?.() ?? "",
+      session?.messageCount ?? "",
+      session?.name ?? "",
+    ].join("\0");
+    const cached = this.lineCache.get(key);
+    if (cached?.width === width) return cached.lines;
+
+    const entries = this.entries(session)
+      .filter(
+        (entry) =>
+          entry?.type === "message" ||
+          entry?.type === "compaction" ||
+          entry?.type === "branch_summary" ||
+          entry?.type === "custom_message",
+      )
+      .slice(-EXPANDED_PREVIEW_ENTRIES);
+
+    const lines = entries.flatMap((entry) => this.renderEntry(entry, width));
+    const result = compactLines(lines);
+    const finalLines = result.length > 0 ? result : ["(no preview)"];
+    this.lineCache.set(key, { width, lines: finalLines });
+    return finalLines;
+  }
+}
+
 class ResumePreviewPane {
   private expanded = false;
   private scrollFromBottom = 0;
   private lastPath: string | undefined;
-  private lineCache = new Map<string, { width: number; lines: string[] }>();
+  private lineCache = new Map<
+    string,
+    {
+      plainWidth?: number;
+      plainLines?: string[];
+      expandedWidth?: number;
+      expandedLines?: string[];
+    }
+  >();
 
   constructor(
     private readonly getTerminalRows: () => number,
     private readonly theme: any,
+    private readonly renderExpandedLines: (
+      session: any,
+      width: number,
+    ) => string[],
   ) {}
 
   handleInput(data: string) {
@@ -261,18 +433,48 @@ class ResumePreviewPane {
     return false;
   }
 
+  private cacheKey(session: any) {
+    return [
+      session?.path ?? "",
+      session?.modified?.getTime?.() ?? "",
+      session?.messageCount ?? "",
+      session?.name ?? "",
+    ].join("\0");
+  }
+
   private bodyLines(session: any, width: number) {
-    const path = session?.path ?? "";
-    const cached = this.lineCache.get(path);
-    if (cached?.width === width) return cached.lines;
+    const key = this.cacheKey(session);
+    const cached = this.lineCache.get(key) ?? {};
+
+    if (this.expanded) {
+      if (cached.expandedWidth === width && cached.expandedLines) {
+        return cached.expandedLines;
+      }
+
+      const result = this.renderExpandedLines(session, Math.max(1, width));
+      this.lineCache.set(key, {
+        ...cached,
+        expandedWidth: width,
+        expandedLines: result,
+      });
+      return result;
+    }
+
+    if (cached.plainWidth === width && cached.plainLines) {
+      return cached.plainLines;
+    }
 
     const lines = wrapTextWithAnsi(previewText(session), Math.max(1, width));
     const result = lines.length > 0 ? lines : ["(no preview)"];
-    this.lineCache.set(path, { width, lines: result });
+    this.lineCache.set(key, {
+      ...cached,
+      plainWidth: width,
+      plainLines: result,
+    });
     return result;
   }
 
-  private metadata(session: any, width: number, bodyLines: string[]) {
+  private metadata(session: any, width: number) {
     const parts = [
       this.theme.bold(this.theme.fg("accent", sessionTitle(session))),
       this.theme.fg("muted", `${session?.messageCount ?? 0} msgs`),
@@ -282,16 +484,7 @@ class ResumePreviewPane {
     const loc = shortenPath(session?.cwd || session?.path);
     if (loc) parts.push(this.theme.fg("muted", loc));
 
-    const left = parts.join(this.theme.fg("muted", " · "));
-    const hint = this.expanded
-      ? `${EXPAND_KEY_HINT} collapse`
-      : bodyLines.length > COLLAPSED_PREVIEW_LINES
-        ? `${EXPAND_KEY_HINT} full`
-        : "";
-
-    return hint
-      ? joinRight(left, this.theme.fg("dim", `… ${hint}`), width)
-      : fitLine(left, width);
+    return fitLine(parts.join(this.theme.fg("muted", " · ")), width);
   }
 
   render(session: any, width: number, selectorHeight: number) {
@@ -318,12 +511,20 @@ class ResumePreviewPane {
     const visible = allBodyLines.slice(start, end);
     while (visible.length < bodyHeight) visible.push("");
 
-    const border = this.theme.fg("accent", "─".repeat(Math.max(0, width)));
     if (!this.expanded) {
+      if (allBodyLines.length > bodyHeight) {
+        visible[visible.length - 1] = appendRightHint(
+          visible[visible.length - 1] ?? "",
+          width,
+          this.theme,
+          `… ${EXPAND_KEY_HINT} full`,
+        );
+      }
+
       return [
-        this.metadata(session, width, allBodyLines),
+        this.metadata(session, width),
         ...visible.map((line) => fitLine(line, width)),
-        fitLine(border, width),
+        fitLine(borderLine(this.theme, width), width),
       ];
     }
 
@@ -336,11 +537,11 @@ class ResumePreviewPane {
     ].join(" · ");
 
     return [
-      this.metadata(session, width, allBodyLines),
-      fitLine(border, width),
+      this.metadata(session, width),
+      fitLine(borderLine(this.theme, width), width),
       ...visible.map((line) => fitLine(line, width)),
       fitLine(this.theme.fg("dim", help), width),
-      fitLine(border, width),
+      fitLine(borderLine(this.theme, width), width),
     ];
   }
 }
@@ -352,9 +553,16 @@ class ResumeSelectorWithPreview {
     private readonly selector: any,
     private readonly interactiveMode: any,
   ) {
+    const renderer = new SessionEntryRenderer(
+      this.interactiveMode,
+      this.interactiveMode.__resumePreviewLoadEntriesFromFile,
+      this.interactiveMode.__resumePreviewComponents,
+    );
+
     this.preview = new ResumePreviewPane(
       () => this.interactiveMode.ui?.terminal?.rows ?? 40,
       this.interactiveMode.__resumePreviewTheme,
+      (session, width) => renderer.render(session, width),
     );
   }
 
@@ -474,9 +682,56 @@ export default function (_pi: ExtensionAPI) {
 
   applyRenameBumpPatch(req, distPath);
 
-  const { theme } = req(
+  const { loadEntriesFromFile } = req(
+    join(distPath, "core", "session-manager.js"),
+  );
+  const { getMarkdownTheme, theme } = req(
     join(distPath, "modes", "interactive", "theme", "theme.js"),
   );
+  const { AssistantMessageComponent } = req(
+    join(
+      distPath,
+      "modes",
+      "interactive",
+      "components",
+      "assistant-message.js",
+    ),
+  );
+  const { BashExecutionComponent } = req(
+    join(distPath, "modes", "interactive", "components", "bash-execution.js"),
+  );
+  const { BranchSummaryMessageComponent } = req(
+    join(
+      distPath,
+      "modes",
+      "interactive",
+      "components",
+      "branch-summary-message.js",
+    ),
+  );
+  const { CompactionSummaryMessageComponent } = req(
+    join(
+      distPath,
+      "modes",
+      "interactive",
+      "components",
+      "compaction-summary-message.js",
+    ),
+  );
+  const { CustomMessageComponent } = req(
+    join(distPath, "modes", "interactive", "components", "custom-message.js"),
+  );
+  const { UserMessageComponent } = req(
+    join(distPath, "modes", "interactive", "components", "user-message.js"),
+  );
+  const resumePreviewComponents = {
+    AssistantMessageComponent,
+    BashExecutionComponent,
+    BranchSummaryMessageComponent,
+    CompactionSummaryMessageComponent,
+    CustomMessageComponent,
+    UserMessageComponent,
+  };
   const { InteractiveMode } = req(
     join(distPath, "modes", "interactive", "interactive-mode.js"),
   );
@@ -488,6 +743,9 @@ export default function (_pi: ExtensionAPI) {
 
     proto.showSessionSelector = function (this: PatchedInteractiveMode) {
       this.__resumePreviewTheme = theme;
+      this.__resumePreviewMarkdownTheme = getMarkdownTheme();
+      this.__resumePreviewLoadEntriesFromFile = loadEntriesFromFile;
+      this.__resumePreviewComponents = resumePreviewComponents;
       const originalShowSelector = this.showSelector;
 
       this.showSelector = function (
