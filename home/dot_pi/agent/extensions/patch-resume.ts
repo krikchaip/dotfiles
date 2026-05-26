@@ -951,6 +951,11 @@ export default function (_pi: ExtensionAPI) {
                 const origSetSessions = this.sessionList?.setSessions;
                 if (this.sessionList) {
                   const sessionList = this.sessionList;
+                  const hadCurrentSession =
+                    sessionList.currentSessionCanonicalPath &&
+                    sessionList.filteredSessions?.some((node: any) =>
+                      sessionList.isCurrentSessionPath(node.session.path),
+                    );
                   sessionList.setSessions = function (
                     sessions: any,
                     showCwd: any,
@@ -959,8 +964,10 @@ export default function (_pi: ExtensionAPI) {
                       sessionList.filteredSessions?.[sessionList.selectedIndex]
                         ?.session?.path;
                     origSetSessions.call(sessionList, sessions, showCwd);
-                    // Restore cursor to same session
-                    if (prevPath && sessionList.filteredSessions) {
+                    if (!hadCurrentSession) {
+                      // New session appeared — set cursor to top
+                      sessionList.selectedIndex = 0;
+                    } else if (prevPath && sessionList.filteredSessions) {
                       const newIdx = sessionList.filteredSessions.findIndex(
                         (node: any) => node.session.path === prevPath,
                       );
