@@ -32,7 +32,8 @@ import { bumpModifiedByRenames, trackRename } from "./rename-bump.ts";
 export type ResumexPickerDismissReason = "cancel" | "exit";
 export type ResumexPickerResult =
   | { kind: "selected"; sessionPath: string }
-  | { kind: "dismissed"; reason: ResumexPickerDismissReason };
+  | { kind: "dismissed"; reason: ResumexPickerDismissReason }
+  | { kind: "newAfterDelete" };
 
 type ResumexPickerContext = Pick<
   ExtensionContext,
@@ -318,6 +319,7 @@ class ResumexSelector implements Focusable {
 export async function openResumexPicker(
   pi: ExtensionAPI,
   ctx: ResumexPickerContext,
+  newSession?: () => Promise<{ cancelled: boolean }>,
 ): Promise<ResumexPickerResult> {
   if (!ctx.hasUI) {
     return { kind: "dismissed", reason: "cancel" };
@@ -456,10 +458,14 @@ export async function openResumexPicker(
     const origOnDelete = sl.onDeleteSession;
     sl.onDeleteSession = async function (this: any, sessionPath: string) {
       const isCurrent = this.isCurrentSessionPath(sessionPath);
-      if (isCurrent) {
-        process.stdin.emit("data", Buffer.from("\x03/new\r"));
-        await origOnDelete.call(this, sessionPath);
-        finish({ kind: "dismissed", reason: "cancel" });
+
+      if (isCurrent && newSession) {
+        // Delete the session file directly
+        const fs = await import("fs");
+        try { fs.unlinkSync(sessionPath); } catch {}
+
+        // Close the picker, then newSession will be called after
+        finish({ kind: "newAfterDelete" as any });
       } else {
         await origOnDelete.call(this, sessionPath);
       }

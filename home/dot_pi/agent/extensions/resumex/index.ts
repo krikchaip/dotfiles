@@ -21,13 +21,15 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      const result = await openResumexPicker(pi, ctx);
+      const result = await openResumexPicker(pi, ctx, ctx.newSession);
 
       if (result.kind === "selected") {
         const switchResult = await ctx.switchSession(result.sessionPath);
         if (switchResult.cancelled) {
           ctx.ui.notify("Session switch cancelled", "info");
         }
+      } else if (result.kind === "newAfterDelete") {
+        await ctx.newSession();
       } else if (result.kind === "dismissed" && result.reason === "exit") {
         ctx.shutdown();
       }
