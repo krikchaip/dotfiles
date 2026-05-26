@@ -17,7 +17,6 @@ import {
   matchesKey,
   truncateToWidth,
   visibleWidth,
-  wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
 
 const RESUME_PATCHED = "__resumePreviewPatched";
@@ -27,7 +26,6 @@ const RENAME_PATCH_VERSION = 4;
 const LOAD_PATCHED = "__resumeSnapPatched";
 const SESSION_INFO_TAIL_BYTES = 256 * 1024;
 const COLLAPSED_PREVIEW_LINES = 3;
-const PREVIEW_TAIL_CHARS = 60_000;
 const EXPANDED_PREVIEW_ENTRIES = 20;
 const EXPAND_KEY = "ctrl+shift+r";
 const EXPAND_KEY_HINT = "Ctrl+Shift+R";
@@ -208,16 +206,6 @@ function sessionTitle(session: any) {
   return normalizedText(session?.name || session?.firstMessage) || "Session";
 }
 
-function previewText(session: any) {
-  const raw = String(session?.allMessagesText || session?.firstMessage || "")
-    .replace(/\r/g, "")
-    .replace(/\t/g, "    ")
-    .trim();
-  if (!raw) return "(no preview)";
-  if (raw.length <= PREVIEW_TAIL_CHARS) return raw;
-  return `… ${raw.slice(-PREVIEW_TAIL_CHARS)}`;
-}
-
 function textContent(content: any) {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
@@ -232,15 +220,19 @@ function normalizeAssistantMessage(message: any) {
   return { ...message, content: [{ type: "text", text: message.content }] };
 }
 
+function isBlankLine(line: string) {
+  return visibleWidth(line) === 0;
+}
+
 function separateBlocks(blocks: string[][]) {
   const lines: string[] = [];
   for (const block of blocks) {
     if (block.length === 0) continue;
 
     let start = 0;
-    while (start < block.length && block[start] === "") start++;
+    while (start < block.length && isBlankLine(block[start])) start++;
     let end = block.length;
-    while (end > start && block[end - 1] === "") end--;
+    while (end > start && isBlankLine(block[end - 1])) end--;
     const trimmed = block.slice(start, end);
     if (trimmed.length === 0) continue;
 
@@ -392,10 +384,8 @@ class ResumePreviewPane {
   private lineCache = new Map<
     string,
     {
-      plainWidth?: number;
-      plainLines?: string[];
-      expandedWidth?: number;
-      expandedLines?: string[];
+      width?: number;
+      lines?: string[];
     }
   >();
 
@@ -463,31 +453,12 @@ class ResumePreviewPane {
     const key = this.cacheKey(session);
     const cached = this.lineCache.get(key) ?? {};
 
-    if (this.expanded) {
-      if (cached.expandedWidth === width && cached.expandedLines) {
-        return cached.expandedLines;
-      }
-
-      const result = this.renderExpandedLines(session, Math.max(1, width));
-      this.lineCache.set(key, {
-        ...cached,
-        expandedWidth: width,
-        expandedLines: result,
-      });
-      return result;
+    if (cached.width === width && cached.lines) {
+      return cached.lines;
     }
 
-    if (cached.plainWidth === width && cached.plainLines) {
-      return cached.plainLines;
-    }
-
-    const lines = wrapTextWithAnsi(previewText(session), Math.max(1, width));
-    const result = lines.length > 0 ? lines : ["(no preview)"];
-    this.lineCache.set(key, {
-      ...cached,
-      plainWidth: width,
-      plainLines: result,
-    });
+    const result = this.renderExpandedLines(session, Math.max(1, width));
+    this.lineCache.set(key, { width, lines: result });
     return result;
   }
 
