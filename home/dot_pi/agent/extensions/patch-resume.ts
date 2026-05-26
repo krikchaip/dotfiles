@@ -200,7 +200,8 @@ function applyRenameBumpPatch(req: NodeRequire, distPath: string) {
       }
 
       const sessions: any[] = await origList(cwd, sessionDir, onProgress);
-      for (const s of sessions) {
+      const bumped = bumpModified(sessions);
+      for (const s of bumped) {
         if (!s?.path) continue;
         try {
           const st = statSync(s.path);
@@ -213,13 +214,14 @@ function applyRenameBumpPatch(req: NodeRequire, distPath: string) {
           // ignore
         }
       }
-      return bumpModified(sessions);
+      return bumped;
     };
 
     const origListAll = SessionManager.listAll;
     SessionManager.listAll = async function (onProgress?: any) {
       const sessions: any[] = await origListAll(onProgress);
-      for (const s of sessions) {
+      const bumped = bumpModified(sessions);
+      for (const s of bumped) {
         if (!s?.path) continue;
         try {
           const st = statSync(s.path);
@@ -232,7 +234,7 @@ function applyRenameBumpPatch(req: NodeRequire, distPath: string) {
           // ignore
         }
       }
-      return bumpModified(sessions);
+      return bumped;
     };
   } else if (patchState.version !== RENAME_PATCH_VERSION) {
     patchState.version = RENAME_PATCH_VERSION;
