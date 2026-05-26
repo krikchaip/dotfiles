@@ -19,6 +19,18 @@
       "*.ssh/*": "deny"
     },
 
+    "edit": {
+      "*node_modules/*": "deny",
+      "*dist/*": "deny",
+      "*build/*": "deny"
+    },
+
+    "write": {
+      "*node_modules/*": "deny",
+      "*dist/*": "deny",
+      "*build/*": "deny"
+    },
+
     "bash": {
       "*agent-browser *--profile*": "deny",
       "*agent-browser *--session*": "deny",
