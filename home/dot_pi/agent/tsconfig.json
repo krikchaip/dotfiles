@@ -7,6 +7,9 @@
       ],
       "@earendil-works/pi-tui": [
         "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui"
+      ],
+      "@earendil-works/pi-ai": [
+        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai"
       ]
     },
     "lib": ["ESNext"],
