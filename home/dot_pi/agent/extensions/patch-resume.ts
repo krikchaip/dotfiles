@@ -923,10 +923,20 @@ export default function (_pi: ExtensionAPI) {
               this.currentLoading = false;
               this.header?.setLoading(false);
               this.sessionList?.setSessions(cachedSessions, false);
+
+              // Position cursor on current session
+              const sl = this.sessionList;
+              if (sl?.currentSessionCanonicalPath && sl.filteredSessions) {
+                const idx = sl.filteredSessions.findIndex((node: any) =>
+                  sl.isCurrentSessionPath(node.session.path),
+                );
+                if (idx >= 0) sl.selectedIndex = idx;
+              }
+
               this.requestRender?.();
 
               // Background refresh to update stale entries silently.
-              // Suppress progress/loading indicators by patching header temporarily.
+              // Suppress progress/loading indicators and preserve cursor.
               setImmediate(() => {
                 const header = this.header;
                 const origSetLoading = header?.setLoading;
@@ -936,10 +946,29 @@ export default function (_pi: ExtensionAPI) {
                   header.setProgress = () => {};
                 }
                 const origRequestRender = this.requestRender;
-                let loadDone = false;
-                this.requestRender = () => {
-                  if (loadDone) origRequestRender?.();
-                };
+                this.requestRender = () => {};
+
+                const origSetSessions = this.sessionList?.setSessions;
+                if (this.sessionList) {
+                  const sessionList = this.sessionList;
+                  sessionList.setSessions = function (
+                    sessions: any,
+                    showCwd: any,
+                  ) {
+                    const prevPath =
+                      sessionList.filteredSessions?.[sessionList.selectedIndex]
+                        ?.session?.path;
+                    origSetSessions.call(sessionList, sessions, showCwd);
+                    // Restore cursor to same session
+                    if (prevPath && sessionList.filteredSessions) {
+                      const newIdx = sessionList.filteredSessions.findIndex(
+                        (node: any) => node.session.path === prevPath,
+                      );
+                      if (newIdx >= 0) sessionList.selectedIndex = newIdx;
+                    }
+                    sessionList.setSessions = origSetSessions;
+                  };
+                }
 
                 const origLoadScope = this.loadScope;
                 this.loadScope = async function (
@@ -948,8 +977,6 @@ export default function (_pi: ExtensionAPI) {
                   reason: string,
                 ) {
                   await origLoadScope.call(this, scope, reason);
-                  // Restore
-                  loadDone = true;
                   if (header) {
                     header.setLoading = origSetLoading;
                     header.setProgress = origSetProgress;
