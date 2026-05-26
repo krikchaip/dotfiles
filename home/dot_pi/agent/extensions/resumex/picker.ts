@@ -134,12 +134,12 @@ class PreviewPane {
       this.requestRender();
       return true;
     }
-    if (matchesKey(data, PAGE_UP)) {
+    if (matchesKey(data, PAGE_UP as any)) {
       this.scrollFromBottom += 10;
       this.requestRender();
       return true;
     }
-    if (matchesKey(data, PAGE_DOWN)) {
+    if (matchesKey(data, PAGE_DOWN as any)) {
       this.scrollFromBottom = Math.max(0, this.scrollFromBottom - 10);
       this.requestRender();
       return true;
@@ -166,81 +166,49 @@ class PreviewPane {
     const termH = this.getTermHeight();
     const selectorH = this.getSelectorHeight();
     // Available space: viewport minus selector, minus footer(1), minus widget spacer(1)
-    const maxHeight = Math.max(0, termH - selectorH - 2);
-    if (maxHeight < 5) return []; // too small for border + padding + content
+    const maxHeight = termH - selectorH - 2;
+    if (maxHeight < 6) return []; // can't fit min structure, let pi handle it
 
     // Content width = total width - 2 (borders) - 2 (padding)
     const contentWidth = Math.max(1, width - 4);
     const allLines = this.getRendered(selectedPath, contentWidth);
 
-    // Border budget: top(1) + bottom(1) + pad-top(1) + pad-bottom(1) = 4
-    const maxContentLines = maxHeight - 4;
-    if (maxContentLines < 1) return [];
-
-    const needsScroll = allLines.length > maxContentLines;
     const innerW = width - 2; // border left + right
+    const needsScroll = allLines.length > maxHeight - 4; // 4 = borders(2) + pad(1) + info(1)
 
     // Build title bar
     const title = " Session Preview ";
     const topBorder = `╭${title}${"─".repeat(Math.max(0, innerW - visibleWidth(title)))}╮`;
+    const bottomBorder = `╰${"─".repeat(innerW)}╯`;
 
-    // Build bottom bar (with help/timestamp if scrolling)
-    let bottomContent = "";
+    // Build info line (date always; scroll hints when scrollable)
+    const session = this.sessionByPath.get(selectedPath);
+    const ts = session?.modified ? formatTimestamp(session.modified) : "";
+    const tsStyled = ts ? this.theme.fg("muted", ts) : "";
+    const availableW = innerW - 2;
+
+    let infoContent = "";
     if (needsScroll) {
-      const session = this.sessionByPath.get(selectedPath);
-      const ts = session?.modified ? formatTimestamp(session.modified) : "";
       const help = this.theme.fg("dim", HELP_TEXT);
-      const tsStyled = ts ? this.theme.fg("muted", ts) : "";
-
-      const availableW = innerW - 2;
       if (tsStyled) {
         const tsW = visibleWidth(tsStyled);
         const helpW = visibleWidth(help);
         if (helpW + 2 + tsW <= availableW) {
-          // Both fit — right-align timestamp
           const gap = availableW - helpW - tsW;
-          bottomContent = `${help}${" ".repeat(gap)}${tsStyled}`;
+          infoContent = `${help}${" ".repeat(gap)}${tsStyled}`;
         } else {
-          // Truncate help, keep timestamp intact
           const helpMaxW = Math.max(0, availableW - tsW - 2);
-          const helpTrunc = truncateToWidth(help, helpMaxW);
-          bottomContent = `${helpTrunc}  ${tsStyled}`;
+          infoContent = `${truncateToWidth(help, helpMaxW)}  ${tsStyled}`;
         }
       } else {
-        bottomContent = truncateToWidth(help, availableW);
+        infoContent = truncateToWidth(help, availableW);
       }
-    }
-    const bottomBorder = `╰${"─".repeat(innerW)}╯`;
-
-    // Determine visible content slice
-    let visible: string[];
-    if (!needsScroll) {
-      visible = allLines;
-    } else {
-      const clamped = clampScroll(
-        this.scrollFromBottom,
-        allLines.length,
-        maxContentLines,
-      );
-      this.scrollFromBottom = clamped;
-      const maxOffset = Math.max(0, allLines.length - maxContentLines);
-      const start = Math.max(0, maxOffset - clamped);
-      const end = Math.min(allLines.length, start + maxContentLines);
-      visible = allLines.slice(start, end);
-
-      const above = start;
-      const below = allLines.length - end;
-      if (above > 0) {
-        const ind = this.theme.fg("muted", `… ${above} line(s) above`);
-        visible = [ind, ...visible.slice(1)];
-      }
-      if (below > 0) {
-        const ind = this.theme.fg("muted", `… ${below} line(s) below`);
-        visible = [...visible.slice(0, -1), ind];
-      }
+    } else if (tsStyled) {
+      const tsW = visibleWidth(tsStyled);
+      const gap = Math.max(0, availableW - tsW);
+      infoContent = `${" ".repeat(gap)}${tsStyled}`;
     }
 
-    // Assemble framed output
     const padLine = (line: string): string => {
       const t = truncateToWidth(line, innerW - 2);
       const pad = Math.max(0, innerW - 2 - visibleWidth(t));
@@ -248,30 +216,48 @@ class PreviewPane {
     };
     const emptyLine = `${this.theme.fg("muted", "│")}${" ".repeat(innerW)}${this.theme.fg("muted", "│")}`;
 
-    const result: string[] = [
-      this.theme.fg("muted", topBorder),
-      emptyLine, // padding top
-      ...visible.map(padLine),
-      emptyLine, // padding bottom
-    ];
-
-    if (needsScroll && bottomContent) {
-      result.push(padLine(bottomContent));
-    }
-    result.push(this.theme.fg("muted", bottomBorder));
-
-    // Hard cap: keep top border + bottom border visible, trim content from top
-    if (result.length > maxHeight) {
-      // Keep: top border (idx 0), last (maxHeight-2) content lines, bottom border (last)
-      const contentKeep = maxHeight - 2;
-      return [
-        result[0], // top border
-        ...result.slice(result.length - 1 - contentKeep, result.length - 1),
-        result[result.length - 1], // bottom border
+    if (!needsScroll) {
+      // Content fits: top border, pad, content, pad, info, bottom border
+      const result: string[] = [
+        this.theme.fg("muted", topBorder),
+        emptyLine,
+        ...allLines.map(padLine),
+        emptyLine,
       ];
+      if (infoContent) result.push(padLine(infoContent));
+      result.push(this.theme.fg("muted", bottomBorder));
+      return result;
     }
 
-    return result;
+    // Scrollable: top border, lines-above, content, lines-below, info, bottom border
+    // Content lines = maxHeight - 5 (top border, above-ind, below-ind, info, bottom border)
+    const contentLines = Math.max(1, maxHeight - 5);
+    const clamped = clampScroll(
+      this.scrollFromBottom,
+      allLines.length,
+      contentLines,
+    );
+    this.scrollFromBottom = clamped;
+    const maxOffset = Math.max(0, allLines.length - contentLines);
+    const start = Math.max(0, maxOffset - clamped);
+    const end = Math.min(allLines.length, start + contentLines);
+    const visible = allLines.slice(start, end);
+
+    const above = start;
+    const below = allLines.length - end;
+    const aboveInd =
+      above > 0 ? this.theme.fg("muted", `… ${above} line(s) above`) : "";
+    const belowInd =
+      below > 0 ? this.theme.fg("muted", `… ${below} line(s) below`) : "";
+
+    return [
+      this.theme.fg("muted", topBorder),
+      padLine(aboveInd),
+      ...visible.map(padLine),
+      padLine(belowInd),
+      padLine(infoContent),
+      this.theme.fg("muted", bottomBorder),
+    ];
   }
 }
 
@@ -323,7 +309,7 @@ class ResumexSelector implements Focusable {
   }
 
   dispose(): void {
-    this.selector.dispose();
+    (this.selector as any).dispose();
   }
 }
 
@@ -369,8 +355,6 @@ export async function openResumexPicker(
   };
 
   return ctx.ui.custom<ResumexPickerResult>((tui, theme, _kb, done) => {
-    let previewHandle: { hide: () => void } | undefined;
-
     const finish = (result: ResumexPickerResult) => {
       ctx.ui.setWidget("resumex.preview", undefined);
       done(result);
@@ -461,7 +445,9 @@ export async function openResumexPicker(
     }
 
     // ── Allow deleting active session ──
-    sl.startDeleteConfirmationForSelectedSession = function (this: any) {
+    (sl as any).startDeleteConfirmationForSelectedSession = function (
+      this: any,
+    ) {
       const selected = this.filteredSessions[this.selectedIndex];
       if (!selected) return;
       this.setConfirmingDeletePath(selected.session.path);
@@ -496,7 +482,7 @@ export async function openResumexPicker(
     (wrapper as any).preview = preview;
 
     // ── Show preview as widget above editor ──
-    ctx.ui.setWidget(
+    (ctx.ui as any).setWidget(
       "resumex.preview",
       () => ({
         render: (width: number) => {
