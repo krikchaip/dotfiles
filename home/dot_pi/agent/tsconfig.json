@@ -14,6 +14,8 @@
     },
     "lib": ["ESNext"],
     "module": "nodenext",
-    "moduleResolution": "nodenext"
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   }
 }
