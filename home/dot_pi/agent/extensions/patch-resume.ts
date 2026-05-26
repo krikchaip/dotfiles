@@ -734,6 +734,16 @@ function patchSelectorInstance(
     };
   }
 
+  const originalOnSelect = sessionList.onSelect;
+  sessionList.onSelect = function (this: any, sessionPath: string) {
+    if (this.isCurrentSessionPath?.(sessionPath)) {
+      done();
+      interactiveMode.ui?.requestRender?.();
+      return;
+    }
+    return originalOnSelect?.call(this, sessionPath);
+  };
+
   const originalConfirmRename = selector.confirmRename;
   if (typeof originalConfirmRename === "function") {
     selector.confirmRename = async function (this: any, value: string) {
