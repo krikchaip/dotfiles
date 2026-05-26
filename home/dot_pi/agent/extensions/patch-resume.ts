@@ -19,16 +19,32 @@ import {
   visibleWidth,
 } from "@earendil-works/pi-tui";
 
+// ─── User-configurable constants ────────────────────────────────────────────
+// TODO: Make these configurable via a config file.
+
+/** Number of body lines shown in the collapsed preview pane (below metadata). */
+const COLLAPSED_PREVIEW_LINES = 3;
+
+/** Max session entries (from tail) rendered in the expanded/collapsed preview.
+ *  Higher = more context visible but slower initial render for large sessions. */
+const EXPANDED_PREVIEW_ENTRIES = 20;
+
+/** Key binding to toggle expanded preview. */
+const EXPAND_KEY = "ctrl+shift+r";
+
+/** Display label for the expand key hint shown in collapsed preview. */
+const EXPAND_KEY_HINT = "Ctrl+Shift+R";
+
+// ─── Internal constants ─────────────────────────────────────────────────────
+
 const RESUME_PATCHED = "__resumePreviewPatched";
 const RESUME_PATCH_VERSION = 6;
 const RENAME_PATCHED = "__renameBumpPatched";
 const RENAME_PATCH_VERSION = 4;
 const LOAD_PATCHED = "__resumeSnapPatched";
+
+/** Bytes read from tail of session file when scanning for session_info name. */
 const SESSION_INFO_TAIL_BYTES = 256 * 1024;
-const COLLAPSED_PREVIEW_LINES = 3;
-const EXPANDED_PREVIEW_ENTRIES = 20;
-const EXPAND_KEY = "ctrl+shift+r";
-const EXPAND_KEY_HINT = "Ctrl+Shift+R";
 
 const renameTimestamps = new Map<string, number>();
 const sessionInfoTimestampCache = new Map<
@@ -521,7 +537,7 @@ class ResumePreviewPane {
       "Shift+↑/↓ scroll",
       "Shift+PgUp/PgDn page",
       "Home/End",
-      "Esc collapse",
+      "Esc/Ctrl+Shift+R collapse",
     ].join(" · ");
 
     return [
