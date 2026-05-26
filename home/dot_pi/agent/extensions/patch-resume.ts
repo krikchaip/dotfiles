@@ -303,7 +303,7 @@ function normalizedText(value: unknown) {
 }
 
 function sessionTitle(session: any) {
-  return normalizedText(session?.name || session?.firstMessage) || "Session";
+  return normalizedText(session?.name) || "Untitled";
 }
 
 function textContent(content: any) {
