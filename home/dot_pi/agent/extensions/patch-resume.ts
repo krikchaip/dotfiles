@@ -16,6 +16,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   matchesKey,
   truncateToWidth,
+  visibleWidth,
   wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
 
@@ -28,6 +29,7 @@ const SESSION_INFO_TAIL_BYTES = 256 * 1024;
 const COLLAPSED_PREVIEW_LINES = 3;
 const PREVIEW_TAIL_CHARS = 60_000;
 const EXPAND_KEY = "ctrl+shift+r";
+const EXPAND_KEY_HINT = "Ctrl+Shift+R";
 
 const renameTimestamps = new Map<string, number>();
 const sessionInfoTimestampCache = new Map<
@@ -156,12 +158,44 @@ function fitLine(line: string, width: number) {
   return truncateToWidth(line, Math.max(0, width), "…");
 }
 
+function joinRight(left: string, right: string, width: number) {
+  const rightWidth = visibleWidth(right);
+  if (rightWidth >= width) return fitLine(right, width);
+
+  const leftWidth = Math.max(0, width - rightWidth - 1);
+  const fittedLeft = fitLine(left, leftWidth);
+  const spacing = Math.max(1, width - visibleWidth(fittedLeft) - rightWidth);
+  return `${fittedLeft}${" ".repeat(spacing)}${right}`;
+}
+
+function compactSelectorLines(lines: string[]) {
+  const result = [...lines];
+
+  if (result[2] === "") result.splice(2, 1);
+  if (result.length >= 2 && result[result.length - 2] === "") {
+    result.splice(result.length - 2, 1);
+  }
+
+  return result;
+}
+
 function selectedSession(selector: any) {
   const list =
     typeof selector.getSessionList === "function"
       ? selector.getSessionList()
       : selector.sessionList;
   return list?.filteredSessions?.[list.selectedIndex]?.session;
+}
+
+function normalizedText(value: unknown) {
+  return String(value ?? "")
+    .replace(/[\x00-\x1f\x7f]/g, " ")
+    .replace(/\t/g, "    ")
+    .trim();
+}
+
+function sessionTitle(session: any) {
+  return normalizedText(session?.name || session?.firstMessage) || "Session";
 }
 
 function previewText(session: any) {
@@ -207,11 +241,11 @@ class ResumePreviewPane {
       this.scrollFromBottom = Math.max(0, this.scrollFromBottom - 1);
       return true;
     }
-    if (matchesKey(data, "shift+pageup")) {
+    if (matchesKey(data, "shift+pageUp")) {
       this.scrollFromBottom += 10;
       return true;
     }
-    if (matchesKey(data, "shift+pagedown")) {
+    if (matchesKey(data, "shift+pageDown")) {
       this.scrollFromBottom = Math.max(0, this.scrollFromBottom - 10);
       return true;
     }
@@ -240,9 +274,7 @@ class ResumePreviewPane {
 
   private metadata(session: any, width: number, bodyLines: string[]) {
     const parts = [
-      this.theme.bold(
-        this.theme.fg("accent", session?.name ? "SESSION NAME" : "SESSION"),
-      ),
+      this.theme.bold(this.theme.fg("accent", sessionTitle(session))),
       this.theme.fg("muted", `${session?.messageCount ?? 0} msgs`),
       this.theme.fg("muted", formatDate(session?.modified)),
     ];
@@ -250,13 +282,16 @@ class ResumePreviewPane {
     const loc = shortenPath(session?.cwd || session?.path);
     if (loc) parts.push(this.theme.fg("muted", loc));
 
-    if (!this.expanded && bodyLines.length > COLLAPSED_PREVIEW_LINES) {
-      parts.push(this.theme.fg("dim", `${EXPAND_KEY} full`));
-    } else if (this.expanded) {
-      parts.push(this.theme.fg("dim", `${EXPAND_KEY} collapse`));
-    }
+    const left = parts.join(this.theme.fg("muted", " · "));
+    const hint = this.expanded
+      ? `${EXPAND_KEY_HINT} collapse`
+      : bodyLines.length > COLLAPSED_PREVIEW_LINES
+        ? `${EXPAND_KEY_HINT} full`
+        : "";
 
-    return fitLine(parts.join(this.theme.fg("muted", " · ")), width);
+    return hint
+      ? joinRight(left, this.theme.fg("dim", `… ${hint}`), width)
+      : fitLine(left, width);
   }
 
   render(session: any, width: number, selectorHeight: number) {
@@ -283,7 +318,7 @@ class ResumePreviewPane {
     const visible = allBodyLines.slice(start, end);
     while (visible.length < bodyHeight) visible.push("");
 
-    const border = this.theme.fg("border", "─".repeat(Math.max(0, width)));
+    const border = this.theme.fg("accent", "─".repeat(Math.max(0, width)));
     if (!this.expanded) {
       return [
         this.metadata(session, width, allBodyLines),
@@ -341,7 +376,7 @@ class ResumeSelectorWithPreview {
   }
 
   render(width: number) {
-    const selectorLines = this.selector.render(width);
+    const selectorLines = compactSelectorLines(this.selector.render(width));
     const session = selectedSession(this.selector);
     return [
       ...selectorLines,
@@ -433,7 +468,7 @@ function patchSelectorInstance(
 }
 
 export default function (_pi: ExtensionAPI) {
-  const req = createRequire(import.meta.url || __filename);
+  const req = createRequire(__filename);
   const cliPath = realpathSync(process.argv[1]);
   const distPath = dirname(cliPath);
 
