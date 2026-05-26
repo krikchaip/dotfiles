@@ -724,6 +724,16 @@ function patchSelectorInstance(
     }
   };
 
+  const originalFilterSessions = sessionList.filterSessions;
+  if (typeof originalFilterSessions === "function") {
+    sessionList.filterSessions = function (this: any, query: string) {
+      originalFilterSessions.call(this, query);
+      if (String(query ?? "").trim()) {
+        this.selectedIndex = 0;
+      }
+    };
+  }
+
   const originalConfirmRename = selector.confirmRename;
   if (typeof originalConfirmRename === "function") {
     selector.confirmRename = async function (this: any, value: string) {
