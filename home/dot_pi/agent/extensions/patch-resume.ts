@@ -232,17 +232,20 @@ function normalizeAssistantMessage(message: any) {
   return { ...message, content: [{ type: "text", text: message.content }] };
 }
 
-function compactLines(lines: string[]) {
-  return lines.filter((line) => visibleWidth(line.trim()) > 0);
-}
-
 function separateBlocks(blocks: string[][]) {
   const lines: string[] = [];
   for (const block of blocks) {
-    const compact = compactLines(block);
-    if (compact.length === 0) continue;
+    if (block.length === 0) continue;
+
+    let start = 0;
+    while (start < block.length && block[start] === "") start++;
+    let end = block.length;
+    while (end > start && block[end - 1] === "") end--;
+    const trimmed = block.slice(start, end);
+    if (trimmed.length === 0) continue;
+
     if (lines.length > 0) lines.push("");
-    lines.push(...compact);
+    lines.push(...trimmed);
   }
   return lines;
 }
