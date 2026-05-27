@@ -4,6 +4,8 @@
   "app.model.cycleForward": [],
   "app.model.select": ["alt+m"],
   "app.session.new": ["alt+n"],
+  "app.session.undo": ["alt+u"],
+  "app.session.redo": ["alt+shift+u"],
   "app.session.resume": ["alt+r"],
   "app.session.toggleNamedFilter": ["alt+n"],
   "app.session.togglePath": ["alt+p"],
