@@ -223,6 +223,29 @@ async function waitForShortcutIdle(ctx: ExtensionContext) {
   while (!ctx.isIdle()) await sleep(50);
 }
 
+async function triggerShortcutCommand(
+  ctx: ExtensionContext,
+  command: "undo" | "redo",
+) {
+  if (command === "redo" && !ctx.isIdle()) {
+    ctx.ui.notify("Cannot redo while streaming", "warning");
+    return;
+  }
+
+  if (!editorAllowsNavigation(ctx)) {
+    notifyDirtyEditor(ctx);
+    return;
+  }
+
+  if (command === "undo" && !ctx.isIdle()) {
+    ctx.abort();
+    resetBeforeNextUndo = true;
+    await waitForShortcutIdle(ctx);
+  }
+
+  process.stdin.emit("data", Buffer.from(`\x03/${command}\r`));
+}
+
 function registerShortcutCommand(
   pi: ExtensionAPI,
   shortcut: string,
@@ -231,28 +254,21 @@ function registerShortcutCommand(
   pi.registerShortcut(shortcut, {
     description: `Run /${command}`,
     handler: async (ctx) => {
-      if (command === "redo" && !ctx.isIdle()) {
-        ctx.ui.notify("Cannot redo while streaming", "warning");
-        return;
-      }
-
-      if (!editorAllowsNavigation(ctx)) {
-        notifyDirtyEditor(ctx);
-        return;
-      }
-
-      if (command === "undo" && !ctx.isIdle()) {
-        ctx.abort();
-        resetBeforeNextUndo = true;
-        await waitForShortcutIdle(ctx);
-      }
-
-      process.stdin.emit("data", Buffer.from(`\x03/${command}\r`));
+      await triggerShortcutCommand(ctx, command);
     },
   });
 }
 
 export default function (pi: ExtensionAPI) {
+  const undoShortcuts = configuredShortcuts(
+    "app.session.undo",
+    DEFAULT_UNDO_SHORTCUTS,
+  );
+  const redoShortcuts = configuredShortcuts(
+    "app.session.redo",
+    DEFAULT_REDO_SHORTCUTS,
+  );
+
   pi.registerCommand("undo", {
     description: "Undo to the latest user message in the current session path",
     handler: async (_args, ctx) => {
@@ -267,22 +283,34 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  for (const shortcut of configuredShortcuts(
-    "app.session.undo",
-    DEFAULT_UNDO_SHORTCUTS,
-  )) {
+  for (const shortcut of undoShortcuts) {
     registerShortcutCommand(pi, shortcut, "undo");
   }
 
-  for (const shortcut of configuredShortcuts(
-    "app.session.redo",
-    DEFAULT_REDO_SHORTCUTS,
-  )) {
+  for (const shortcut of redoShortcuts) {
     registerShortcutCommand(pi, shortcut, "redo");
   }
 
-  pi.on("session_start", () => {
+  pi.on("session_start", (_event, ctx) => {
     resetState();
+
+    if (
+      !redoShortcuts.some(
+        (shortcut) => shortcut.toLowerCase() === "alt+shift+u",
+      )
+    ) {
+      return;
+    }
+
+    ctx.ui.onTerminalInput((data) => {
+      if (data !== "\x1bU") return;
+
+      setImmediate(() => {
+        void triggerShortcutCommand(ctx, "redo");
+      });
+
+      return { consume: true };
+    });
   });
 
   pi.on("session_shutdown", () => {
