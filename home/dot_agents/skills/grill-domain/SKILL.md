@@ -1,6 +1,6 @@
 ---
 name: grill-domain
-description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (.agents/artifacts/DOMAIN.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions
+description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (DOMAIN.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions
 disable-model-invocation: true
 ---
 
@@ -12,11 +12,11 @@ If a question can be answered by exploring the codebase, explore the codebase in
 
 ## Domain awareness
 
-During codebase exploration, also look for existing documentation. See `/artifacts-config` for the document locations (default: `.agents/artifacts/DOMAIN.md` and `.agents/artifacts/adr/`).
+During codebase exploration, also look for existing documentation.
 
 ### File structure
 
-This repo uses the following structure for domain documentation:
+Most repos have a single domain:
 
 ```
 /
@@ -27,13 +27,32 @@ This repo uses the following structure for domain documentation:
 └── ...(the rest)
 ```
 
-Create files lazily — only when you have something to write. If no `.agents/artifacts/DOMAIN.md` exists, create one when the first term is resolved. If no `.agents/artifacts/adr/` exists, create it when the first ADR is needed.
+If a `DOMAIN-MAP.md` exists at the root `.agents/artifacts/`, the repo has multiple domains. The map points to where each one lives:
+
+```
+/
+├── .agents/artifacts/DOMAIN-MAP.md
+├── .agents/artifacts/adr/                  ← system-wide decisions
+├── <some project>/
+│   ├── ordering/
+│   │   ├── .agents/artifacts/DOMAIN.md
+│   │   └── .agents/artifacts/adr/          ← domain-specific decisions
+│   └── billing/
+│   │   ├── .agents/artifacts/DOMAIN.md
+│   │   └── .agents/artifacts/adr/
+├── <another project>/
+│   ├── .agents/artifacts/DOMAIN.md
+│   └── .agents/artifacts/adr/
+└── ...(the rest)
+```
+
+Create files lazily — only when you have something to write. If no `DOMAIN.md` exists, create one when the first term is resolved. If no `adr/` exists, create it when the first ADR is needed.
 
 ## During the session
 
 ### Challenge against the glossary
 
-When the user uses a term that conflicts with the existing language in `.agents/artifacts/DOMAIN.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
+When the user uses a term that conflicts with the existing language in `DOMAIN.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
 
 ### Sharpen fuzzy language
 
@@ -47,11 +66,11 @@ When domain relationships are being discussed, stress-test them with specific sc
 
 When the user states how something works, check whether the code agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"
 
-### Update .agents/artifacts/DOMAIN.md inline
+### Update DOMAIN.md inline
 
-When a term is resolved, update `.agents/artifacts/DOMAIN.md` right there. Don't batch these up — capture them as they happen. Use the format in [DOMAIN-FORMAT.md](./DOMAIN-FORMAT.md).
+When a term is resolved, update `DOMAIN.md` right there. Don't batch these up — capture them as they happen. Use the format in [DOMAIN-FORMAT.md](./DOMAIN-FORMAT.md).
 
-Don't couple `.agents/artifacts/DOMAIN.md` to implementation details. Only include terms that are meaningful to domain experts.
+`DOMAIN.md` should be totally devoid of implementation details. Do not treat `DOMAIN.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
 
 ### Offer ADRs sparingly
 
