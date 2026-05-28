@@ -224,7 +224,7 @@ run_fzf() {
 
     local pos=0
     if [[ -n "$preferred_selection" ]]; then
-        pos=$(printf '%s\n' "$repos" | grep -n -F "$preferred_selection" | head -1 | cut -d: -f1 || echo "0")
+        pos=$(printf '%s\n' "$repos" | grep -n -F -x "$preferred_selection" | head -1 | cut -d: -f1 || echo "0")
     fi
 
     local fzf_opts=(
