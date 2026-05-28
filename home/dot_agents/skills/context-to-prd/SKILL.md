@@ -20,8 +20,7 @@ Check with the user that these modules match their expectations. Check with the 
 
 3. Write the PRD using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
 
-<prd-template>
-
+```markdown
 ## Problem Statement
 
 The problem that the user is facing, from the user's perspective.
@@ -73,5 +72,4 @@ A description of the things that are out of scope for this PRD.
 ## Further Notes
 
 Any further notes about the feature.
-
-</prd-template>
+```
