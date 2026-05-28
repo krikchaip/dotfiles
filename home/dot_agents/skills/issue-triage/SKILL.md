@@ -17,7 +17,7 @@ Every comment or issue posted to the issue tracker during triage **must** start 
 ## Reference docs
 
 - [AGENT-BRIEF.md](AGENT-BRIEF.md) — how to write durable agent briefs
-- [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md) — how the `.agents/artifacts/out-of-scope/` knowledge base works
+- [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md) — how the `.agents/artifacts/.out-of-scope/` knowledge base works
 
 ## Roles
 
@@ -36,7 +36,7 @@ Five **state** roles:
 
 Every triaged issue should carry exactly one category role and one state role. If state roles conflict, flag it and ask the maintainer before doing anything else.
 
-These are canonical role names — the actual label strings used in the issue tracker may differ. This repo uses a custom configuration; invoke `/artifacts-config` to see the mapping (default: `.agents/artifacts/features/` and standard label names).
+These are canonical role names — the actual label strings used in the issue tracker may differ. The mapping should have been provided to you - run `/setup-planner-skills` if not.
 
 State transitions: an unlabeled issue normally goes to `needs-triage` first; from there it moves to `needs-info`, `ready-for-agent`, `ready-for-human`, or `wontfix`. `needs-info` returns to `needs-triage` once the reporter replies. The maintainer can override at any time — flag transitions that look unusual and ask before proceeding.
 
@@ -61,7 +61,7 @@ Show counts and a one-line summary per issue. Let the maintainer pick.
 
 ## Triage a specific issue
 
-1. **Gather context.** Read the full issue (body, comments, labels, reporter, dates). Parse any prior triage notes so you don't re-ask resolved questions. Explore the codebase using the project's domain glossary, respecting ADRs in the area. Read `.agents/artifacts/out-of-scope/*.md` and surface any prior rejection that resembles this issue.
+1. **Gather context.** Read the full issue (body, comments, labels, reporter, dates). Parse any prior triage notes so you don't re-ask resolved questions. Explore the codebase using the project's domain glossary, respecting ADRs in the area. Read `.agents/artifacts/.out-of-scope/*.md` and surface any prior rejection that resembles this issue.
 
 2. **Recommend.** Tell the maintainer your category and state recommendation with reasoning, plus a brief codebase summary relevant to the issue. Wait for direction.
 
@@ -74,7 +74,7 @@ Show counts and a one-line summary per issue. Let the maintainer pick.
    - `ready-for-human` — same structure as an agent brief, but note why it can't be delegated (judgment calls, external access, design decisions, manual testing).
    - `needs-info` — post triage notes (template below).
    - `wontfix` (bug) — polite explanation, then close.
-   - `wontfix` (enhancement) — write to `.agents/artifacts/out-of-scope/`, link to it from a comment, then close ([OUT-OF-SCOPE.md](OUT-OF-SCOPE.md)).
+   - `wontfix` (enhancement) — write to `.agents/artifacts/.out-of-scope/`, link to it from a comment, then close ([OUT-OF-SCOPE.md](OUT-OF-SCOPE.md)).
    - `needs-triage` — apply the role. Optional comment if there's partial progress.
 
 ## Quick state override
