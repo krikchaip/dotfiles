@@ -34,6 +34,7 @@ let redoStack: RedoFrame[] = [];
 let ownedEditorText: string | undefined;
 let internalNavigationDepth = 0;
 let resetBeforeNextUndo = false;
+let redoKeyHint = "alt+shift+u";
 
 function configuredShortcuts(key: string, defaults: string[]) {
   if (!existsSync(USER_KEYBINDINGS)) return defaults;
@@ -162,6 +163,12 @@ async function handleUndo(ctx: ExtensionCommandContext) {
   ctx.ui.setEditorText(promptText);
   ownedEditorText = promptText;
 
+  const count = redoStack.length;
+  ctx.ui.notify(
+    `${count} message reverted\n${redoKeyHint} or /redo to restore`,
+    "info",
+  );
+
   if (hasImageContent(userEntry.message.content)) {
     ctx.ui.notify(
       "Undo restored text only; images cannot be restored to editor",
@@ -188,6 +195,12 @@ async function handleRedo(ctx: ExtensionCommandContext) {
       ctx.sessionManager.resetLeaf();
       ctx.ui.setEditorText(frame.promptText ?? "");
       ownedEditorText = frame.promptText;
+      if (redoStack.length > 0) {
+        ctx.ui.notify(
+          `${redoStack.length} message reverted\n${redoKeyHint} or /redo to restore`,
+          "info",
+        );
+      }
       return;
     }
 
@@ -208,6 +221,12 @@ async function handleRedo(ctx: ExtensionCommandContext) {
 
     ctx.ui.setEditorText(frame.promptText ?? "");
     ownedEditorText = frame.promptText;
+    if (redoStack.length > 0) {
+      ctx.ui.notify(
+        `${redoStack.length} message reverted\n${redoKeyHint} or /redo to restore`,
+        "info",
+      );
+    }
     return;
   }
 
@@ -293,6 +312,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     resetState();
+    redoKeyHint = redoShortcuts[0] ?? "alt+shift+u";
 
     if (
       !redoShortcuts.some(
