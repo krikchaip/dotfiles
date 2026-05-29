@@ -1,21 +1,26 @@
 {
   "compilerOptions": {
-    "skipLibCheck": true,
+    "target": "ESNext",
+    "allowImportingTsExtensions": true,
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
     "paths": {
+      "@earendil-works/pi-ai": [
+        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai"
+      ],
       "@earendil-works/pi-coding-agent": [
         "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent"
       ],
       "@earendil-works/pi-tui": [
         "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui"
-      ],
-      "@earendil-works/pi-ai": [
-        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai"
       ]
     },
-    "lib": ["ESNext"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "skipLibCheck": true,
+    "typeRoots": [
+      "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@types"
+    ],
+    "types": ["node"]
   }
 }
