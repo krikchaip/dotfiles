@@ -16,7 +16,6 @@ import {
 } from "@earendil-works/pi-tui";
 
 const TREE_DELETE_PATCHED = "__treeDeletePatched";
-const TREE_DELETE_PATCH_VERSION = 5;
 
 type Entry = {
   id: string;
@@ -135,6 +134,11 @@ function frameBorder(theme: any, width: number, side: "top" | "bottom") {
     "error",
     `${left}${"─".repeat(Math.max(0, width - 2))}${right}`,
   );
+}
+
+function appendHintIfFits(base: string, hint: string, width: number) {
+  const line = base + " " + hint;
+  return visibleWidth(line) <= width ? line : base;
 }
 
 function statsFor(entries: Entry[], ids: Set<string>): DeleteStats {
@@ -542,19 +546,18 @@ function patchTreeSelector(
 
     if (hintIndex >= 0) {
       const sep = theme.fg("muted", " · ");
-      const suffix = sep + rawKeyHint("alt+d", state.mode ? "exit" : "delete");
-      const base =
-        state.mode || state.confirmation
-          ? "  " +
-            [
-              keyHint("tui.select.confirm", "review"),
-              keyHint("tui.select.cancel", "cancel"),
-              theme.fg("muted", "move/filter/fold OK"),
-            ].join(sep)
-          : lines[hintIndex];
-      const hint =
-        truncateToWidth(base, Math.max(0, width - visibleWidth(suffix)), "…") +
-        suffix;
+      const hint = state.mode
+        ? [
+            "  " + keyHint("tui.select.confirm", "review"),
+            keyHint("tui.select.cancel", "cancel"),
+            theme.fg("muted", "move/filter/fold OK"),
+            rawKeyHint("alt+d", "exit"),
+          ].join(sep)
+        : appendHintIfFits(
+            lines[hintIndex],
+            rawKeyHint("alt+d", "delete"),
+            width,
+          );
       lines[hintIndex] = truncateToWidth(hint, width);
     }
 
@@ -578,12 +581,9 @@ export default function (_pi: ExtensionAPI) {
   );
 
   const proto = InteractiveMode.prototype as PatchedInteractiveMode;
-  const patchState = proto[TREE_DELETE_PATCHED];
+  if (proto[TREE_DELETE_PATCHED]) return;
 
-  if (patchState?.version === TREE_DELETE_PATCH_VERSION) return;
-
-  const originalShowTreeSelector =
-    patchState?.originalShowTreeSelector ?? proto.showTreeSelector;
+  const originalShowTreeSelector = proto.showTreeSelector;
 
   proto.showTreeSelector = function (
     this: PatchedInteractiveMode,
@@ -611,8 +611,5 @@ export default function (_pi: ExtensionAPI) {
     }
   };
 
-  proto[TREE_DELETE_PATCHED] = {
-    version: TREE_DELETE_PATCH_VERSION,
-    originalShowTreeSelector,
-  };
+  proto[TREE_DELETE_PATCHED] = true;
 }
