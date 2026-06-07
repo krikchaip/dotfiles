@@ -40,7 +40,6 @@
     "npm:@vanillagreen/pi-background-tasks",
     "npm:@vanillagreen/pi-caveman",
     "npm:pi-mcp-adapter",
-    "npm:pi-skillful",
     "npm:pi-token-burden",
     {
       "source": "npm:@victor-software-house/pi-curated-themes",
