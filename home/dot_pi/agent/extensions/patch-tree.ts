@@ -15,7 +15,7 @@ import {
 } from "@earendil-works/pi-tui";
 
 const TREE_DELETE_PATCHED = "__treeDeletePatched";
-const TREE_DELETE_PATCH_VERSION = 2;
+const TREE_DELETE_PATCH_VERSION = 3;
 
 type Entry = {
   id: string;
@@ -27,7 +27,7 @@ type Entry = {
 
 type DeleteStats = {
   total: number;
-  parts: string[];
+  parts: Array<{ kind: string; count: number }>;
 };
 
 type DeleteConfirmation = {
@@ -81,6 +81,44 @@ function entryKind(entry: Entry) {
   return entry.type.replace(/_/g, "-");
 }
 
+function kindColor(kind: string) {
+  switch (kind) {
+    case "user":
+      return "accent";
+    case "assistant":
+      return "success";
+    case "branch-summary":
+      return "warning";
+    case "compaction":
+      return "borderAccent";
+    case "custom-message":
+      return "customMessageLabel";
+    case "toolResult":
+      return "muted";
+    case "bashExecution":
+    case "model-change":
+    case "thinking-level-change":
+    case "session-info":
+    case "custom":
+    case "label":
+      return "dim";
+    default:
+      return "muted";
+  }
+}
+
+function renderStatsPart(
+  theme: any,
+  part: { kind: string; count: number } | string,
+) {
+  if (typeof part === "string") return theme.fg("muted", `  ${part}`);
+  return [
+    "  ",
+    theme.fg(kindColor(part.kind), `${part.kind}:`),
+    theme.fg("text", ` ${part.count}`),
+  ].join("");
+}
+
 function statsFor(entries: Entry[], ids: Set<string>): DeleteStats {
   const counts = new Map<string, number>();
   let total = 0;
@@ -94,7 +132,7 @@ function statsFor(entries: Entry[], ids: Set<string>): DeleteStats {
 
   const parts = [...counts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([kind, count]) => `${kind}: ${count}`);
+    .map(([kind, count]) => ({ kind, count }));
 
   return { total, parts };
 }
@@ -288,7 +326,7 @@ async function showDeleteDialog(
           ),
           "",
           ...parts.map((part) =>
-            truncateToWidth(dialogTheme.fg("error", `  ${part}`), width),
+            truncateToWidth(renderStatsPart(dialogTheme, part), width),
           ),
           "",
           truncateToWidth(
@@ -410,11 +448,10 @@ function patchTreeList(
 
       const lineIndex = index - startIndex;
       const plain = stripAnsi(lines[lineIndex] ?? "");
-      const styled = theme.fg("error", plain);
       lines[lineIndex] = truncateToWidth(
         index === treeList.selectedIndex
-          ? theme.bg("selectedBg", theme.bold(styled))
-          : styled,
+          ? theme.fg("error", theme.bg("selectedBg", theme.bold(plain)))
+          : theme.fg("error", plain),
         width,
       );
     }
@@ -428,6 +465,7 @@ function patchTreeSelector(
   interactiveMode: PatchedInteractiveMode,
   theme: any,
   keyHint: (id: string, description: string) => string,
+  rawKeyHint: (key: string, description: string) => string,
 ) {
   const treeList = selector?.getTreeList?.();
   if (!treeList || selector.__treeDeletePatched) return;
@@ -451,18 +489,25 @@ function patchTreeSelector(
       lines[headingIndex] = truncateToWidth(title, width);
     }
 
-    const hintIndex = lines.findIndex((line: string) =>
+    let hintIndex = lines.findIndex((line: string) =>
       stripAnsi(line).includes("filters"),
     );
+    if (hintIndex < 0 && headingIndex >= 0 && lines[headingIndex + 1]) {
+      hintIndex = headingIndex + 1;
+    }
 
     if (hintIndex >= 0) {
+      const sep = theme.fg("muted", " · ");
       const hint =
         state.mode || state.confirmation
-          ? theme.fg(
-              "error",
-              `  Move/filter/fold to choose. ${keyHint("tui.select.confirm", "review delete")} · ${keyHint("tui.select.cancel", "cancel mode")}`,
-            )
-          : `${lines[hintIndex]}  ${theme.fg("muted", "Alt+D: delete")}`;
+          ? "  " +
+            [
+              keyHint("tui.select.confirm", "review"),
+              keyHint("tui.select.cancel", "cancel"),
+              rawKeyHint("alt+d", "exit"),
+              theme.fg("muted", "move/filter/fold OK"),
+            ].join(sep)
+          : [rawKeyHint("alt+d", "delete"), lines[hintIndex]].join(sep);
       lines[hintIndex] = truncateToWidth(hint, width);
     }
 
@@ -481,7 +526,7 @@ export default function (_pi: ExtensionAPI) {
   const { theme } = req(
     join(distPath, "modes", "interactive", "theme", "theme.js"),
   );
-  const { keyHint } = req(
+  const { keyHint, rawKeyHint } = req(
     join(distPath, "modes", "interactive", "components", "keybinding-hints.js"),
   );
 
@@ -505,7 +550,7 @@ export default function (_pi: ExtensionAPI) {
     ) {
       return originalShowSelector.call(this, (done: () => void) => {
         const result = factory(done);
-        patchTreeSelector(result?.component, this, theme, keyHint);
+        patchTreeSelector(result?.component, this, theme, keyHint, rawKeyHint);
         return result;
       });
     };
