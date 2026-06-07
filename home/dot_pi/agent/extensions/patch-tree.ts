@@ -12,10 +12,11 @@ import {
   getKeybindings,
   matchesKey,
   truncateToWidth,
+  visibleWidth,
 } from "@earendil-works/pi-tui";
 
 const TREE_DELETE_PATCHED = "__treeDeletePatched";
-const TREE_DELETE_PATCH_VERSION = 3;
+const TREE_DELETE_PATCH_VERSION = 5;
 
 type Entry = {
   id: string;
@@ -111,12 +112,29 @@ function renderStatsPart(
   theme: any,
   part: { kind: string; count: number } | string,
 ) {
-  if (typeof part === "string") return theme.fg("muted", `  ${part}`);
+  if (typeof part === "string") return theme.fg("muted", part);
   return [
-    "  ",
     theme.fg(kindColor(part.kind), `${part.kind}:`),
     theme.fg("text", ` ${part.count}`),
   ].join("");
+}
+
+function framedLine(theme: any, content: string, width: number) {
+  const innerWidth = Math.max(0, width - 4);
+  const body = truncateToWidth(content, innerWidth, "…");
+  const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(body)));
+  return [theme.fg("error", "│ "), body, padding, theme.fg("error", " │")].join(
+    "",
+  );
+}
+
+function frameBorder(theme: any, width: number, side: "top" | "bottom") {
+  const left = side === "top" ? "╭" : "╰";
+  const right = side === "top" ? "╮" : "╯";
+  return theme.fg(
+    "error",
+    `${left}${"─".repeat(Math.max(0, width - 2))}${right}`,
+  );
 }
 
 function statsFor(entries: Entry[], ids: Set<string>): DeleteStats {
@@ -148,6 +166,26 @@ function collectSubtreeIds(entries: Entry[], rootId: string) {
         ids.add(entry.id);
         changed = true;
       }
+    }
+  }
+
+  return ids;
+}
+
+function collectVisualSubtreeIds(treeList: any, rootId: string) {
+  const root = treeList.flatNodes?.find(
+    (flatNode: any) => flatNode.node.entry.id === rootId,
+  )?.node;
+  const ids = new Set<string>();
+  const stack = root ? [root] : [];
+
+  while (stack.length > 0) {
+    const node = stack.pop();
+    const id = node?.entry?.id;
+    if (!id || ids.has(id)) continue;
+    ids.add(id);
+    for (const child of node.children ?? []) {
+      stack.push(child);
     }
   }
 
@@ -250,13 +288,16 @@ function updateTreeListAfterDeletion(
 }
 
 function targetIdsFor(treeList: any, state: DeleteState) {
-  if (state.confirmation) return state.confirmation.ids;
-  const id = selectedEntryId(treeList);
+  const id = state.confirmation?.rootId ?? selectedEntryId(treeList);
   if (!id) return new Set<string>();
+
   const entries = treeList.flatNodes.map(
     (flatNode: any) => flatNode.node.entry,
   );
-  return collectDeletionIds(entries, id);
+  return new Set([
+    ...collectDeletionIds(entries, id),
+    ...collectVisualSubtreeIds(treeList, id),
+  ]);
 }
 
 function performDeletion(
@@ -308,35 +349,38 @@ async function showDeleteDialog(
         }
       },
       render(width: number) {
-        const line = dialogTheme.fg("error", "─".repeat(Math.max(0, width)));
         const parts =
           confirmation.stats.parts.length > 0
             ? confirmation.stats.parts
             : ["none"];
+        const title = dialogTheme.fg(
+          "error",
+          dialogTheme.bold(
+            `Delete selected subtree? ${confirmation.stats.total} node${confirmation.stats.total === 1 ? "" : "s"}`,
+          ),
+        );
+        const help = dialogTheme.fg(
+          "muted",
+          `${keyHint("tui.select.confirm", "confirm")} · ${keyHint("tui.select.cancel", "cancel")}`,
+        );
+
         return [
-          truncateToWidth(line, width),
-          truncateToWidth(
-            dialogTheme.fg(
-              "error",
-              dialogTheme.bold(
-                `Delete selected subtree? ${confirmation.stats.total} node${confirmation.stats.total === 1 ? "" : "s"}`,
-              ),
-            ),
-            width,
-          ),
-          "",
+          truncateToWidth(frameBorder(dialogTheme, width, "top"), width),
+          truncateToWidth(framedLine(dialogTheme, title, width), width),
+          truncateToWidth(framedLine(dialogTheme, "", width), width),
           ...parts.map((part) =>
-            truncateToWidth(renderStatsPart(dialogTheme, part), width),
-          ),
-          "",
-          truncateToWidth(
-            dialogTheme.fg(
-              "muted",
-              `${keyHint("tui.select.confirm", "confirm")} · ${keyHint("tui.select.cancel", "cancel")}`,
+            truncateToWidth(
+              framedLine(
+                dialogTheme,
+                renderStatsPart(dialogTheme, part),
+                width,
+              ),
+              width,
             ),
-            width,
           ),
-          truncateToWidth(line, width),
+          truncateToWidth(framedLine(dialogTheme, "", width), width),
+          truncateToWidth(framedLine(dialogTheme, help, width), width),
+          truncateToWidth(frameBorder(dialogTheme, width, "bottom"), width),
         ];
       },
     }),
@@ -450,7 +494,7 @@ function patchTreeList(
       const plain = stripAnsi(lines[lineIndex] ?? "");
       lines[lineIndex] = truncateToWidth(
         index === treeList.selectedIndex
-          ? theme.fg("error", theme.bg("selectedBg", theme.bold(plain)))
+          ? theme.bg("selectedBg", theme.fg("error", theme.bold(plain)))
           : theme.fg("error", plain),
         width,
       );
@@ -498,16 +542,19 @@ function patchTreeSelector(
 
     if (hintIndex >= 0) {
       const sep = theme.fg("muted", " · ");
-      const hint =
+      const suffix = sep + rawKeyHint("alt+d", state.mode ? "exit" : "delete");
+      const base =
         state.mode || state.confirmation
           ? "  " +
             [
               keyHint("tui.select.confirm", "review"),
               keyHint("tui.select.cancel", "cancel"),
-              rawKeyHint("alt+d", "exit"),
               theme.fg("muted", "move/filter/fold OK"),
             ].join(sep)
-          : [rawKeyHint("alt+d", "delete"), lines[hintIndex]].join(sep);
+          : lines[hintIndex];
+      const hint =
+        truncateToWidth(base, Math.max(0, width - visibleWidth(suffix)), "…") +
+        suffix;
       lines[hintIndex] = truncateToWidth(hint, width);
     }
 
