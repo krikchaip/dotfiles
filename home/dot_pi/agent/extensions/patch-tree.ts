@@ -15,7 +15,7 @@ import {
 } from "@earendil-works/pi-tui";
 
 const TREE_DELETE_PATCHED = "__treeDeletePatched";
-const TREE_DELETE_PATCH_VERSION = 1;
+const TREE_DELETE_PATCH_VERSION = 2;
 
 type Entry = {
   id: string;
@@ -308,7 +308,6 @@ async function showDeleteDialog(
         anchor: "center",
         width: "70%",
         minWidth: 50,
-        maxWidth: 90,
         margin: 2,
       },
     },
