@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+export PATH="$HOME/.local/share/mise/installs/node/latest/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+
 LABEL="com.r3nniw.pi-antigravity-rotator"
 
 PLIST_PATH="$HOME/Library/LaunchAgents/${LABEL}.plist"
@@ -143,6 +145,7 @@ start_service() {
   if launchctl print "$SERVICE_TARGET" >/dev/null 2>&1; then
     state="$(service_state || true)"
     if [ "$state" = "running" ]; then
+      par_start
       echo "Already running: $SERVICE_TARGET"
       return 0
     fi
