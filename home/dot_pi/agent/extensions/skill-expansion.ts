@@ -1,3 +1,8 @@
+/**
+ * Detect inline `/skill:name` references and appending their
+ * absolute file paths as a footer map, facilitating skill discovery for the LLM.
+ */
+
 import {
   AgentSession,
   type ExtensionAPI,

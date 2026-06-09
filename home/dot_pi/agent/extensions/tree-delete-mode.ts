@@ -1,7 +1,9 @@
 /**
- * Patch /tree.
+ * Tree deletion mode for /tree.
  *
- * Adds Alt+D subtree deletion mode to the native tree selector.
+ * Adds Alt+D mode to preview and confirm deletion of the selected subtree.
+ * Highlights affected tree nodes, shows deletion stats, deletes linked labels,
+ * rewrites the session file, and moves the active leaf to the nearest kept parent.
  */
 
 import { realpathSync } from "node:fs";

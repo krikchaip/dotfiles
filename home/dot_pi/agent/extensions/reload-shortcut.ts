@@ -1,5 +1,5 @@
 /**
- * Patch built-in keybindings
+ * /reload keyboard shortcut
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";

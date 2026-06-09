@@ -1,5 +1,5 @@
 /**
- * Patch built-in tools.
+ * Enable all built-in tools.
  */
 
 import type {

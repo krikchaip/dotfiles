@@ -1,3 +1,8 @@
+/**
+ * Patches ModelSelectorComponent and ScopedModelsSelectorComponent to reset
+ * selectedIndex to 0 whenever search input text changes.
+ */
+
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 interface SearchInput {

@@ -1,3 +1,8 @@
+/**
+ * Enabling inline auto-completion for skill commands (e.g. `/skill:...`)
+ * by patching the TUI editor to trigger suggestions when typing slash-prefixed queries.
+ */
+
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   Editor,

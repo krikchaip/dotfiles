@@ -1,5 +1,10 @@
 /**
  * Add /undo and /redo session navigation commands.
+ *
+ * - `/undo` (default alt+u): aborts current stream, reverts session to the parent
+ *   of the latest user message, and loads that message's text back into the editor.
+ * - `/redo` (default alt+shift+u): restores the previously undone session branch and editor state.
+ * - Guards against dirty editor states; resets tracking on new messages or manual tree navigation.
  */
 
 import { existsSync, readFileSync } from "node:fs";
