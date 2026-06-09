@@ -1,28 +1,20 @@
 {
-  "lastChangelogVersion": "0.78.1",
+  "lastChangelogVersion": "0.79.0",
   "defaultProvider": "antigravity",
-  "defaultModel": "gemini-3.5-flash-low",
+  "defaultModel": "gemini-3.5-flash-high",
   "treeFilterMode": "no-tools",
   "hideThinkingBlock": true,
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "high",
   "enableInstallTelemetry": false,
   "doubleEscapeAction": "none",
   "autocompleteMaxVisible": 10,
   "enabledModels": [
-    "antigravity/gemini-3.5-flash-low",
     "antigravity/gemini-3.5-flash-high",
-    "antigravity/gemini-3.1-pro-low",
     "antigravity/gemini-3.1-pro-high",
-    "antigravity/claude-sonnet-4-6",
     "antigravity/claude-opus-4-6-thinking",
-    "github-copilot/gpt-5.3-codex",
-    "github-copilot/gpt-5.4",
     "github-copilot/gpt-5.5",
-    "github-copilot/claude-sonnet-4.6",
-    "github-copilot/claude-opus-4.6",
     "github-copilot/claude-opus-4.8",
     "opencode/big-pickle",
-    "opencode/kimi-k2.6",
     "openrouter/openrouter/free"
   ],
   "npmCommand": [
@@ -102,3 +94,4 @@
   "workingVibeMode": "file",
   "workingVibeModel": "openrouter/openrouter/free"
 }
+
