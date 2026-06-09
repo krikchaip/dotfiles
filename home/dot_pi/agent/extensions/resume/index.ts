@@ -22,7 +22,6 @@ import {
 import { wrapWithSessionPreview } from "./session-preview";
 
 const RESUME_PATCHED = "__resumePreviewPatched";
-const RESUME_PATCH_VERSION = 6;
 
 const sessionInfoCache = new Map<
   string,
@@ -115,8 +114,8 @@ export default function (_pi: ExtensionAPI) {
   const proto = InteractiveMode.prototype as PatchedInteractiveMode;
   const patchState = proto[RESUME_PATCHED];
 
-  if (!patchState || patchState.version !== RESUME_PATCH_VERSION) {
-    const originalShow = patchState?.originalShow ?? proto.showSessionSelector;
+  if (!patchState) {
+    const originalShow = proto.showSessionSelector;
 
     proto.showSessionSelector = function (this: PatchedInteractiveMode) {
       setResumeSessionScope(
@@ -156,6 +155,6 @@ export default function (_pi: ExtensionAPI) {
       }
     };
 
-    proto[RESUME_PATCHED] = { version: RESUME_PATCH_VERSION, originalShow };
+    proto[RESUME_PATCHED] = { originalShow };
   }
 }

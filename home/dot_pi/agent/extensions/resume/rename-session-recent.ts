@@ -9,7 +9,6 @@ import { closeSync, openSync, readSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const RENAME_PATCHED = "__renameBumpPatched";
-const RENAME_PATCH_VERSION = 4;
 
 /** Bytes read from tail of session file when scanning for session_info name. */
 const SESSION_INFO_TAIL_BYTES = 256 * 1024;
@@ -83,9 +82,7 @@ export function applyRenameSessionRecent(
   const patchState = (SessionManager.prototype as any)[RENAME_PATCHED];
 
   if (!patchState) {
-    (SessionManager.prototype as any)[RENAME_PATCHED] = {
-      version: RENAME_PATCH_VERSION,
-    };
+    (SessionManager.prototype as any)[RENAME_PATCHED] = true;
 
     const origAppend = SessionManager.prototype.appendSessionInfo;
     SessionManager.prototype.appendSessionInfo = function (name: string) {
@@ -196,8 +193,6 @@ export function applyRenameSessionRecent(
       }
       return bumped;
     };
-  } else if (patchState.version !== RENAME_PATCH_VERSION) {
-    patchState.version = RENAME_PATCH_VERSION;
   }
 
   return SessionManager;
