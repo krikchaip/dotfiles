@@ -25,10 +25,10 @@
     "model": "antigravity/gemini-3.5-flash-high",
     "autoTrigger": {
       "enabled": true,
-      "absoluteTokens": "120k",
+      "absoluteTokens": "100k",
       "contextWindowFamilies": {
         "200k": "100k",
-        "400k": "140k",
+        "400k": "150k",
         "1m": "200k"
       }
     }
