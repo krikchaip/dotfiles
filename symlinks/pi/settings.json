@@ -92,6 +92,6 @@
   },
   "workingVibe": "zen",
   "workingVibeMode": "file",
-  "workingVibeModel": "openrouter/openrouter/free"
+  "workingVibeModel": "openrouter/openrouter/free",
+  "defaultProjectTrust": "always"
 }
-
