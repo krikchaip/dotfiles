@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.79.0",
+  "lastChangelogVersion": "0.79.1",
   "defaultProvider": "antigravity",
   "defaultModel": "gemini-3.5-flash-high",
   "treeFilterMode": "no-tools",
@@ -93,5 +93,19 @@
   "workingVibe": "zen",
   "workingVibeMode": "file",
   "workingVibeModel": "openrouter/openrouter/free",
-  "defaultProjectTrust": "always"
+  "defaultProjectTrust": "always",
+  "compaction": {
+    "enabled": true,
+    "model": "antigravity/gemini-3.5-flash-high",
+    "autoTrigger": {
+      "enabled": true,
+      "absoluteTokens": "120k",
+      "contextWindowFamilies": {
+        "200k": "100k",
+        "400k": "140k",
+        "1m": "200k"
+      }
+    }
+  }
 }
+
