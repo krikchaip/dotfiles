@@ -1,13 +1,16 @@
 {
   "lastChangelogVersion": "0.79.1",
-  "defaultProvider": "antigravity",
-  "defaultModel": "gemini-3.5-flash-high",
-  "treeFilterMode": "no-tools",
-  "hideThinkingBlock": true,
-  "defaultThinkingLevel": "high",
+  "quietStartup": false,
   "enableInstallTelemetry": false,
+  "treeFilterMode": "no-tools",
   "doubleEscapeAction": "none",
+  "defaultProjectTrust": "always",
   "autocompleteMaxVisible": 10,
+  "theme": "everforest-dark-hard",
+  "defaultProvider": "antigravity",
+  "defaultModel": "claude-opus-4-6-thinking",
+  "defaultThinkingLevel": "high",
+  "hideThinkingBlock": true,
   "enabledModels": [
     "antigravity/gemini-3.5-flash-high",
     "antigravity/gemini-3.1-pro-high",
@@ -17,6 +20,24 @@
     "opencode/big-pickle",
     "openrouter/openrouter/free"
   ],
+  "compaction": {
+    "enabled": true,
+    "model": "antigravity/gemini-3.5-flash-high",
+    "autoTrigger": {
+      "enabled": true,
+      "absoluteTokens": "120k",
+      "contextWindowFamilies": {
+        "200k": "100k",
+        "400k": "140k",
+        "1m": "200k"
+      }
+    }
+  },
+  "branchSummary": {
+    "skipPrompt": true
+  },
+  "skills": [],
+  "extensions": [],
   "npmCommand": [
     "mise",
     "exec",
@@ -68,10 +89,6 @@
       }
     }
   },
-  "theme": "everforest-dark-hard",
-  "quietStartup": false,
-  "skills": [],
-  "extensions": [],
   "powerline": {
     "preset": "default"
   },
@@ -92,19 +109,6 @@
   },
   "workingVibe": "zen",
   "workingVibeMode": "file",
-  "workingVibeModel": "openrouter/openrouter/free",
-  "defaultProjectTrust": "always",
-  "compaction": {
-    "enabled": true,
-    "model": "antigravity/gemini-3.5-flash-high",
-    "autoTrigger": {
-      "enabled": true,
-      "absoluteTokens": "120k",
-      "contextWindowFamilies": {
-        "200k": "100k",
-        "400k": "140k",
-        "1m": "200k"
-      }
-    }
-  }
+  "workingVibeModel": "openrouter/openrouter/free"
 }
+
