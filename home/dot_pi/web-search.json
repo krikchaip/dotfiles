@@ -1,6 +1,6 @@
 {
   "workflow": "none",
   "provider": "exa",
-  "summaryModel": "opencode/big-pickle",
+  "summaryModel": "antigravity/gemini-3.5-flash-high",
   "allowBrowserCookies": true
 }
