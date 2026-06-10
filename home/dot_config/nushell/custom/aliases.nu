@@ -116,5 +116,6 @@ alias agb = agent-browser
 alias p = env SHELL=/opt/homebrew/bin/bash NPM_CONFIG_LEGACY_PEER_DEPS=true NVIM_APPNAME=nvchad EDITOR=nvim pi
 alias pc = p -c
 alias pr = p -r
-alias pns = p --no-session
+alias pu = mise upgrade npm:@earendil-works/pi-coding-agent
 alias par = pi-antigravity-rotator
+alias pns = p --no-session
