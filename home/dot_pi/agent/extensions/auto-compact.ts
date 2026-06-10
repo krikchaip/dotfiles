@@ -68,6 +68,7 @@ let allowEarlyAfterCompaction = true;
 let earlyAutoDisabledForBranch = false;
 let stuckWarningShown = false;
 let pendingEarlyReason: string | undefined;
+let lastCompactionNotice: string | undefined;
 
 const warned = new Set<string>();
 
@@ -414,6 +415,7 @@ export default function (pi: ExtensionAPI) {
         event.preparation.settings.reserveTokens,
         event.preparation.tokensBefore,
       ) ?? "";
+    lastCompactionNotice = `${EXTENSION_NAME}: compacted with ${modelName(targetModel)}${focus}${earlyReason}${builtinReason}`;
     notify(
       ctx,
       `${EXTENSION_NAME}: compacting with ${modelName(targetModel)}${focus}${earlyReason}${builtinReason}`,
@@ -453,6 +455,8 @@ export default function (pi: ExtensionAPI) {
     earlyAutoInFlight = false;
     allowEarlyAfterCompaction = false;
     setTimeout(() => {
+      if (lastCompactionNotice) notify(ctx, lastCompactionNotice, "info");
+      lastCompactionNotice = undefined;
       void checkStuckThreshold(ctx);
     }, 0);
   });
