@@ -1,10 +1,10 @@
 ---
-name: zettelkasten
+name: note
 description: Capture, revise, and organize notes in the Obsidian vault following Zettelkasten principles
 disable-model-invocation: true
 ---
 
-# Zettelkasten Skill
+# Zettelkasten Note Taking Skill
 
 This skill defines how to capture, revise, and organize notes in the Obsidian vault
 
