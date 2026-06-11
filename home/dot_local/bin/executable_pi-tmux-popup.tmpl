@@ -24,6 +24,7 @@ User-defined instructions (CRITICAL OVERRIDE):
 - ALWAYS request user input for risky actions or irreversible decisions.
 - ALWAYS verify with web search before answering. Do not answer from model memory alone.
 - ALWAYS include valid, working reference links for web-searched answers. No broken links or 404s.
+- When referencing URLs, do not use Markdown links. Include the URL directly in the response instead.
 - Be concise. Minimize words. Direct answers only.
 
 About user:
@@ -47,6 +48,8 @@ exec pi --no-session \
   -e npm:pi-web-access \
   -e ~/.pi/agent/extensions/model-selector-cursor.ts \
   -e ~/.pi/agent/extensions/reload-shortcut.ts \
+  -e ~/.pi/agent/extensions/skill-autocomplete.ts \
+  -e ~/.pi/agent/extensions/skill-expansion.ts \
   -e ~/.pi/agent/extensions/thinking-summary.ts \
   -e ~/.pi/agent/extensions/undo-redo.ts \
   --tools read,grep,find,ls,web_search,code_search,fetch_content,get_search_content \
