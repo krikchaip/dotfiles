@@ -106,9 +106,6 @@
     "scrollChatDown": "ctrl+down",
     "scrollChatUp": "ctrl+up",
     "stashHistory": "ctrl+alt+h"
-  },
-  "workingVibe": "zen",
-  "workingVibeMode": "file",
-  "workingVibeModel": "openrouter/openrouter/free"
+  }
 }
 
