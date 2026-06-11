@@ -34,6 +34,7 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { randomInt } from "node:crypto";
 import { createRequire } from "node:module";
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -65,7 +66,7 @@ interface ImageInstance {
   imageId?: number;
   cachedLines?: string[];
   cachedWidth?: number;
-  __u1Placed?: boolean;
+  __u1ImageId?: number;
   render(width: number): string[];
 }
 
@@ -173,16 +174,22 @@ function imageCellSize(
   };
 }
 
-let nextU1Id = 1;
+const transmittedIds = new Set<number>();
+
+// Kitty image ids are terminal-global and can outlive a pi popup process.
+// Start each process in a random 24-bit range instead of replaying id=1,2,3...
+let nextU1Id = randomInt(1, 0x1000000);
 
 function allocU1Id(): number {
   // 24-bit so the id fits entirely in a truecolor foreground (no 3rd diacritic).
-  const id = nextU1Id;
-  nextU1Id = (nextU1Id % 0xffffff) + 1;
-  return id;
-}
+  for (let attempt = 0; attempt < 0xffffff; attempt++) {
+    const id = nextU1Id;
+    nextU1Id = (nextU1Id % 0xffffff) + 1;
+    if (!transmittedIds.has(id)) return id;
+  }
 
-const transmittedIds = new Set<number>();
+  return randomInt(1, 0x1000000);
+}
 
 /** One-time `a=t` transmit (no display) for an image id; chunked for >4 KB. */
 function transmitImage(id: number, base64: string): void {
@@ -270,14 +277,15 @@ function installU1Renderer(mod: PiTuiModule): void {
       const maxHeight = this.options.maxHeightCells ?? defaultMaxHeight;
       const size = imageCellSize(this.dimensions, maxWidth, maxHeight, cell);
 
-      if (this.imageId === undefined || this.imageId > 0xffffff) {
-        this.imageId = allocU1Id();
+      if (this.__u1ImageId === undefined) {
+        this.__u1ImageId = allocU1Id();
+        this.imageId = this.__u1ImageId;
       }
 
-      transmitImage(this.imageId, this.base64Data);
-      placeVirtual(this.imageId, size.columns, size.rows);
+      transmitImage(this.__u1ImageId, this.base64Data);
+      placeVirtual(this.__u1ImageId, size.columns, size.rows);
 
-      const lines = placeholderLines(this.imageId, size.columns, size.rows);
+      const lines = placeholderLines(this.__u1ImageId, size.columns, size.rows);
 
       this.cachedLines = lines;
       this.cachedWidth = width;
