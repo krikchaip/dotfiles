@@ -34,7 +34,8 @@
     }
   },
   "branchSummary": {
-    "skipPrompt": true
+    "skipPrompt": true,
+    "model": "antigravity/gemini-3.5-flash-high"
   },
   "skills": [],
   "extensions": [],
