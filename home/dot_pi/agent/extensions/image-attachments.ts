@@ -1,4 +1,5 @@
 import {
+  AgentSession,
   InteractiveMode,
   type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
@@ -8,12 +9,20 @@ import {
   truncateToWidth,
   type Component,
 } from "@earendil-works/pi-tui";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { extname } from "node:path";
 
-const PATCH_STATE = Symbol.for(
+const RENDER_PATCH_STATE = Symbol.for(
   "pi-image-attachments.user-message-render.patch",
+);
+const PROMPT_PATCH_STATE = Symbol.for(
+  "pi-image-attachments.prompt-content.patch",
 );
 const ATTACHED_LABEL_PATTERN = /^Attached \[#image ([1-9]\d*)\]$/;
 const PLACEHOLDER_PATTERN = /^\[#image ([1-9]\d*)\]$/;
+const CLIPBOARD_IMAGE_PATH_PATTERN =
+  /(^|[\s"'`([{<])((?:\/[^\s"'`()\[\]{}<>]+)*\/pi-clipboard-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.(?:png|jpe?g|gif|webp))(?=$|[\s"'`)\]}>,.!?;:])/g;
 
 type TextBlock = {
   type: "text";
@@ -27,6 +36,7 @@ type ImageBlock = {
   piImageMeta?: {
     id?: number;
     label?: string;
+    hash?: string;
   };
 };
 
@@ -35,8 +45,18 @@ type SubmittedAttachment = {
   image: ImageBlock;
 };
 
-type PatchState = {
+type RenderPatchState = {
   originalAddMessageToChat: (message: any, options?: any) => void;
+};
+
+type PromptPatchState = {
+  originalRunAgentPrompt: (messages: any) => Promise<void>;
+};
+
+type LoadedImage = {
+  data: string;
+  hash: string;
+  mimeType: string;
 };
 
 type RenderTheme = {
@@ -130,6 +150,8 @@ class SubmittedImagesComponent implements Component {
 
     for (let index = 0; index < this.attachments.length; index++) {
       const attachment = this.attachments[index]!;
+
+      lines.push("");
       lines.push(
         truncateToWidth(
           this.theme.fg("muted", attachment.label),
@@ -177,11 +199,213 @@ function themeForInteractiveMode(instance: any): RenderTheme {
   );
 }
 
+function idFromText(block: unknown): number | undefined {
+  if (!isTextBlock(block)) return undefined;
+  const attachedMatch = block.text.match(ATTACHED_LABEL_PATTERN);
+  if (attachedMatch?.[1]) return Number(attachedMatch[1]);
+
+  const placeholderMatch = block.text.match(PLACEHOLDER_PATTERN);
+  if (placeholderMatch?.[1]) return Number(placeholderMatch[1]);
+
+  return undefined;
+}
+
+function idFromImage(block: ImageBlock): number | undefined {
+  const id = block.piImageMeta?.id;
+  return typeof id === "number" && Number.isInteger(id) && id > 0
+    ? id
+    : undefined;
+}
+
+function maxSubmittedImageId(messages: unknown): number {
+  const list = Array.isArray(messages) ? messages : [messages];
+  let max = 0;
+
+  for (const message of list) {
+    const content = (message as any)?.content;
+    if (!Array.isArray(content)) continue;
+
+    for (let index = 0; index < content.length; index++) {
+      const block = content[index];
+      if (!isImageBlock(block)) continue;
+
+      const id = idFromImage(block) ?? idFromText(content[index - 1]);
+      max = id ? Math.max(max, id) : max + 1;
+    }
+  }
+
+  return max;
+}
+
+function detectSupportedMimeType(
+  path: string,
+  bytes: Buffer,
+): string | undefined {
+  const extension = extname(path).toLowerCase();
+
+  if (
+    extension === ".png" &&
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+
+  if (
+    (extension === ".jpg" || extension === ".jpeg") &&
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  ) {
+    return "image/jpeg";
+  }
+
+  if (
+    extension === ".gif" &&
+    bytes.length >= 6 &&
+    (bytes.subarray(0, 6).toString("ascii") === "GIF87a" ||
+      bytes.subarray(0, 6).toString("ascii") === "GIF89a")
+  ) {
+    return "image/gif";
+  }
+
+  if (
+    extension === ".webp" &&
+    bytes.length >= 12 &&
+    bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
+    bytes.subarray(8, 12).toString("ascii") === "WEBP"
+  ) {
+    return "image/webp";
+  }
+
+  return undefined;
+}
+
+function loadClipboardImage(path: string): LoadedImage | undefined {
+  try {
+    const bytes = readFileSync(path);
+    const mimeType = detectSupportedMimeType(path, bytes);
+    if (!mimeType) return undefined;
+
+    return {
+      data: bytes.toString("base64"),
+      hash: createHash("sha256").update(bytes).digest("hex"),
+      mimeType,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function replaceClipboardImagePaths(
+  text: string,
+  nextId: number,
+): {
+  attachments: SubmittedAttachment[];
+  text: string;
+} {
+  const attachments: SubmittedAttachment[] = [];
+
+  const replaced = text.replace(
+    CLIPBOARD_IMAGE_PATH_PATTERN,
+    (match: string, prefix: string, path: string) => {
+      const loaded = loadClipboardImage(path);
+      if (!loaded) return match;
+
+      const id = nextId + attachments.length;
+      const placeholder = `[#image ${id}]`;
+      const label = `Attached ${placeholder}`;
+      const image: ImageBlock = {
+        type: "image",
+        data: loaded.data,
+        mimeType: loaded.mimeType,
+        piImageMeta: {
+          id,
+          label,
+          hash: loaded.hash,
+        },
+      };
+
+      attachments.push({ label, image });
+      return `${prefix}${placeholder}`;
+    },
+  );
+
+  return { attachments, text: replaced };
+}
+
+function transformClipboardImagePaths(
+  message: any,
+  nextId: number,
+): {
+  count: number;
+  message: any;
+} {
+  if (message?.role !== "user" || !Array.isArray(message.content)) {
+    return { count: 0, message };
+  }
+
+  let count = 0;
+  const content: Array<TextBlock | ImageBlock | unknown> = [];
+
+  for (const block of message.content) {
+    if (!isTextBlock(block)) {
+      content.push(block);
+      continue;
+    }
+
+    const result = replaceClipboardImagePaths(block.text, nextId + count);
+    content.push({ ...block, text: result.text });
+
+    for (const attachment of result.attachments) {
+      content.push(attachment.image);
+    }
+
+    count += result.attachments.length;
+  }
+
+  return count === 0
+    ? { count, message }
+    : { count, message: { ...message, content } };
+}
+
+function patchPromptContent() {
+  const prototype = AgentSession.prototype as any;
+  const state = (prototype[PROMPT_PATCH_STATE] ??= {
+    originalRunAgentPrompt: prototype._runAgentPrompt,
+  }) as PromptPatchState;
+
+  prototype._runAgentPrompt = function patchedRunAgentPrompt(messages: any) {
+    const existingMax = maxSubmittedImageId(this?.agent?.state?.messages);
+    let nextId = existingMax + 1;
+
+    const transform = (message: any) => {
+      const result = transformClipboardImagePaths(message, nextId);
+      nextId += result.count;
+      return result.message;
+    };
+
+    const transformed = Array.isArray(messages)
+      ? messages.map(transform)
+      : transform(messages);
+
+    return state.originalRunAgentPrompt.call(this, transformed);
+  };
+}
+
 function patchUserMessageRendering() {
   const prototype = InteractiveMode.prototype as any;
-  const state = (prototype[PATCH_STATE] ??= {
+  const state = (prototype[RENDER_PATCH_STATE] ??= {
     originalAddMessageToChat: prototype.addMessageToChat,
-  }) as PatchState;
+  }) as RenderPatchState;
 
   prototype.addMessageToChat = function patchedAddMessageToChat(
     message: any,
@@ -216,5 +440,6 @@ function patchUserMessageRendering() {
 }
 
 export default function (_pi: ExtensionAPI) {
+  patchPromptContent();
   patchUserMessageRendering();
 }
