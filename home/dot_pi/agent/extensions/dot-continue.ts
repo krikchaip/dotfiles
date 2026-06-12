@@ -45,39 +45,6 @@ function entriesOf(sessionManager: any) {
   return (sessionManager.getEntries?.() ?? []) as Entry[];
 }
 
-function byId(entries: Entry[]) {
-  return new Map(entries.map((entry) => [entry.id, entry]));
-}
-
-function nearestKeptParent(
-  entry: Entry,
-  entriesById: Map<string, Entry>,
-  deletedIds: Set<string>,
-) {
-  let parentId = entry.parentId;
-  while (parentId && deletedIds.has(parentId)) {
-    parentId = entriesById.get(parentId)?.parentId ?? null;
-  }
-  return parentId;
-}
-
-function collectSubtreeIds(entries: Entry[], rootId: string) {
-  const ids = new Set<string>([rootId]);
-  let changed = true;
-
-  while (changed) {
-    changed = false;
-    for (const entry of entries) {
-      if (!ids.has(entry.id) && entry.parentId && ids.has(entry.parentId)) {
-        ids.add(entry.id);
-        changed = true;
-      }
-    }
-  }
-
-  return ids;
-}
-
 function collectLinkedLabelIds(entries: Entry[], ids: Set<string>) {
   const result = new Set(ids);
   let changed = true;
@@ -96,21 +63,6 @@ function collectLinkedLabelIds(entries: Entry[], ids: Set<string>) {
   return result;
 }
 
-function leafAfterDeletion(
-  sessionManager: any,
-  root: Entry,
-  deletedIds: Set<string>,
-  entriesById: Map<string, Entry>,
-) {
-  const leafId = sessionManager.getLeafId?.() ?? null;
-  if (!leafId || !deletedIds.has(leafId)) return leafId;
-
-  const leaf = entriesById.get(leafId);
-  return leaf
-    ? nearestKeptParent(leaf, entriesById, deletedIds)
-    : root.parentId;
-}
-
 function commitSessionRewrite(
   sessionManager: any,
   nextEntries: Entry[],
@@ -121,46 +73,6 @@ function commitSessionRewrite(
   sessionManager.leafId = nextLeafId;
   sessionManager._rewriteFile?.();
   if (sessionManager.isPersisted?.()) sessionManager.flushed = true;
-}
-
-function deleteSubtree(sessionManager: any, rootId: string) {
-  const entries = entriesOf(sessionManager);
-  const root = entries.find((entry) => entry.id === rootId);
-  if (!root) throw new Error(`Entry ${rootId} not found`);
-
-  const subtreeIds = collectSubtreeIds(entries, rootId);
-  const deletedIds = collectLinkedLabelIds(entries, subtreeIds);
-  const entriesById = byId(entries);
-  const nextLeafId = leafAfterDeletion(
-    sessionManager,
-    root,
-    deletedIds,
-    entriesById,
-  );
-  const nextEntries = sessionManager.fileEntries
-    .filter(
-      (entry: Entry) => entry.type === "session" || !deletedIds.has(entry.id),
-    )
-    .map((entry: Entry) => {
-      if (
-        entry.type === "session" ||
-        !entry.parentId ||
-        !deletedIds.has(entry.parentId)
-      ) {
-        return entry;
-      }
-      return {
-        ...entry,
-        parentId: nearestKeptParent(entry, entriesById, deletedIds),
-      };
-    });
-
-  commitSessionRewrite(sessionManager, nextEntries, nextLeafId);
-
-  for (const id of deletedIds) {
-    sessionManager.labelsById?.delete?.(id);
-    sessionManager.labelTimestampsById?.delete?.(id);
-  }
 }
 
 function deleteEntryPromoteChildren(sessionManager: any, entryId: string) {
