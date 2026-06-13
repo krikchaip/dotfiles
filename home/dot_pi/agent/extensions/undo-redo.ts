@@ -15,6 +15,7 @@ import type {
   ExtensionCommandContext,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import type { KeyId } from "@earendil-works/pi-tui";
 
 type RedoFrame = {
   leafId: string | null;
@@ -31,8 +32,8 @@ type UserEntry = {
   };
 };
 
-const DEFAULT_UNDO_SHORTCUTS = ["alt+u"];
-const DEFAULT_REDO_SHORTCUTS = ["alt+shift+u"];
+const DEFAULT_UNDO_SHORTCUTS: KeyId[] = ["alt+u"];
+const DEFAULT_REDO_SHORTCUTS: KeyId[] = ["alt+shift+u"];
 const USER_KEYBINDINGS = join(homedir(), ".pi", "agent", "keybindings.json");
 
 let redoStack: RedoFrame[] = [];
@@ -41,19 +42,19 @@ let internalNavigationDepth = 0;
 let resetBeforeNextUndo = false;
 let redoKeyHint = "alt+shift+u";
 
-function configuredShortcuts(key: string, defaults: string[]) {
+function configuredShortcuts(key: string, defaults: KeyId[]): KeyId[] {
   if (!existsSync(USER_KEYBINDINGS)) return defaults;
 
   try {
     const parsed = JSON.parse(readFileSync(USER_KEYBINDINGS, "utf8"));
     const value = parsed?.[key];
 
-    if (typeof value === "string") return [value];
+    if (typeof value === "string") return [value as KeyId];
     if (
       Array.isArray(value) &&
       value.every((item) => typeof item === "string")
     ) {
-      return value;
+      return value as KeyId[];
     }
     if (value === undefined) return defaults;
   } catch {
@@ -197,7 +198,7 @@ async function handleRedo(ctx: ExtensionCommandContext) {
     const frame = redoStack.pop()!;
 
     if (frame.leafId === null) {
-      ctx.sessionManager.resetLeaf();
+      (ctx.sessionManager as any).resetLeaf();
       ctx.ui.setEditorText(frame.promptText ?? "");
       ownedEditorText = frame.promptText;
       if (redoStack.length > 0) {
@@ -272,7 +273,7 @@ async function triggerShortcutCommand(
 
 function registerShortcutCommand(
   pi: ExtensionAPI,
-  shortcut: string,
+  shortcut: KeyId,
   command: "undo" | "redo",
 ) {
   pi.registerShortcut(shortcut, {
