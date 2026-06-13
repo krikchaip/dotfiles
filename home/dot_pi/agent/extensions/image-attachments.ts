@@ -4,6 +4,7 @@ import {
   InteractiveMode,
   UserMessageComponent,
   type ExtensionAPI,
+  type ThemeColor,
 } from "@earendil-works/pi-coding-agent";
 import {
   Editor,
@@ -38,8 +39,10 @@ const CLIPBOARD_IMAGE_PATH_PATTERN =
 const DRAFT_THUMB_MAX_WIDTH = 25;
 const DRAFT_THUMB_MAX_ROWS = 10;
 const DRAFT_THUMB_GAP = 1;
-const DRAFT_PREVIEW_FRAME_COLOR = "dim";
-const DRAFT_PREVIEW_LABEL_COLOR = "dim";
+const DRAFT_PREVIEW_FRAME_COLOR: ThemeColor = "dim";
+const DRAFT_PREVIEW_LABEL_COLOR: ThemeColor = "dim";
+const DRAFT_PREVIEW_ACTIVE_HIGHLIGHT_MODE: DraftPreviewActiveHighlightMode =
+  "label";
 
 // ---------------------------------------------------------------------------
 // Draft Store — holds clipboard images between paste and submit
@@ -247,6 +250,8 @@ let currentEditorActiveImageId: number | undefined;
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+type DraftPreviewActiveHighlightMode = "frame" | "label";
 
 type TextBlock = { type: "text"; text: string };
 
@@ -732,6 +737,9 @@ class DraftPreviewComponent implements Component {
         ];
 
     const active = att.id === this.activeId;
+    const frameActive =
+      active && DRAFT_PREVIEW_ACTIVE_HIGHLIGHT_MODE === "frame";
+    const labelActive = active;
     const topPadding = Math.max(
       0,
       Math.floor((DRAFT_THUMB_MAX_ROWS - imageLines.length) / 2),
@@ -739,16 +747,16 @@ class DraftPreviewComponent implements Component {
     const bodyLines: string[] = [];
     for (let row = 0; row < DRAFT_THUMB_MAX_ROWS; row++) {
       const imageLine = imageLines[row - topPadding] ?? "";
-      bodyLines.push(this.frameBodyLine(imageLine, innerWidth, active));
+      bodyLines.push(this.frameBodyLine(imageLine, innerWidth, frameActive));
     }
 
     return [
-      this.frameTopLine(innerWidth, active),
+      this.frameTopLine(innerWidth, frameActive),
       ...bodyLines,
       this.frameLabelLine(
-        previewLabelStyle(this.theme, `[#image ${att.id}]`, active),
+        previewLabelStyle(this.theme, `[#image ${att.id}]`, labelActive),
         innerWidth,
-        active,
+        frameActive,
       ),
     ];
   }
