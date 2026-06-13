@@ -200,6 +200,10 @@ type PromptPatchState = {
   originalRunAgentPrompt: (messages: any) => Promise<void>;
 };
 
+type PastePatchState = {
+  originalHandleClipboardImagePaste?: () => Promise<void>;
+};
+
 type RenderTheme = { fg: (color: string, text: string) => string };
 
 const fallbackTheme: RenderTheme = { fg: (_color, text) => text };
@@ -622,10 +626,21 @@ function addDraftAttachment(
 
 function patchClipboardImagePaste() {
   const prototype = InteractiveMode.prototype as any;
-  if (prototype[PASTE_PATCH_STATE]) return;
-  prototype[PASTE_PATCH_STATE] = true;
+  const existing = prototype[PASTE_PATCH_STATE] as
+    | PastePatchState
+    | boolean
+    | undefined;
+  const state: PastePatchState =
+    existing && typeof existing === "object"
+      ? existing
+      : { originalHandleClipboardImagePaste: undefined };
 
-  const original = prototype.handleClipboardImagePaste;
+  if (!state.originalHandleClipboardImagePaste && existing !== true) {
+    state.originalHandleClipboardImagePaste =
+      prototype.handleClipboardImagePaste;
+  }
+
+  prototype[PASTE_PATCH_STATE] = state;
 
   prototype.handleClipboardImagePaste = async function (this: any) {
     try {
@@ -643,7 +658,7 @@ function patchClipboardImagePaste() {
       this.editor.insertTextAtCursor?.(`[#image ${draft.id}]`);
       this.ui.requestRender();
     } catch {
-      return original?.call(this);
+      return state.originalHandleClipboardImagePaste?.call(this);
     }
   };
 }
@@ -653,6 +668,14 @@ let currentDraftPreviewSignature = "";
 function clearDraftPreviewWidget(ui: any): void {
   currentDraftPreviewSignature = "";
   ui?.setWidget?.(DRAFT_WIDGET_KEY, undefined, { placement: "aboveEditor" });
+}
+
+function resetDraftForCurrentContext(ctx: any): void {
+  const sessionCtx = ctx?.sessionManager?.buildSessionContext?.();
+  draftStore.reset(maxSubmittedImageId(sessionCtx?.messages));
+  pendingSubmittedDraftIds.clear();
+  nextDraftUndoSnapshot = undefined;
+  if (ctx?.hasUI) clearDraftPreviewWidget(ctx.ui);
 }
 
 function updateDraftPreviewWidget(ui: any, text: string): void {
@@ -873,9 +896,10 @@ function highlightPlainToken(line: string, token: string): string {
 
 function patchEditorAtomicPlaceholders() {
   const prototype = Editor.prototype as any;
-  if (prototype[EDITOR_PATCH_STATE]) return;
-
-  const state: EditorPatchState = {
+  const existing = prototype[EDITOR_PATCH_STATE] as
+    | EditorPatchState
+    | undefined;
+  const state: EditorPatchState = existing ?? {
     originalSegment: prototype.segment,
     originalRender: prototype.render,
     originalHandleBackspace: prototype.handleBackspace,
@@ -1242,14 +1266,11 @@ export default function (pi: ExtensionAPI) {
   patchEditorAtomicPlaceholders();
 
   pi.on("session_start", (_event, ctx) => {
-    const sessionCtx = (ctx as any).sessionManager?.buildSessionContext?.();
-    const max = maxSubmittedImageId(sessionCtx?.messages);
-    draftStore.reset(max);
+    resetDraftForCurrentContext(ctx as any);
 
     if (!(ctx as any).hasUI) return;
 
     const ui = (ctx as any).ui;
-    clearDraftPreviewWidget(ui);
 
     if (draftPreviewPoller) clearInterval(draftPreviewPoller);
     draftPreviewPoller = setInterval(() => {
@@ -1258,6 +1279,14 @@ export default function (pi: ExtensionAPI) {
 
     unsubscribeDragDrop?.();
     unsubscribeDragDrop = ui.onTerminalInput(createDragDropHandler());
+  });
+
+  pi.on("session_tree", (_event, ctx) => {
+    resetDraftForCurrentContext(ctx as any);
+  });
+
+  pi.on("session_compact", (_event, ctx) => {
+    resetDraftForCurrentContext(ctx as any);
   });
 
   pi.on("session_shutdown", (_event, ctx) => {
