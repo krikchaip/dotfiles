@@ -100,10 +100,66 @@ class DraftStore {
     };
   }
 
+  snapshotForText(text: string): DraftStoreSnapshot | undefined {
+    const activeIds = new Set(this.activeForText(text).map((item) => item.id));
+    if (activeIds.size === 0) return undefined;
+
+    const snapshot = this.snapshot();
+    return {
+      ...snapshot,
+      items: snapshot.items.filter((item) => activeIds.has(item.id)),
+    };
+  }
+
   restore(snapshot: DraftStoreSnapshot): void {
     this.items = new Map(snapshot.items.map((item) => [item.id, { ...item }]));
     this._nextId = snapshot.nextId;
     this.persistedMax = snapshot.persistedMax;
+  }
+
+  restoreForHistoryText(
+    text: string,
+    snapshot: DraftStoreSnapshot,
+  ): DraftReconcileResult {
+    const snapshotItems = new Map(
+      snapshot.items.map((item) => [item.id, { ...item }]),
+    );
+    const seen = new Set<number>();
+    const activeIds: number[] = [];
+    const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const id = Number(m[1]);
+      if (seen.has(id) || !snapshotItems.has(id)) continue;
+      seen.add(id);
+      activeIds.push(id);
+    }
+
+    activeIds.sort((a, b) => a - b);
+
+    const idMap = new Map<number, number>();
+    const nextItems = new Map<number, DraftAttachment>();
+    const baseId = this.persistedMax + 1;
+
+    for (let i = 0; i < activeIds.length; i++) {
+      const oldId = activeIds[i]!;
+      const nextId = baseId + i;
+      const item = snapshotItems.get(oldId);
+      if (!item) continue;
+      idMap.set(oldId, nextId);
+      nextItems.set(nextId, { ...item, id: nextId });
+    }
+
+    const newText = text.replace(INLINE_PLACEHOLDER_PATTERN, (token, rawId) => {
+      const nextId = idMap.get(Number(rawId));
+      return nextId ? `[#image ${nextId}]` : token;
+    });
+
+    this.items = nextItems;
+    this._nextId = baseId + nextItems.size;
+
+    return { text: newText, textChanged: newText !== text, idMap };
   }
 
   reconcileText(text: string): DraftReconcileResult {
@@ -170,6 +226,7 @@ class DraftStore {
 }
 
 const draftStore = new DraftStore();
+const submittedImages = new Map<number, DraftAttachment>();
 const pendingSubmittedDraftIds = new Set<number>();
 let nextDraftUndoSnapshot: DraftStoreSnapshot | undefined;
 let draftPreviewPoller: ReturnType<typeof setInterval> | undefined;
@@ -274,11 +331,14 @@ function idFromImage(block: ImageBlock): number | undefined {
     : undefined;
 }
 
+function messageList(messages: unknown): unknown[] {
+  return Array.isArray(messages) ? messages : [messages];
+}
+
 function maxSubmittedImageId(messages: unknown): number {
-  const list = Array.isArray(messages) ? messages : [messages];
   let max = 0;
 
-  for (const message of list) {
+  for (const message of messageList(messages)) {
     const content = (message as any)?.content;
     if (!Array.isArray(content)) continue;
 
@@ -290,6 +350,82 @@ function maxSubmittedImageId(messages: unknown): number {
   }
 
   return max;
+}
+
+function rememberSubmittedImages(messages: unknown, clear = false): void {
+  if (clear) submittedImages.clear();
+
+  for (const message of messageList(messages)) {
+    const content = (message as any)?.content;
+    if (!Array.isArray(content)) continue;
+
+    for (const block of content) {
+      if (!isImageBlock(block) || !block.piImageMeta) continue;
+      const id = idFromImage(block);
+      if (!id || !block.data || !block.mimeType) continue;
+
+      submittedImages.set(id, {
+        id,
+        data: block.data,
+        mimeType: block.mimeType,
+        hash:
+          block.piImageMeta.hash ?? `${block.mimeType}:${block.data.length}`,
+      });
+    }
+  }
+}
+
+function submittedImagesForText(text: string): DraftAttachment[] {
+  const seen = new Set<number>();
+  const ids: number[] = [];
+  const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const id = Number(m[1]);
+    if (seen.has(id) || !submittedImages.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+
+  return ids
+    .sort((a, b) => a - b)
+    .flatMap((id) => {
+      const item = submittedImages.get(id);
+      return item ? [item] : [];
+    });
+}
+
+function previewImagesForText(text: string): DraftAttachment[] {
+  const byId = new Map<number, DraftAttachment>();
+  for (const item of draftStore.activeForText(text)) byId.set(item.id, item);
+  for (const item of submittedImagesForText(text)) byId.set(item.id, item);
+  return [...byId.values()].sort((a, b) => a.id - b.id);
+}
+
+function hasActiveImageId(id: number): boolean {
+  return draftStore.has(id) || submittedImages.has(id);
+}
+
+function submittedImagesCoverSnapshotText(
+  text: string,
+  snapshot: DraftStoreSnapshot,
+): boolean {
+  const snapshotIds = new Set(snapshot.items.map((item) => item.id));
+  if (snapshotIds.size === 0) return false;
+
+  const matchedIds = new Set<number>();
+  const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const id = Number(m[1]);
+    if (snapshotIds.has(id)) matchedIds.add(id);
+  }
+
+  return (
+    matchedIds.size > 0 &&
+    [...matchedIds].every((id) => submittedImages.has(id))
+  );
 }
 
 function detectSupportedMimeType(
@@ -660,6 +796,7 @@ function clearDraftPreviewWidget(ui: any): void {
 
 function resetDraftForCurrentContext(ctx: any): void {
   const sessionCtx = ctx?.sessionManager?.buildSessionContext?.();
+  rememberSubmittedImages(sessionCtx?.messages, true);
   draftStore.reset(maxSubmittedImageId(sessionCtx?.messages));
   pendingSubmittedDraftIds.clear();
   nextDraftUndoSnapshot = undefined;
@@ -669,9 +806,9 @@ function resetDraftForCurrentContext(ctx: any): void {
 function updateDraftPreviewWidget(ui: any, text: string): void {
   if (!ui?.setWidget) return;
 
-  const attachments = draftStore.activeForText(text);
+  const attachments = previewImagesForText(text);
   const signature = attachments
-    .map((item) => `${item.id}:${item.hash}`)
+    .map((item) => `${item.id}:${item.mimeType}:${item.hash}`)
     .join(",");
   if (signature === currentDraftPreviewSignature) return;
 
@@ -709,9 +846,17 @@ type EditorPatchState = {
   originalDeleteToEndOfLine: () => void;
   originalPushUndoSnapshot: () => void;
   originalUndo: () => void;
+  originalAddToHistory: (text: string) => void;
+  originalNavigateHistory: (direction: number) => void;
+  originalExitHistoryBrowsing: () => void;
 };
 
 const editorDraftUndo = new WeakMap<object, DraftStoreSnapshot[]>();
+const editorHistoryDrafts = new WeakMap<
+  object,
+  Array<DraftStoreSnapshot | undefined>
+>();
+const editorHistoryBrowseDraft = new WeakMap<object, DraftStoreSnapshot>();
 
 function activePlaceholderSpans(text: string): Array<{
   id: number;
@@ -724,7 +869,7 @@ function activePlaceholderSpans(text: string): Array<{
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     const id = Number(m[1]);
-    if (!draftStore.has(id)) continue;
+    if (!hasActiveImageId(id)) continue;
     spans.push({ id, start: m.index, end: m.index + m[0].length });
   }
 
@@ -1017,10 +1162,16 @@ function patchEditorAtomicPlaceholders() {
     originalDeleteToEndOfLine: prototype.deleteToEndOfLine,
     originalPushUndoSnapshot: prototype.pushUndoSnapshot,
     originalUndo: prototype.undo,
+    originalAddToHistory: prototype.addToHistory,
+    originalNavigateHistory: prototype.navigateHistory,
+    originalExitHistoryBrowsing: prototype.exitHistoryBrowsing,
   };
 
   state.originalMoveWordBackwards ??= prototype.moveWordBackwards;
   state.originalMoveWordForwards ??= prototype.moveWordForwards;
+  state.originalAddToHistory ??= prototype.addToHistory;
+  state.originalNavigateHistory ??= prototype.navigateHistory;
+  state.originalExitHistoryBrowsing ??= prototype.exitHistoryBrowsing;
   prototype[EDITOR_PATCH_STATE] = state;
 
   prototype.segment = function patchedSegment(
@@ -1105,6 +1256,76 @@ function patchEditorAtomicPlaceholders() {
       draftStore.restore(snapshot);
       this.tui?.requestRender?.();
     }
+  };
+
+  prototype.addToHistory = function patchedAddToHistory(text: string) {
+    const trimmed = text.trim();
+    const oldTop = this.history?.[0];
+    const oldLength = this.history?.length ?? 0;
+    const snapshot = draftStore.snapshotForText(trimmed);
+
+    state.originalAddToHistory.call(this, text);
+
+    const added =
+      trimmed &&
+      Array.isArray(this.history) &&
+      this.history[0] === trimmed &&
+      (oldLength === 0 || oldTop !== trimmed);
+    if (!added) return;
+
+    const snapshots = editorHistoryDrafts.get(this) ?? [];
+    snapshots.unshift(snapshot);
+    snapshots.length = this.history.length;
+    editorHistoryDrafts.set(this, snapshots);
+  };
+
+  prototype.navigateHistory = function patchedNavigateHistory(
+    direction: number,
+  ) {
+    const oldIndex = this.historyIndex ?? -1;
+    const newIndex = oldIndex - direction;
+    const canNavigate =
+      Array.isArray(this.history) &&
+      this.history.length > 0 &&
+      newIndex >= -1 &&
+      newIndex < this.history.length;
+
+    if (canNavigate && oldIndex === -1 && newIndex >= 0) {
+      editorHistoryBrowseDraft.set(this, draftStore.snapshot());
+    }
+
+    state.originalNavigateHistory.call(this, direction);
+
+    if (!canNavigate) return;
+
+    if (this.historyIndex === -1) {
+      const snapshot = editorHistoryBrowseDraft.get(this);
+      editorHistoryBrowseDraft.delete(this);
+      if (snapshot) draftStore.restore(snapshot);
+      else draftStore.clearDraft();
+      this.tui?.requestRender?.();
+      return;
+    }
+
+    const oldText = this.getText();
+    const snapshot = editorHistoryDrafts.get(this)?.[this.historyIndex];
+    if (!snapshot || submittedImagesCoverSnapshotText(oldText, snapshot)) {
+      draftStore.clearDraft();
+      this.tui?.requestRender?.();
+      return;
+    }
+
+    const result = draftStore.restoreForHistoryText(oldText, snapshot);
+    if (result.textChanged) {
+      const cursorOffset = direction === -1 ? 0 : oldText.length;
+      setEditorTextWithoutUndo(this, result.text, cursorOffset);
+    }
+    this.tui?.requestRender?.();
+  };
+
+  prototype.exitHistoryBrowsing = function patchedExitHistoryBrowsing() {
+    editorHistoryBrowseDraft.delete(this);
+    return state.originalExitHistoryBrowsing.call(this);
   };
 }
 
@@ -1308,12 +1529,15 @@ function patchPromptContent() {
 
     const result = state.originalRunAgentPrompt.call(this, transformed);
 
-    if (allSubmittedIds.length > 0) {
-      Promise.resolve(result).then(
-        () => draftStore.markSubmitted(allSubmittedIds),
-        () => {},
-      );
-    }
+    Promise.resolve(result).then(
+      () => {
+        rememberSubmittedImages(transformed);
+        if (allSubmittedIds.length > 0) {
+          draftStore.markSubmitted(allSubmittedIds);
+        }
+      },
+      () => {},
+    );
 
     return result;
   };
