@@ -21,6 +21,7 @@ const PROMPT_PATCH_STATE = Symbol.for(
   "pi-image-attachments.prompt-content.patch",
 );
 const PASTE_PATCH_STATE = Symbol.for("pi-image-attachments.paste.patch");
+const DRAFT_WIDGET_KEY = "pi-image-attachments-draft-preview";
 const ATTACHED_LABEL_PATTERN = /^Attached \[#image ([1-9]\d*)\]$/;
 const PLACEHOLDER_PATTERN = /^\[#image ([1-9]\d*)\]$/;
 const INLINE_PLACEHOLDER_PATTERN = /\[#image ([1-9]\d*)\]/g;
@@ -61,10 +62,34 @@ class DraftStore {
   remove(ids: number[]): void {
     for (const id of ids) this.items.delete(id);
   }
+
+  activeForText(text: string): DraftAttachment[] {
+    const seen = new Set<number>();
+    const ids: number[] = [];
+    const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const id = Number(m[1]);
+      if (seen.has(id) || !this.items.has(id)) continue;
+
+      seen.add(id);
+      ids.push(id);
+    }
+
+    return ids
+      .sort((a, b) => a - b)
+      .flatMap((id) => {
+        const item = this.items.get(id);
+        return item ? [item] : [];
+      });
+  }
 }
 
 const draftStore = new DraftStore();
 const pendingSubmittedDraftIds = new Set<number>();
+let draftPreviewPoller: ReturnType<typeof setInterval> | undefined;
+let unsubscribeDragDrop: (() => void) | undefined;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -258,8 +283,106 @@ function loadImageFromPath(filePath: string):
 }
 
 // ---------------------------------------------------------------------------
-// Rendering: submitted images in chat
+// Rendering: draft/submitted images
 // ---------------------------------------------------------------------------
+
+async function importConvertToPng(): Promise<
+  (data: string, mimeType: string) => Promise<DisplayImage | null>
+> {
+  const pkgUrl = import.meta.resolve("@earendil-works/pi-coding-agent");
+  const convertUrl = new URL("./utils/image-convert.js", pkgUrl).href;
+  const { convertToPng } = await import(convertUrl);
+  return convertToPng;
+}
+
+class DraftPreviewComponent implements Component {
+  private readonly convertedImages = new Map<number, DisplayImage>();
+  private readonly convertingImages = new Set<number>();
+  private images: Array<Image | undefined>;
+
+  constructor(
+    private readonly attachments: DraftAttachment[],
+    private readonly theme: RenderTheme,
+    private readonly requestRender: () => void,
+  ) {
+    this.images = attachments.map((a, i) => this.createImage(a, i));
+    this.maybeConvertImagesForKitty();
+  }
+
+  invalidate(): void {
+    for (const img of this.images) img?.invalidate();
+  }
+
+  render(width: number): string[] {
+    const w = Math.max(1, width);
+    const count = this.attachments.length;
+    const header =
+      count === 1 ? " 📎 1 image attached" : ` 📎 ${count} images attached`;
+    const lines = [truncateToWidth(this.theme.fg("accent", header), w, "")];
+
+    for (let i = 0; i < this.attachments.length; i++) {
+      const att = this.attachments[i]!;
+      const img = this.images[i];
+      if (img) {
+        lines.push(...img.render(w));
+      } else {
+        const message = this.convertingImages.has(i)
+          ? "(converting image...)"
+          : "(image unavailable)";
+        lines.push(truncateToWidth(this.theme.fg("muted", message), w, ""));
+      }
+      lines.push(
+        truncateToWidth(this.theme.fg("muted", `[#image ${att.id}]`), w, ""),
+      );
+    }
+
+    return lines;
+  }
+
+  private maybeConvertImagesForKitty(): void {
+    if (getCapabilities().images !== "kitty") return;
+
+    for (let i = 0; i < this.attachments.length; i++) {
+      const img = this.attachments[i]!;
+      if (img.mimeType === "image/png") continue;
+      if (this.convertedImages.has(i) || this.convertingImages.has(i)) continue;
+
+      this.convertingImages.add(i);
+      importConvertToPng()
+        .then((convertToPng) => convertToPng(img.data, img.mimeType))
+        .then((converted) => {
+          if (!converted) return;
+          this.convertedImages.set(i, converted);
+          this.images[i] = this.createImage(this.attachments[i]!, i);
+          this.requestRender();
+        })
+        .finally(() => {
+          this.convertingImages.delete(i);
+        });
+    }
+  }
+
+  private createImage(att: DraftAttachment, index: number): Image | undefined {
+    const display = this.convertedImages.get(index) ?? {
+      data: att.data,
+      mimeType: att.mimeType,
+    };
+
+    if (
+      getCapabilities().images === "kitty" &&
+      display.mimeType !== "image/png"
+    ) {
+      return undefined;
+    }
+
+    return new Image(
+      display.data,
+      display.mimeType,
+      { fallbackColor: (text: string) => this.theme.fg("muted", text) },
+      { maxWidthCells: 60, maxHeightCells: 16, filename: `[#image ${att.id}]` },
+    );
+  }
+}
 
 // TODO(polish): avoid slow cold-start rendering for old submitted images.
 // Consider compact historical labels, lazy preview expansion, or a preview cache.
@@ -313,7 +436,7 @@ class SubmittedImagesComponent implements Component {
       if (this.convertedImages.has(i) || this.convertingImages.has(i)) continue;
 
       this.convertingImages.add(i);
-      this.importConvertToPng()
+      importConvertToPng()
         .then((convertToPng) => convertToPng(img.data!, img.mimeType!))
         .then((converted) => {
           if (!converted) return;
@@ -325,15 +448,6 @@ class SubmittedImagesComponent implements Component {
           this.convertingImages.delete(i);
         });
     }
-  }
-
-  private async importConvertToPng(): Promise<
-    (data: string, mimeType: string) => Promise<DisplayImage | null>
-  > {
-    const pkgUrl = import.meta.resolve("@earendil-works/pi-coding-agent");
-    const convertUrl = new URL("./utils/image-convert.js", pkgUrl).href;
-    const { convertToPng } = await import(convertUrl);
-    return convertToPng;
   }
 
   private createImage(
@@ -441,6 +555,36 @@ function patchClipboardImagePaste() {
   };
 }
 
+let currentDraftPreviewSignature = "";
+
+function clearDraftPreviewWidget(ui: any): void {
+  currentDraftPreviewSignature = "";
+  ui?.setWidget?.(DRAFT_WIDGET_KEY, undefined, { placement: "aboveEditor" });
+}
+
+function updateDraftPreviewWidget(ui: any, text: string): void {
+  if (!ui?.setWidget) return;
+
+  const attachments = draftStore.activeForText(text);
+  const signature = attachments.map((item) => item.id).join(",");
+  if (signature === currentDraftPreviewSignature) return;
+
+  currentDraftPreviewSignature = signature;
+  if (attachments.length === 0) {
+    ui.setWidget(DRAFT_WIDGET_KEY, undefined, { placement: "aboveEditor" });
+    ui.requestRender?.();
+    return;
+  }
+
+  ui.setWidget(
+    DRAFT_WIDGET_KEY,
+    (_tui: unknown, theme: RenderTheme) =>
+      new DraftPreviewComponent(attachments, theme, () => ui.requestRender?.()),
+    { placement: "aboveEditor" },
+  );
+  ui.requestRender?.();
+}
+
 // ---------------------------------------------------------------------------
 // Patch: submit — resolve draft placeholders, fallback to path loading
 // ---------------------------------------------------------------------------
@@ -462,23 +606,24 @@ function draftImagesForText(text: string): {
   images: ImageBlock[];
   submittedIds: number[];
 } {
-  const images: ImageBlock[] = [];
-  const submittedIds: number[] = [];
   const seen = new Set<number>();
+  const ids: number[] = [];
   const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
 
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     const id = Number(m[1]);
-    if (seen.has(id)) continue;
-
-    const draft = draftStore.get(id);
-    if (!draft) continue;
+    if (seen.has(id) || !draftStore.get(id)) continue;
 
     seen.add(id);
-    images.push(imageBlockFromDraft(id, draft));
-    submittedIds.push(id);
+    ids.push(id);
   }
+
+  const submittedIds = ids.sort((a, b) => a - b);
+  const images = submittedIds.flatMap((id) => {
+    const draft = draftStore.get(id);
+    return draft ? [imageBlockFromDraft(id, draft)] : [];
+  });
 
   return { images, submittedIds };
 }
@@ -731,6 +876,26 @@ export default function (pi: ExtensionAPI) {
     draftStore.reset(max);
 
     if (!(ctx as any).hasUI) return;
-    (ctx as any).ui.onTerminalInput(createDragDropHandler());
+
+    const ui = (ctx as any).ui;
+    clearDraftPreviewWidget(ui);
+
+    if (draftPreviewPoller) clearInterval(draftPreviewPoller);
+    draftPreviewPoller = setInterval(() => {
+      updateDraftPreviewWidget(ui, ui.getEditorText?.() ?? "");
+    }, 250);
+
+    unsubscribeDragDrop?.();
+    unsubscribeDragDrop = ui.onTerminalInput(createDragDropHandler());
+  });
+
+  pi.on("session_shutdown", (_event, ctx) => {
+    if (draftPreviewPoller) clearInterval(draftPreviewPoller);
+    draftPreviewPoller = undefined;
+
+    unsubscribeDragDrop?.();
+    unsubscribeDragDrop = undefined;
+
+    if ((ctx as any).hasUI) clearDraftPreviewWidget((ctx as any).ui);
   });
 }
