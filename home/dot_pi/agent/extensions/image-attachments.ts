@@ -36,8 +36,10 @@ const INLINE_PLACEHOLDER_PATTERN = /\[#image ([1-9]\d*)\]/g;
 const CLIPBOARD_IMAGE_PATH_PATTERN =
   /(^|[\s"'`([{<])((?:\/[^\s"'`()\[\]{}<>]+)*\/pi-clipboard-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.(?:png|jpe?g|gif|webp))(?=$|[\s"'`)\]}>,.!?;:])/g;
 const DRAFT_THUMB_MAX_WIDTH = 25;
-const DRAFT_THUMB_MAX_ROWS = 15;
+const DRAFT_THUMB_MAX_ROWS = 10;
 const DRAFT_THUMB_GAP = 1;
+const DRAFT_PREVIEW_FRAME_COLOR = "dim";
+const DRAFT_PREVIEW_LABEL_COLOR = "dim";
 
 // ---------------------------------------------------------------------------
 // Draft Store — holds clipboard images between paste and submit
@@ -292,7 +294,10 @@ function previewLabelStyle(
   text: string,
   active: boolean,
 ): string {
-  return theme.fg("dim", active ? boldText(theme, text) : text);
+  return theme.fg(
+    DRAFT_PREVIEW_LABEL_COLOR,
+    active ? boldText(theme, text) : text,
+  );
 }
 
 function escapeEnd(text: string, start: number): number {
@@ -674,17 +679,15 @@ class DraftPreviewComponent implements Component {
     const lines = [truncateToWidth(this.theme.fg("accent", header), w, "")];
 
     const gap = DRAFT_THUMB_GAP;
+    const maxFrameWidth = DRAFT_THUMB_MAX_WIDTH + 2;
     const columnCount = Math.max(
       1,
-      Math.min(
-        count,
-        Math.floor((w + gap) / (DRAFT_THUMB_MAX_WIDTH + gap)) || 1,
-      ),
+      Math.min(count, Math.floor((w + gap) / (maxFrameWidth + gap)) || 1),
     );
     const itemWidth = Math.max(
-      1,
+      3,
       Math.min(
-        DRAFT_THUMB_MAX_WIDTH,
+        maxFrameWidth,
         Math.floor((w - gap * (columnCount - 1)) / columnCount),
       ),
     );
@@ -709,11 +712,12 @@ class DraftPreviewComponent implements Component {
   private renderItem(
     index: number,
     att: DraftAttachment,
-    width: number,
+    frameWidth: number,
   ): string[] {
+    const innerWidth = Math.max(1, frameWidth - 2);
     const img = this.images[index];
-    const lines = img
-      ? [...img.render(width)]
+    const imageLines = img
+      ? [...img.render(innerWidth + 2)]
       : [
           truncateToWidth(
             this.theme.fg(
@@ -722,23 +726,94 @@ class DraftPreviewComponent implements Component {
                 ? "(converting image...)"
                 : "(image unavailable)",
             ),
-            width,
+            innerWidth,
             "",
           ),
         ];
 
-    lines.push(
-      truncateToWidth(
-        previewLabelStyle(
-          this.theme,
-          `[#image ${att.id}]`,
-          att.id === this.activeId,
-        ),
-        width,
-        "",
-      ),
+    const active = att.id === this.activeId;
+    const topPadding = Math.max(
+      0,
+      Math.floor((DRAFT_THUMB_MAX_ROWS - imageLines.length) / 2),
     );
-    return lines;
+    const bodyLines: string[] = [];
+    for (let row = 0; row < DRAFT_THUMB_MAX_ROWS; row++) {
+      const imageLine = imageLines[row - topPadding] ?? "";
+      bodyLines.push(this.frameBodyLine(imageLine, innerWidth, active));
+    }
+
+    return [
+      this.frameTopLine(innerWidth, active),
+      ...bodyLines,
+      this.frameLabelLine(
+        previewLabelStyle(this.theme, `[#image ${att.id}]`, active),
+        innerWidth,
+        active,
+      ),
+    ];
+  }
+
+  private frameBorder(text: string, active: boolean): string {
+    return this.theme.fg(
+      DRAFT_PREVIEW_FRAME_COLOR,
+      active ? boldText(this.theme, text) : text,
+    );
+  }
+
+  private frameTopLine(innerWidth: number, active: boolean): string {
+    const chars = active
+      ? { left: "┏", horizontal: "━", right: "┓" }
+      : { left: "┌", horizontal: "─", right: "┐" };
+    return this.frameBorder(
+      `${chars.left}${chars.horizontal.repeat(innerWidth)}${chars.right}`,
+      active,
+    );
+  }
+
+  private frameBodyLine(
+    text: string,
+    innerWidth: number,
+    active: boolean,
+  ): string {
+    const vertical = active ? "┃" : "│";
+    return `${this.frameBorder(vertical, active)}${this.centerCell(
+      text,
+      innerWidth,
+    )}${this.frameBorder(vertical, active)}`;
+  }
+
+  private frameLabelLine(
+    label: string,
+    innerWidth: number,
+    active: boolean,
+  ): string {
+    const cell =
+      visibleWidth(label) > innerWidth
+        ? truncateToWidth(label, innerWidth, "")
+        : label;
+    const padding = Math.max(0, innerWidth - visibleWidth(cell));
+    const left = Math.floor(padding / 2);
+    const right = padding - left;
+
+    const chars = active
+      ? { left: "┗", horizontal: "━", right: "┛" }
+      : { left: "└", horizontal: "─", right: "┘" };
+    return `${this.frameBorder(
+      `${chars.left}${chars.horizontal.repeat(left)}`,
+      active,
+    )}${cell}${this.frameBorder(
+      `${chars.horizontal.repeat(right)}${chars.right}`,
+      active,
+    )}`;
+  }
+
+  private centerCell(text: string, width: number, fill = " "): string {
+    const visible = visibleWidth(text);
+    const cell = visible > width ? truncateToWidth(text, width, "") : text;
+    const padding = Math.max(0, width - visibleWidth(cell));
+    const left = Math.floor(padding / 2);
+    const right = padding - left;
+    return `${fill.repeat(left)}${cell}${fill.repeat(right)}`;
   }
 
   private padCell(text: string, width: number): string {
