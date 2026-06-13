@@ -4,6 +4,7 @@ import {
   type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
 import {
+  Editor,
   getCapabilities,
   Image,
   Spacer,
@@ -21,6 +22,7 @@ const PROMPT_PATCH_STATE = Symbol.for(
   "pi-image-attachments.prompt-content.patch",
 );
 const PASTE_PATCH_STATE = Symbol.for("pi-image-attachments.paste.patch");
+const EDITOR_PATCH_STATE = Symbol.for("pi-image-attachments.editor.patch");
 const DRAFT_WIDGET_KEY = "pi-image-attachments-draft-preview";
 const ATTACHED_LABEL_PATTERN = /^Attached \[#image ([1-9]\d*)\]$/;
 const PLACEHOLDER_PATTERN = /^\[#image ([1-9]\d*)\]$/;
@@ -39,12 +41,26 @@ type DraftAttachment = {
   hash: string;
 };
 
+type DraftStoreSnapshot = {
+  items: DraftAttachment[];
+  nextId: number;
+  persistedMax: number;
+};
+
+type DraftReconcileResult = {
+  text: string;
+  textChanged: boolean;
+  idMap: Map<number, number>;
+};
+
 class DraftStore {
   private items = new Map<number, DraftAttachment>();
   private _nextId = 1;
+  private persistedMax = 0;
 
   reset(persistedMax: number): void {
     this.items.clear();
+    this.persistedMax = persistedMax;
     this._nextId = persistedMax + 1;
   }
 
@@ -59,8 +75,75 @@ class DraftStore {
     return this.items.get(id);
   }
 
-  remove(ids: number[]): void {
-    for (const id of ids) this.items.delete(id);
+  has(id: number): boolean {
+    return this.items.has(id);
+  }
+
+  markSubmitted(ids: number[]): void {
+    for (const id of ids) {
+      this.items.delete(id);
+      this.persistedMax = Math.max(this.persistedMax, id);
+    }
+    if (this.items.size === 0) this._nextId = this.persistedMax + 1;
+  }
+
+  clearDraft(): void {
+    this.items.clear();
+    this._nextId = this.persistedMax + 1;
+  }
+
+  snapshot(): DraftStoreSnapshot {
+    return {
+      items: [...this.items.values()].map((item) => ({ ...item })),
+      nextId: this._nextId,
+      persistedMax: this.persistedMax,
+    };
+  }
+
+  restore(snapshot: DraftStoreSnapshot): void {
+    this.items = new Map(snapshot.items.map((item) => [item.id, { ...item }]));
+    this._nextId = snapshot.nextId;
+    this.persistedMax = snapshot.persistedMax;
+  }
+
+  reconcileText(text: string): DraftReconcileResult {
+    const seen = new Set<number>();
+    const activeIds: number[] = [];
+    const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const id = Number(m[1]);
+      if (seen.has(id) || !this.items.has(id)) continue;
+      seen.add(id);
+      activeIds.push(id);
+    }
+
+    activeIds.sort((a, b) => a - b);
+
+    const idMap = new Map<number, number>();
+    const nextItems = new Map<number, DraftAttachment>();
+    const baseId = this.persistedMax + 1;
+
+    for (let i = 0; i < activeIds.length; i++) {
+      const oldId = activeIds[i]!;
+      const nextId = baseId + i;
+      const item = this.items.get(oldId);
+      if (!item) continue;
+      idMap.set(oldId, nextId);
+      nextItems.set(nextId, { ...item, id: nextId });
+    }
+
+    const newText = text.replace(INLINE_PLACEHOLDER_PATTERN, (token, rawId) => {
+      const oldId = Number(rawId);
+      const nextId = idMap.get(oldId);
+      return nextId ? `[#image ${nextId}]` : token;
+    });
+
+    this.items = nextItems;
+    this._nextId = baseId + nextItems.size;
+
+    return { text: newText, textChanged: newText !== text, idMap };
   }
 
   activeForText(text: string): DraftAttachment[] {
@@ -88,6 +171,7 @@ class DraftStore {
 
 const draftStore = new DraftStore();
 const pendingSubmittedDraftIds = new Set<number>();
+let nextDraftUndoSnapshot: DraftStoreSnapshot | undefined;
 let draftPreviewPoller: ReturnType<typeof setInterval> | undefined;
 let unsubscribeDragDrop: (() => void) | undefined;
 
@@ -527,6 +611,15 @@ function patchUserMessageRendering() {
 // Patch: Ctrl+V — store image in draft, insert placeholder
 // ---------------------------------------------------------------------------
 
+function addDraftAttachment(
+  data: string,
+  mimeType: string,
+  hash: string,
+): DraftAttachment {
+  nextDraftUndoSnapshot = draftStore.snapshot();
+  return draftStore.add(data, mimeType, hash);
+}
+
 function patchClipboardImagePaste() {
   const prototype = InteractiveMode.prototype as any;
   if (prototype[PASTE_PATCH_STATE]) return;
@@ -546,7 +639,7 @@ function patchClipboardImagePaste() {
       const data = Buffer.from(image.bytes).toString("base64");
       const hash = createHash("sha256").update(image.bytes).digest("hex");
 
-      const draft = draftStore.add(data, image.mimeType, hash);
+      const draft = addDraftAttachment(data, image.mimeType, hash);
       this.editor.insertTextAtCursor?.(`[#image ${draft.id}]`);
       this.ui.requestRender();
     } catch {
@@ -566,11 +659,14 @@ function updateDraftPreviewWidget(ui: any, text: string): void {
   if (!ui?.setWidget) return;
 
   const attachments = draftStore.activeForText(text);
-  const signature = attachments.map((item) => item.id).join(",");
+  const signature = attachments
+    .map((item) => `${item.id}:${item.hash}`)
+    .join(",");
   if (signature === currentDraftPreviewSignature) return;
 
   currentDraftPreviewSignature = signature;
   if (attachments.length === 0) {
+    draftStore.clearDraft();
     ui.setWidget(DRAFT_WIDGET_KEY, undefined, { placement: "aboveEditor" });
     ui.requestRender?.();
     return;
@@ -583,6 +679,282 @@ function updateDraftPreviewWidget(ui: any, text: string): void {
     { placement: "aboveEditor" },
   );
   ui.requestRender?.();
+}
+
+// ---------------------------------------------------------------------------
+// Patch: editor — atomic active placeholders and draft renumbering
+// ---------------------------------------------------------------------------
+
+type EditorPatchState = {
+  originalSegment: (text: string, mode: "word" | "grapheme") => Iterable<any>;
+  originalRender: (width: number) => string[];
+  originalHandleBackspace: () => void;
+  originalHandleForwardDelete: () => void;
+  originalDeleteWordBackwards: () => void;
+  originalDeleteWordForward: () => void;
+  originalDeleteToStartOfLine: () => void;
+  originalDeleteToEndOfLine: () => void;
+  originalPushUndoSnapshot: () => void;
+  originalUndo: () => void;
+};
+
+const editorDraftUndo = new WeakMap<object, DraftStoreSnapshot[]>();
+
+function activePlaceholderSpans(text: string): Array<{
+  id: number;
+  start: number;
+  end: number;
+}> {
+  const spans: Array<{ id: number; start: number; end: number }> = [];
+  const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const id = Number(m[1]);
+    if (!draftStore.has(id)) continue;
+    spans.push({ id, start: m.index, end: m.index + m[0].length });
+  }
+
+  return spans;
+}
+
+function segmentWithActivePlaceholders(
+  text: string,
+  baseSegments: Iterable<any>,
+): any[] {
+  if (!text.includes("[#image ")) return [...baseSegments];
+
+  const spans = activePlaceholderSpans(text);
+  if (spans.length === 0) return [...baseSegments];
+
+  const result: any[] = [];
+  let spanIndex = 0;
+
+  for (const seg of baseSegments) {
+    while (spanIndex < spans.length && spans[spanIndex]!.end <= seg.index) {
+      spanIndex++;
+    }
+
+    const span = spans[spanIndex];
+    if (span && seg.index >= span.start && seg.index < span.end) {
+      if (seg.index === span.start) {
+        result.push({
+          segment: text.slice(span.start, span.end),
+          index: span.start,
+          input: text,
+        });
+      }
+      continue;
+    }
+
+    result.push(seg);
+  }
+
+  return result;
+}
+
+function absoluteCursorOffset(editor: any): number {
+  const lines = editor?.state?.lines;
+  const cursorLine = editor?.state?.cursorLine ?? 0;
+  const cursorCol = editor?.state?.cursorCol ?? 0;
+  if (!Array.isArray(lines)) return 0;
+
+  let offset = 0;
+  for (let i = 0; i < cursorLine; i++) offset += (lines[i] ?? "").length + 1;
+  return offset + cursorCol;
+}
+
+function lineColFromOffset(
+  text: string,
+  offset: number,
+): { line: number; col: number } {
+  const safeOffset = Math.max(0, Math.min(offset, text.length));
+  const before = text.slice(0, safeOffset).split("\n");
+  return {
+    line: before.length - 1,
+    col: before[before.length - 1]?.length ?? 0,
+  };
+}
+
+function adjustCursorOffset(
+  text: string,
+  offset: number,
+  idMap: Map<number, number>,
+): number {
+  let adjusted = offset;
+  const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index >= offset) break;
+
+    const nextId = idMap.get(Number(m[1]));
+    if (!nextId) continue;
+
+    const oldLength = m[0].length;
+    const newLength = `[#image ${nextId}]`.length;
+    const end = m.index + oldLength;
+
+    if (end <= offset) adjusted += newLength - oldLength;
+    else adjusted = m.index + newLength;
+  }
+
+  return adjusted;
+}
+
+function setEditorTextWithoutUndo(
+  editor: any,
+  text: string,
+  cursorOffset: number,
+): void {
+  const lines = text.split("\n");
+  const cursor = lineColFromOffset(text, cursorOffset);
+
+  editor.state.lines = lines.length === 0 ? [""] : lines;
+  editor.state.cursorLine = Math.max(
+    0,
+    Math.min(cursor.line, editor.state.lines.length - 1),
+  );
+  editor.state.cursorCol = Math.max(
+    0,
+    Math.min(
+      cursor.col,
+      editor.state.lines[editor.state.cursorLine]?.length ?? 0,
+    ),
+  );
+  editor.preferredVisualCol = null;
+  editor.snappedFromCursorCol = null;
+  editor.scrollOffset = 0;
+  editor.onChange?.(editor.getText());
+}
+
+function reconcileEditorDraft(editor: any): void {
+  if (!editor?.getText || !editor?.state) return;
+
+  const oldText = editor.getText();
+  const oldOffset = absoluteCursorOffset(editor);
+  const result = draftStore.reconcileText(oldText);
+  if (!result.textChanged) return;
+
+  setEditorTextWithoutUndo(
+    editor,
+    result.text,
+    adjustCursorOffset(oldText, oldOffset, result.idMap),
+  );
+  editor.tui?.requestRender?.();
+}
+
+function activePlaceholderIdAtCursor(editor: any): number | undefined {
+  const line = editor?.state?.lines?.[editor?.state?.cursorLine ?? 0] ?? "";
+  const col = editor?.state?.cursorCol ?? 0;
+
+  for (const span of activePlaceholderSpans(line)) {
+    if (col >= span.start && col < span.end) return span.id;
+  }
+
+  return undefined;
+}
+
+function highlightPlainToken(line: string, token: string): string {
+  let output = "";
+  let cursor = 0;
+
+  while (true) {
+    const index = line.indexOf(token, cursor);
+    if (index === -1) return output + line.slice(cursor);
+
+    output += line.slice(cursor, index);
+    const alreadyHighlighted =
+      line.slice(Math.max(0, index - 4), index) === "\x1b[7m";
+    output += alreadyHighlighted ? token : `\x1b[7m${token}\x1b[0m`;
+    cursor = index + token.length;
+  }
+}
+
+function patchEditorAtomicPlaceholders() {
+  const prototype = Editor.prototype as any;
+  if (prototype[EDITOR_PATCH_STATE]) return;
+
+  const state: EditorPatchState = {
+    originalSegment: prototype.segment,
+    originalRender: prototype.render,
+    originalHandleBackspace: prototype.handleBackspace,
+    originalHandleForwardDelete: prototype.handleForwardDelete,
+    originalDeleteWordBackwards: prototype.deleteWordBackwards,
+    originalDeleteWordForward: prototype.deleteWordForward,
+    originalDeleteToStartOfLine: prototype.deleteToStartOfLine,
+    originalDeleteToEndOfLine: prototype.deleteToEndOfLine,
+    originalPushUndoSnapshot: prototype.pushUndoSnapshot,
+    originalUndo: prototype.undo,
+  };
+
+  prototype[EDITOR_PATCH_STATE] = state;
+
+  prototype.segment = function patchedSegment(
+    text: string,
+    mode: "word" | "grapheme",
+  ) {
+    const base = state.originalSegment.call(this, text, mode);
+    return segmentWithActivePlaceholders(text, base);
+  };
+
+  prototype.render = function patchedRender(width: number) {
+    const lines = state.originalRender.call(this, width);
+    const activeId = activePlaceholderIdAtCursor(this);
+    if (!activeId) return lines;
+
+    return lines.map((line) =>
+      highlightPlainToken(line, `[#image ${activeId}]`),
+    );
+  };
+
+  prototype.handleBackspace = function patchedHandleBackspace() {
+    state.originalHandleBackspace.call(this);
+    reconcileEditorDraft(this);
+  };
+
+  prototype.handleForwardDelete = function patchedHandleForwardDelete() {
+    state.originalHandleForwardDelete.call(this);
+    reconcileEditorDraft(this);
+  };
+
+  prototype.deleteWordBackwards = function patchedDeleteWordBackwards() {
+    state.originalDeleteWordBackwards.call(this);
+    reconcileEditorDraft(this);
+  };
+
+  prototype.deleteWordForward = function patchedDeleteWordForward() {
+    state.originalDeleteWordForward.call(this);
+    reconcileEditorDraft(this);
+  };
+
+  prototype.deleteToStartOfLine = function patchedDeleteToStartOfLine() {
+    state.originalDeleteToStartOfLine.call(this);
+    reconcileEditorDraft(this);
+  };
+
+  prototype.deleteToEndOfLine = function patchedDeleteToEndOfLine() {
+    state.originalDeleteToEndOfLine.call(this);
+    reconcileEditorDraft(this);
+  };
+
+  prototype.pushUndoSnapshot = function patchedPushUndoSnapshot() {
+    const stack = editorDraftUndo.get(this) ?? [];
+    stack.push(nextDraftUndoSnapshot ?? draftStore.snapshot());
+    nextDraftUndoSnapshot = undefined;
+    editorDraftUndo.set(this, stack);
+    return state.originalPushUndoSnapshot.call(this);
+  };
+
+  prototype.undo = function patchedUndo() {
+    const stack = editorDraftUndo.get(this);
+    const snapshot = stack?.pop();
+    state.originalUndo.call(this);
+    if (snapshot) {
+      draftStore.restore(snapshot);
+      this.tui?.requestRender?.();
+    }
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -661,7 +1033,11 @@ function transformDraftPlaceholders(message: any): {
     });
 
     content.push(block);
-    for (const image of images) content.push(image);
+    for (const image of images) {
+      const id = idFromImage(image);
+      if (id) content.push({ type: "text", text: `Attached [#image ${id}]` });
+      content.push(image);
+    }
 
     for (const id of result.submittedIds) {
       if (existingIds.has(id)) continue;
@@ -716,7 +1092,11 @@ function transformClipboardImagePaths(
     );
 
     content.push({ ...block, text: replaced });
-    for (const img of attachments) content.push(img);
+    for (const img of attachments) {
+      const id = idFromImage(img);
+      if (id) content.push({ type: "text", text: `Attached [#image ${id}]` });
+      content.push(img);
+    }
     count += attachments.length;
   }
 
@@ -725,19 +1105,9 @@ function transformClipboardImagePaths(
     : { count, message: { ...message, content } };
 }
 
-function registerInputHandler(pi: ExtensionAPI) {
-  pi.on("input", (event) => {
-    const result = draftImagesForText(event.text);
-    if (result.images.length === 0) return { action: "continue" };
-
-    for (const id of result.submittedIds) pendingSubmittedDraftIds.add(id);
-
-    return {
-      action: "transform",
-      text: event.text,
-      images: [...(event.images ?? []), ...result.images],
-    };
-  });
+function registerInputHandler(_pi: ExtensionAPI) {
+  // Submit image blocks are inserted by the _runAgentPrompt patch so label/image
+  // blocks can stay adjacent in the final provider payload.
 }
 
 function patchPromptContent() {
@@ -773,7 +1143,7 @@ function patchPromptContent() {
 
     if (allSubmittedIds.length > 0) {
       Promise.resolve(result).then(
-        () => draftStore.remove(allSubmittedIds),
+        () => draftStore.markSubmitted(allSubmittedIds),
         () => {},
       );
     }
@@ -850,7 +1220,7 @@ function createDragDropHandler(): (
       return { data: passthrough };
     }
 
-    const draft = draftStore.add(loaded.data, loaded.mimeType, loaded.hash);
+    const draft = addDraftAttachment(loaded.data, loaded.mimeType, loaded.hash);
     const placeholder = `[#image ${draft.id}]`;
 
     // Return placeholder wrapped in paste brackets so editor inserts it
@@ -869,6 +1239,7 @@ export default function (pi: ExtensionAPI) {
   patchPromptContent();
   patchUserMessageRendering();
   patchClipboardImagePaste();
+  patchEditorAtomicPlaceholders();
 
   pi.on("session_start", (_event, ctx) => {
     const sessionCtx = (ctx as any).sessionManager?.buildSessionContext?.();
