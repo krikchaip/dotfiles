@@ -1,6 +1,8 @@
 import {
   AgentSession,
+  AssistantMessageComponent,
   InteractiveMode,
+  UserMessageComponent,
   type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
 import {
@@ -9,6 +11,7 @@ import {
   Image,
   Spacer,
   truncateToWidth,
+  visibleWidth,
   type Component,
 } from "@earendil-works/pi-tui";
 import { createHash } from "node:crypto";
@@ -23,12 +26,18 @@ const PROMPT_PATCH_STATE = Symbol.for(
 );
 const PASTE_PATCH_STATE = Symbol.for("pi-image-attachments.paste.patch");
 const EDITOR_PATCH_STATE = Symbol.for("pi-image-attachments.editor.patch");
+const MESSAGE_HIGHLIGHT_PATCH_STATE = Symbol.for(
+  "pi-image-attachments.message-highlight.patch",
+);
 const DRAFT_WIDGET_KEY = "pi-image-attachments-draft-preview";
 const ATTACHED_LABEL_PATTERN = /^Attached \[#image ([1-9]\d*)\]$/;
 const PLACEHOLDER_PATTERN = /^\[#image ([1-9]\d*)\]$/;
 const INLINE_PLACEHOLDER_PATTERN = /\[#image ([1-9]\d*)\]/g;
 const CLIPBOARD_IMAGE_PATH_PATTERN =
-  /(^|[\s"'`([{<])((?:\/[^\s"'`()\[\]{}<>]+)*\/pi-clipboard-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.(?:png|jpe?g|gif|webp))(?=$|[\s"'`)\]}>,.!?;:])/g;
+  /(^|[\s"'`([{<])((?:\/[^\s"'`()\[\]{}<>]+)*\/pi-clipboard-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.(?:png|jpe?g|gif|webp))(?=$|[\s"'`)\]}>,.!?;:])/g;
+const DRAFT_THUMB_MAX_WIDTH = 25;
+const DRAFT_THUMB_MAX_ROWS = 15;
+const DRAFT_THUMB_GAP = 1;
 
 // ---------------------------------------------------------------------------
 // Draft Store — holds clipboard images between paste and submit
@@ -231,6 +240,7 @@ const pendingSubmittedDraftIds = new Set<number>();
 let nextDraftUndoSnapshot: DraftStoreSnapshot | undefined;
 let draftPreviewPoller: ReturnType<typeof setInterval> | undefined;
 let unsubscribeDragDrop: (() => void) | undefined;
+let currentEditorActiveImageId: number | undefined;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -261,9 +271,139 @@ type PastePatchState = {
   originalHandleClipboardImagePaste?: () => Promise<void>;
 };
 
-type RenderTheme = { fg: (color: string, text: string) => string };
+type MessageHighlightPatchState = {
+  originalUserRender: (width: number) => string[];
+  originalAssistantRender: (width: number) => string[];
+};
+
+type RenderTheme = {
+  fg: (color: string, text: string) => string;
+  bold?: (text: string) => string;
+};
 
 const fallbackTheme: RenderTheme = { fg: (_color, text) => text };
+
+function boldText(theme: RenderTheme, text: string): string {
+  return theme.bold ? theme.bold(text) : `\x1b[1m${text}\x1b[22m`;
+}
+
+function previewLabelStyle(
+  theme: RenderTheme,
+  text: string,
+  active: boolean,
+): string {
+  return theme.fg("dim", active ? boldText(theme, text) : text);
+}
+
+function escapeEnd(text: string, start: number): number {
+  if (text[start] !== "\x1b") return start;
+
+  const kind = text[start + 1];
+  if (kind === "[") {
+    for (let i = start + 2; i < text.length; i++) {
+      const code = text.charCodeAt(i);
+      if (code >= 0x40 && code <= 0x7e) return i + 1;
+    }
+    return text.length;
+  }
+
+  if (kind === "]" || kind === "_") {
+    const bel = text.indexOf("\x07", start + 2);
+    const st = text.indexOf("\x1b\\", start + 2);
+    if (bel === -1) return st === -1 ? text.length : st + 2;
+    if (st === -1) return bel + 1;
+    return Math.min(bel + 1, st + 2);
+  }
+
+  return Math.min(start + 2, text.length);
+}
+
+function visibleText(text: string): string {
+  let visible = "";
+
+  for (let i = 0; i < text.length; ) {
+    if (text[i] === "\x1b") {
+      i = escapeEnd(text, i);
+      continue;
+    }
+
+    const codePoint = text.codePointAt(i);
+    if (codePoint === undefined) break;
+    const char = String.fromCodePoint(codePoint);
+    visible += char;
+    i += char.length;
+  }
+
+  return visible;
+}
+
+function sgrCodes(sequence: string): number[] {
+  if (!sequence.startsWith("\x1b[") || !sequence.endsWith("m")) return [];
+
+  const body = sequence.slice(2, -1);
+  if (body === "") return [0];
+
+  return body
+    .split(";")
+    .map((part) => Number(part || "0"))
+    .filter((code) => Number.isFinite(code));
+}
+
+function nextInverseState(sequence: string, inverse: boolean): boolean {
+  let next = inverse;
+
+  for (const code of sgrCodes(sequence)) {
+    if (code === 0 || code === 27) next = false;
+    if (code === 7) next = true;
+  }
+
+  return next;
+}
+
+type VisibleStyleRange = {
+  start: number;
+  end: number;
+  style: (text: string) => string;
+  inverseStyle?: (text: string) => string;
+};
+
+function styleVisibleRanges(text: string, ranges: VisibleStyleRange[]): string {
+  if (ranges.length === 0) return text;
+
+  const styles = new Map<number, VisibleStyleRange>();
+  for (const range of ranges) {
+    for (let i = range.start; i < range.end; i++) styles.set(i, range);
+  }
+
+  let result = "";
+  let visibleIndex = 0;
+  let inverse = false;
+
+  for (let i = 0; i < text.length; ) {
+    if (text[i] === "\x1b") {
+      const end = escapeEnd(text, i);
+      const sequence = text.slice(i, end);
+      result += sequence;
+      inverse = nextInverseState(sequence, inverse);
+      i = end;
+      continue;
+    }
+
+    const codePoint = text.codePointAt(i);
+    if (codePoint === undefined) break;
+    const char = String.fromCodePoint(codePoint);
+    const range = styles.get(visibleIndex);
+    if (range && inverse && range.inverseStyle) {
+      result += range.inverseStyle(char);
+    } else {
+      result += range && !inverse ? range.style(char) : char;
+    }
+    visibleIndex++;
+    i += char.length;
+  }
+
+  return result;
+}
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -514,6 +654,7 @@ class DraftPreviewComponent implements Component {
 
   constructor(
     private readonly attachments: DraftAttachment[],
+    private readonly activeId: number | undefined,
     private readonly theme: RenderTheme,
     private readonly requestRender: () => void,
   ) {
@@ -532,23 +673,76 @@ class DraftPreviewComponent implements Component {
       count === 1 ? " 📎 1 image attached" : ` 📎 ${count} images attached`;
     const lines = [truncateToWidth(this.theme.fg("accent", header), w, "")];
 
-    for (let i = 0; i < this.attachments.length; i++) {
-      const att = this.attachments[i]!;
-      const img = this.images[i];
-      if (img) {
-        lines.push(...img.render(w));
-      } else {
-        const message = this.convertingImages.has(i)
-          ? "(converting image...)"
-          : "(image unavailable)";
-        lines.push(truncateToWidth(this.theme.fg("muted", message), w, ""));
+    const gap = DRAFT_THUMB_GAP;
+    const columnCount = Math.max(
+      1,
+      Math.min(
+        count,
+        Math.floor((w + gap) / (DRAFT_THUMB_MAX_WIDTH + gap)) || 1,
+      ),
+    );
+    const itemWidth = Math.max(
+      1,
+      Math.min(
+        DRAFT_THUMB_MAX_WIDTH,
+        Math.floor((w - gap * (columnCount - 1)) / columnCount),
+      ),
+    );
+
+    for (let start = 0; start < this.attachments.length; start += columnCount) {
+      const items = this.attachments
+        .slice(start, start + columnCount)
+        .map((att, offset) => this.renderItem(start + offset, att, itemWidth));
+      const height = Math.max(...items.map((item) => item.length));
+
+      for (let row = 0; row < height; row++) {
+        const line = items
+          .map((item) => this.padCell(item[row] ?? "", itemWidth))
+          .join(" ".repeat(gap));
+        lines.push(truncateToWidth(line, w, ""));
       }
-      lines.push(
-        truncateToWidth(this.theme.fg("muted", `[#image ${att.id}]`), w, ""),
-      );
     }
 
     return lines;
+  }
+
+  private renderItem(
+    index: number,
+    att: DraftAttachment,
+    width: number,
+  ): string[] {
+    const img = this.images[index];
+    const lines = img
+      ? [...img.render(width)]
+      : [
+          truncateToWidth(
+            this.theme.fg(
+              "muted",
+              this.convertingImages.has(index)
+                ? "(converting image...)"
+                : "(image unavailable)",
+            ),
+            width,
+            "",
+          ),
+        ];
+
+    lines.push(
+      truncateToWidth(
+        previewLabelStyle(
+          this.theme,
+          `[#image ${att.id}]`,
+          att.id === this.activeId,
+        ),
+        width,
+        "",
+      ),
+    );
+    return lines;
+  }
+
+  private padCell(text: string, width: number): string {
+    return text + " ".repeat(Math.max(0, width - visibleWidth(text)));
   }
 
   private maybeConvertImagesForKitty(): void {
@@ -591,7 +785,11 @@ class DraftPreviewComponent implements Component {
       display.data,
       display.mimeType,
       { fallbackColor: (text: string) => this.theme.fg("muted", text) },
-      { maxWidthCells: 60, maxHeightCells: 16, filename: `[#image ${att.id}]` },
+      {
+        maxWidthCells: DRAFT_THUMB_MAX_WIDTH,
+        maxHeightCells: DRAFT_THUMB_MAX_ROWS,
+        filename: `[#image ${att.id}]`,
+      },
     );
   }
 }
@@ -693,6 +891,52 @@ class SubmittedImagesComponent implements Component {
 // Patch: render user messages with our images
 // ---------------------------------------------------------------------------
 
+function boldKnownImageRefsInRenderedLines(lines: string[]): string[] {
+  return lines.map((line) => {
+    const visible = visibleText(line);
+    const ranges: VisibleStyleRange[] = [];
+    const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(visible)) !== null) {
+      const id = Number(m[1]);
+      if (!hasActiveImageId(id)) continue;
+      ranges.push({
+        start: m.index,
+        end: m.index + m[0].length,
+        style: (text) => `\x1b[1m${text}\x1b[22m`,
+      });
+    }
+
+    return styleVisibleRanges(line, ranges);
+  });
+}
+
+function patchMessagePlaceholderHighlighting() {
+  const userPrototype = UserMessageComponent.prototype as any;
+  const assistantPrototype = AssistantMessageComponent.prototype as any;
+  const state = (userPrototype[MESSAGE_HIGHLIGHT_PATCH_STATE] ??= {
+    originalUserRender: userPrototype.render,
+    originalAssistantRender: assistantPrototype.render,
+  }) as MessageHighlightPatchState;
+
+  assistantPrototype[MESSAGE_HIGHLIGHT_PATCH_STATE] = state;
+
+  userPrototype.render = function patchedUserMessageRender(width: number) {
+    return boldKnownImageRefsInRenderedLines(
+      state.originalUserRender.call(this, width),
+    );
+  };
+
+  assistantPrototype.render = function patchedAssistantMessageRender(
+    width: number,
+  ) {
+    return boldKnownImageRefsInRenderedLines(
+      state.originalAssistantRender.call(this, width),
+    );
+  };
+}
+
 function patchUserMessageRendering() {
   const prototype = InteractiveMode.prototype as any;
   const state = (prototype[RENDER_PATCH_STATE] ??= {
@@ -791,6 +1035,7 @@ let currentDraftPreviewSignature = "";
 
 function clearDraftPreviewWidget(ui: any): void {
   currentDraftPreviewSignature = "";
+  currentEditorActiveImageId = undefined;
   ui?.setWidget?.(DRAFT_WIDGET_KEY, undefined, { placement: "aboveEditor" });
 }
 
@@ -807,9 +1052,9 @@ function updateDraftPreviewWidget(ui: any, text: string): void {
   if (!ui?.setWidget) return;
 
   const attachments = previewImagesForText(text);
-  const signature = attachments
+  const signature = `${currentEditorActiveImageId ?? ""}|${attachments
     .map((item) => `${item.id}:${item.mimeType}:${item.hash}`)
-    .join(",");
+    .join(",")}`;
   if (signature === currentDraftPreviewSignature) return;
 
   currentDraftPreviewSignature = signature;
@@ -823,7 +1068,12 @@ function updateDraftPreviewWidget(ui: any, text: string): void {
   ui.setWidget(
     DRAFT_WIDGET_KEY,
     (_tui: unknown, theme: RenderTheme) =>
-      new DraftPreviewComponent(attachments, theme, () => ui.requestRender?.()),
+      new DraftPreviewComponent(
+        attachments,
+        currentEditorActiveImageId,
+        theme,
+        () => ui.requestRender?.(),
+      ),
     { placement: "aboveEditor" },
   );
   ui.requestRender?.();
@@ -1013,20 +1263,26 @@ function activePlaceholderIdAtCursor(editor: any): number | undefined {
   return undefined;
 }
 
-function highlightPlainToken(line: string, token: string): string {
-  let output = "";
-  let cursor = 0;
+function boldImagePlaceholdersInRenderedLines(lines: string[]): string[] {
+  return lines.map((line) => {
+    const visible = visibleText(line);
+    const ranges: VisibleStyleRange[] = [];
+    const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
 
-  while (true) {
-    const index = line.indexOf(token, cursor);
-    if (index === -1) return output + line.slice(cursor);
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(visible)) !== null) {
+      const id = Number(m[1]);
+      if (!hasActiveImageId(id)) continue;
+      ranges.push({
+        start: m.index,
+        end: m.index + m[0].length,
+        style: (text) => `\x1b[1m${text}\x1b[22m`,
+        inverseStyle: (text) => `\x1b[1m${text}\x1b[22m`,
+      });
+    }
 
-    output += line.slice(cursor, index);
-    const alreadyHighlighted =
-      line.slice(Math.max(0, index - 4), index) === "\x1b[7m";
-    output += alreadyHighlighted ? token : `\x1b[7m${token}\x1b[0m`;
-    cursor = index + token.length;
-  }
+    return styleVisibleRanges(line, ranges);
+  });
 }
 
 function isLineWhitespace(char: string | undefined): boolean {
@@ -1184,12 +1440,8 @@ function patchEditorAtomicPlaceholders() {
 
   prototype.render = function patchedRender(width: number) {
     const lines = state.originalRender.call(this, width);
-    const activeId = activePlaceholderIdAtCursor(this);
-    if (!activeId) return lines;
-
-    return lines.map((line) =>
-      highlightPlainToken(line, `[#image ${activeId}]`),
-    );
+    currentEditorActiveImageId = activePlaceholderIdAtCursor(this);
+    return boldImagePlaceholdersInRenderedLines(lines);
   };
 
   prototype.handleBackspace = function patchedHandleBackspace() {
@@ -1527,11 +1779,12 @@ function patchPromptContent() {
       ? messages.map(transform)
       : transform(messages);
 
+    rememberSubmittedImages(transformed);
+
     const result = state.originalRunAgentPrompt.call(this, transformed);
 
     Promise.resolve(result).then(
       () => {
-        rememberSubmittedImages(transformed);
         if (allSubmittedIds.length > 0) {
           draftStore.markSubmitted(allSubmittedIds);
         }
@@ -1629,6 +1882,7 @@ export default function (pi: ExtensionAPI) {
   registerContextHandler(pi);
   patchPromptContent();
   patchUserMessageRendering();
+  patchMessagePlaceholderHighlighting();
   patchClipboardImagePaste();
   patchEditorAtomicPlaceholders();
 
