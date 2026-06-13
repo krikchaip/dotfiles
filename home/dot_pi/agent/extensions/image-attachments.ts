@@ -244,31 +244,19 @@ function splitUserContent(content: unknown): {
 } {
   if (!Array.isArray(content)) return { promptContent: [], attachments: [] };
 
-  const usedLabelIndexes = new Set<number>();
   const attachments: SubmittedAttachment[] = [];
 
-  for (let index = 0; index < content.length; index++) {
-    const block = content[index];
+  for (const block of content) {
     // Only handle images marked by our plugin (piImageMeta present)
     if (!isImageBlock(block) || !block.piImageMeta) continue;
 
-    const previous = content[index - 1];
-    const label =
-      isTextBlock(previous) && ATTACHED_LABEL_PATTERN.test(previous.text)
-        ? previous.text
-        : labelFromImage(block, attachments.length);
-
-    if (isTextBlock(previous) && label === previous.text) {
-      usedLabelIndexes.add(index - 1);
-    }
-
-    attachments.push({ label, image: block });
+    attachments.push({
+      label: labelFromImage(block, attachments.length),
+      image: block,
+    });
   }
 
-  const promptContent = content.filter(
-    (block, index): block is TextBlock =>
-      isTextBlock(block) && !usedLabelIndexes.has(index),
-  );
+  const promptContent = content.filter(isTextBlock);
 
   return { promptContent, attachments };
 }
@@ -1057,11 +1045,7 @@ function transformDraftPlaceholders(message: any): {
     });
 
     content.push(block);
-    for (const image of images) {
-      const id = idFromImage(image);
-      if (id) content.push({ type: "text", text: `Attached [#image ${id}]` });
-      content.push(image);
-    }
+    for (const image of images) content.push(image);
 
     for (const id of result.submittedIds) {
       if (existingIds.has(id)) continue;
@@ -1116,11 +1100,7 @@ function transformClipboardImagePaths(
     );
 
     content.push({ ...block, text: replaced });
-    for (const img of attachments) {
-      const id = idFromImage(img);
-      if (id) content.push({ type: "text", text: `Attached [#image ${id}]` });
-      content.push(img);
-    }
+    for (const img of attachments) content.push(img);
     count += attachments.length;
   }
 
@@ -1129,9 +1109,33 @@ function transformClipboardImagePaths(
     : { count, message: { ...message, content } };
 }
 
-function registerInputHandler(_pi: ExtensionAPI) {
-  // Submit image blocks are inserted by the _runAgentPrompt patch so label/image
-  // blocks can stay adjacent in the final provider payload.
+function withProviderImageLabels(message: any): any {
+  if (message?.role !== "user" || !Array.isArray(message.content))
+    return message;
+
+  let changed = false;
+  let imageIndex = 0;
+  const content: unknown[] = [];
+
+  for (const block of message.content) {
+    if (isImageBlock(block) && block.piImageMeta) {
+      content.push({ type: "text", text: labelFromImage(block, imageIndex) });
+      content.push(block);
+      imageIndex++;
+      changed = true;
+      continue;
+    }
+
+    content.push(block);
+  }
+
+  return changed ? { ...message, content } : message;
+}
+
+function registerContextHandler(pi: ExtensionAPI) {
+  pi.on("context", (event) => ({
+    messages: event.messages.map((message) => withProviderImageLabels(message)),
+  }));
 }
 
 function patchPromptContent() {
@@ -1259,7 +1263,7 @@ function createDragDropHandler(): (
 // ---------------------------------------------------------------------------
 
 export default function (pi: ExtensionAPI) {
-  registerInputHandler(pi);
+  registerContextHandler(pi);
   patchPromptContent();
   patchUserMessageRendering();
   patchClipboardImagePaste();
