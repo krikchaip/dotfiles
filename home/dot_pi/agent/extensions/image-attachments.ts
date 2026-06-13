@@ -703,6 +703,8 @@ type EditorPatchState = {
   originalHandleForwardDelete: () => void;
   originalDeleteWordBackwards: () => void;
   originalDeleteWordForward: () => void;
+  originalMoveWordBackwards?: () => void;
+  originalMoveWordForwards?: () => void;
   originalDeleteToStartOfLine: () => void;
   originalDeleteToEndOfLine: () => void;
   originalPushUndoSnapshot: () => void;
@@ -882,6 +884,121 @@ function highlightPlainToken(line: string, token: string): string {
   }
 }
 
+function isLineWhitespace(char: string | undefined): boolean {
+  return !!char && /\s/.test(char);
+}
+
+function deleteLineRange(
+  editor: any,
+  start: number,
+  end: number,
+  prependKill: boolean,
+): void {
+  const lineIndex = editor.state.cursorLine;
+  const currentLine = editor.state.lines[lineIndex] ?? "";
+  const wasKill = editor.lastAction === "kill";
+
+  editor.pushUndoSnapshot();
+  editor.killRing?.push?.(currentLine.slice(start, end), {
+    prepend: prependKill,
+    accumulate: wasKill,
+  });
+  editor.lastAction = "kill";
+  editor.state.lines[lineIndex] =
+    currentLine.slice(0, start) + currentLine.slice(end);
+  editor.setCursorCol(start);
+  editor.onChange?.(editor.getText());
+}
+
+function deleteActivePlaceholderBackward(editor: any): boolean {
+  const currentLine = editor.state.lines[editor.state.cursorLine] ?? "";
+  const cursor = Math.min(editor.state.cursorCol, currentLine.length);
+  if (cursor <= 0) return false;
+
+  let lookupCol = cursor;
+  while (lookupCol > 0 && isLineWhitespace(currentLine[lookupCol - 1])) {
+    lookupCol--;
+  }
+
+  const span = activePlaceholderSpans(currentLine).find(
+    (item) => lookupCol > item.start && lookupCol <= item.end,
+  );
+  if (!span) return false;
+
+  deleteLineRange(editor, span.start, Math.max(cursor, span.end), true);
+  return true;
+}
+
+function deleteActivePlaceholderForward(editor: any): boolean {
+  const currentLine = editor.state.lines[editor.state.cursorLine] ?? "";
+  const cursor = Math.min(editor.state.cursorCol, currentLine.length);
+  if (cursor >= currentLine.length) return false;
+
+  let lookupCol = cursor;
+  while (
+    lookupCol < currentLine.length &&
+    isLineWhitespace(currentLine[lookupCol])
+  ) {
+    lookupCol++;
+  }
+
+  const span = activePlaceholderSpans(currentLine).find(
+    (item) => lookupCol >= item.start && lookupCol < item.end,
+  );
+  if (!span) return false;
+
+  deleteLineRange(
+    editor,
+    cursor <= span.start ? cursor : span.start,
+    span.end,
+    false,
+  );
+  return true;
+}
+
+function moveActivePlaceholderBackward(editor: any): boolean {
+  const currentLine = editor.state.lines[editor.state.cursorLine] ?? "";
+  const cursor = Math.min(editor.state.cursorCol, currentLine.length);
+  if (cursor <= 0) return false;
+
+  let lookupCol = cursor;
+  while (lookupCol > 0 && isLineWhitespace(currentLine[lookupCol - 1])) {
+    lookupCol--;
+  }
+
+  const span = activePlaceholderSpans(currentLine).find(
+    (item) => lookupCol > item.start && lookupCol <= item.end,
+  );
+  if (!span) return false;
+
+  editor.setCursorCol(span.start);
+  editor.lastAction = null;
+  return true;
+}
+
+function moveActivePlaceholderForward(editor: any): boolean {
+  const currentLine = editor.state.lines[editor.state.cursorLine] ?? "";
+  const cursor = Math.min(editor.state.cursorCol, currentLine.length);
+  if (cursor >= currentLine.length) return false;
+
+  let lookupCol = cursor;
+  while (
+    lookupCol < currentLine.length &&
+    isLineWhitespace(currentLine[lookupCol])
+  ) {
+    lookupCol++;
+  }
+
+  const span = activePlaceholderSpans(currentLine).find(
+    (item) => lookupCol >= item.start && lookupCol < item.end,
+  );
+  if (!span) return false;
+
+  editor.setCursorCol(span.end);
+  editor.lastAction = null;
+  return true;
+}
+
 function patchEditorAtomicPlaceholders() {
   const prototype = Editor.prototype as any;
   const existing = prototype[EDITOR_PATCH_STATE] as
@@ -894,12 +1011,16 @@ function patchEditorAtomicPlaceholders() {
     originalHandleForwardDelete: prototype.handleForwardDelete,
     originalDeleteWordBackwards: prototype.deleteWordBackwards,
     originalDeleteWordForward: prototype.deleteWordForward,
+    originalMoveWordBackwards: prototype.moveWordBackwards,
+    originalMoveWordForwards: prototype.moveWordForwards,
     originalDeleteToStartOfLine: prototype.deleteToStartOfLine,
     originalDeleteToEndOfLine: prototype.deleteToEndOfLine,
     originalPushUndoSnapshot: prototype.pushUndoSnapshot,
     originalUndo: prototype.undo,
   };
 
+  state.originalMoveWordBackwards ??= prototype.moveWordBackwards;
+  state.originalMoveWordForwards ??= prototype.moveWordForwards;
   prototype[EDITOR_PATCH_STATE] = state;
 
   prototype.segment = function patchedSegment(
@@ -931,13 +1052,31 @@ function patchEditorAtomicPlaceholders() {
   };
 
   prototype.deleteWordBackwards = function patchedDeleteWordBackwards() {
-    state.originalDeleteWordBackwards.call(this);
+    this.exitHistoryBrowsing?.();
+    if (!deleteActivePlaceholderBackward(this)) {
+      state.originalDeleteWordBackwards.call(this);
+    }
     reconcileEditorDraft(this);
   };
 
   prototype.deleteWordForward = function patchedDeleteWordForward() {
-    state.originalDeleteWordForward.call(this);
+    this.exitHistoryBrowsing?.();
+    if (!deleteActivePlaceholderForward(this)) {
+      state.originalDeleteWordForward.call(this);
+    }
     reconcileEditorDraft(this);
+  };
+
+  prototype.moveWordBackwards = function patchedMoveWordBackwards() {
+    if (!moveActivePlaceholderBackward(this)) {
+      state.originalMoveWordBackwards?.call(this);
+    }
+  };
+
+  prototype.moveWordForwards = function patchedMoveWordForwards() {
+    if (!moveActivePlaceholderForward(this)) {
+      state.originalMoveWordForwards?.call(this);
+    }
   };
 
   prototype.deleteToStartOfLine = function patchedDeleteToStartOfLine() {
