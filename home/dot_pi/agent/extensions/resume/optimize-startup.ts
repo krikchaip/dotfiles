@@ -20,12 +20,25 @@ type SessionInfoCache = Map<
 let _resumeCwd: string | undefined;
 let _resumeSessionDir: string | undefined;
 
+type ResumeSessionScope = {
+  cwd: string | undefined;
+  sessionDir: string | undefined;
+  usesDefaultSessionDir?: boolean;
+  includeAll?: boolean;
+};
+
+let scheduleSyncImpl = (_scope: ResumeSessionScope) => {};
+
 export function setResumeSessionScope(
   cwd: string | undefined,
   sessionDir: string | undefined,
 ) {
   _resumeCwd = cwd;
   _resumeSessionDir = sessionDir;
+}
+
+export function scheduleResumeSessionSync(scope: ResumeSessionScope) {
+  scheduleSyncImpl(scope);
 }
 
 export function installOptimizeStartup(
@@ -37,18 +50,50 @@ export function installOptimizeStartup(
     join(distPath, "modes", "interactive", "components", "session-selector.js"),
   );
   const selectorProto = SessionSelectorComponent.prototype as any;
+  const { getDefaultSessionDir, SessionManager } = req(
+    join(distPath, "core", "session-manager.js"),
+  );
+  const syncInFlight = new Set<string>();
+
+  const scheduleOne = (key: string, load: () => Promise<unknown>) => {
+    if (syncInFlight.has(key)) return;
+    syncInFlight.add(key);
+    setImmediate(() => {
+      void Promise.resolve()
+        .then(load)
+        .catch(() => {})
+        .finally(() => syncInFlight.delete(key));
+    });
+  };
+
+  scheduleSyncImpl = (scope: ResumeSessionScope) => {
+    const cwd = scope.cwd;
+    const sessionDir = scope.sessionDir;
+    if (!cwd) return;
+
+    const dirKey = `${cwd}\0${sessionDir ?? ""}`;
+    scheduleOne(`current\0${dirKey}`, () =>
+      SessionManager.list(cwd, sessionDir),
+    );
+
+    if (!scope.includeAll) return;
+    if (scope.usesDefaultSessionDir || !sessionDir) {
+      scheduleOne("all\0default", () => SessionManager.listAll());
+    } else {
+      scheduleOne(`all\0${sessionDir}`, () =>
+        SessionManager.listAll(sessionDir),
+      );
+    }
+  };
 
   if (selectorProto[LOAD_PATCHED]) return;
 
   const originalLoadCurrentSessions = selectorProto.loadCurrentSessions;
-  const { getDefaultSessionDir } = req(
-    join(distPath, "core", "session-manager.js"),
-  );
 
   selectorProto.loadCurrentSessions = function (this: any) {
     // Fast path: if we have cached SessionInfo for files in this dir,
-    // show them immediately (even if slightly stale for active session).
-    // Then kick off a background refresh to correct any stale entries.
+    // show them immediately. Refresh cache in the background for next open,
+    // but do not mutate the visible selector after it renders.
     if (_resumeCwd) {
       try {
         const dir = _resumeSessionDir ?? getDefaultSessionDir(_resumeCwd);
@@ -89,67 +134,9 @@ export function installOptimizeStartup(
             }
 
             this.requestRender?.();
-
-            // Background refresh to update stale entries silently.
-            // Suppress progress/loading indicators and preserve cursor.
-            setImmediate(() => {
-              const header = this.header;
-              const origSetLoading = header?.setLoading;
-              const origSetProgress = header?.setProgress;
-              if (header) {
-                header.setLoading = () => {};
-                header.setProgress = () => {};
-              }
-              const origRequestRender = this.requestRender;
-              this.requestRender = () => {};
-
-              const origSetSessions = this.sessionList?.setSessions;
-              if (this.sessionList) {
-                const sessionList = this.sessionList;
-                const hadCurrentSession =
-                  sessionList.currentSessionCanonicalPath &&
-                  sessionList.filteredSessions?.some((node: any) =>
-                    sessionList.isCurrentSessionPath(node.session.path),
-                  );
-                sessionList.setSessions = function (
-                  sessions: any,
-                  showCwd: any,
-                ) {
-                  const prevPath =
-                    sessionList.filteredSessions?.[sessionList.selectedIndex]
-                      ?.session?.path;
-                  origSetSessions.call(sessionList, sessions, showCwd);
-                  if (!hadCurrentSession) {
-                    // New session appeared — set cursor to top
-                    sessionList.selectedIndex = 0;
-                  } else if (prevPath && sessionList.filteredSessions) {
-                    const newIdx = sessionList.filteredSessions.findIndex(
-                      (node: any) => node.session.path === prevPath,
-                    );
-                    if (newIdx >= 0) sessionList.selectedIndex = newIdx;
-                  }
-                  sessionList.setSessions = origSetSessions;
-                };
-              }
-
-              const origLoadScope = this.loadScope;
-              this.loadScope = async function (
-                this: any,
-                scope: string,
-                reason: string,
-              ) {
-                await origLoadScope.call(this, scope, reason);
-                if (header) {
-                  header.setLoading = origSetLoading;
-                  header.setProgress = origSetProgress;
-                  header.setLoading(false);
-                }
-                this.requestRender = origRequestRender;
-                delete this.loadScope;
-                this.requestRender?.();
-              };
-
-              void originalLoadCurrentSessions.call(this);
+            scheduleResumeSessionSync({
+              cwd: _resumeCwd,
+              sessionDir: _resumeSessionDir,
             });
             return;
           }

@@ -13,6 +13,7 @@ import { patchDeleteActiveSession } from "./delete-active-session";
 import { patchHighlightCurrentSession } from "./highlight-current-session";
 import {
   installOptimizeStartup,
+  scheduleResumeSessionSync,
   setResumeSessionScope,
 } from "./optimize-startup";
 import {
@@ -38,6 +39,15 @@ function hasSessionList(selector: any) {
   return (
     selector?.sessionList || typeof selector?.getSessionList === "function"
   );
+}
+
+function scheduleResumeWarm(sessionManager: any, includeAll = true) {
+  scheduleResumeSessionSync({
+    cwd: sessionManager?.getCwd?.(),
+    sessionDir: sessionManager?.getSessionDir?.(),
+    usesDefaultSessionDir: sessionManager?.usesDefaultSessionDir?.(),
+    includeAll,
+  });
 }
 
 function loadPreviewDeps(req: NodeRequire, distPath: string) {
@@ -99,7 +109,7 @@ function loadPreviewDeps(req: NodeRequire, distPath: string) {
   };
 }
 
-export default function (_pi: ExtensionAPI) {
+export default function (pi: ExtensionAPI) {
   const req = createRequire(__filename);
   const cliPath = realpathSync(process.argv[1]);
   const distPath = dirname(cliPath);
@@ -107,17 +117,63 @@ export default function (_pi: ExtensionAPI) {
   applyRenameSessionRecent(req, distPath, sessionInfoCache);
   installOptimizeStartup(req, distPath, sessionInfoCache);
 
+  pi.on("session_start", (_event, ctx) => {
+    const warm = () => scheduleResumeWarm(ctx.sessionManager, true);
+    warm();
+    ctx.ui.addAutocompleteProvider((current: any) => ({
+      triggerCharacters: [
+        ...new Set([...(current.triggerCharacters ?? []), "/"]),
+      ],
+      async getSuggestions(
+        lines: string[],
+        cursorLine: number,
+        cursorCol: number,
+        options: any,
+      ) {
+        const line = lines[cursorLine] ?? "";
+        const beforeCursor = line.slice(0, cursorCol);
+        if (beforeCursor.trimStart().startsWith("/")) warm();
+        return current.getSuggestions(lines, cursorLine, cursorCol, options);
+      },
+      applyCompletion(
+        lines: string[],
+        cursorLine: number,
+        cursorCol: number,
+        item: any,
+        prefix: string,
+      ) {
+        return current.applyCompletion(
+          lines,
+          cursorLine,
+          cursorCol,
+          item,
+          prefix,
+        );
+      },
+      shouldTriggerFileCompletion(
+        lines: string[],
+        cursorLine: number,
+        cursorCol: number,
+      ) {
+        return (
+          current.shouldTriggerFileCompletion?.(lines, cursorLine, cursorCol) ??
+          true
+        );
+      },
+    }));
+  });
+
   const previewDeps = loadPreviewDeps(req, distPath);
   const { InteractiveMode } = req(
     join(distPath, "modes", "interactive", "interactive-mode.js"),
   );
   const proto = InteractiveMode.prototype as PatchedInteractiveMode;
-  const patchState = proto[RESUME_PATCHED];
 
-  if (!patchState) {
+  if (!proto[RESUME_PATCHED]) {
     const originalShow = proto.showSessionSelector;
 
     proto.showSessionSelector = function (this: PatchedInteractiveMode) {
+      scheduleResumeWarm(this.sessionManager, true);
       setResumeSessionScope(
         this.sessionManager?.getCwd?.(),
         this.sessionManager?.getSessionDir?.(),
@@ -130,13 +186,20 @@ export default function (_pi: ExtensionAPI) {
         factory: (done: () => void) => any,
       ) {
         return originalShowSelector.call(this, (done: any) => {
-          const result = factory(done);
+          const doneWithSync = () => {
+            try {
+              done();
+            } finally {
+              scheduleResumeWarm(this.sessionManager, true);
+            }
+          };
+          const result = factory(doneWithSync);
           const selector = result.component;
 
           if (hasSessionList(selector)) {
-            patchHighlightCurrentSession(selector, this, done);
+            patchHighlightCurrentSession(selector, this, doneWithSync);
             patchRenameSelection(selector);
-            patchDeleteActiveSession(selector, this, done);
+            patchDeleteActiveSession(selector, this, doneWithSync);
             const wrapper = wrapWithSessionPreview(selector, this, previewDeps);
             return { ...result, component: wrapper, focus: wrapper };
           }
@@ -155,6 +218,6 @@ export default function (_pi: ExtensionAPI) {
       }
     };
 
-    proto[RESUME_PATCHED] = { originalShow };
+    proto[RESUME_PATCHED] = true;
   }
 }
