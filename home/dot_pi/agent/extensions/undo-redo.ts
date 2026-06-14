@@ -32,6 +32,24 @@ type UserEntry = {
   };
 };
 
+type Entry = {
+  id: string;
+  parentId: string | null;
+  type: string;
+  timestamp?: string;
+  message?: { role?: string; content?: unknown };
+  targetId?: string;
+  [key: string]: any;
+};
+
+type RecentUndoDeletePlan = {
+  rootId: string;
+  deletedIds: Set<string>;
+  userMessages: number;
+  nodes: number;
+};
+
+const DELETE_RECENT_UNDO_WINDOW_MS = 15_000;
 const DEFAULT_UNDO_SHORTCUTS: KeyId[] = ["alt+u"];
 const DEFAULT_REDO_SHORTCUTS: KeyId[] = ["alt+shift+u"];
 const USER_KEYBINDINGS = join(homedir(), ".pi", "agent", "keybindings.json");
@@ -101,6 +119,174 @@ function latestUserEntryInPath(
   return undefined;
 }
 
+function collectSubtreeIds(entries: Entry[], rootId: string) {
+  const ids = new Set<string>([rootId]);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const entry of entries) {
+      if (!ids.has(entry.id) && entry.parentId && ids.has(entry.parentId)) {
+        ids.add(entry.id);
+        changed = true;
+      }
+    }
+  }
+
+  return ids;
+}
+
+function collectDeletionIds(entries: Entry[], rootId: string) {
+  const ids = collectSubtreeIds(entries, rootId);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const entry of entries) {
+      if (entry.type !== "label" || ids.has(entry.id)) continue;
+      if (entry.targetId && ids.has(entry.targetId)) {
+        ids.add(entry.id);
+        changed = true;
+      }
+    }
+  }
+
+  return ids;
+}
+
+function entryTimeMs(entry: Entry) {
+  const time = Date.parse(entry.timestamp ?? "");
+  return Number.isNaN(time) ? undefined : time;
+}
+
+function formatCount(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function buildRecentUndoDeletePlan(
+  ctx: ExtensionCommandContext,
+  userEntry: UserEntry,
+): RecentUndoDeletePlan | undefined {
+  const now = Date.now();
+  const entries = ctx.sessionManager.getEntries() as Entry[];
+  const branch = ctx.sessionManager.getBranch() as Entry[];
+  const userIndex = branch.findIndex((entry) => entry.id === userEntry.id);
+  if (userIndex < 0) return undefined;
+
+  const pathIds = new Set(branch.slice(userIndex).map((entry) => entry.id));
+  const deletedIds = collectDeletionIds(entries, userEntry.id);
+  const nonLabelDeletedIds = new Set(
+    entries
+      .filter((entry) => deletedIds.has(entry.id) && entry.type !== "label")
+      .map((entry) => entry.id),
+  );
+
+  if (nonLabelDeletedIds.size !== pathIds.size) return undefined;
+  for (const id of nonLabelDeletedIds) {
+    if (!pathIds.has(id)) return undefined;
+  }
+
+  for (const entry of entries) {
+    if (!nonLabelDeletedIds.has(entry.id)) continue;
+    const time = entryTimeMs(entry);
+    if (time === undefined || now - time > DELETE_RECENT_UNDO_WINDOW_MS) {
+      return undefined;
+    }
+  }
+
+  const userMessages = entries.filter(
+    (entry) =>
+      deletedIds.has(entry.id) &&
+      entry.type === "message" &&
+      entry.message?.role === "user",
+  ).length;
+
+  return {
+    rootId: userEntry.id,
+    deletedIds,
+    userMessages,
+    nodes: deletedIds.size,
+  };
+}
+
+function nearestKeptParent(
+  entry: Entry,
+  byId: Map<string, Entry>,
+  deletedIds: Set<string>,
+) {
+  let parentId = entry.parentId;
+  while (parentId && deletedIds.has(parentId)) {
+    parentId = byId.get(parentId)?.parentId ?? null;
+  }
+  return parentId;
+}
+
+function activeLeafAfterDeletion(
+  sessionManager: any,
+  root: Entry,
+  deletedIds: Set<string>,
+  byId: Map<string, Entry>,
+) {
+  const leafId = sessionManager.getLeafId?.() ?? null;
+  if (!leafId || !deletedIds.has(leafId)) return leafId;
+
+  const leaf = byId.get(leafId);
+  return leaf ? nearestKeptParent(leaf, byId, deletedIds) : root.parentId;
+}
+
+function deleteSubtree(sessionManager: any, rootId: string) {
+  const entries = sessionManager.getEntries?.() as Entry[];
+  const root = entries.find((entry) => entry.id === rootId);
+  if (!root) throw new Error(`Entry ${rootId} not found`);
+
+  const deletedIds = collectDeletionIds(entries, rootId);
+  const byId = new Map(entries.map((entry) => [entry.id, entry]));
+  const nextLeafId = activeLeafAfterDeletion(
+    sessionManager,
+    root,
+    deletedIds,
+    byId,
+  );
+
+  sessionManager.fileEntries = sessionManager.fileEntries
+    .filter(
+      (entry: Entry) => entry.type === "session" || !deletedIds.has(entry.id),
+    )
+    .map((entry: Entry) => {
+      if (
+        entry.type === "session" ||
+        !entry.parentId ||
+        !deletedIds.has(entry.parentId)
+      ) {
+        return entry;
+      }
+      return { ...entry, parentId: nearestKeptParent(entry, byId, deletedIds) };
+    });
+  sessionManager._buildIndex?.();
+  sessionManager.leafId = nextLeafId;
+  sessionManager._rewriteFile?.();
+  if (sessionManager.isPersisted?.()) sessionManager.flushed = true;
+
+  for (const id of deletedIds) {
+    sessionManager.labelsById?.delete?.(id);
+    sessionManager.labelTimestampsById?.delete?.(id);
+  }
+
+  return deletedIds;
+}
+
+function deleteRecentUndo(
+  ctx: ExtensionCommandContext,
+  plan: RecentUndoDeletePlan,
+) {
+  deleteSubtree(ctx.sessionManager as any, plan.rootId);
+  redoStack = [];
+  ctx.ui.notify(
+    `${formatCount(plan.userMessages, "message", "messages")} deleted, ${formatCount(plan.nodes, "node", "nodes")} pruned`,
+    "info",
+  );
+}
+
 function editorAllowsNavigation(ctx: ExtensionContext) {
   const current = ctx.ui.getEditorText();
   return (
@@ -155,6 +341,7 @@ async function handleUndo(ctx: ExtensionCommandContext) {
   }
 
   const promptText = textFromContent(userEntry.message.content);
+  const deletePlan = buildRecentUndoDeletePlan(ctx, userEntry);
   redoStack.push({
     leafId,
     ...(ownedEditorText !== undefined ? { promptText: ownedEditorText } : {}),
@@ -169,11 +356,24 @@ async function handleUndo(ctx: ExtensionCommandContext) {
   ctx.ui.setEditorText(promptText);
   ownedEditorText = promptText;
 
-  const count = redoStack.length;
-  ctx.ui.notify(
-    `${count} message reverted\n${redoKeyHint} or /redo to restore`,
-    "info",
-  );
+  if (deletePlan) {
+    try {
+      deleteRecentUndo(ctx, deletePlan);
+    } catch (error) {
+      ctx.ui.notify(
+        `Recent undo delete failed: ${error instanceof Error ? error.message : String(error)}`,
+        "warning",
+      );
+    }
+  }
+
+  if (!deletePlan || redoStack.length > 0) {
+    const count = redoStack.length;
+    ctx.ui.notify(
+      `${count} message reverted\n${redoKeyHint} or /redo to restore`,
+      "info",
+    );
+  }
 
   if (hasImageContent(userEntry.message.content)) {
     ctx.ui.notify(
