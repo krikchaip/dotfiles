@@ -7,3 +7,8 @@ Package installation/management:
 - Binaries and tools are managed via `home/dot_Brewfile` using Homebrew
 - To install new packages, add them to this file and let `chezmoi apply` handle the installation
 - To uninstall packages, remove them from `home/dot_Brewfile`, run `chezmoi apply`, and manually run `brew uninstall <package>` and `brew autoremove` to clean up dependencies
+
+Agent skills:
+- Issue tracker -> Local markdown files. See `.agents/artifacts/output/issue-tracker.md`
+- Triage labels -> Default vocabulary. See `.agents/artifacts/output/triage-labels.md`
+- Domain docs -> Multi-domain layout. See `.agents/artifacts/output/domain.md`
