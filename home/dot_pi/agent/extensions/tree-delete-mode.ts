@@ -52,7 +52,9 @@ type PatchedInteractiveMode = {
   chatContainer?: any;
   renderInitialMessages?: () => void;
   showStatus?: (message: string) => void;
+  showWarning?: (message: string) => void;
   showError?: (message: string) => void;
+  session?: { isStreaming?: boolean };
   showExtensionCustom?: <T>(
     factory: (
       tui: any,
@@ -306,11 +308,25 @@ function targetIdsFor(treeList: any, state: DeleteState) {
   ]);
 }
 
+function canDeleteNow(interactiveMode: PatchedInteractiveMode) {
+  if (interactiveMode.session?.isStreaming !== true) return true;
+
+  const message = "Cannot delete tree nodes while streaming";
+  if (interactiveMode.showWarning) {
+    interactiveMode.showWarning(message);
+  } else {
+    interactiveMode.showStatus?.(message);
+  }
+  return false;
+}
+
 function performDeletion(
   treeList: any,
   interactiveMode: PatchedInteractiveMode,
   confirmation: DeleteConfirmation,
 ) {
+  if (!canDeleteNow(interactiveMode)) return false;
+
   try {
     const result = deleteSubtree(
       interactiveMode.sessionManager,
@@ -329,10 +345,12 @@ function performDeletion(
     interactiveMode.showStatus?.(
       `Deleted ${confirmation.stats.total} tree node${confirmation.stats.total === 1 ? "" : "s"}`,
     );
+    return true;
   } catch (error) {
     interactiveMode.showError?.(
       error instanceof Error ? error.message : String(error),
     );
+    return false;
   }
 }
 
@@ -461,9 +479,13 @@ function patchTreeList(
           return;
         }
 
-        state.mode = false;
+        const deleted = performDeletion(
+          treeList,
+          interactiveMode,
+          confirmation,
+        );
+        if (deleted) state.mode = false;
         state.confirmation = null;
-        performDeletion(treeList, interactiveMode, confirmation);
         interactiveMode.ui?.requestRender?.();
       })();
       return;
