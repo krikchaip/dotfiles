@@ -1,19 +1,20 @@
 import {
   AgentSession,
-  AssistantMessageComponent,
   InteractiveMode,
-  UserMessageComponent,
   type ExtensionAPI,
   type ThemeColor,
 } from "@earendil-works/pi-coding-agent";
 import {
   Editor,
   getCapabilities,
+  getCellDimensions,
+  getImageDimensions,
   Image,
   Spacer,
   truncateToWidth,
   visibleWidth,
   type Component,
+  type ImageDimensions,
 } from "@earendil-works/pi-tui";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -27,9 +28,6 @@ const PROMPT_PATCH_STATE = Symbol.for(
 );
 const PASTE_PATCH_STATE = Symbol.for("pi-image-attachments.paste.patch");
 const EDITOR_PATCH_STATE = Symbol.for("pi-image-attachments.editor.patch");
-const MESSAGE_HIGHLIGHT_PATCH_STATE = Symbol.for(
-  "pi-image-attachments.message-highlight.patch",
-);
 const DRAFT_WIDGET_KEY = "pi-image-attachments-draft-preview";
 const ATTACHED_LABEL_PATTERN = /^Attached \[#image ([1-9]\d*)\]$/;
 const PLACEHOLDER_PATTERN = /^\[#image ([1-9]\d*)\]$/;
@@ -43,6 +41,28 @@ const DRAFT_PREVIEW_FRAME_COLOR: ThemeColor = "dim";
 const DRAFT_PREVIEW_LABEL_COLOR: ThemeColor = "dim";
 const DRAFT_PREVIEW_ACTIVE_HIGHLIGHT_MODE: DraftPreviewActiveHighlightMode =
   "label";
+const SUBMITTED_IMAGE_FRAME_COLOR: ThemeColor = "dim";
+const SUBMITTED_IMAGE_LABEL_COLOR: ThemeColor = "dim";
+const SUBMITTED_IMAGE_MAX_WIDTH = 60;
+const SUBMITTED_IMAGE_MAX_ROWS = 16;
+
+function imageCellWidth(
+  dimensions: ImageDimensions,
+  maxWidthCells: number,
+  maxHeightCells: number,
+): number {
+  const cell = getCellDimensions();
+  const widthScale = (maxWidthCells * cell.widthPx) / dimensions.widthPx;
+  const heightScale = (maxHeightCells * cell.heightPx) / dimensions.heightPx;
+  const scale = Math.min(widthScale, heightScale);
+  return Math.max(
+    1,
+    Math.min(
+      maxWidthCells,
+      Math.ceil((dimensions.widthPx * scale) / cell.widthPx),
+    ),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Draft Store — holds clipboard images between paste and submit
@@ -246,6 +266,7 @@ let nextDraftUndoSnapshot: DraftStoreSnapshot | undefined;
 let draftPreviewPoller: ReturnType<typeof setInterval> | undefined;
 let unsubscribeDragDrop: (() => void) | undefined;
 let currentEditorActiveImageId: number | undefined;
+let activeEditorInstance: any = undefined;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -278,11 +299,6 @@ type PastePatchState = {
   originalHandleClipboardImagePaste?: () => Promise<void>;
 };
 
-type MessageHighlightPatchState = {
-  originalUserRender: (width: number) => string[];
-  originalAssistantRender: (width: number) => string[];
-};
-
 type RenderTheme = {
   fg: (color: string, text: string) => string;
   bold?: (text: string) => string;
@@ -305,116 +321,6 @@ function previewLabelStyle(
   );
 }
 
-function escapeEnd(text: string, start: number): number {
-  if (text[start] !== "\x1b") return start;
-
-  const kind = text[start + 1];
-  if (kind === "[") {
-    for (let i = start + 2; i < text.length; i++) {
-      const code = text.charCodeAt(i);
-      if (code >= 0x40 && code <= 0x7e) return i + 1;
-    }
-    return text.length;
-  }
-
-  if (kind === "]" || kind === "_") {
-    const bel = text.indexOf("\x07", start + 2);
-    const st = text.indexOf("\x1b\\", start + 2);
-    if (bel === -1) return st === -1 ? text.length : st + 2;
-    if (st === -1) return bel + 1;
-    return Math.min(bel + 1, st + 2);
-  }
-
-  return Math.min(start + 2, text.length);
-}
-
-function visibleText(text: string): string {
-  let visible = "";
-
-  for (let i = 0; i < text.length; ) {
-    if (text[i] === "\x1b") {
-      i = escapeEnd(text, i);
-      continue;
-    }
-
-    const codePoint = text.codePointAt(i);
-    if (codePoint === undefined) break;
-    const char = String.fromCodePoint(codePoint);
-    visible += char;
-    i += char.length;
-  }
-
-  return visible;
-}
-
-function sgrCodes(sequence: string): number[] {
-  if (!sequence.startsWith("\x1b[") || !sequence.endsWith("m")) return [];
-
-  const body = sequence.slice(2, -1);
-  if (body === "") return [0];
-
-  return body
-    .split(";")
-    .map((part) => Number(part || "0"))
-    .filter((code) => Number.isFinite(code));
-}
-
-function nextInverseState(sequence: string, inverse: boolean): boolean {
-  let next = inverse;
-
-  for (const code of sgrCodes(sequence)) {
-    if (code === 0 || code === 27) next = false;
-    if (code === 7) next = true;
-  }
-
-  return next;
-}
-
-type VisibleStyleRange = {
-  start: number;
-  end: number;
-  style: (text: string) => string;
-  inverseStyle?: (text: string) => string;
-};
-
-function styleVisibleRanges(text: string, ranges: VisibleStyleRange[]): string {
-  if (ranges.length === 0) return text;
-
-  const styles = new Map<number, VisibleStyleRange>();
-  for (const range of ranges) {
-    for (let i = range.start; i < range.end; i++) styles.set(i, range);
-  }
-
-  let result = "";
-  let visibleIndex = 0;
-  let inverse = false;
-
-  for (let i = 0; i < text.length; ) {
-    if (text[i] === "\x1b") {
-      const end = escapeEnd(text, i);
-      const sequence = text.slice(i, end);
-      result += sequence;
-      inverse = nextInverseState(sequence, inverse);
-      i = end;
-      continue;
-    }
-
-    const codePoint = text.codePointAt(i);
-    if (codePoint === undefined) break;
-    const char = String.fromCodePoint(codePoint);
-    const range = styles.get(visibleIndex);
-    if (range && inverse && range.inverseStyle) {
-      result += range.inverseStyle(char);
-    } else {
-      result += range && !inverse ? range.style(char) : char;
-    }
-    visibleIndex++;
-    i += char.length;
-  }
-
-  return result;
-}
-
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
@@ -427,6 +333,29 @@ function isImageBlock(block: unknown): block is ImageBlock {
   return (
     !!block && typeof block === "object" && (block as any).type === "image"
   );
+}
+
+function idFromAttachedLabel(text: string): number | undefined {
+  const match = ATTACHED_LABEL_PATTERN.exec(text.trim());
+  if (!match) return undefined;
+
+  const id = Number(match[1]);
+  return Number.isInteger(id) && id > 0 ? id : undefined;
+}
+
+function removeAttachedLabelLines(text: string, labels: string[]): string {
+  const kept: string[] = [];
+
+  for (const line of text.split(/\r?\n/)) {
+    const label = line.trim();
+    if (idFromAttachedLabel(label)) {
+      labels.push(label);
+      continue;
+    }
+    kept.push(line);
+  }
+
+  return kept.join("\n");
 }
 
 function labelFromImage(block: ImageBlock, index: number): string {
@@ -451,19 +380,27 @@ function splitUserContent(content: unknown): {
 } {
   if (!Array.isArray(content)) return { promptContent: [], attachments: [] };
 
+  const promptContent: TextBlock[] = [];
   const attachments: SubmittedAttachment[] = [];
+  const pendingLabels: string[] = [];
 
   for (const block of content) {
-    // Only handle images marked by our plugin (piImageMeta present)
-    if (!isImageBlock(block) || !block.piImageMeta) continue;
+    if (isTextBlock(block)) {
+      const text = removeAttachedLabelLines(block.text, pendingLabels);
+      if (text.length > 0) promptContent.push({ ...block, text });
+      continue;
+    }
 
-    attachments.push({
-      label: labelFromImage(block, attachments.length),
-      image: block,
-    });
+    if (!isImageBlock(block)) continue;
+    if (!block.piImageMeta && pendingLabels.length === 0) continue;
+
+    const label = block.piImageMeta
+      ? labelFromImage(block, attachments.length)
+      : pendingLabels.shift()!;
+    if (pendingLabels[0] === label) pendingLabels.shift();
+
+    attachments.push({ label, image: block });
   }
-
-  const promptContent = content.filter(isTextBlock);
 
   return { promptContent, attachments };
 }
@@ -476,9 +413,10 @@ function themeForInteractiveMode(instance: any): RenderTheme {
 
 function idFromImage(block: ImageBlock): number | undefined {
   const id = block.piImageMeta?.id;
-  return typeof id === "number" && Number.isInteger(id) && id > 0
-    ? id
-    : undefined;
+  if (typeof id === "number" && Number.isInteger(id) && id > 0) return id;
+
+  const label = block.piImageMeta?.label;
+  return typeof label === "string" ? idFromAttachedLabel(label) : undefined;
 }
 
 function messageList(messages: unknown): unknown[] {
@@ -493,6 +431,16 @@ function maxSubmittedImageId(messages: unknown): number {
     if (!Array.isArray(content)) continue;
 
     for (const block of content) {
+      if (isTextBlock(block)) {
+        const labels: string[] = [];
+        removeAttachedLabelLines(block.text, labels);
+        for (const label of labels) {
+          const id = idFromAttachedLabel(label);
+          if (id) max = Math.max(max, id);
+        }
+        continue;
+      }
+
       if (!isImageBlock(block)) continue;
       const id = idFromImage(block);
       if (id) max = Math.max(max, id);
@@ -509,9 +457,21 @@ function rememberSubmittedImages(messages: unknown, clear = false): void {
     const content = (message as any)?.content;
     if (!Array.isArray(content)) continue;
 
+    const pendingIds: number[] = [];
     for (const block of content) {
-      if (!isImageBlock(block) || !block.piImageMeta) continue;
-      const id = idFromImage(block);
+      if (isTextBlock(block)) {
+        const labels: string[] = [];
+        removeAttachedLabelLines(block.text, labels);
+        for (const label of labels) {
+          const id = idFromAttachedLabel(label);
+          if (id) pendingIds.push(id);
+        }
+        continue;
+      }
+
+      if (!isImageBlock(block)) continue;
+      const id = idFromImage(block) ?? pendingIds.shift();
+      if (id && pendingIds[0] === id) pendingIds.shift();
       if (!id || !block.data || !block.mimeType) continue;
 
       submittedImages.set(id, {
@@ -519,7 +479,7 @@ function rememberSubmittedImages(messages: unknown, clear = false): void {
         data: block.data,
         mimeType: block.mimeType,
         hash:
-          block.piImageMeta.hash ?? `${block.mimeType}:${block.data.length}`,
+          block.piImageMeta?.hash ?? `${block.mimeType}:${block.data.length}`,
       });
     }
   }
@@ -904,20 +864,124 @@ class SubmittedImagesComponent implements Component {
     for (let i = 0; i < this.attachments.length; i++) {
       const att = this.attachments[i]!;
       lines.push("");
-      lines.push(truncateToWidth(this.theme.fg("muted", att.label), w, ""));
-
-      const img = this.images[i];
-      if (img) {
-        lines.push(...img.render(w));
-      } else {
-        const message = this.convertingImages.has(i)
-          ? "(converting image...)"
-          : "(image unavailable)";
-        lines.push(truncateToWidth(this.theme.fg("muted", message), w, ""));
-      }
+      lines.push(...this.renderAttachmentFrame(att, i, w));
     }
 
     return lines;
+  }
+
+  private renderAttachmentFrame(
+    att: SubmittedAttachment,
+    index: number,
+    width: number,
+  ): string[] {
+    if (width < 6) {
+      return [truncateToWidth(this.submittedFrameLabel(att.label), width, "")];
+    }
+
+    const img = this.images[index];
+    const maxImageWidth = Math.max(1, width - 5);
+    const imageLines = img
+      ? [...img.render(maxImageWidth + 2)]
+      : [
+          truncateToWidth(
+            this.theme.fg(
+              "muted",
+              this.convertingImages.has(index)
+                ? "(converting image...)"
+                : "(image unavailable)",
+            ),
+            maxImageWidth,
+            "",
+          ),
+        ];
+
+    const imageWidth = this.submittedImageWidth(
+      att,
+      index,
+      maxImageWidth,
+      imageLines,
+    );
+    const titleWidth = visibleWidth(att.label);
+    const desiredWidth = Math.max(imageWidth, titleWidth) + 5;
+    const frameWidth = Math.max(6, Math.min(width, desiredWidth));
+    const contentWidth = frameWidth - 5;
+
+    return [
+      this.submittedFrameTopLine(att.label, contentWidth),
+      ...imageLines.map((line) =>
+        this.submittedFrameBodyLine(line, contentWidth),
+      ),
+      this.submittedFrameBottomLine(frameWidth),
+    ];
+  }
+
+  private submittedImageWidth(
+    att: SubmittedAttachment,
+    index: number,
+    maxImageWidth: number,
+    imageLines: string[],
+  ): number {
+    const textWidth = Math.max(
+      0,
+      ...imageLines.map((line) => visibleWidth(line)),
+    );
+    if (textWidth > 0) return textWidth;
+
+    const display = this.displayImage(att, index);
+    if (!display || !getCapabilities().images) return 1;
+
+    const dimensions = getImageDimensions(display.data, display.mimeType);
+    if (!dimensions) return 1;
+
+    return imageCellWidth(
+      dimensions,
+      Math.min(maxImageWidth, SUBMITTED_IMAGE_MAX_WIDTH),
+      SUBMITTED_IMAGE_MAX_ROWS,
+    );
+  }
+
+  private displayImage(
+    att: SubmittedAttachment,
+    index: number,
+  ): DisplayImage | undefined {
+    if (!att.image.data || !att.image.mimeType) return undefined;
+    return (
+      this.convertedImages.get(index) ?? {
+        data: att.image.data,
+        mimeType: att.image.mimeType,
+      }
+    );
+  }
+
+  private submittedFrameBorder(text: string): string {
+    return this.theme.fg(SUBMITTED_IMAGE_FRAME_COLOR, text);
+  }
+
+  private submittedFrameLabel(text: string): string {
+    return this.theme.fg(SUBMITTED_IMAGE_LABEL_COLOR, text);
+  }
+
+  private submittedFrameTopLine(label: string, contentWidth: number): string {
+    const cell = truncateToWidth(label, contentWidth, "");
+    const fill = "─".repeat(Math.max(0, contentWidth - visibleWidth(cell)));
+    return `${this.submittedFrameBorder("╭─ ")}${this.submittedFrameLabel(
+      cell,
+    )}${this.submittedFrameBorder(` ${fill}╮`)}`;
+  }
+
+  private submittedFrameBodyLine(text: string, contentWidth: number): string {
+    const cell = truncateToWidth(text, contentWidth, "");
+    const padding = " ".repeat(Math.max(0, contentWidth - visibleWidth(cell)));
+    return `${this.submittedFrameBorder("│  ")}${cell}${padding}${this.submittedFrameBorder(
+      " │",
+    )}`;
+  }
+
+  private submittedFrameBottomLine(frameWidth: number): string {
+    return this.submittedFrameBorder(
+      `╰${"─".repeat(Math.max(0, frameWidth - 2))}╯`,
+    );
   }
 
   private maybeConvertImagesForKitty(): void {
@@ -949,10 +1013,7 @@ class SubmittedImagesComponent implements Component {
   ): Image | undefined {
     if (!att.image.data || !att.image.mimeType) return undefined;
 
-    const display = this.convertedImages.get(index) ?? {
-      data: att.image.data,
-      mimeType: att.image.mimeType,
-    };
+    const display = this.displayImage(att, index)!;
 
     if (
       getCapabilities().images === "kitty" &&
@@ -965,7 +1026,11 @@ class SubmittedImagesComponent implements Component {
       display.data,
       display.mimeType,
       { fallbackColor: (text: string) => this.theme.fg("muted", text) },
-      { maxWidthCells: 60, maxHeightCells: 16, filename: att.label },
+      {
+        maxWidthCells: SUBMITTED_IMAGE_MAX_WIDTH,
+        maxHeightCells: SUBMITTED_IMAGE_MAX_ROWS,
+        filename: att.label,
+      },
     );
   }
 }
@@ -973,52 +1038,6 @@ class SubmittedImagesComponent implements Component {
 // ---------------------------------------------------------------------------
 // Patch: render user messages with our images
 // ---------------------------------------------------------------------------
-
-function boldKnownImageRefsInRenderedLines(lines: string[]): string[] {
-  return lines.map((line) => {
-    const visible = visibleText(line);
-    const ranges: VisibleStyleRange[] = [];
-    const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
-
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(visible)) !== null) {
-      const id = Number(m[1]);
-      if (!hasActiveImageId(id)) continue;
-      ranges.push({
-        start: m.index,
-        end: m.index + m[0].length,
-        style: (text) => `\x1b[1m${text}\x1b[22m`,
-      });
-    }
-
-    return styleVisibleRanges(line, ranges);
-  });
-}
-
-function patchMessagePlaceholderHighlighting() {
-  const userPrototype = UserMessageComponent.prototype as any;
-  const assistantPrototype = AssistantMessageComponent.prototype as any;
-  const state = (userPrototype[MESSAGE_HIGHLIGHT_PATCH_STATE] ??= {
-    originalUserRender: userPrototype.render,
-    originalAssistantRender: assistantPrototype.render,
-  }) as MessageHighlightPatchState;
-
-  assistantPrototype[MESSAGE_HIGHLIGHT_PATCH_STATE] = state;
-
-  userPrototype.render = function patchedUserMessageRender(width: number) {
-    return boldKnownImageRefsInRenderedLines(
-      state.originalUserRender.call(this, width),
-    );
-  };
-
-  assistantPrototype.render = function patchedAssistantMessageRender(
-    width: number,
-  ) {
-    return boldKnownImageRefsInRenderedLines(
-      state.originalAssistantRender.call(this, width),
-    );
-  };
-}
 
 function patchUserMessageRendering() {
   const prototype = InteractiveMode.prototype as any;
@@ -1036,7 +1055,12 @@ function patchUserMessageRendering() {
 
     const { promptContent, attachments } = splitUserContent(message.content);
     if (attachments.length === 0) {
-      return state.originalAddMessageToChat.call(this, message, options);
+      const textBlockCount = message.content.filter(isTextBlock).length;
+      const displayMessage =
+        promptContent.length === textBlockCount
+          ? message
+          : { ...message, content: promptContent };
+      return state.originalAddMessageToChat.call(this, displayMessage, options);
     }
 
     state.originalAddMessageToChat.call(
@@ -1134,6 +1158,11 @@ function resetDraftForCurrentContext(ctx: any): void {
 function updateDraftPreviewWidget(ui: any, text: string): void {
   if (!ui?.setWidget) return;
 
+  // Read cursor position from the tracked editor instance
+  if (activeEditorInstance) {
+    currentEditorActiveImageId = placeholderIdAtCursor(activeEditorInstance);
+  }
+
   const attachments = previewImagesForText(text);
   const signature = `${currentEditorActiveImageId ?? ""}|${attachments
     .map((item) => `${item.id}:${item.mimeType}:${item.hash}`)
@@ -1168,7 +1197,6 @@ function updateDraftPreviewWidget(ui: any, text: string): void {
 
 type EditorPatchState = {
   originalSegment: (text: string, mode: "word" | "grapheme") => Iterable<any>;
-  originalRender: (width: number) => string[];
   originalHandleBackspace: () => void;
   originalHandleForwardDelete: () => void;
   originalDeleteWordBackwards: () => void;
@@ -1207,6 +1235,20 @@ function activePlaceholderSpans(text: string): Array<{
   }
 
   return spans;
+}
+
+function placeholderIdAtCursor(editor: any): number | undefined {
+  const line = editor?.state?.lines?.[editor?.state?.cursorLine ?? 0] ?? "";
+  const col = editor?.state?.cursorCol ?? 0;
+  const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line)) !== null) {
+    const end = m.index + m[0].length;
+    if (col >= m.index && col < end) return Number(m[1]);
+  }
+
+  return undefined;
 }
 
 function segmentWithActivePlaceholders(
@@ -1335,39 +1377,6 @@ function reconcileEditorDraft(editor: any): void {
   editor.tui?.requestRender?.();
 }
 
-function activePlaceholderIdAtCursor(editor: any): number | undefined {
-  const line = editor?.state?.lines?.[editor?.state?.cursorLine ?? 0] ?? "";
-  const col = editor?.state?.cursorCol ?? 0;
-
-  for (const span of activePlaceholderSpans(line)) {
-    if (col >= span.start && col < span.end) return span.id;
-  }
-
-  return undefined;
-}
-
-function boldImagePlaceholdersInRenderedLines(lines: string[]): string[] {
-  return lines.map((line) => {
-    const visible = visibleText(line);
-    const ranges: VisibleStyleRange[] = [];
-    const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
-
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(visible)) !== null) {
-      const id = Number(m[1]);
-      if (!hasActiveImageId(id)) continue;
-      ranges.push({
-        start: m.index,
-        end: m.index + m[0].length,
-        style: (text) => `\x1b[1m${text}\x1b[22m`,
-        inverseStyle: (text) => `\x1b[1m${text}\x1b[22m`,
-      });
-    }
-
-    return styleVisibleRanges(line, ranges);
-  });
-}
-
 function isLineWhitespace(char: string | undefined): boolean {
   return !!char && /\s/.test(char);
 }
@@ -1490,7 +1499,6 @@ function patchEditorAtomicPlaceholders() {
     | undefined;
   const state: EditorPatchState = existing ?? {
     originalSegment: prototype.segment,
-    originalRender: prototype.render,
     originalHandleBackspace: prototype.handleBackspace,
     originalHandleForwardDelete: prototype.handleForwardDelete,
     originalDeleteWordBackwards: prototype.deleteWordBackwards,
@@ -1517,14 +1525,9 @@ function patchEditorAtomicPlaceholders() {
     text: string,
     mode: "word" | "grapheme",
   ) {
+    activeEditorInstance = this;
     const base = state.originalSegment.call(this, text, mode);
     return segmentWithActivePlaceholders(text, base);
-  };
-
-  prototype.render = function patchedRender(width: number) {
-    const lines = state.originalRender.call(this, width);
-    currentEditorActiveImageId = activePlaceholderIdAtCursor(this);
-    return boldImagePlaceholdersInRenderedLines(lines);
   };
 
   prototype.handleBackspace = function patchedHandleBackspace() {
@@ -1814,10 +1817,14 @@ function withProviderImageLabels(message: any): any {
 
   for (const block of message.content) {
     if (isImageBlock(block) && block.piImageMeta) {
-      content.push({ type: "text", text: labelFromImage(block, imageIndex) });
+      const label = labelFromImage(block, imageIndex);
+      const previous = content[content.length - 1];
+      if (!isTextBlock(previous) || previous.text !== label) {
+        content.push({ type: "text", text: label });
+        changed = true;
+      }
       content.push(block);
       imageIndex++;
-      changed = true;
       continue;
     }
 
@@ -1965,7 +1972,6 @@ export default function (pi: ExtensionAPI) {
   registerContextHandler(pi);
   patchPromptContent();
   patchUserMessageRendering();
-  patchMessagePlaceholderHighlighting();
   patchClipboardImagePaste();
   patchEditorAtomicPlaceholders();
 
