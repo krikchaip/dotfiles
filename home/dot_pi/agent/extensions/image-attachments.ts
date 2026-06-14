@@ -28,6 +28,9 @@ const PROMPT_PATCH_STATE = Symbol.for(
 );
 const PASTE_PATCH_STATE = Symbol.for("pi-image-attachments.paste.patch");
 const EDITOR_PATCH_STATE = Symbol.for("pi-image-attachments.editor.patch");
+const SUBMIT_GUARD_PATCH_STATE = Symbol.for(
+  "pi-image-attachments.submit-guard.patch",
+);
 const DRAFT_WIDGET_KEY = "pi-image-attachments-draft-preview";
 const ATTACHED_LABEL_PATTERN = /^Attached \[#image ([1-9]\d*)\]$/;
 const PLACEHOLDER_PATTERN = /^\[#image ([1-9]\d*)\]$/;
@@ -297,6 +300,10 @@ type PromptPatchState = {
 
 type PastePatchState = {
   originalHandleClipboardImagePaste?: () => Promise<void>;
+};
+
+type SubmitGuardPatchState = {
+  originalSetupEditorSubmitHandler: (...args: any[]) => any;
 };
 
 type RenderTheme = {
@@ -602,6 +609,46 @@ function loadImageFromPath(filePath: string):
   } catch {
     return undefined;
   }
+}
+
+function hasActiveImagePlaceholder(text: string): boolean {
+  const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (hasActiveImageId(Number(m[1]))) return true;
+  }
+  return false;
+}
+
+function hasConvertibleClipboardImagePath(text: string): boolean {
+  const re = new RegExp(CLIPBOARD_IMAGE_PATH_PATTERN.source, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const path = m[2];
+    if (path && loadImageFromPath(path)) return true;
+  }
+  return false;
+}
+
+function hasImageSubmitIntent(text: string): boolean {
+  return (
+    hasActiveImagePlaceholder(text) || hasConvertibleClipboardImagePath(text)
+  );
+}
+
+function imageSubmitBlockReason(mode: any, text: string): string | undefined {
+  if (!hasImageSubmitIntent(text)) return undefined;
+
+  if (mode?.settingsManager?.getBlockImages?.()) {
+    return "Image reading is disabled. Enable images in /settings before sending image attachments.";
+  }
+
+  const model = mode?.session?.model;
+  if (model && Array.isArray(model.input) && !model.input.includes("image")) {
+    return `Current model (${model.id ?? "selected model"}) does not support image input. Switch to an image-capable model before sending image attachments.`;
+  }
+
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -1840,6 +1887,35 @@ function registerContextHandler(pi: ExtensionAPI) {
   }));
 }
 
+function patchSubmitGuards() {
+  const prototype = InteractiveMode.prototype as any;
+  const state = (prototype[SUBMIT_GUARD_PATCH_STATE] ??= {
+    originalSetupEditorSubmitHandler: prototype.setupEditorSubmitHandler,
+  }) as SubmitGuardPatchState;
+
+  prototype.setupEditorSubmitHandler = function patchedSetupEditorSubmitHandler(
+    ...args: any[]
+  ) {
+    const result = state.originalSetupEditorSubmitHandler.apply(this, args);
+    const originalOnSubmit = this.defaultEditor?.onSubmit;
+    if (typeof originalOnSubmit !== "function") return result;
+
+    this.defaultEditor.onSubmit = async (text: string) => {
+      const reason = imageSubmitBlockReason(this, text);
+      if (reason) {
+        this.showWarning?.(reason);
+        this.editor?.setText?.(text);
+        this.ui?.requestRender?.();
+        return;
+      }
+
+      return originalOnSubmit(text);
+    };
+
+    return result;
+  };
+}
+
 function patchPromptContent() {
   const prototype = AgentSession.prototype as any;
   const state = (prototype[PROMPT_PATCH_STATE] ??= {
@@ -1899,6 +1975,14 @@ const SUPPORTED_IMAGE_EXTENSIONS = new Set([
   ".gif",
   ".webp",
 ]);
+const UNSUPPORTED_IMAGE_LIKE_EXTENSIONS = new Set([
+  ".avif",
+  ".bmp",
+  ".heic",
+  ".heif",
+  ".tif",
+  ".tiff",
+]);
 
 function isSingleImagePath(content: string): string | undefined {
   const trimmed = content.trim();
@@ -1909,9 +1993,19 @@ function isSingleImagePath(content: string): string | undefined {
   return trimmed;
 }
 
-function createDragDropHandler(): (
-  data: string,
-) => { consume?: boolean; data?: string } | undefined {
+function unsupportedSingleImagePath(
+  content: string,
+): { ext: string } | undefined {
+  const trimmed = content.trim();
+  if (!trimmed.startsWith("/")) return undefined;
+  if (/\s/.test(trimmed)) return undefined;
+  const ext = extname(trimmed).toLowerCase();
+  return UNSUPPORTED_IMAGE_LIKE_EXTENSIONS.has(ext) ? { ext } : undefined;
+}
+
+function createDragDropHandler(
+  notify?: (message: string) => void,
+): (data: string) => { consume?: boolean; data?: string } | undefined {
   let pasteBuffer: string | undefined;
   let prefix = "";
 
@@ -1941,7 +2035,14 @@ function createDragDropHandler(): (
 
     const imagePath = isSingleImagePath(content);
     if (!imagePath) {
-      // Not a single image path; pass through as normal bracketed paste
+      const unsupported = unsupportedSingleImagePath(content);
+      if (unsupported) {
+        notify?.(
+          `Image format ${unsupported.ext} is not supported; pasted path unchanged.`,
+        );
+      }
+
+      // Not a single supported image path; pass through as normal bracketed paste
       const passthrough = `${prefix}${PASTE_START}${content}${PASTE_END}${remaining}`;
       prefix = "";
       return { data: passthrough };
@@ -1970,6 +2071,7 @@ function createDragDropHandler(): (
 
 export default function (pi: ExtensionAPI) {
   registerContextHandler(pi);
+  patchSubmitGuards();
   patchPromptContent();
   patchUserMessageRendering();
   patchClipboardImagePaste();
@@ -1988,7 +2090,9 @@ export default function (pi: ExtensionAPI) {
     }, 250);
 
     unsubscribeDragDrop?.();
-    unsubscribeDragDrop = ui.onTerminalInput(createDragDropHandler());
+    unsubscribeDragDrop = ui.onTerminalInput(
+      createDragDropHandler((message) => ui.notify?.(message, "warning")),
+    );
   });
 
   pi.on("session_tree", (_event, ctx) => {
