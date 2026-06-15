@@ -6,7 +6,6 @@
  */
 
 import { statSync } from "node:fs";
-import { homedir } from "node:os";
 import {
   matchesKey,
   truncateToWidth,
@@ -34,12 +33,6 @@ export interface SessionPreviewDeps {
   getMarkdownTheme(): any;
   theme: any;
   components: any;
-}
-
-function shortenPath(path: string | undefined) {
-  if (!path) return "";
-  const home = homedir();
-  return path.startsWith(home) ? `~${path.slice(home.length)}` : path;
 }
 
 function formatDate(date: Date | undefined) {
@@ -360,12 +353,10 @@ class ResumePreviewPane {
   private metadata(session: any, width: number) {
     const parts = [
       this.theme.bold(this.theme.fg("accent", sessionTitle(session))),
+      this.theme.fg("muted", normalizedText(session?.id)),
       this.theme.fg("muted", `${session?.messageCount ?? 0} msgs`),
-      this.theme.fg("muted", formatDate(session?.modified)),
+      this.theme.fg("muted", formatDate(session?.modified) + " (M)"),
     ];
-
-    const loc = shortenPath(session?.cwd || session?.path);
-    if (loc) parts.push(this.theme.fg("muted", loc));
 
     return fitLine(parts.join(this.theme.fg("muted", " · ")), width);
   }
