@@ -67,6 +67,8 @@ interface ImageInstance {
   cachedLines?: string[];
   cachedWidth?: number;
   __u1ImageId?: number;
+  __u1PlacementId?: number;
+  __u1PlacementKey?: string;
   render(width: number): string[];
 }
 
@@ -176,9 +178,24 @@ function imageCellSize(
 
 const transmittedIds = new Set<number>();
 
+// Same image bytes should share one transmitted image id, while each rendered
+// cell size gets its own virtual placement id.  In U=1 mode, image id is
+// encoded in foreground color and placement id in underline color.
+const dataHashToU1Id = new Map<string, number>();
+const placementKeyToU1PlacementId = new Map<string, number>();
+
+function hashForDedup(base64Data: string): string {
+  // Use first 64 + last 64 chars + length as a fast dedup key.
+  // Collisions are harmless (just share an ID).
+  const head = base64Data.slice(0, 64);
+  const tail = base64Data.slice(-64);
+  return `${base64Data.length}:${head}:${tail}`;
+}
+
 // Kitty image ids are terminal-global and can outlive a pi popup process.
 // Start each process in a random 24-bit range instead of replaying id=1,2,3...
 let nextU1Id = randomInt(1, 0x1000000);
+let nextU1PlacementId = randomInt(1, 0x1000000);
 
 function allocU1Id(): number {
   // 24-bit so the id fits entirely in a truecolor foreground (no 3rd diacritic).
@@ -189,6 +206,13 @@ function allocU1Id(): number {
   }
 
   return randomInt(1, 0x1000000);
+}
+
+function allocU1PlacementId(): number {
+  // 24-bit so the id fits entirely in underline truecolor.
+  const id = nextU1PlacementId;
+  nextU1PlacementId = (nextU1PlacementId % 0xffffff) + 1;
+  return id;
 }
 
 /** One-time `a=t` transmit (no display) for an image id; chunked for >4 KB. */
@@ -223,26 +247,37 @@ function transmitImage(id: number, base64: string): void {
 }
 
 /** Create/refresh the virtual placement for an id at the given cell size. */
-function placeVirtual(id: number, columns: number, rows: number): void {
+function placeVirtual(
+  imageId: number,
+  placementId: number,
+  columns: number,
+  rows: number,
+): void {
   process.stdout.write(
-    `\x1b_Ga=p,U=1,i=${id},c=${columns},r=${rows},q=2\x1b\\`,
+    `\x1b_Ga=p,U=1,i=${imageId},p=${placementId},c=${columns},r=${rows},q=2\x1b\\`,
   );
 }
 
 /** Build the placeholder text grid: `rows` lines of `columns` cells. */
-function placeholderLines(id: number, columns: number, rows: number): string[] {
-  const fg = `\x1b[38;2;${(id >> 16) & 0xff};${(id >> 8) & 0xff};${id & 0xff}m`;
+function placeholderLines(
+  imageId: number,
+  placementId: number,
+  columns: number,
+  rows: number,
+): string[] {
+  const fg = `\x1b[38;2;${(imageId >> 16) & 0xff};${(imageId >> 8) & 0xff};${imageId & 0xff}m`;
+  const underline = `\x1b[58;2;${(placementId >> 16) & 0xff};${(placementId >> 8) & 0xff};${placementId & 0xff}m`;
   const lines: string[] = [];
 
   for (let r = 0; r < rows; r++) {
     const rowMark = DIACRITICS[r] ?? "";
-    let line = fg;
+    let line = `${fg}${underline}`;
 
     for (let c = 0; c < columns; c++) {
       line += PLACEHOLDER + rowMark + (DIACRITICS[c] ?? "");
     }
 
-    lines.push(`${line}\x1b[39m`);
+    lines.push(`${line}\x1b[39;59m`);
   }
 
   return lines;
@@ -277,15 +312,46 @@ function installU1Renderer(mod: PiTuiModule): void {
       const maxHeight = this.options.maxHeightCells ?? defaultMaxHeight;
       const size = imageCellSize(this.dimensions, maxWidth, maxHeight, cell);
 
+      const dataKey = hashForDedup(this.base64Data);
       if (this.__u1ImageId === undefined) {
-        this.__u1ImageId = allocU1Id();
-        this.imageId = this.__u1ImageId;
+        // Reuse an existing transmitted image id for identical image bytes.
+        const existing = dataHashToU1Id.get(dataKey);
+        if (existing !== undefined) {
+          this.__u1ImageId = existing;
+          this.imageId = existing;
+        } else {
+          this.__u1ImageId = allocU1Id();
+          this.imageId = this.__u1ImageId;
+          dataHashToU1Id.set(dataKey, this.__u1ImageId);
+        }
+      }
+
+      const placementKey = `${dataKey}:${size.columns}x${size.rows}`;
+      if (this.__u1PlacementKey !== placementKey) {
+        this.__u1PlacementKey = placementKey;
+        const existing = placementKeyToU1PlacementId.get(placementKey);
+        if (existing !== undefined) {
+          this.__u1PlacementId = existing;
+        } else {
+          this.__u1PlacementId = allocU1PlacementId();
+          placementKeyToU1PlacementId.set(placementKey, this.__u1PlacementId);
+        }
       }
 
       transmitImage(this.__u1ImageId, this.base64Data);
-      placeVirtual(this.__u1ImageId, size.columns, size.rows);
+      placeVirtual(
+        this.__u1ImageId,
+        this.__u1PlacementId!,
+        size.columns,
+        size.rows,
+      );
 
-      const lines = placeholderLines(this.__u1ImageId, size.columns, size.rows);
+      const lines = placeholderLines(
+        this.__u1ImageId,
+        this.__u1PlacementId!,
+        size.columns,
+        size.rows,
+      );
 
       this.cachedLines = lines;
       this.cachedWidth = width;

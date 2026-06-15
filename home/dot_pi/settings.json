@@ -1,4 +1,5 @@
 {
   "toolBackground": "outlines",
-  "mcpOutputMode": "hidden"
+  "mcpOutputMode": "hidden",
+  "extraToolOutputExpanded": false
 }
