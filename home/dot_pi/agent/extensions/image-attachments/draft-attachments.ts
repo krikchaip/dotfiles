@@ -278,6 +278,7 @@ class DraftStore {
 
 const draftStore = new DraftStore();
 const submittedImages = new Map<number, DraftAttachment>();
+const resendableSubmittedImageIds = new Set<number>();
 const pendingSubmittedDraftIds = new Set<number>();
 let nextDraftUndoSnapshot: DraftStoreSnapshot | undefined;
 let unsubscribeDragDrop: (() => void) | undefined;
@@ -397,7 +398,7 @@ function rememberSubmittedImages(messages: unknown, clear = false): void {
   }
 }
 
-function submittedImagesForText(text: string): DraftAttachment[] {
+function submittedImageIdsForText(text: string): number[] {
   const seen = new Set<number>();
   const ids: number[] = [];
   const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
@@ -410,12 +411,23 @@ function submittedImagesForText(text: string): DraftAttachment[] {
     ids.push(id);
   }
 
-  return ids
-    .sort((a, b) => a - b)
-    .flatMap((id) => {
-      const item = submittedImages.get(id);
-      return item ? [item] : [];
-    });
+  return ids.sort((a, b) => a - b);
+}
+
+function submittedImagesForText(text: string): DraftAttachment[] {
+  return submittedImageIdsForText(text).flatMap((id) => {
+    const item = submittedImages.get(id);
+    return item ? [item] : [];
+  });
+}
+
+function imageIdsFromBlocks(images: ImageBlock[] | undefined): number[] {
+  const ids: number[] = [];
+  for (const image of images ?? []) {
+    const id = idFromImage(image);
+    if (id) ids.push(id);
+  }
+  return ids;
 }
 
 function previewImagesForText(text: string): DraftAttachment[] {
@@ -516,11 +528,12 @@ function loadImageFromPath(filePath: string):
   }
 }
 
-function hasActiveImagePlaceholder(text: string): boolean {
+function hasImagePayloadPlaceholder(text: string): boolean {
   const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    if (hasActiveImageId(Number(m[1]))) return true;
+    const id = Number(m[1]);
+    if (draftStore.has(id) || resendableSubmittedImageIds.has(id)) return true;
   }
   return false;
 }
@@ -537,7 +550,7 @@ function hasConvertibleClipboardImagePath(text: string): boolean {
 
 function hasImageSubmitIntent(text: string): boolean {
   return (
-    hasActiveImagePlaceholder(text) || hasConvertibleClipboardImagePath(text)
+    hasImagePayloadPlaceholder(text) || hasConvertibleClipboardImagePath(text)
   );
 }
 
@@ -712,22 +725,12 @@ function draftImagesForText(text: string): {
   return { images, submittedIds };
 }
 
-function submittedImageBlocksForText(text: string): ImageBlock[] {
-  const seen = new Set<number>();
-  const ids: number[] = [];
-  const re = new RegExp(INLINE_PLACEHOLDER_PATTERN.source, "g");
-
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    const id = Number(m[1]);
-    if (seen.has(id) || !submittedImages.has(id)) continue;
-
-    seen.add(id);
-    ids.push(id);
-  }
-
-  return ids
-    .sort((a, b) => a - b)
+function submittedImageBlocksForText(
+  text: string,
+  allowedIds: ReadonlySet<number>,
+): ImageBlock[] {
+  return submittedImageIdsForText(text)
+    .filter((id) => allowedIds.has(id))
     .flatMap((id) => {
       const image = submittedImages.get(id);
       return image ? [imageBlockFromDraft(id, image)] : [];
@@ -782,12 +785,16 @@ function transformDraftPlaceholders(message: any): {
     : { count, submittedIds, message: { ...message, content } };
 }
 
-function transformSubmittedPlaceholders(message: any): {
+function transformSubmittedPlaceholders(
+  message: any,
+  allowedIds: ReadonlySet<number>,
+): {
   count: number;
+  submittedRefIds: number[];
   message: any;
 } {
   if (message?.role !== "user" || !Array.isArray(message.content)) {
-    return { count: 0, message };
+    return { count: 0, submittedRefIds: [], message };
   }
 
   const existingIds = new Set<number>();
@@ -798,6 +805,7 @@ function transformSubmittedPlaceholders(message: any): {
   }
 
   let count = 0;
+  const submittedRefIds: number[] = [];
   const content: Array<TextBlock | ImageBlock | unknown> = [];
 
   for (const block of message.content) {
@@ -806,23 +814,28 @@ function transformSubmittedPlaceholders(message: any): {
       continue;
     }
 
-    const images = submittedImageBlocksForText(block.text).filter((image) => {
-      const id = idFromImage(image);
-      return id === undefined || !existingIds.has(id);
-    });
+    const images = submittedImageBlocksForText(block.text, allowedIds).filter(
+      (image) => {
+        const id = idFromImage(image);
+        return id === undefined || !existingIds.has(id);
+      },
+    );
 
     content.push(block);
     for (const image of images) {
       content.push(image);
       const id = idFromImage(image);
-      if (id) existingIds.add(id);
+      if (id) {
+        existingIds.add(id);
+        submittedRefIds.push(id);
+      }
       count++;
     }
   }
 
   return count === 0
-    ? { count, message }
-    : { count, message: { ...message, content } };
+    ? { count, submittedRefIds, message }
+    : { count, submittedRefIds, message: { ...message, content } };
 }
 
 function transformClipboardImagePaths(
@@ -891,9 +904,11 @@ function transformStreamingInput(
   text: string,
   images: ImageBlock[] | undefined,
   nextId: number,
+  allowedSubmittedIds: ReadonlySet<number>,
 ): {
   changed: boolean;
   submittedIds: number[];
+  submittedRefIds: number[];
   text: string;
   images?: ImageBlock[];
 } {
@@ -903,12 +918,16 @@ function transformStreamingInput(
   };
 
   const draftResult = transformDraftPlaceholders(message);
-  const submittedResult = transformSubmittedPlaceholders(draftResult.message);
+  const submittedResult = transformSubmittedPlaceholders(
+    draftResult.message,
+    allowedSubmittedIds,
+  );
   if (draftResult.count > 0 || submittedResult.count > 0) {
     const parts = inputPartsFromMessage(submittedResult.message);
     return {
       changed: true,
       submittedIds: draftResult.submittedIds,
+      submittedRefIds: submittedResult.submittedRefIds,
       ...parts,
     };
   }
@@ -916,10 +935,16 @@ function transformStreamingInput(
   const pathResult = transformClipboardImagePaths(message, nextId);
   if (pathResult.count > 0) {
     const parts = inputPartsFromMessage(pathResult.message);
-    return { changed: true, submittedIds: [], ...parts };
+    return { changed: true, submittedIds: [], submittedRefIds: [], ...parts };
   }
 
-  return { changed: false, submittedIds: [], text, images };
+  return {
+    changed: false,
+    submittedIds: [],
+    submittedRefIds: [],
+    text,
+    images,
+  };
 }
 
 function registerInputTransform(pi: ExtensionAPI) {
@@ -932,6 +957,7 @@ function registerInputTransform(pi: ExtensionAPI) {
       event.text,
       event.images as ImageBlock[] | undefined,
       nextId,
+      resendableSubmittedImageIds,
     );
     if (!result.changed) return { action: "continue" };
 
@@ -945,6 +971,13 @@ function registerInputTransform(pi: ExtensionAPI) {
           ...(result.images ?? []),
         ],
       });
+      for (const id of imageIdsFromBlocks(result.images)) {
+        resendableSubmittedImageIds.add(id);
+      }
+    } else {
+      for (const id of result.submittedRefIds) {
+        resendableSubmittedImageIds.delete(id);
+      }
     }
     if (result.submittedIds.length > 0) {
       draftStore.markSubmitted(result.submittedIds);
@@ -968,6 +1001,7 @@ function patchPromptContent() {
     const existingMax = maxSubmittedImageId(this?.agent?.state?.messages);
     let nextId = existingMax + 1;
     const allSubmittedIds = Array.from(pendingSubmittedDraftIds);
+    const allSubmittedRefIds: number[] = [];
     pendingSubmittedDraftIds.clear();
 
     const transform = (message: any) => {
@@ -975,9 +1009,11 @@ function patchPromptContent() {
       const draftResult = transformDraftPlaceholders(message);
       const submittedResult = transformSubmittedPlaceholders(
         draftResult.message,
+        resendableSubmittedImageIds,
       );
       if (draftResult.count > 0 || submittedResult.count > 0) {
         allSubmittedIds.push(...draftResult.submittedIds);
+        allSubmittedRefIds.push(...submittedResult.submittedRefIds);
         return submittedResult.message;
       }
       // Fallback: raw clipboard temp-file paths (Slice 2 compat)
@@ -998,6 +1034,9 @@ function patchPromptContent() {
       () => {
         if (allSubmittedIds.length > 0) {
           draftStore.markSubmitted(allSubmittedIds);
+        }
+        for (const id of allSubmittedRefIds) {
+          resendableSubmittedImageIds.delete(id);
         }
       },
       () => {},
@@ -1243,6 +1282,7 @@ function resetDraftForCurrentContext(ctx: any): void {
   const sessionCtx = ctx?.sessionManager?.buildSessionContext?.();
   rememberSubmittedImages(sessionCtx?.messages, true);
   draftStore.reset(maxSubmittedImageId(sessionCtx?.messages));
+  resendableSubmittedImageIds.clear();
   pendingSubmittedDraftIds.clear();
   nextDraftUndoSnapshot = undefined;
 }
@@ -1273,6 +1313,17 @@ export function installDraftAttachments(
 
   pi.on("session_compact", (_event, ctx) => {
     resetDraftForCurrentContext(ctx as any);
+  });
+
+  pi.on("message_start", (event) => {
+    const message = (event as any)?.message;
+    if (message?.role !== "user" || !Array.isArray(message.content)) return;
+
+    for (const block of message.content) {
+      if (!isImageBlock(block)) continue;
+      const id = idFromImage(block);
+      if (id) resendableSubmittedImageIds.delete(id);
+    }
   });
 
   pi.on("session_shutdown", () => {
