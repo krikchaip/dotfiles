@@ -26,11 +26,9 @@ function segmentWithActivePlaceholders(
   drafts: ImageAttachmentsDrafts,
   text: string,
   baseSegments: Iterable<any>,
-): any[] {
-  if (!text.includes("[#image ")) return [...baseSegments];
-
+): any[] | Iterable<any> {
   const spans = drafts.activePlaceholderSpans(text);
-  if (spans.length === 0) return [...baseSegments];
+  if (spans.length === 0) return baseSegments;
 
   const result: any[] = [];
   let spanIndex = 0;
@@ -211,6 +209,9 @@ export function installAtomicPlaceholder(drafts: ImageAttachmentsDrafts) {
     mode: "word" | "grapheme",
   ) {
     drafts.setActiveEditor(this);
+    if (!text.includes("[#image ")) {
+      return state.originalSegment.call(this, text, mode);
+    }
     const base = state.originalSegment.call(this, text, mode);
     return segmentWithActivePlaceholders(drafts, text, base);
   };

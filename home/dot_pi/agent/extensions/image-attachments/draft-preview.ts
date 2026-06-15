@@ -25,6 +25,7 @@ const DRAFT_WIDGET_KEY = "pi-image-attachments-draft-preview";
 const DRAFT_THUMB_MAX_WIDTH = 25;
 const DRAFT_THUMB_MAX_ROWS = 10;
 const DRAFT_THUMB_GAP = 1;
+const DRAFT_PREVIEW_POLL_MS = 250;
 const DRAFT_PREVIEW_FRAME_COLOR: ThemeColor = "dim";
 const DRAFT_PREVIEW_LABEL_COLOR: ThemeColor = "dim";
 const DRAFT_PREVIEW_ACTIVE_HIGHLIGHT_MODE: DraftPreviewActiveHighlightMode =
@@ -72,7 +73,7 @@ class DraftPreviewComponent implements Component {
 
   constructor(
     private readonly attachments: DraftAttachment[],
-    private readonly activeId: number | undefined,
+    private readonly getActiveId: () => number | undefined,
     private readonly theme: RenderTheme,
     private readonly requestRender: () => void,
   ) {
@@ -144,7 +145,7 @@ class DraftPreviewComponent implements Component {
           ),
         ];
 
-    const active = att.id === this.activeId;
+    const active = att.id === this.getActiveId();
     const frameActive =
       active && DRAFT_PREVIEW_ACTIVE_HIGHLIGHT_MODE === "frame";
     const labelActive = active;
@@ -297,11 +298,10 @@ function updateDraftPreviewWidget(
 ): void {
   if (!ui?.setWidget) return;
 
-  const activeId = drafts.placeholderIdAtCursor(undefined);
   const attachments = drafts.previewImagesForText(text);
-  const signature = `${activeId ?? ""}|${attachments
+  const signature = attachments
     .map((item) => `${item.id}:${item.mimeType}:${item.hash}`)
-    .join(",")}`;
+    .join(",");
   if (signature === currentDraftPreviewSignature) return;
 
   currentDraftPreviewSignature = signature;
@@ -314,8 +314,11 @@ function updateDraftPreviewWidget(
   ui.setWidget(
     DRAFT_WIDGET_KEY,
     (_tui: unknown, theme: RenderTheme) =>
-      new DraftPreviewComponent(attachments, activeId, theme, () =>
-        ui.requestRender?.(),
+      new DraftPreviewComponent(
+        attachments,
+        () => drafts.placeholderIdAtCursor(undefined),
+        theme,
+        () => ui.requestRender?.(),
       ),
     { placement: "aboveEditor" },
   );
@@ -335,7 +338,7 @@ export function installDraftPreview(
     if (draftPreviewPoller) clearInterval(draftPreviewPoller);
     draftPreviewPoller = setInterval(() => {
       updateDraftPreviewWidget(drafts, ui, ui.getEditorText?.() ?? "");
-    }, 250);
+    }, DRAFT_PREVIEW_POLL_MS);
   });
 
   pi.on("session_tree", (_event, ctx) => {
