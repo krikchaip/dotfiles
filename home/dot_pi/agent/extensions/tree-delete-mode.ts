@@ -274,7 +274,7 @@ function deleteSubtree(sessionManager: any, rootId: string) {
     sessionManager.labelTimestampsById?.delete?.(id);
   }
 
-  return { deletedIds: ids, nextLeafId, focusId: root.parentId ?? nextLeafId };
+  return { deletedIds: ids, nextLeafId, focusId: nextLeafId };
 }
 
 function updateTreeListAfterDeletion(
@@ -291,6 +291,7 @@ function updateTreeListAfterDeletion(
   );
   treeList.flatNodes =
     treeList.flattenTree?.(sessionManager.getTree?.() ?? []) ?? [];
+  treeList.filteredNodes = [];
   treeList.buildActivePath?.();
   treeList.applyFilter?.();
 }
