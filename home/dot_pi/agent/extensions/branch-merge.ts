@@ -20,6 +20,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import {
   Container,
+  Loader,
   SelectList,
   Text,
   type SelectItem,
@@ -58,6 +59,13 @@ type FileSnapshot = {
 };
 
 type PostMergeAction = "switch" | "switch-remove" | "stay";
+type MergeSummaryResult = {
+  summary: string;
+  details: {
+    readFiles: string[];
+    modifiedFiles: string[];
+  };
+};
 
 class UserVisibleWarning extends Error {}
 
@@ -343,7 +351,8 @@ function formatSummaryWithMetadata(params: {
 async function generateMergeSummary(
   ctx: ExtensionCommandContext,
   instruction: string,
-) {
+  signal = new AbortController().signal,
+): Promise<MergeSummaryResult> {
   const sourceLeafId = getLogicalLeafId(ctx.sessionManager);
   const entries = sourceLeafId
     ? ctx.sessionManager.getBranch(sourceLeafId)
@@ -355,7 +364,6 @@ async function generateMergeSummary(
   const settings = await loadSettings(ctx);
   const config = getBranchSummaryConfig(settings);
   const reserveTokens = parseTokenValue(config.reserveTokens);
-  const controller = new AbortController();
   const configured = await resolveConfiguredSummaryModel(ctx, config);
 
   const run = async (
@@ -369,7 +377,7 @@ async function generateMergeSummary(
     const options: GenerateBranchSummaryOptions = {
       model: target.model,
       apiKey: target.auth.apiKey ?? "",
-      signal: controller.signal,
+      signal,
     };
     if (target.auth.headers) options.headers = target.auth.headers;
     if (instruction) options.customInstructions = instruction;
@@ -404,23 +412,57 @@ async function generateMergeSummary(
   return run(await resolveCurrentSummaryModel(ctx));
 }
 
+async function generateMergeSummaryWithSpinner(
+  ctx: ExtensionCommandContext,
+  instruction: string,
+) {
+  if (ctx.mode !== "tui") return generateMergeSummary(ctx, instruction);
+
+  ctx.ui.setWidget(
+    `${EXTENSION_NAME}:summary-spinner`,
+    (tui, theme) => {
+      const loader = new Loader(
+        tui,
+        (text: string) => theme.fg("accent", text),
+        (text: string) => theme.fg("muted", text),
+        "Summarizing branch for merge...",
+      );
+
+      return {
+        render: (width: number) => loader.render(width),
+        invalidate: () => loader.invalidate(),
+        dispose: () => loader.stop(),
+      };
+    },
+    { placement: "aboveEditor" },
+  );
+
+  try {
+    return await generateMergeSummary(ctx, instruction);
+  } finally {
+    ctx.ui.setWidget(`${EXTENSION_NAME}:summary-spinner`, undefined, {
+      placement: "aboveEditor",
+    });
+  }
+}
+
 async function choosePostMergeAction(ctx: ExtensionCommandContext) {
   if (ctx.mode !== "tui") return "switch" satisfies PostMergeAction;
 
   const items: SelectItem[] = [
     {
       value: "switch",
-      label: "Switch to target",
+      label: "1) Switch to target",
       description: "Jump to the merged session",
     },
     {
       value: "switch-remove",
-      label: "Switch to target and remove source",
+      label: "2) Switch to target and remove source",
       description: "Jump to target, then move this source session to Trash",
     },
     {
       value: "stay",
-      label: "Stay in source",
+      label: "3) Stay in source",
       description: "Keep working here after writing the merge summary",
     },
   ];
@@ -475,7 +517,7 @@ async function choosePostMergeAction(ctx: ExtensionCommandContext) {
     { overlay: true },
   );
 
-  return result ?? "switch";
+  return result ?? "stay";
 }
 
 async function trashSessionFile(path: string, ctx: ExtensionContext) {
@@ -522,7 +564,10 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   }
 
   const before = await getSnapshot(targetPath);
-  const generated = await generateMergeSummary(ctx, target.instruction);
+  const generated = await generateMergeSummaryWithSpinner(
+    ctx,
+    target.instruction,
+  );
   const after = await getSnapshot(targetPath);
 
   if (!sameSnapshot(before, after)) {
