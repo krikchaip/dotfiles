@@ -1047,7 +1047,13 @@ export default function (pi: ExtensionAPI) {
         const options: Parameters<typeof ctx.fork>[1] = { position: "at" };
         if (prompt) {
           options.withSession = async (newCtx) => {
-            await newCtx.sendUserMessage(prompt);
+            void newCtx.sendUserMessage(prompt).catch((error: unknown) => {
+              notify(
+                newCtx,
+                error instanceof Error ? error.message : String(error),
+                "error",
+              );
+            });
           };
         }
 
