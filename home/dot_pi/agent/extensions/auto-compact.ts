@@ -312,11 +312,7 @@ async function maybeTriggerEarlyAuto(ctx: ExtensionContext) {
   if (!ctx.isIdle() || ctx.hasPendingMessages()) return;
 
   pendingEarlyReason = `${formatTokens(tokens)} >= ${formatTokens(threshold.tokens)} (${threshold.source})`;
-  notify(
-    ctx,
-    `${EXTENSION_NAME}: auto-compact threshold reached: ${pendingEarlyReason}`,
-    "info",
-  );
+  notify(ctx, `auto-compact threshold reached: ${pendingEarlyReason}`, "info");
 
   earlyAutoInFlight = true;
   ctx.compact({
@@ -327,11 +323,7 @@ async function maybeTriggerEarlyAuto(ctx: ExtensionContext) {
     onError: (error) => {
       earlyAutoInFlight = false;
       pendingEarlyReason = undefined;
-      notify(
-        ctx,
-        `${EXTENSION_NAME}: auto-compact failed: ${error.message}`,
-        "error",
-      );
+      notify(ctx, `[${EXTENSION_NAME}] ${error.message}`, "error");
     },
   });
 }
@@ -356,7 +348,7 @@ async function checkStuckThreshold(ctx: ExtensionContext) {
   stuckWarningShown = true;
   notify(
     ctx,
-    `${EXTENSION_NAME}: context still above early threshold after compaction (${formatTokens(tokens)} >= ${formatTokens(
+    `[${EXTENSION_NAME}] context still above early threshold after compaction (${formatTokens(tokens)} >= ${formatTokens(
       threshold.tokens,
     )}). Early auto-compact disabled for this branch. Consider a handoff doc, /fork, /new, higher threshold, or lower keepRecentTokens.`,
     "warning",
@@ -418,7 +410,7 @@ export default function (pi: ExtensionAPI) {
     lastCompactionNotice = `${EXTENSION_NAME}: compacted with ${modelName(targetModel)}${focus}${earlyReason}${builtinReason}`;
     notify(
       ctx,
-      `${EXTENSION_NAME}: compacting with ${modelName(targetModel)}${focus}${earlyReason}${builtinReason}`,
+      `[${EXTENSION_NAME}] compacting with ${modelName(targetModel)}${focus}${earlyReason}${builtinReason}`,
       "info",
     );
     pendingEarlyReason = undefined;
@@ -444,7 +436,7 @@ export default function (pi: ExtensionAPI) {
       if (event.signal.aborted) return { cancel: true };
       notify(
         ctx,
-        `${EXTENSION_NAME}: compact model ${modelName(targetModel)} failed: ${String(error)}; falling back to current model`,
+        `[${EXTENSION_NAME}] compact model ${modelName(targetModel)} failed "${String(error)}"; falling back to current model`,
         "warning",
       );
       return;
