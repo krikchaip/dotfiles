@@ -2,12 +2,19 @@
  * Branch and merge session workflows.
  *
  * /branch \[prompt?\]
- *   Clone the current active branch into a new session. If prompt is provided,
- *   submit it as the first message in the cloned session.
+ *   With no prompt, clone the current active branch like /clone. With a prompt,
+ *   switch to the clone and submit that prompt as its first message.
  *
  * /merge \[target-session-id?\] \[instruction?\]
- *   Summarize the current source session and append that summary to the target
- *   session's active leaf.
+ *   Summarize the full active path of the current source session and append a
+ *   branch_summary entry to the target session's active leaf. The target must be
+ *   a full UUID when passed explicitly; otherwise the parent session is used.
+ *
+ * Merge writes are atomic after generation: source and target snapshots are
+ *   checked before/after summary + label generation, then branch_summary and
+ *   label entries are appended sequentially. The label phase uses a larger token
+ *   budget because reasoning label models can otherwise spend the whole response
+ *   on thinking and trigger the source-session-id fallback.
  */
 
 import {
@@ -18,6 +25,7 @@ import {
   type ExtensionCommandContext,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { completeSimple } from "@earendil-works/pi-ai";
 import {
   Container,
   getKeybindings,
@@ -32,10 +40,55 @@ import { readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
+type PostMergeAction = "switch" | "switch-remove" | "stay";
+
+type PostMergeItem = {
+  value: PostMergeAction;
+  label: string;
+  description: string;
+};
+
 const EXTENSION_NAME = "branch-merge";
 const ACTIVE_LEAF_MARKER = "branch-merge:active-leaf";
+const MERGE_SPINNER_WIDGET_KEY = `${EXTENSION_NAME}:summary-spinner`;
+const MERGE_WIDGET_PLACEMENT = "aboveEditor";
+const MERGE_SPINNER_FRAMES = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
+const MERGE_SPINNER_INTERVAL_MS = 250;
+const SUMMARY_LABEL_MAX_LENGTH = 60;
+const SUMMARY_LABEL_WORD_BOUNDARY_MIN_INDEX = 20;
+const SUMMARY_LABEL_MAX_TOKENS = 4096;
 const UUID_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+const POST_MERGE_ITEMS = [
+  {
+    value: "switch",
+    label: "1) Switch to target",
+    description: "Jump to the merged session",
+  },
+  {
+    value: "switch-remove",
+    label: "2) Switch to target and remove source",
+    description: "Jump to target, then move this source session to Trash",
+  },
+  {
+    value: "stay",
+    label: "3) Stay in source",
+    description: "Keep working here after writing the merge summary",
+  },
+] as const satisfies readonly PostMergeItem[];
+
+const SUMMARY_LABEL_SYSTEM_PROMPT = `Generate a concise label for a merged session summary.
+
+Rules:
+- Return only the label text.
+- Think briefly.
+- No markdown.
+- No quotes.
+- No trailing punctuation.
+- Prefer 2-8 words.
+- Capture what the source session is about for fast session viewer skimming.
+- Do not return session IDs, UUIDs, or UUID fragments.`;
 
 type PiModel = NonNullable<ExtensionContext["model"]>;
 type GenerateBranchSummaryOptions = Parameters<typeof generateBranchSummary>[1];
@@ -43,11 +96,13 @@ type RequestAuth = Awaited<
   ReturnType<ExtensionContext["modelRegistry"]["getApiKeyAndHeaders"]>
 >;
 type RequestAuthError = Extract<RequestAuth, { error: string }>;
+type RequestAuthSuccess = Exclude<RequestAuth, RequestAuthError>;
 type CommandSessionManager = ExtensionCommandContext["sessionManager"];
 type BranchEntry = ReturnType<CommandSessionManager["getBranch"]>[number];
 
 type BranchSummaryConfig = {
   model?: unknown;
+  generateLabelModel?: unknown;
   reserveTokens?: unknown;
 };
 
@@ -60,16 +115,30 @@ type FileSnapshot = {
   mtimeMs: number;
 };
 
-type PostMergeAction = "switch" | "switch-remove" | "stay";
+type SummaryModelTarget = {
+  model: PiModel;
+  auth: RequestAuthSuccess;
+};
+
 type MergeSummaryResult = {
   summary: string;
   details: {
     readFiles: string[];
     modifiedFiles: string[];
   };
+  summaryModel: SummaryModelTarget;
 };
+
+type MergeArtifacts = MergeSummaryResult & {
+  label: string;
+};
+
 type MergeSummaryEvents = {
   onModelStart?(model: PiModel): void;
+};
+
+type MergeLabelEvents = {
+  onLabelModelStart?(model: PiModel): void;
 };
 
 class UserVisibleWarning extends Error {}
@@ -78,6 +147,13 @@ const warned = new Set<string>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isPostMergeAction(value: unknown): value is PostMergeAction {
+  return (
+    typeof value === "string" &&
+    POST_MERGE_ITEMS.some((item) => item.value === value)
+  );
 }
 
 function getMarkerLeafId(
@@ -238,7 +314,7 @@ function isRequestAuthError(auth: RequestAuth): auth is RequestAuthError {
 async function resolveConfiguredSummaryModel(
   ctx: ExtensionContext,
   config: BranchSummaryConfig,
-) {
+): Promise<SummaryModelTarget | undefined> {
   if (config.model === undefined) return undefined;
 
   const ref = parseModelRef(config.model);
@@ -276,7 +352,9 @@ async function resolveConfiguredSummaryModel(
   return { model, auth };
 }
 
-async function resolveCurrentSummaryModel(ctx: ExtensionContext) {
+async function resolveCurrentSummaryModel(
+  ctx: ExtensionContext,
+): Promise<SummaryModelTarget> {
   const model = ctx.model as PiModel | undefined;
   if (!model) throw new Error("No model available for summarization");
 
@@ -286,6 +364,50 @@ async function resolveCurrentSummaryModel(ctx: ExtensionContext) {
   }
 
   return { model, auth };
+}
+
+async function resolveConfiguredLabelModel(
+  ctx: ExtensionContext,
+  config: BranchSummaryConfig,
+  fallback: SummaryModelTarget,
+): Promise<{ target: SummaryModelTarget; usedConfigured: boolean }> {
+  if (config.generateLabelModel === undefined) {
+    return { target: fallback, usedConfigured: false };
+  }
+
+  const ref = parseModelRef(config.generateLabelModel);
+  if (!ref) {
+    warnOnce(
+      ctx,
+      "label-model:invalid",
+      "Invalid branchSummary.generateLabelModel; falling back to summary model",
+    );
+    return { target: fallback, usedConfigured: false };
+  }
+
+  const model = ctx.modelRegistry.find(ref.provider, ref.id) as
+    | PiModel
+    | undefined;
+  if (!model) {
+    warnOnce(
+      ctx,
+      `label-model:not-found:${ref.provider}/${ref.id}`,
+      `Summary label model ${ref.provider}/${ref.id} not found; falling back to summary model`,
+    );
+    return { target: fallback, usedConfigured: false };
+  }
+
+  const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+  if (isRequestAuthError(auth)) {
+    warnOnce(
+      ctx,
+      `label-model:auth:${ref.provider}/${ref.id}`,
+      `Summary label model ${ref.provider}/${ref.id} auth failed: ${auth.error}; falling back to summary model`,
+    );
+    return { target: fallback, usedConfigured: false };
+  }
+
+  return { target: { model, auth }, usedConfigured: true };
 }
 
 async function getSnapshot(path: string): Promise<FileSnapshot> {
@@ -373,6 +495,54 @@ function formatSummaryWithMetadata(params: {
   return lines.filter((line) => line !== undefined).join("\n");
 }
 
+function normalizeSessionName(name: string | undefined) {
+  const trimmed = name?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function truncateLabel(label: string, maxLength = SUMMARY_LABEL_MAX_LENGTH) {
+  const chars = Array.from(label);
+  if (chars.length <= maxLength) return label;
+
+  const prefix = chars.slice(0, maxLength - 1).join("");
+  const lastSpace = prefix.lastIndexOf(" ");
+  const shortened =
+    lastSpace >= SUMMARY_LABEL_WORD_BOUNDARY_MIN_INDEX
+      ? prefix.slice(0, lastSpace)
+      : prefix;
+  return `${shortened.replace(/[\s\-–—:;,.!?/\\|]+$/u, "")}…`;
+}
+
+function cleanLabel(raw: string) {
+  const firstLine = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+  if (!firstLine) return undefined;
+
+  const cleaned = firstLine
+    .replace(/^[-*#>\s]+/u, "")
+    .replace(/^label\s*:\s*/iu, "")
+    .replace(/^["'`“”‘’]+|["'`“”‘’]+$/gu, "")
+    .replace(/[\s.?!,;:]+$/u, "")
+    .replace(/\s+/gu, " ")
+    .trim();
+
+  return cleaned ? truncateLabel(cleaned) : undefined;
+}
+
+function sourceNameLabel(
+  sourceSessionName: string | undefined,
+  targetSessionName: string | undefined,
+) {
+  const sourceName = normalizeSessionName(sourceSessionName);
+  if (!sourceName) return undefined;
+
+  const targetName = normalizeSessionName(targetSessionName);
+  if (targetName && sourceName === targetName) return undefined;
+  return cleanLabel(sourceName);
+}
+
 async function generateMergeSummary(
   ctx: ExtensionCommandContext,
   instruction: string,
@@ -424,6 +594,7 @@ async function generateMergeSummary(
         readFiles: result.readFiles ?? [],
         modifiedFiles: result.modifiedFiles ?? [],
       },
+      summaryModel: target,
     };
   };
 
@@ -443,36 +614,170 @@ async function generateMergeSummary(
   return run(await resolveCurrentSummaryModel(ctx));
 }
 
+function labelPrompt(params: { instruction: string; summary: string }) {
+  return [
+    params.instruction ? `Merge instruction: ${params.instruction}` : undefined,
+    "Merge summary:",
+    params.summary,
+  ]
+    .filter((line) => line !== undefined)
+    .join("\n");
+}
+
+async function generateSummaryLabel(
+  ctx: ExtensionCommandContext,
+  params: {
+    sourceSessionId: string;
+    sourceSessionName?: string;
+    targetSessionName?: string;
+    instruction: string;
+    summary: string;
+    summaryModel: SummaryModelTarget;
+  },
+  signal: AbortSignal,
+  events?: MergeLabelEvents,
+) {
+  const namedLabel = sourceNameLabel(
+    params.sourceSessionName,
+    params.targetSessionName,
+  );
+  if (namedLabel) return namedLabel;
+
+  const fallbackLabel = sessionIdPrefix(params.sourceSessionId);
+  if (signal.aborted) throw new UserVisibleWarning("Merge cancelled");
+
+  const settings = await loadSettings(ctx);
+  const config = getBranchSummaryConfig(settings);
+  const { target, usedConfigured } = await resolveConfiguredLabelModel(
+    ctx,
+    config,
+    params.summaryModel,
+  );
+
+  events?.onLabelModelStart?.(target.model);
+  try {
+    const options: NonNullable<Parameters<typeof completeSimple>[2]> = {
+      apiKey: target.auth.apiKey ?? "",
+      signal,
+      maxTokens: SUMMARY_LABEL_MAX_TOKENS,
+      temperature: 0,
+    };
+    if (target.auth.headers) options.headers = target.auth.headers;
+
+    const response = await completeSimple(
+      target.model,
+      {
+        systemPrompt: SUMMARY_LABEL_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: labelPrompt({
+              instruction: params.instruction,
+              summary: params.summary,
+            }),
+            timestamp: Date.now(),
+          },
+        ],
+      },
+      options,
+    );
+
+    if (response.stopReason === "aborted" || signal.aborted) {
+      throw new UserVisibleWarning("Merge cancelled");
+    }
+    if (response.stopReason === "error") {
+      throw new Error(response.errorMessage ?? "label generation failed");
+    }
+
+    const rawLabel = response.content
+      .filter((content) => content.type === "text")
+      .map((content) => content.text)
+      .join("\n");
+    return cleanLabel(rawLabel) ?? fallbackLabel;
+  } catch (error) {
+    if (signal.aborted || error instanceof UserVisibleWarning) throw error;
+    if (usedConfigured) {
+      notify(
+        ctx,
+        `Summary label model ${modelName(target.model)} failed; using ${fallbackLabel}`,
+        "warning",
+      );
+    }
+    return fallbackLabel;
+  }
+}
+
 function createMergeSpinner(
   tui: TUI,
   renderLine: (frame: string) => string,
 ): Component & { dispose(): void } {
-  const frames = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
   let frameIndex = 0;
   const timer = setInterval(() => {
-    frameIndex = (frameIndex + 1) % frames.length;
+    frameIndex = (frameIndex + 1) % MERGE_SPINNER_FRAMES.length;
     tui.requestRender();
-  }, 250);
+  }, MERGE_SPINNER_INTERVAL_MS);
   (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
 
   return {
-    render: () => [renderLine(frames[frameIndex]!)],
+    render: () => [renderLine(MERGE_SPINNER_FRAMES[frameIndex]!)],
     invalidate: () => {},
     dispose: () => clearInterval(timer),
   };
 }
 
-async function generateMergeSummaryWithSpinner(
+async function generateMergeArtifacts(
   ctx: ExtensionCommandContext,
-  instruction: string,
-  targetSessionId: string,
-) {
-  if (ctx.mode !== "tui") return generateMergeSummary(ctx, instruction);
+  params: {
+    instruction: string;
+    targetSessionId: string;
+    sourceSessionId: string;
+    sourceSessionName?: string;
+    targetSessionName?: string;
+  },
+  signal: AbortSignal,
+  events?: MergeSummaryEvents & MergeLabelEvents,
+): Promise<MergeArtifacts> {
+  const generated = await generateMergeSummary(
+    ctx,
+    params.instruction,
+    signal,
+    events,
+  );
+  const label = await generateSummaryLabel(
+    ctx,
+    {
+      sourceSessionId: params.sourceSessionId,
+      sourceSessionName: params.sourceSessionName,
+      targetSessionName: params.targetSessionName,
+      instruction: params.instruction,
+      summary: generated.summary,
+      summaryModel: generated.summaryModel,
+    },
+    signal,
+    events,
+  );
 
+  return { ...generated, label };
+}
+
+async function generateMergeArtifactsWithSpinner(
+  ctx: ExtensionCommandContext,
+  params: {
+    instruction: string;
+    targetSessionId: string;
+    sourceSessionId: string;
+    sourceSessionName?: string;
+    targetSessionName?: string;
+  },
+) {
   const controller = new AbortController();
-  const widgetKey = `${EXTENSION_NAME}:summary-spinner`;
+  if (ctx.mode !== "tui") {
+    return generateMergeArtifacts(ctx, params, controller.signal);
+  }
+
   let activeTui: TUI | undefined;
   let baseFocus: unknown;
+  let phase: "summary" | "label" = "summary";
   let model = "resolving model";
 
   const otherUiHasInterrupt = () => {
@@ -484,6 +789,12 @@ async function generateMergeSummaryWithSpinner(
     return baseFocus !== undefined && tui?.focusedComponent !== baseFocus;
   };
 
+  const setPhase = (nextPhase: "summary" | "label", nextModel: PiModel) => {
+    phase = nextPhase;
+    model = modelName(nextModel);
+    activeTui?.requestRender();
+  };
+
   const unsubscribe = ctx.ui.onTerminalInput((data) => {
     if (!getKeybindings().matches(data, "app.interrupt")) return;
     if (otherUiHasInterrupt()) return;
@@ -492,7 +803,7 @@ async function generateMergeSummaryWithSpinner(
   });
 
   ctx.ui.setWidget(
-    widgetKey,
+    MERGE_SPINNER_WIDGET_KEY,
     (tui, theme) => {
       activeTui = tui;
       baseFocus ??= (tui as unknown as { focusedComponent?: unknown })
@@ -500,50 +811,39 @@ async function generateMergeSummaryWithSpinner(
       return createMergeSpinner(tui, (frame) =>
         [
           theme.fg("accent", frame),
-          theme.fg("muted", " Merging context into "),
-          theme.fg("accent", sessionIdPrefix(targetSessionId)),
+          theme.fg(
+            "muted",
+            phase === "summary"
+              ? " Merge context into "
+              : " Generating label for ",
+          ),
+          theme.fg("accent", sessionIdPrefix(params.targetSessionId)),
           theme.fg("dim", " · "),
           theme.fg("warning", model),
           theme.fg("dim", " (<esc> to cancel)"),
         ].join(""),
       );
     },
-    { placement: "aboveEditor" },
+    { placement: MERGE_WIDGET_PLACEMENT },
   );
 
   try {
-    return await generateMergeSummary(ctx, instruction, controller.signal, {
-      onModelStart: (nextModel) => {
-        model = modelName(nextModel);
-        activeTui?.requestRender();
-      },
+    return await generateMergeArtifacts(ctx, params, controller.signal, {
+      onModelStart: (nextModel) => setPhase("summary", nextModel),
+      onLabelModelStart: (nextModel) => setPhase("label", nextModel),
     });
   } finally {
     unsubscribe();
-    ctx.ui.setWidget(widgetKey, undefined, { placement: "aboveEditor" });
+    ctx.ui.setWidget(MERGE_SPINNER_WIDGET_KEY, undefined, {
+      placement: MERGE_WIDGET_PLACEMENT,
+    });
   }
 }
 
 async function choosePostMergeAction(ctx: ExtensionCommandContext) {
   if (ctx.mode !== "tui") return "switch" satisfies PostMergeAction;
 
-  const items: SelectItem[] = [
-    {
-      value: "switch",
-      label: "1) Switch to target",
-      description: "Jump to the merged session",
-    },
-    {
-      value: "switch-remove",
-      label: "2) Switch to target and remove source",
-      description: "Jump to target, then move this source session to Trash",
-    },
-    {
-      value: "stay",
-      label: "3) Stay in source",
-      description: "Keep working here after writing the merge summary",
-    },
-  ];
+  const items: SelectItem[] = POST_MERGE_ITEMS.map((item) => ({ ...item }));
 
   const result = await ctx.ui.custom<PostMergeAction | null>(
     (tui, theme, _keybindings, done) => {
@@ -572,7 +872,9 @@ async function choosePostMergeAction(ctx: ExtensionCommandContext) {
         scrollInfo: (text: string) => theme.fg("dim", text),
         noMatch: (text: string) => theme.fg("warning", text),
       });
-      selectList.onSelect = (item) => done(item.value as PostMergeAction);
+      selectList.onSelect = (item) => {
+        if (isPostMergeAction(item.value)) done(item.value);
+      };
       selectList.onCancel = () => done(null);
       container.addChild(selectList);
       container.addChild(
@@ -583,8 +885,8 @@ async function choosePostMergeAction(ctx: ExtensionCommandContext) {
         render: (width: number) => container.render(width),
         invalidate: () => container.invalidate(),
         handleInput: (data: string) => {
-          if (data >= "1" && data <= String(items.length)) {
-            done(items[Number(data) - 1]!.value as PostMergeAction);
+          if (data >= "1" && data <= String(POST_MERGE_ITEMS.length)) {
+            done(POST_MERGE_ITEMS[Number(data) - 1]!.value);
             return;
           }
           selectList.handleInput(data);
@@ -636,6 +938,7 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   const sourceSessionName = ctx.sessionManager.getSessionName();
   const target = await resolveMergeTarget(args, ctx);
   const targetPath = resolve(target.path);
+  const targetSessionName = SessionManager.open(targetPath).getSessionName();
 
   if (resolve(sourceSessionFile) === targetPath) {
     throw new Error("Cannot merge a session into itself");
@@ -643,10 +946,19 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
 
   const sourceBefore = await getSnapshot(sourceSessionFile);
   const targetBefore = await getSnapshot(targetPath);
-  const generated = await generateMergeSummaryWithSpinner(
+  const artifactParams: Parameters<
+    typeof generateMergeArtifactsWithSpinner
+  >[1] = {
+    instruction: target.instruction,
+    targetSessionId: target.targetSessionId,
+    sourceSessionId,
+  };
+  if (sourceSessionName) artifactParams.sourceSessionName = sourceSessionName;
+  if (targetSessionName) artifactParams.targetSessionName = targetSessionName;
+
+  const generated = await generateMergeArtifactsWithSpinner(
     ctx,
-    target.instruction,
-    target.targetSessionId,
+    artifactParams,
   );
   const sourceAfter = await getSnapshot(sourceSessionFile);
   const targetAfter = await getSnapshot(targetPath);
@@ -680,7 +992,13 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   if (sourceSessionName) details.sourceSessionName = sourceSessionName;
   if (target.instruction) details.instruction = target.instruction;
 
-  targetSession.branchWithSummary(targetLeafId, summary, details, true);
+  const summaryId = targetSession.branchWithSummary(
+    targetLeafId,
+    summary,
+    details,
+    true,
+  );
+  targetSession.appendLabelChange(summaryId, generated.label);
 
   const action = await choosePostMergeAction(ctx);
   if (action === "stay") {
