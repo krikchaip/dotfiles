@@ -8,43 +8,43 @@
         {
           "id": "gemini-3-flash",
           "input": ["text", "image"],
-          "contextWindow": 1000000,
+          "contextWindow": 1048576,
           "maxTokens": 65536
         },
         {
-          "id": "gemini-3.5-flash-low",
+          "id": "gemini-3.5-flash-medium",
           "input": ["text", "image"],
-          "contextWindow": 1000000,
+          "contextWindow": 1048576,
           "maxTokens": 65536
         },
         {
           "id": "gemini-3.5-flash-high",
           "input": ["text", "image"],
-          "contextWindow": 1000000,
+          "contextWindow": 1048576,
           "maxTokens": 65536
         },
         {
           "id": "gemini-3.1-pro-low",
           "input": ["text", "image"],
-          "contextWindow": 1000000,
+          "contextWindow": 1048576,
           "maxTokens": 65535
         },
         {
           "id": "gemini-3.1-pro-high",
           "input": ["text", "image"],
-          "contextWindow": 1000000,
+          "contextWindow": 1048576,
           "maxTokens": 65535
         },
         {
           "id": "claude-sonnet-4-6",
           "input": ["text", "image"],
-          "contextWindow": 200000,
+          "contextWindow": 500000,
           "maxTokens": 64000
         },
         {
           "id": "claude-opus-4-6-thinking",
           "input": ["text", "image"],
-          "contextWindow": 200000,
+          "contextWindow": 500000,
           "maxTokens": 64000
         }
       ],
