@@ -129,6 +129,14 @@ function warnOnce(ctx: ExtensionContext, key: string, message: string) {
   notify(ctx, message, "warning");
 }
 
+function assertCommandIdle(ctx: ExtensionContext, command: string) {
+  if (!ctx.isIdle()) {
+    throw new UserVisibleWarning(
+      `Cannot run ${command} while agent is streaming`,
+    );
+  }
+}
+
 function deepMerge(base: unknown, override: unknown): unknown {
   if (!isRecord(base) || !isRecord(override)) return override ?? base;
 
@@ -619,7 +627,7 @@ async function trashSessionFile(path: string, ctx: ExtensionContext) {
 }
 
 async function merge(args: string, ctx: ExtensionCommandContext) {
-  await ctx.waitForIdle();
+  assertCommandIdle(ctx, "/merge");
 
   const sourceSessionFile = ctx.sessionManager.getSessionFile();
   if (!sourceSessionFile) throw new Error("Cannot merge an in-memory session");
@@ -633,15 +641,23 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
     throw new Error("Cannot merge a session into itself");
   }
 
-  const before = await getSnapshot(targetPath);
+  const sourceBefore = await getSnapshot(sourceSessionFile);
+  const targetBefore = await getSnapshot(targetPath);
   const generated = await generateMergeSummaryWithSpinner(
     ctx,
     target.instruction,
     target.targetSessionId,
   );
-  const after = await getSnapshot(targetPath);
+  const sourceAfter = await getSnapshot(sourceSessionFile);
+  const targetAfter = await getSnapshot(targetPath);
 
-  if (!sameSnapshot(before, after)) {
+  if (!ctx.isIdle() || !sameSnapshot(sourceBefore, sourceAfter)) {
+    throw new UserVisibleWarning(
+      "Source session changed during merge. Re-run /merge.",
+    );
+  }
+
+  if (!sameSnapshot(targetBefore, targetAfter)) {
     throw new Error("Target session changed during merge. Re-run /merge.");
   }
 
@@ -701,7 +717,7 @@ export default function (pi: ExtensionAPI) {
     description: "Clone current session branch and optionally submit a prompt",
     handler: async (args, ctx) => {
       try {
-        await ctx.waitForIdle();
+        assertCommandIdle(ctx, "/branch");
 
         const leafId = getBranchableLeafId(ctx.sessionManager);
         if (!leafId) {
@@ -724,7 +740,7 @@ export default function (pi: ExtensionAPI) {
         notify(
           ctx,
           error instanceof Error ? error.message : String(error),
-          "error",
+          error instanceof UserVisibleWarning ? "warning" : "error",
         );
       }
     },
