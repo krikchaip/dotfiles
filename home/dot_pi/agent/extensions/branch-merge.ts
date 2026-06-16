@@ -20,10 +20,12 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import {
   Container,
-  Loader,
+  getKeybindings,
   SelectList,
   Text,
+  type Component,
   type SelectItem,
+  type TUI,
 } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
@@ -65,6 +67,9 @@ type MergeSummaryResult = {
     readFiles: string[];
     modifiedFiles: string[];
   };
+};
+type MergeSummaryEvents = {
+  onModelStart?(model: PiModel): void;
 };
 
 class UserVisibleWarning extends Error {}
@@ -154,7 +159,7 @@ async function loadSettings(ctx: ExtensionContext): Promise<Settings> {
     warnOnce(
       ctx,
       `settings:${globalPath}`,
-      `${EXTENSION_NAME}: failed to read ${globalPath}: ${String(error)}`,
+      `Failed to read ${globalPath}: ${String(error)}`,
     );
   }
 
@@ -165,7 +170,7 @@ async function loadSettings(ctx: ExtensionContext): Promise<Settings> {
       warnOnce(
         ctx,
         `settings:${projectPath}`,
-        `${EXTENSION_NAME}: failed to read ${projectPath}: ${String(error)}`,
+        `Failed to read ${projectPath}: ${String(error)}`,
       );
     }
   }
@@ -233,7 +238,7 @@ async function resolveConfiguredSummaryModel(
     warnOnce(
       ctx,
       "model:invalid",
-      `${EXTENSION_NAME}: invalid branchSummary.model; falling back to current model`,
+      "Invalid branchSummary.model; falling back to current model",
     );
     return undefined;
   }
@@ -245,7 +250,7 @@ async function resolveConfiguredSummaryModel(
     warnOnce(
       ctx,
       `model:not-found:${ref.provider}/${ref.id}`,
-      `${EXTENSION_NAME}: branch summary model ${ref.provider}/${ref.id} not found; falling back to current model`,
+      `Branch summary model ${ref.provider}/${ref.id} not found; falling back to current model`,
     );
     return undefined;
   }
@@ -255,7 +260,7 @@ async function resolveConfiguredSummaryModel(
     warnOnce(
       ctx,
       `model:auth:${ref.provider}/${ref.id}`,
-      `${EXTENSION_NAME}: branch summary model ${ref.provider}/${ref.id} auth failed: ${auth.error}; falling back to current model`,
+      `Branch summary model ${ref.provider}/${ref.id} auth failed: ${auth.error}; falling back to current model`,
     );
     return undefined;
   }
@@ -314,7 +319,11 @@ async function resolveMergeTarget(args: string, ctx: ExtensionCommandContext) {
         `Multiple sessions found with id ${parsed.targetSessionId}`,
       );
     }
-    return { path: matches[0]!.path, instruction: parsed.instruction };
+    return {
+      path: matches[0]!.path,
+      targetSessionId: matches[0]!.id,
+      instruction: parsed.instruction,
+    };
   }
 
   const parentSession = ctx.sessionManager.getHeader()?.parentSession;
@@ -324,7 +333,15 @@ async function resolveMergeTarget(args: string, ctx: ExtensionCommandContext) {
     );
   }
 
-  return { path: parentSession, instruction: parsed.instruction };
+  return {
+    path: parentSession,
+    targetSessionId: SessionManager.open(parentSession).getSessionId(),
+    instruction: parsed.instruction,
+  };
+}
+
+function sessionIdPrefix(sessionId: string) {
+  return sessionId.split("-", 1)[0] ?? sessionId;
 }
 
 function formatSummaryWithMetadata(params: {
@@ -352,6 +369,7 @@ async function generateMergeSummary(
   ctx: ExtensionCommandContext,
   instruction: string,
   signal = new AbortController().signal,
+  events?: MergeSummaryEvents,
 ): Promise<MergeSummaryResult> {
   const sourceLeafId = getLogicalLeafId(ctx.sessionManager);
   const entries = sourceLeafId
@@ -369,11 +387,8 @@ async function generateMergeSummary(
   const run = async (
     target: Awaited<ReturnType<typeof resolveCurrentSummaryModel>>,
   ) => {
-    notify(
-      ctx,
-      `${EXTENSION_NAME}: summarizing with ${modelName(target.model)}`,
-      "info",
-    );
+    if (signal.aborted) throw new UserVisibleWarning("Merge cancelled");
+    events?.onModelStart?.(target.model);
     const options: GenerateBranchSummaryOptions = {
       model: target.model,
       apiKey: target.auth.apiKey ?? "",
@@ -383,9 +398,16 @@ async function generateMergeSummary(
     if (instruction) options.customInstructions = instruction;
     if (reserveTokens !== undefined) options.reserveTokens = reserveTokens;
 
-    const result = await generateBranchSummary(entries, options);
+    let result: Awaited<ReturnType<typeof generateBranchSummary>>;
+    try {
+      result = await generateBranchSummary(entries, options);
+    } catch (error) {
+      if (signal.aborted) throw new UserVisibleWarning("Merge cancelled");
+      throw error;
+    }
 
-    if (result.aborted) throw new Error("Branch summary cancelled");
+    if (result.aborted || signal.aborted)
+      throw new UserVisibleWarning("Merge cancelled");
     if (result.error) throw new Error(result.error);
 
     return {
@@ -401,9 +423,10 @@ async function generateMergeSummary(
     try {
       return await run(configured);
     } catch (error) {
+      if (signal.aborted || error instanceof UserVisibleWarning) throw error;
       notify(
         ctx,
-        `${EXTENSION_NAME}: branch summary model ${modelName(configured.model)} failed: ${String(error)}; falling back to current model`,
+        `Branch summary model ${modelName(configured.model)} failed: ${String(error)}; falling back to current model`,
         "warning",
       );
     }
@@ -412,37 +435,84 @@ async function generateMergeSummary(
   return run(await resolveCurrentSummaryModel(ctx));
 }
 
+function createMergeSpinner(
+  tui: TUI,
+  renderLine: (frame: string) => string,
+): Component & { dispose(): void } {
+  const frames = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
+  let frameIndex = 0;
+  const timer = setInterval(() => {
+    frameIndex = (frameIndex + 1) % frames.length;
+    tui.requestRender();
+  }, 250);
+  (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
+
+  return {
+    render: () => [renderLine(frames[frameIndex]!)],
+    invalidate: () => {},
+    dispose: () => clearInterval(timer),
+  };
+}
+
 async function generateMergeSummaryWithSpinner(
   ctx: ExtensionCommandContext,
   instruction: string,
+  targetSessionId: string,
 ) {
   if (ctx.mode !== "tui") return generateMergeSummary(ctx, instruction);
 
-  ctx.ui.setWidget(
-    `${EXTENSION_NAME}:summary-spinner`,
-    (tui, theme) => {
-      const loader = new Loader(
-        tui,
-        (text: string) => theme.fg("accent", text),
-        (text: string) => theme.fg("muted", text),
-        "Summarizing branch for merge...",
-      );
+  const controller = new AbortController();
+  const widgetKey = `${EXTENSION_NAME}:summary-spinner`;
+  let activeTui: TUI | undefined;
+  let baseFocus: unknown;
+  let model = "resolving model";
 
-      return {
-        render: (width: number) => loader.render(width),
-        invalidate: () => loader.invalidate(),
-        dispose: () => loader.stop(),
-      };
+  const otherUiHasInterrupt = () => {
+    const tui = activeTui as unknown as {
+      focusedComponent?: unknown;
+      hasOverlay?: () => boolean;
+    };
+    if (tui?.hasOverlay?.()) return true;
+    return baseFocus !== undefined && tui?.focusedComponent !== baseFocus;
+  };
+
+  const unsubscribe = ctx.ui.onTerminalInput((data) => {
+    if (!getKeybindings().matches(data, "app.interrupt")) return;
+    if (otherUiHasInterrupt()) return;
+    controller.abort();
+    return { consume: true };
+  });
+
+  ctx.ui.setWidget(
+    widgetKey,
+    (tui, theme) => {
+      activeTui = tui;
+      baseFocus ??= (tui as unknown as { focusedComponent?: unknown })
+        .focusedComponent;
+      return createMergeSpinner(tui, (frame) =>
+        [
+          theme.fg("accent", frame),
+          theme.fg("muted", " Merging context into "),
+          theme.fg("accent", sessionIdPrefix(targetSessionId)),
+          theme.fg("dim", " · "),
+          theme.fg("warning", model),
+          theme.fg("dim", " (<esc> to cancel)"),
+        ].join(""),
+      );
     },
     { placement: "aboveEditor" },
   );
 
   try {
-    return await generateMergeSummary(ctx, instruction);
-  } finally {
-    ctx.ui.setWidget(`${EXTENSION_NAME}:summary-spinner`, undefined, {
-      placement: "aboveEditor",
+    return await generateMergeSummary(ctx, instruction, controller.signal, {
+      onModelStart: (nextModel) => {
+        model = modelName(nextModel);
+        activeTui?.requestRender();
+      },
     });
+  } finally {
+    unsubscribe();
+    ctx.ui.setWidget(widgetKey, undefined, { placement: "aboveEditor" });
   }
 }
 
@@ -527,7 +597,7 @@ async function trashSessionFile(path: string, ctx: ExtensionContext) {
     child.on("error", (error) => {
       notify(
         ctx,
-        `${EXTENSION_NAME}: trash failed; source session kept: ${String(error)}`,
+        `Trash failed; source session kept: ${String(error)}`,
         "warning",
       );
       resolvePromise();
@@ -535,11 +605,11 @@ async function trashSessionFile(path: string, ctx: ExtensionContext) {
 
     child.on("exit", (code) => {
       if (code === 0) {
-        notify(ctx, `${EXTENSION_NAME}: source session moved to Trash`, "info");
+        notify(ctx, "Source session moved to Trash", "info");
       } else {
         notify(
           ctx,
-          `${EXTENSION_NAME}: trash exited with code ${code}; source session kept`,
+          `Trash exited with code ${code}; source session kept`,
           "warning",
         );
       }
@@ -567,6 +637,7 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   const generated = await generateMergeSummaryWithSpinner(
     ctx,
     target.instruction,
+    target.targetSessionId,
   );
   const after = await getSnapshot(targetPath);
 
@@ -597,7 +668,7 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
 
   const action = await choosePostMergeAction(ctx);
   if (action === "stay") {
-    notify(ctx, `${EXTENSION_NAME}: merged into target session`, "info");
+    notify(ctx, "Merged into target session", "info");
     return;
   }
 
@@ -607,14 +678,12 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
         void trashSessionFile(sourceSessionFile, newCtx);
       },
     });
-    if (result.cancelled)
-      notify(ctx, `${EXTENSION_NAME}: switch cancelled`, "warning");
+    if (result.cancelled) notify(ctx, "Switch cancelled", "warning");
     return;
   }
 
   const result = await ctx.switchSession(targetPath);
-  if (result.cancelled)
-    notify(ctx, `${EXTENSION_NAME}: switch cancelled`, "warning");
+  if (result.cancelled) notify(ctx, "Switch cancelled", "warning");
 }
 
 export default function (pi: ExtensionAPI) {
@@ -650,12 +719,11 @@ export default function (pi: ExtensionAPI) {
 
         const result = await ctx.fork(leafId, options);
 
-        if (result.cancelled)
-          notify(ctx, `${EXTENSION_NAME}: branch cancelled`, "warning");
+        if (result.cancelled) notify(ctx, "Branch cancelled", "warning");
       } catch (error) {
         notify(
           ctx,
-          `${EXTENSION_NAME}: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error.message : String(error),
           "error",
         );
       }
@@ -668,9 +736,12 @@ export default function (pi: ExtensionAPI) {
       try {
         await merge(args, ctx);
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         notify(
           ctx,
-          `${EXTENSION_NAME}: ${error instanceof Error ? error.message : String(error)}`,
+          message === "Merge cancelled"
+            ? "Merge cancelled; target session unchanged"
+            : message,
           error instanceof UserVisibleWarning ? "warning" : "error",
         );
       }
