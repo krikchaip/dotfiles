@@ -168,9 +168,14 @@ function getMarkerLeafId(
   return undefined;
 }
 
-function getLogicalLeafId(sessionManager: CommandSessionManager) {
+function getLogicalLeafId(
+  sessionManager: CommandSessionManager,
+): string | null {
   const markerLeafId = getMarkerLeafId(sessionManager.getLeafEntry());
-  return markerLeafId !== undefined ? markerLeafId : sessionManager.getLeafId();
+  if (markerLeafId !== undefined) return markerLeafId as string;
+
+  const leafId = sessionManager.getLeafId();
+  return typeof leafId === "string" ? leafId : null;
 }
 
 function hasConversationEntry(entries: BranchEntry[]) {
@@ -183,7 +188,9 @@ function hasConversationEntry(entries: BranchEntry[]) {
   );
 }
 
-function getBranchableLeafId(sessionManager: CommandSessionManager) {
+function getBranchableLeafId(
+  sessionManager: CommandSessionManager,
+): string | null {
   const leafId = getLogicalLeafId(sessionManager);
   if (!leafId) return null;
   if (!sessionManager.getEntry(leafId)) return null;
