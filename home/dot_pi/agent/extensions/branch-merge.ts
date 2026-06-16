@@ -4,35 +4,56 @@
  * /branch \[prompt?\]
  *   With no prompt, clone the current active branch like /clone. With a prompt,
  *   switch to the clone and submit that prompt as its first message.
+ *   - Async Execution: Fork submits the prompt asynchronously to prevent the TUI
+ *     core editor text clear from wiping typed characters during switch.
  *
  * /merge \[target-session-id?\] \[instruction?\]
  *   Summarize the full active path of the current source session and append a
  *   branch_summary entry to the target session's active leaf. The target must be
  *   a full UUID when passed explicitly; otherwise the parent session is used.
+ *   - Atomic Operations: Target writes (summary and label change) are written
+ *     sequentially only after both generation phases succeed.
+ *   - Safety Checks: Aborts if target file size or modification time changes
+ *     during generation, or if the source session goes non-idle/modified.
  *
- * Merge writes are atomic after generation: source and target snapshots are
- *   checked before/after summary + label generation, then branch_summary and
- *   label entries are appended sequentially. The label phase uses a larger token
- *   budget because reasoning label models can otherwise spend the whole response
- *   on thinking and trigger the source-session-id fallback.
+ * Configuration settings (in settings.json):
+ *   - branchSummary.model: Model to generate summary text (falls back to active model).
+ *   - branchSummary.generateLabelModel: Model to generate short label (falls back to summary model).
+ *   - branchSummary.reserveTokens: Number of tokens to reserve for summary generation.
+ *
+ * Title Generation Rules:
+ *   - Uses source session name if named and different from target session name.
+ *   - Otherwise runs a separate completion with SUMMARY_LABEL_SYSTEM_PROMPT.
+ *   - Token budget is fixed at 4096 output tokens (no reasoning configs passed)
+ *     to prevent DeepSeek reasoning exhaustion from failing the label call.
+ *   - Formatted to 2-8 words, max 60 chars, single line, truncated at word boundary
+ *     with Unicode ellipsis "…" if too long. Falls back to source UUID fragment.
+ *
+ * User Interface & Interaction:
+ *   - Above-Editor Spinner: Shows active phase, target/model info, and allows
+ *     Esc to cancel. Escape prioritized to close active menus/overlays first.
+ *   - Footer Modal: Choice screen with theme-colored accent borders, target (warning)
+ *     and source (success) session IDs, matching image 1 layout.
+ *   - Short Keys: 1/2/3 select choice, arrow keys navigate, Enter/Esc stay.
+ *   - Deletion: Moves source session to trash using system CLI `trash` if selected.
  */
 
 import {
-  DynamicBorder,
   generateBranchSummary,
   SessionManager,
   type ExtensionAPI,
   type ExtensionCommandContext,
   type ExtensionContext,
+  type Theme,
 } from "@earendil-works/pi-coding-agent";
 import { completeSimple } from "@earendil-works/pi-ai";
 import {
-  Container,
   getKeybindings,
-  SelectList,
-  Text,
+  Key,
+  matchesKey,
+  truncateToWidth,
+  visibleWidth,
   type Component,
-  type SelectItem,
   type TUI,
 } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
@@ -147,13 +168,6 @@ const warned = new Set<string>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isPostMergeAction(value: unknown): value is PostMergeAction {
-  return (
-    typeof value === "string" &&
-    POST_MERGE_ITEMS.some((item) => item.value === value)
-  );
 }
 
 function getMarkerLeafId(
@@ -847,61 +861,116 @@ async function generateMergeArtifactsWithSpinner(
   }
 }
 
-async function choosePostMergeAction(ctx: ExtensionCommandContext) {
+function postMergeLineWidth(width: number) {
+  return Math.max(1, width);
+}
+
+function postMergeFit(line: string, width: number) {
+  return truncateToWidth(line, postMergeLineWidth(width));
+}
+
+function postMergePad(line: string, width: number) {
+  const extra = postMergeLineWidth(width) - visibleWidth(line);
+  return extra > 0 ? `${line}${" ".repeat(extra)}` : postMergeFit(line, width);
+}
+
+function postMergeBorder(theme: Theme, width: number) {
+  return theme.fg("accent", "─".repeat(postMergeLineWidth(width)));
+}
+
+class PostMergeActionPicker implements Component {
+  private selected = POST_MERGE_ITEMS.findIndex(
+    (item) => item.value === "stay",
+  );
+
+  constructor(
+    private readonly tui: TUI,
+    private readonly theme: Theme,
+    private readonly params: {
+      targetSessionId: string;
+      sourceSessionId: string;
+    },
+    private readonly done: (action: PostMergeAction) => void,
+  ) {}
+
+  handleInput(data: string): void {
+    if (matchesKey(data, Key.up)) {
+      this.selected =
+        (this.selected + POST_MERGE_ITEMS.length - 1) % POST_MERGE_ITEMS.length;
+      this.tui.requestRender();
+      return;
+    }
+
+    if (matchesKey(data, Key.down)) {
+      this.selected = (this.selected + 1) % POST_MERGE_ITEMS.length;
+      this.tui.requestRender();
+      return;
+    }
+
+    if (matchesKey(data, Key.enter)) {
+      this.done(POST_MERGE_ITEMS[this.selected]!.value);
+      return;
+    }
+
+    if (matchesKey(data, Key.escape)) {
+      this.done("stay");
+      return;
+    }
+
+    if (data >= "1" && data <= String(POST_MERGE_ITEMS.length)) {
+      this.done(POST_MERGE_ITEMS[Number(data) - 1]!.value);
+    }
+  }
+
+  render(width: number): string[] {
+    const lines = [
+      postMergeBorder(this.theme, width),
+      "",
+      this.theme.fg(
+        "accent",
+        this.theme.bold("Merge complete. Select next action:"),
+      ),
+      "",
+    ];
+
+    for (let index = 0; index < POST_MERGE_ITEMS.length; index++) {
+      const item = POST_MERGE_ITEMS[index]!;
+      const prefix =
+        index === this.selected ? this.theme.fg("accent", "→") : " ";
+      const label =
+        index === this.selected
+          ? this.theme.fg("accent", item.label)
+          : item.label;
+      lines.push(` ${prefix} ${label}`);
+    }
+
+    lines.push(
+      "",
+      this.theme.fg(
+        "muted",
+        "↑↓ navigate · <cr> select · <esc> stay · 1/2/3 select",
+      ),
+      "",
+      `${this.theme.fg("muted", "Target")} ${this.theme.fg("warning", sessionIdPrefix(this.params.targetSessionId))} ${this.theme.fg("muted", "← Source")} ${this.theme.fg("success", sessionIdPrefix(this.params.sourceSessionId))}`,
+      "",
+      postMergeBorder(this.theme, width),
+    );
+
+    return lines.map((line) => postMergePad(line, width));
+  }
+
+  invalidate(): void {}
+}
+
+async function choosePostMergeAction(
+  ctx: ExtensionCommandContext,
+  params: { targetSessionId: string; sourceSessionId: string },
+) {
   if (ctx.mode !== "tui") return "switch" satisfies PostMergeAction;
 
-  const items: SelectItem[] = POST_MERGE_ITEMS.map((item) => ({ ...item }));
-
-  const result = await ctx.ui.custom<PostMergeAction | null>(
-    (tui, theme, _keybindings, done) => {
-      const container = new Container();
-      container.addChild(
-        new DynamicBorder((s: string) => theme.fg("accent", s)),
-      );
-      container.addChild(
-        new Text(theme.fg("accent", theme.bold("Merge complete")), 1, 0),
-      );
-      container.addChild(
-        new Text(
-          theme.fg(
-            "dim",
-            "Choose what to do next. Press 1-3 or use ↑↓ + Enter.",
-          ),
-          1,
-          0,
-        ),
-      );
-
-      const selectList = new SelectList(items, items.length, {
-        selectedPrefix: (text: string) => theme.fg("accent", text),
-        selectedText: (text: string) => theme.fg("accent", text),
-        description: (text: string) => theme.fg("muted", text),
-        scrollInfo: (text: string) => theme.fg("dim", text),
-        noMatch: (text: string) => theme.fg("warning", text),
-      });
-      selectList.onSelect = (item) => {
-        if (isPostMergeAction(item.value)) done(item.value);
-      };
-      selectList.onCancel = () => done(null);
-      container.addChild(selectList);
-      container.addChild(
-        new DynamicBorder((s: string) => theme.fg("accent", s)),
-      );
-
-      return {
-        render: (width: number) => container.render(width),
-        invalidate: () => container.invalidate(),
-        handleInput: (data: string) => {
-          if (data >= "1" && data <= String(POST_MERGE_ITEMS.length)) {
-            done(POST_MERGE_ITEMS[Number(data) - 1]!.value);
-            return;
-          }
-          selectList.handleInput(data);
-          tui.requestRender();
-        },
-      };
-    },
-    { overlay: true },
+  const result = await ctx.ui.custom<PostMergeAction>(
+    (tui, theme, _keybindings, done) =>
+      new PostMergeActionPicker(tui, theme, params, done),
   );
 
   return result ?? "stay";
@@ -1007,7 +1076,10 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   );
   targetSession.appendLabelChange(summaryId, generated.label);
 
-  const action = await choosePostMergeAction(ctx);
+  const action = await choosePostMergeAction(ctx, {
+    targetSessionId: target.targetSessionId,
+    sourceSessionId,
+  });
   if (action === "stay") {
     notify(ctx, "Merged into target session", "info");
     return;
