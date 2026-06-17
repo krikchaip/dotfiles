@@ -1,7 +1,7 @@
 /**
  * Tree deletion mode for /tree.
  *
- * Adds Alt+D mode to preview and confirm deletion of the selected subtree.
+ * Adds Alt+D mode to preview deletion of the selected subtree.
  * Highlights affected tree nodes, shows deletion stats, deletes linked labels,
  * rewrites the session file, and moves the active leaf to the nearest kept parent.
  */
@@ -38,9 +38,15 @@ type DeleteConfirmation = {
   stats: DeleteStats;
 };
 
+type DeletePreview = {
+  rootId: string;
+  targetIds: Set<string>;
+  confirmation: DeleteConfirmation;
+};
+
 type DeleteState = {
   mode: boolean;
-  confirmation: DeleteConfirmation | null;
+  preview: DeletePreview | null;
 };
 
 type PatchedInteractiveMode = {
@@ -55,15 +61,6 @@ type PatchedInteractiveMode = {
   showWarning?: (message: string) => void;
   showError?: (message: string) => void;
   session?: { isStreaming?: boolean };
-  showExtensionCustom?: <T>(
-    factory: (
-      tui: any,
-      theme: any,
-      keybindings: any,
-      done: (value: T) => void,
-    ) => any,
-    options?: any,
-  ) => Promise<T>;
   [key: string]: any;
 };
 
@@ -122,24 +119,6 @@ function renderStatsPart(
   ].join("");
 }
 
-function framedLine(theme: any, content: string, width: number) {
-  const innerWidth = Math.max(0, width - 4);
-  const body = truncateToWidth(content, innerWidth, "…");
-  const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(body)));
-  return [theme.fg("error", "│ "), body, padding, theme.fg("error", " │")].join(
-    "",
-  );
-}
-
-function frameBorder(theme: any, width: number, side: "top" | "bottom") {
-  const left = side === "top" ? "╭" : "╰";
-  const right = side === "top" ? "╮" : "╯";
-  return theme.fg(
-    "error",
-    `${left}${"─".repeat(Math.max(0, width - 2))}${right}`,
-  );
-}
-
 function appendHintIfFits(base: string, hint: string, width: number) {
   const line = base + " " + hint;
   return visibleWidth(line) <= width ? line : base;
@@ -164,16 +143,22 @@ function statsFor(entries: Entry[], ids: Set<string>): DeleteStats {
 }
 
 function collectSubtreeIds(entries: Entry[], rootId: string) {
-  const ids = new Set<string>([rootId]);
-  let changed = true;
+  const childrenByParent = new Map<string, Entry[]>();
+  for (const entry of entries) {
+    if (!entry.parentId) continue;
+    const children = childrenByParent.get(entry.parentId) ?? [];
+    children.push(entry);
+    childrenByParent.set(entry.parentId, children);
+  }
 
-  while (changed) {
-    changed = false;
-    for (const entry of entries) {
-      if (!ids.has(entry.id) && entry.parentId && ids.has(entry.parentId)) {
-        ids.add(entry.id);
-        changed = true;
-      }
+  const ids = new Set<string>();
+  const stack = [rootId];
+  while (stack.length > 0) {
+    const id = stack.pop();
+    if (!id || ids.has(id)) continue;
+    ids.add(id);
+    for (const child of childrenByParent.get(id) ?? []) {
+      stack.push(child.id);
     }
   }
 
@@ -296,19 +281,6 @@ function updateTreeListAfterDeletion(
   treeList.applyFilter?.();
 }
 
-function targetIdsFor(treeList: any, state: DeleteState) {
-  const id = state.confirmation?.rootId ?? selectedEntryId(treeList);
-  if (!id) return new Set<string>();
-
-  const entries = treeList.flatNodes.map(
-    (flatNode: any) => flatNode.node.entry,
-  );
-  return new Set([
-    ...collectDeletionIds(entries, id),
-    ...collectVisualSubtreeIds(treeList, id),
-  ]);
-}
-
 function canDeleteNow(interactiveMode: PatchedInteractiveMode) {
   if (interactiveMode.session?.isStreaming !== true) return true;
 
@@ -355,70 +327,83 @@ function performDeletion(
   }
 }
 
-async function showDeleteDialog(
+function previewForSelection(
+  treeList: any,
   interactiveMode: PatchedInteractiveMode,
+  state: DeleteState,
+) {
+  const rootId = selectedEntryId(treeList);
+  if (!rootId) return null;
+  if (state.preview?.rootId === rootId) return state.preview;
+
+  const entries = (interactiveMode.sessionManager.getEntries?.() ??
+    []) as Entry[];
+  const ids = collectDeletionIds(entries, rootId);
+  const targetIds = new Set([
+    ...ids,
+    ...collectVisualSubtreeIds(treeList, rootId),
+  ]);
+  const preview = {
+    rootId,
+    targetIds,
+    confirmation: {
+      rootId,
+      ids,
+      stats: statsFor(entries, ids),
+    },
+  };
+  state.preview = preview;
+  return preview;
+}
+
+function renderDeleteSummary(
+  theme: any,
+  width: number,
   confirmation: DeleteConfirmation,
-  _theme: any,
   keyHint: (id: string, description: string) => string,
 ) {
-  if (!interactiveMode.showExtensionCustom) return false;
+  const parts =
+    confirmation.stats.parts.length > 0 ? confirmation.stats.parts : ["none"];
+  const title = [
+    theme.fg("error", theme.bold("  Delete review")),
+    theme.fg(
+      "muted",
+      ` selected subtree: ${confirmation.stats.total} node${confirmation.stats.total === 1 ? "" : "s"} · `,
+    ),
+    theme.fg(
+      "error",
+      theme.bold(stripAnsi(keyHint("tui.select.confirm", "delete"))),
+    ),
+    theme.fg("muted", " · "),
+    keyHint("tui.select.cancel", "cancel"),
+  ].join("");
+  const stats =
+    "  " +
+    parts
+      .map((part) => renderStatsPart(theme, part))
+      .join(theme.fg("muted", " · "));
 
-  return interactiveMode.showExtensionCustom<boolean>(
-    (_tui, dialogTheme, keybindings, done) => ({
-      invalidate() {},
-      handleInput(data: string) {
-        if (keybindings.matches(data, "tui.select.confirm")) {
-          done(true);
-        } else if (keybindings.matches(data, "tui.select.cancel")) {
-          done(false);
-        }
-      },
-      render(width: number) {
-        const parts =
-          confirmation.stats.parts.length > 0
-            ? confirmation.stats.parts
-            : ["none"];
-        const title = dialogTheme.fg(
-          "error",
-          dialogTheme.bold(
-            `Delete selected subtree? ${confirmation.stats.total} node${confirmation.stats.total === 1 ? "" : "s"}`,
-          ),
-        );
-        const help = dialogTheme.fg(
-          "muted",
-          `${keyHint("tui.select.confirm", "confirm")} · ${keyHint("tui.select.cancel", "cancel")}`,
-        );
+  return ["", truncateToWidth(title, width), truncateToWidth(stats, width), ""];
+}
 
-        return [
-          truncateToWidth(frameBorder(dialogTheme, width, "top"), width),
-          truncateToWidth(framedLine(dialogTheme, title, width), width),
-          truncateToWidth(framedLine(dialogTheme, "", width), width),
-          ...parts.map((part) =>
-            truncateToWidth(
-              framedLine(
-                dialogTheme,
-                renderStatsPart(dialogTheme, part),
-                width,
-              ),
-              width,
-            ),
-          ),
-          truncateToWidth(framedLine(dialogTheme, "", width), width),
-          truncateToWidth(framedLine(dialogTheme, help, width), width),
-          truncateToWidth(frameBorder(dialogTheme, width, "bottom"), width),
-        ];
-      },
-    }),
-    {
-      overlay: true,
-      overlayOptions: {
-        anchor: "center",
-        width: "70%",
-        minWidth: 50,
-        margin: 2,
-      },
-    },
-  );
+function insertBeforeTreeStatus(lines: string[], extraLines: string[]) {
+  const result = [...lines];
+  let statusIndex = -1;
+
+  for (let index = result.length - 1; index >= 0; index--) {
+    if (/^\s*\(\d+\/\d+\)/.test(stripAnsi(result[index]))) {
+      statusIndex = index;
+      break;
+    }
+  }
+
+  if (statusIndex >= 0) {
+    result.splice(statusIndex, 0, ...extraLines);
+  } else {
+    result.push(...extraLines);
+  }
+
+  return result;
 }
 
 function patchTreeList(
@@ -437,58 +422,32 @@ function patchTreeList(
   treeList.handleInput = function (keyData: string) {
     const kb = getKeybindings();
 
-    if (state.confirmation) return;
-
     if (matchesKey(keyData, "alt+d")) {
       state.mode = !state.mode;
-      state.confirmation = null;
+      state.preview = null;
       interactiveMode.ui?.requestRender?.();
       return;
     }
 
     if (state.mode && kb.matches(keyData, "tui.select.cancel")) {
       state.mode = false;
+      state.preview = null;
       interactiveMode.ui?.requestRender?.();
       return;
     }
 
     if (state.mode && kb.matches(keyData, "tui.select.confirm")) {
-      const rootId = selectedEntryId(treeList);
-      if (!rootId) return;
-      const entries = interactiveMode.sessionManager.getEntries?.() as Entry[];
-      const ids = collectDeletionIds(entries, rootId);
-      const confirmation = {
-        rootId,
-        ids,
-        stats: statsFor(entries, ids),
-      };
-      state.confirmation = confirmation;
+      const preview = previewForSelection(treeList, interactiveMode, state);
+      if (!preview) return;
+
+      const deleted = performDeletion(
+        treeList,
+        interactiveMode,
+        preview.confirmation,
+      );
+      if (deleted) state.mode = false;
+      state.preview = null;
       interactiveMode.ui?.requestRender?.();
-
-      void (async () => {
-        const confirmed = await showDeleteDialog(
-          interactiveMode,
-          confirmation,
-          theme,
-          keyHint,
-        );
-        if (state.confirmation !== confirmation) return;
-
-        if (!confirmed) {
-          state.confirmation = null;
-          interactiveMode.ui?.requestRender?.();
-          return;
-        }
-
-        const deleted = performDeletion(
-          treeList,
-          interactiveMode,
-          confirmation,
-        );
-        if (deleted) state.mode = false;
-        state.confirmation = null;
-        interactiveMode.ui?.requestRender?.();
-      })();
       return;
     }
 
@@ -498,10 +457,10 @@ function patchTreeList(
 
   treeList.render = function (width: number) {
     const lines = originalRender(width);
-    if (!state.mode && !state.confirmation) return lines;
+    if (!state.mode) return lines;
 
-    const ids = targetIdsFor(treeList, state);
-    if (ids.size === 0) return lines;
+    const preview = previewForSelection(treeList, interactiveMode, state);
+    if (!preview || preview.targetIds.size === 0) return lines;
 
     const startIndex = Math.max(
       0,
@@ -517,7 +476,7 @@ function patchTreeList(
 
     for (let index = startIndex; index < endIndex; index++) {
       const flatNode = treeList.filteredNodes[index];
-      if (!ids.has(flatNode.node.entry.id)) continue;
+      if (!preview.targetIds.has(flatNode.node.entry.id)) continue;
 
       const lineIndex = index - startIndex;
       const plain = stripAnsi(lines[lineIndex] ?? "");
@@ -529,7 +488,10 @@ function patchTreeList(
       );
     }
 
-    return lines;
+    return insertBeforeTreeStatus(
+      lines,
+      renderDeleteSummary(theme, width, preview.confirmation, keyHint),
+    );
   };
 }
 
@@ -544,7 +506,7 @@ function patchTreeSelector(
   if (!treeList || selector.__treeDeletePatched) return;
 
   selector.__treeDeletePatched = true;
-  const state: DeleteState = { mode: false, confirmation: null };
+  const state: DeleteState = { mode: false, preview: null };
   patchTreeList(treeList, state, interactiveMode, theme, keyHint);
 
   const originalRender = selector.render.bind(selector);
@@ -555,10 +517,9 @@ function patchTreeSelector(
     );
 
     if (headingIndex >= 0) {
-      const title =
-        state.mode || state.confirmation
-          ? theme.fg("error", theme.bold("  Session Tree — DELETE MODE"))
-          : theme.bold("  Session Tree");
+      const title = state.mode
+        ? theme.fg("error", theme.bold("  Session Tree — DELETE MODE"))
+        : theme.bold("  Session Tree");
       lines[headingIndex] = truncateToWidth(title, width);
     }
 
@@ -571,9 +532,19 @@ function patchTreeSelector(
 
     if (hintIndex >= 0) {
       const sep = theme.fg("muted", " · ");
+      const preview = state.mode
+        ? previewForSelection(treeList, interactiveMode, state)
+        : null;
+      const confirmText = preview
+        ? `delete ${preview.confirmation.stats.total} node${preview.confirmation.stats.total === 1 ? "" : "s"}`
+        : "delete";
+      const confirmHint = theme.fg(
+        "error",
+        theme.bold(stripAnsi(keyHint("tui.select.confirm", confirmText))),
+      );
       const hint = state.mode
         ? [
-            "  " + keyHint("tui.select.confirm", "review"),
+            "  " + confirmHint,
             keyHint("tui.select.cancel", "cancel"),
             theme.fg("muted", "move/filter/fold OK"),
             rawKeyHint("alt+d", "exit"),
