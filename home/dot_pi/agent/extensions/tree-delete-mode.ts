@@ -119,8 +119,13 @@ function renderStatsPart(
   ].join("");
 }
 
-function appendHintIfFits(base: string, hint: string, width: number) {
-  const line = base + " " + hint;
+function appendHintIfFits(
+  base: string,
+  hint: string,
+  width: number,
+  separator: string,
+) {
+  const line = base + separator + hint;
   return visibleWidth(line) <= width ? line : base;
 }
 
@@ -564,6 +569,7 @@ function patchTreeSelector(
             lines[hintIndex],
             rawKeyHint("alt+d", "delete"),
             width,
+            theme.fg("muted", " · "),
           ),
           width,
         );
