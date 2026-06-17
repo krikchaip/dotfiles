@@ -16,6 +16,10 @@ A separate Pi session created from another session so work can continue independ
 
 A workflow that summarizes the Source Session and writes that summary into the Merge Target.
 
+## Parent Session
+
+An optional directed link from one Pi session to another existing session. The link represents navigation or context ancestry only; it does not imply ownership, lifecycle control, merge history, permissions, or deletion cascade.
+
 ## Merge Target
 
 The Pi session that receives context from another session during a Merge.
