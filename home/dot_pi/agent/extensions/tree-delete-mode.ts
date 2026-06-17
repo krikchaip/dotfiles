@@ -523,18 +523,13 @@ function patchTreeSelector(
       lines[headingIndex] = truncateToWidth(title, width);
     }
 
-    let hintIndex = lines.findIndex((line: string) =>
-      stripAnsi(line).includes("filters"),
+    const searchIndex = lines.findIndex((line: string) =>
+      stripAnsi(line).includes("Type to search:"),
     );
-    if (hintIndex < 0 && headingIndex >= 0 && lines[headingIndex + 1]) {
-      hintIndex = headingIndex + 1;
-    }
 
-    if (hintIndex >= 0) {
+    if (state.mode && headingIndex >= 0 && searchIndex > headingIndex) {
       const sep = theme.fg("muted", " · ");
-      const preview = state.mode
-        ? previewForSelection(treeList, interactiveMode, state)
-        : null;
+      const preview = previewForSelection(treeList, interactiveMode, state);
       const confirmText = preview
         ? `delete ${preview.confirmation.stats.total} node${preview.confirmation.stats.total === 1 ? "" : "s"}`
         : "delete";
@@ -542,19 +537,37 @@ function patchTreeSelector(
         "error",
         theme.bold(stripAnsi(keyHint("tui.select.confirm", confirmText))),
       );
-      const hint = state.mode
-        ? [
-            "  " + confirmHint,
-            keyHint("tui.select.cancel", "cancel"),
-            theme.fg("muted", "move/filter/fold OK"),
-            rawKeyHint("alt+d", "exit"),
-          ].join(sep)
-        : appendHintIfFits(
+      const hints = [
+        [
+          "  " + confirmHint,
+          keyHint("tui.select.cancel", "cancel"),
+          theme.fg("muted", "move/filter/fold OK"),
+          rawKeyHint("alt+d", "exit"),
+        ].join(sep),
+      ];
+      lines.splice(
+        headingIndex + 1,
+        searchIndex - headingIndex - 1,
+        ...hints.map((hint) => truncateToWidth(hint, width)),
+      );
+    } else {
+      let hintIndex = lines.findIndex((line: string) =>
+        stripAnsi(line).includes("filters"),
+      );
+      if (hintIndex < 0 && headingIndex >= 0 && lines[headingIndex + 1]) {
+        hintIndex = headingIndex + 1;
+      }
+
+      if (hintIndex >= 0) {
+        lines[hintIndex] = truncateToWidth(
+          appendHintIfFits(
             lines[hintIndex],
             rawKeyHint("alt+d", "delete"),
             width,
-          );
-      lines[hintIndex] = truncateToWidth(hint, width);
+          ),
+          width,
+        );
+      }
     }
 
     return lines.map((line: string) => truncateToWidth(line, width));
