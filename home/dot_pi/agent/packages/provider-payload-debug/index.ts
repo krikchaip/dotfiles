@@ -27,6 +27,7 @@ type CaptureRecord = {
 type Counter = { count: number; bytes: number };
 
 const DEBUG_DIR = join(homedir(), ".pi", "agent", "debug", "provider-payloads");
+const FLAG_NAME = "provider-payload-debug";
 
 let mode: CaptureMode = "off";
 let sequence = 0;
@@ -311,6 +312,19 @@ function statusText(): string {
 }
 
 export default function (pi: ExtensionAPI) {
+  pi.registerFlag(FLAG_NAME, {
+    description: "Start with provider payload debug capture enabled",
+    type: "boolean",
+    default: false,
+  });
+
+  pi.on("session_start", (_event, ctx) => {
+    if (pi.getFlag(FLAG_NAME) !== true) return;
+
+    mode = "on";
+    ctx.ui.notify(statusText(), "info");
+  });
+
   pi.registerCommand("provider-payload-debug", {
     description:
       "Capture final provider payloads to ~/.pi/agent/debug/provider-payloads",
