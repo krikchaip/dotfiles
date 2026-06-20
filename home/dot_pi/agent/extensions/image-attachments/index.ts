@@ -11,6 +11,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { installAtomicPlaceholder } from "./atomic-placeholder";
 import { installDraftAttachments } from "./draft-attachments";
 import { installDraftPreview } from "./draft-preview";
+import { installPruneOnRequest } from "./prune-on-request";
 import { installSubmittedRendering } from "./submitted-rendering";
 import { installSubmitGuards } from "./submit-guards";
 import { installTransientLabels } from "./transient-labels";
@@ -18,6 +19,7 @@ import { installTransientLabels } from "./transient-labels";
 export default function (pi: ExtensionAPI) {
   const drafts = installDraftAttachments(pi);
 
+  installPruneOnRequest(pi);
   installTransientLabels(pi);
   installSubmitGuards(drafts);
   installSubmittedRendering();
