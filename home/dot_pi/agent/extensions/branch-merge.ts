@@ -19,10 +19,10 @@
  *     sets the correct pane identity). A split flag outside tmux warns and
  *     aborts (no in-process fallback).
  *
- * /merge \[target-session-id?\] \[instruction?\]
+ * /merge \[target-session-id|first-segment?\] \[instruction?\]
  *   Summarize the full active path of the current source session and append a
- *   branch_summary entry to the target session's active leaf. The target must be
- *   a full UUID when passed explicitly; otherwise the parent session is used.
+ *   branch_summary entry to the target session's active leaf. The target may be
+ *   a full UUID or first UUID segment; otherwise the parent session is used.
  *   - Atomic Operations: Target writes (summary and label change) are written
  *     sequentially only after both generation phases succeed.
  *   - Safety Checks: Aborts if target file size or modification time changes
@@ -103,6 +103,7 @@ const SUMMARY_LABEL_WORD_BOUNDARY_MIN_INDEX = 20;
 const SUMMARY_LABEL_MAX_TOKENS = 4096;
 const UUID_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+const UUID_FIRST_SEGMENT_RE = /^[0-9a-fA-F]{8}$/;
 
 const POST_MERGE_BASE_ITEMS: readonly PostMergeItem[] = [
   { value: "switch", label: "Switch to target" },
@@ -494,39 +495,73 @@ function parseBranchArgs(
   return split ? { split, prompt: rest } : { prompt: rest };
 }
 
+function isSupportedMergeSessionId(value: string) {
+  return UUID_RE.test(value) || UUID_FIRST_SEGMENT_RE.test(value);
+}
+
 function parseMergeArgs(args: string) {
   const trimmed = args.trim();
   if (!trimmed) return { instruction: "" };
 
   const [first = "", ...rest] = trimmed.split(/\s+/);
-  if (UUID_RE.test(first)) {
+  if (isSupportedMergeSessionId(first)) {
     return { targetSessionId: first, instruction: rest.join(" ") };
   }
 
   return { instruction: trimmed };
 }
 
-async function findSessionById(sessionId: string) {
-  const sessions = await SessionManager.listAll();
-  return sessions.filter((session) => session.id === sessionId);
+async function listCurrentSessions(ctx: ExtensionCommandContext) {
+  return SessionManager.list(ctx.cwd, ctx.sessionManager.getSessionDir());
+}
+
+async function listAllSessions(ctx: ExtensionCommandContext) {
+  const sessionManager = ctx.sessionManager as typeof ctx.sessionManager & {
+    usesDefaultSessionDir?: () => boolean;
+  };
+
+  return sessionManager.usesDefaultSessionDir?.()
+    ? SessionManager.listAll()
+    : SessionManager.listAll(ctx.sessionManager.getSessionDir());
+}
+
+function matchesSessionId(session: { id: string }, id: string) {
+  return UUID_RE.test(id) ? session.id === id : session.id.startsWith(`${id}-`);
+}
+
+async function findSessionById(
+  sessionId: string,
+  ctx: ExtensionCommandContext,
+) {
+  const currentMatches = (await listCurrentSessions(ctx)).filter((session) =>
+    matchesSessionId(session, sessionId),
+  );
+
+  if (currentMatches.length === 1) return currentMatches[0]!;
+  if (currentMatches.length > 1) {
+    throw new Error(`Ambiguous session id in current project: ${sessionId}`);
+  }
+
+  const globalMatches = (await listAllSessions(ctx)).filter((session) =>
+    matchesSessionId(session, sessionId),
+  );
+
+  if (globalMatches.length === 1) return globalMatches[0]!;
+  if (globalMatches.length > 1) {
+    throw new Error(`Ambiguous session id globally: ${sessionId}`);
+  }
+
+  throw new Error(`No session found matching: ${sessionId}`);
 }
 
 async function resolveMergeTarget(args: string, ctx: ExtensionCommandContext) {
   const parsed = parseMergeArgs(args);
 
   if (parsed.targetSessionId) {
-    const matches = await findSessionById(parsed.targetSessionId);
-    if (matches.length === 0) {
-      throw new Error(`No session found with id ${parsed.targetSessionId}`);
-    }
-    if (matches.length > 1) {
-      throw new Error(
-        `Multiple sessions found with id ${parsed.targetSessionId}`,
-      );
-    }
+    const match = await findSessionById(parsed.targetSessionId, ctx);
     return {
-      path: matches[0]!.path,
-      targetSessionId: matches[0]!.id,
+      path: match.path,
+      targetSessionId: match.id,
       instruction: parsed.instruction,
     };
   }
@@ -534,7 +569,7 @@ async function resolveMergeTarget(args: string, ctx: ExtensionCommandContext) {
   const parentSession = ctx.sessionManager.getHeader()?.parentSession;
   if (!parentSession) {
     throw new Error(
-      "No parent session to merge into. Pass a full session id from /session.",
+      "No parent session to merge into. Pass a session id or first UUID segment from /session.",
     );
   }
 
