@@ -393,7 +393,10 @@ export default function (pi: ExtensionAPI) {
     const targetModel = await resolveConfiguredModel(ctx, config);
     const currentModel = ctx.model;
 
-    if (!targetModel) return;
+    if (!targetModel) {
+      lastCompactionNotice = undefined;
+      return;
+    }
 
     const focus = event.customInstructions
       ? `; focus: ${event.customInstructions}`
@@ -407,10 +410,17 @@ export default function (pi: ExtensionAPI) {
         event.preparation.settings.reserveTokens,
         event.preparation.tokensBefore,
       ) ?? "";
-    lastCompactionNotice = `${EXTENSION_NAME}: compacted with ${modelName(targetModel)}${focus}${earlyReason}${builtinReason}`;
+    const noticeSuffix = `${focus}${earlyReason}${builtinReason}`;
+    const setCompactionNotice = (model: PiModel | undefined) => {
+      lastCompactionNotice = model
+        ? `${EXTENSION_NAME}: compacted with ${modelName(model)}${noticeSuffix}`
+        : undefined;
+    };
+
+    setCompactionNotice(targetModel);
     notify(
       ctx,
-      `[${EXTENSION_NAME}] compacting with ${modelName(targetModel)}${focus}${earlyReason}${builtinReason}`,
+      `[${EXTENSION_NAME}] compacting with ${modelName(targetModel)}${noticeSuffix}`,
       "info",
     );
     pendingEarlyReason = undefined;
@@ -418,7 +428,15 @@ export default function (pi: ExtensionAPI) {
     if (sameModel(targetModel, currentModel)) return;
 
     const auth = await ctx.modelRegistry.getApiKeyAndHeaders(targetModel);
-    if (!auth.ok) return;
+    if (!auth.ok) {
+      setCompactionNotice(currentModel);
+      notify(
+        ctx,
+        `[${EXTENSION_NAME}] compact model ${modelName(targetModel)} auth failed: ${auth.error}; falling back to ${currentModel ? modelName(currentModel) : "current model"}`,
+        "warning",
+      );
+      return;
+    }
 
     try {
       return {
@@ -434,9 +452,10 @@ export default function (pi: ExtensionAPI) {
       };
     } catch (error) {
       if (event.signal.aborted) return { cancel: true };
+      setCompactionNotice(currentModel);
       notify(
         ctx,
-        `[${EXTENSION_NAME}] compact model ${modelName(targetModel)} failed "${String(error)}"; falling back to current model`,
+        `[${EXTENSION_NAME}] compact model ${modelName(targetModel)} failed "${String(error)}"; falling back to ${currentModel ? modelName(currentModel) : "current model"}`,
         "warning",
       );
       return;
