@@ -26,10 +26,12 @@ const RENDER_PATCH_STATE = Symbol.for(
 );
 const ATTACHED_LABEL_PATTERN = /^Attached \[#image ([1-9]\d*)\]$/;
 const PLACEHOLDER_PATTERN = /^\[#image ([1-9]\d*)\]$/;
-const SUBMITTED_IMAGE_FRAME_COLOR: ThemeColor = "dim";
-const SUBMITTED_IMAGE_LABEL_COLOR: ThemeColor = "dim";
+const SUBMITTED_IMAGE_FRAME_COLOR: ThemeColorValue = "#888888";
+const SUBMITTED_IMAGE_LABEL_COLOR: ThemeColorValue = "#888888";
 const SUBMITTED_IMAGE_MAX_WIDTH = 60;
 const SUBMITTED_IMAGE_MAX_ROWS = 16;
+
+type ThemeColorValue = ThemeColor | (string & {});
 
 type TextBlock = { type: "text"; text: string };
 
@@ -54,6 +56,27 @@ type RenderTheme = {
 };
 
 const fallbackTheme: RenderTheme = { fg: (_color, text) => text };
+
+function colorText(
+  theme: RenderTheme,
+  color: ThemeColorValue,
+  text: string,
+): string {
+  const hex = /^#([0-9a-fA-F]{6})$/.exec(color);
+  if (hex) {
+    const value = hex[1]!;
+    const r = parseInt(value.slice(0, 2), 16);
+    const g = parseInt(value.slice(2, 4), 16);
+    const b = parseInt(value.slice(4, 6), 16);
+    return `\x1b[38;2;${r};${g};${b}m${text}\x1b[39m`;
+  }
+
+  try {
+    return theme.fg(color, text);
+  } catch {
+    return text;
+  }
+}
 
 function imageCellWidth(
   dimensions: ImageDimensions,
@@ -286,11 +309,11 @@ class SubmittedImagesComponent implements Component {
   }
 
   private submittedFrameBorder(text: string): string {
-    return this.theme.fg(SUBMITTED_IMAGE_FRAME_COLOR, text);
+    return colorText(this.theme, SUBMITTED_IMAGE_FRAME_COLOR, text);
   }
 
   private submittedFrameLabel(text: string): string {
-    return this.theme.fg(SUBMITTED_IMAGE_LABEL_COLOR, text);
+    return colorText(this.theme, SUBMITTED_IMAGE_LABEL_COLOR, text);
   }
 
   private submittedFrameTopLine(label: string, contentWidth: number): string {
