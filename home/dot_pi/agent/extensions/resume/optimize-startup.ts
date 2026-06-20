@@ -53,17 +53,19 @@ export function installOptimizeStartup(
   const { getDefaultSessionDir, SessionManager } = req(
     join(distPath, "core", "session-manager.js"),
   );
-  const syncInFlight = new Set<string>();
+  const syncInFlight = new Map<string, Promise<unknown>>();
+  const currentSyncKey = (cwd: string, sessionDir: string | undefined) =>
+    `current\0${cwd}\0${sessionDir ?? ""}`;
 
   const scheduleOne = (key: string, load: () => Promise<unknown>) => {
     if (syncInFlight.has(key)) return;
-    syncInFlight.add(key);
-    setImmediate(() => {
-      void Promise.resolve()
-        .then(load)
-        .catch(() => {})
-        .finally(() => syncInFlight.delete(key));
-    });
+    const promise = new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    })
+      .then(load)
+      .catch(() => {})
+      .finally(() => syncInFlight.delete(key));
+    syncInFlight.set(key, promise);
   };
 
   scheduleSyncImpl = (scope: ResumeSessionScope) => {
@@ -71,8 +73,7 @@ export function installOptimizeStartup(
     const sessionDir = scope.sessionDir;
     if (!cwd) return;
 
-    const dirKey = `${cwd}\0${sessionDir ?? ""}`;
-    scheduleOne(`current\0${dirKey}`, () =>
+    scheduleOne(currentSyncKey(cwd, sessionDir), () =>
       SessionManager.list(cwd, sessionDir),
     );
 
@@ -149,6 +150,13 @@ export function installOptimizeStartup(
     this.currentLoading = true;
     this.header?.setLoading(true);
     this.requestRender?.();
+    const pendingSync = _resumeCwd
+      ? syncInFlight.get(currentSyncKey(_resumeCwd, _resumeSessionDir))
+      : undefined;
+    if (pendingSync) {
+      void pendingSync.finally(() => originalLoadCurrentSessions.call(this));
+      return;
+    }
     setImmediate(() => {
       void originalLoadCurrentSessions.call(this);
     });

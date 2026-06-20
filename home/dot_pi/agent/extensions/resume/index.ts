@@ -118,7 +118,7 @@ export default function (pi: ExtensionAPI) {
   installOptimizeStartup(req, distPath, sessionInfoCache);
 
   pi.on("session_start", (_event, ctx) => {
-    const warm = () => scheduleResumeWarm(ctx.sessionManager, true);
+    const warm = () => scheduleResumeWarm(ctx.sessionManager, false);
     warm();
     ctx.ui.addAutocompleteProvider((current: any) => ({
       triggerCharacters: [
@@ -173,7 +173,6 @@ export default function (pi: ExtensionAPI) {
     const originalShow = proto.showSessionSelector;
 
     proto.showSessionSelector = function (this: PatchedInteractiveMode) {
-      scheduleResumeWarm(this.sessionManager, true);
       setResumeSessionScope(
         this.sessionManager?.getCwd?.(),
         this.sessionManager?.getSessionDir?.(),
@@ -190,7 +189,7 @@ export default function (pi: ExtensionAPI) {
             try {
               done();
             } finally {
-              scheduleResumeWarm(this.sessionManager, true);
+              scheduleResumeWarm(this.sessionManager, false);
             }
           };
           const result = factory(doneWithSync);
