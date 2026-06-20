@@ -67,7 +67,8 @@
       "skills": [
         "+skills/librarian/SKILL.md"
       ]
-    }
+    },
+    "packages/provider-payload-debug"
   ],
   "vstack": {
     "extensionManager": {
