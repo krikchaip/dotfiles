@@ -1,11 +1,23 @@
 /**
  * Branch and merge session workflows.
  *
- * /branch \[prompt?\]
- *   With no prompt, clone the current active branch like /clone. With a prompt,
- *   switch to the clone and submit that prompt as its first message.
+ * /branch \[--vsp|--sp\] \[prompt?\]
+ *   With no flag and no prompt, clone the current active branch like /clone.
+ *   With a prompt (no flag), switch to the clone and submit that prompt as its
+ *   first message.
  *   - Async Execution: Fork submits the prompt asynchronously to prevent the TUI
  *     core editor text clear from wiping typed characters during switch.
+ *   - Tmux Pane Split: --vsp splits a side-by-side pane (tmux split-window -h);
+ *     --sp splits a top/bottom pane (tmux split-window -v). The branch is forked
+ *     to disk (SessionManager.forkFrom) and runs in the new pane by re-exec'ing
+ *     the same node + Pi entry this process runs (process.execPath +
+ *     process.argv\[1\]) with `--session-dir <dir> --session <branch-id>
+ *     [prompt]`, so the new pane matches the current Pi regardless of how it was
+ *     launched (alias, shim, PATH). Focus jumps to the new pane while the source
+ *     pane stays on the source session, unchanged. The current process env is
+ *     forwarded to the new pane via tmux `-e` (skipping TMUX/TMUX_PANE so tmux
+ *     sets the correct pane identity). A split flag outside tmux warns and
+ *     aborts (no in-process fallback).
  *
  * /merge \[target-session-id?\] \[instruction?\]
  *   Summarize the full active path of the current source session and append a
@@ -33,9 +45,16 @@
  *   - Above-Editor Spinner: Shows active phase, target/model info, and allows
  *     Esc to cancel. Escape prioritized to close active menus/overlays first.
  *   - Footer Modal: Choice screen with theme-colored accent borders, target (warning)
- *     and source (success) session IDs, matching image 1 layout.
- *   - Short Keys: 1/2/3 select choice, arrow keys navigate, Enter/Esc stay.
- *   - Deletion: Moves source session to trash using system CLI `trash` if selected.
+ *     and source (success) session IDs. Rows are positional and context-aware:
+ *     outside tmux [switch, switch-remove, stay] with the cursor defaulting to
+ *     row 1; inside tmux [switch, switch-remove, close-pane, close-pane-remove,
+ *     stay] with the cursor defaulting to row 3 (close this pane).
+ *   - Short Keys: number keys 1-N map to visible rows, arrow keys navigate,
+ *     Enter selects the cursor row, Esc forces stay regardless of cursor.
+ *   - Deletion: Moves source session to trash using system CLI `trash` if
+ *     selected (best-effort, never blocks the chosen action).
+ *   - Pane Close: close-pane / close-pane-remove run `tmux kill-pane` on the
+ *     source pane; close-pane-remove also fires a detached best-effort trash.
  */
 
 import {
@@ -61,12 +80,16 @@ import { readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-type PostMergeAction = "switch" | "switch-remove" | "stay";
+type PostMergeAction =
+  | "switch"
+  | "switch-remove"
+  | "close-pane"
+  | "close-pane-remove"
+  | "stay";
 
 type PostMergeItem = {
   value: PostMergeAction;
   label: string;
-  description: string;
 };
 
 const EXTENSION_NAME = "branch-merge";
@@ -81,23 +104,35 @@ const SUMMARY_LABEL_MAX_TOKENS = 4096;
 const UUID_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
-const POST_MERGE_ITEMS = [
+const POST_MERGE_BASE_ITEMS: readonly PostMergeItem[] = [
+  { value: "switch", label: "Switch to target" },
+  { value: "switch-remove", label: "Switch to target and remove source" },
+  { value: "stay", label: "Stay in source" },
+];
+
+const POST_MERGE_TMUX_ITEMS: readonly PostMergeItem[] = [
+  { value: "switch", label: "Switch to target" },
+  { value: "switch-remove", label: "Switch to target and remove source" },
+  { value: "close-pane", label: "Close this tmux pane" },
   {
-    value: "switch",
-    label: "1) Switch to target",
-    description: "Jump to the merged session",
+    value: "close-pane-remove",
+    label: "Close this tmux pane and remove source",
   },
-  {
-    value: "switch-remove",
-    label: "2) Switch to target and remove source",
-    description: "Jump to target, then move this source session to Trash",
-  },
-  {
-    value: "stay",
-    label: "3) Stay in source",
-    description: "Keep working here after writing the merge summary",
-  },
-] as const satisfies readonly PostMergeItem[];
+  { value: "stay", label: "Stay in source" },
+];
+
+function isInTmux(): boolean {
+  return Boolean(process.env.TMUX);
+}
+
+function postMergeItems(inTmux: boolean): {
+  items: readonly PostMergeItem[];
+  defaultIndex: number;
+} {
+  return inTmux
+    ? { items: POST_MERGE_TMUX_ITEMS, defaultIndex: 2 }
+    : { items: POST_MERGE_BASE_ITEMS, defaultIndex: 0 };
+}
 
 const SUMMARY_LABEL_SYSTEM_PROMPT = `Generate a concise label for a merged session summary.
 
@@ -438,6 +473,25 @@ async function getSnapshot(path: string): Promise<FileSnapshot> {
 
 function sameSnapshot(a: FileSnapshot, b: FileSnapshot): boolean {
   return a.size === b.size && a.mtimeMs === b.mtimeMs;
+}
+
+function parseBranchArgs(
+  args: string,
+): { split?: "h" | "v"; prompt: string } | { error: string } {
+  let rest = args.trim();
+  let split: "h" | "v" | undefined;
+
+  const match = rest.match(/^(--vsp|--sp)(?:\s+|$)/);
+  if (match) {
+    split = match[1] === "--vsp" ? "h" : "v";
+    rest = rest.slice(match[0].length).trim();
+  }
+
+  if (/^--(?:vsp|sp)\b/.test(rest)) {
+    return { error: "Use only one of --vsp or --sp, before the prompt" };
+  }
+
+  return split ? { split, prompt: rest } : { prompt: rest };
 }
 
 function parseMergeArgs(args: string) {
@@ -879,9 +933,7 @@ function postMergeBorder(theme: Theme, width: number) {
 }
 
 class PostMergeActionPicker implements Component {
-  private selected = POST_MERGE_ITEMS.findIndex(
-    (item) => item.value === "stay",
-  );
+  private selected: number;
 
   constructor(
     private readonly tui: TUI,
@@ -890,35 +942,44 @@ class PostMergeActionPicker implements Component {
       targetSessionId: string;
       sourceSessionId: string;
     },
+    private readonly items: readonly PostMergeItem[],
+    defaultIndex: number,
     private readonly done: (action: PostMergeAction) => void,
-  ) {}
+  ) {
+    this.selected = defaultIndex;
+  }
+
+  private selectStay(): void {
+    const stay = this.items.find((item) => item.value === "stay");
+    this.done(stay ? stay.value : "stay");
+  }
 
   handleInput(data: string): void {
     if (matchesKey(data, Key.up)) {
       this.selected =
-        (this.selected + POST_MERGE_ITEMS.length - 1) % POST_MERGE_ITEMS.length;
+        (this.selected + this.items.length - 1) % this.items.length;
       this.tui.requestRender();
       return;
     }
 
     if (matchesKey(data, Key.down)) {
-      this.selected = (this.selected + 1) % POST_MERGE_ITEMS.length;
+      this.selected = (this.selected + 1) % this.items.length;
       this.tui.requestRender();
       return;
     }
 
     if (matchesKey(data, Key.enter)) {
-      this.done(POST_MERGE_ITEMS[this.selected]!.value);
+      this.done(this.items[this.selected]!.value);
       return;
     }
 
     if (matchesKey(data, Key.escape)) {
-      this.done("stay");
+      this.selectStay();
       return;
     }
 
-    if (data >= "1" && data <= String(POST_MERGE_ITEMS.length)) {
-      this.done(POST_MERGE_ITEMS[Number(data) - 1]!.value);
+    if (data.length === 1 && data >= "1" && data <= String(this.items.length)) {
+      this.done(this.items[Number(data) - 1]!.value);
     }
   }
 
@@ -933,14 +994,13 @@ class PostMergeActionPicker implements Component {
       "",
     ];
 
-    for (let index = 0; index < POST_MERGE_ITEMS.length; index++) {
-      const item = POST_MERGE_ITEMS[index]!;
+    for (let index = 0; index < this.items.length; index++) {
+      const item = this.items[index]!;
+      const text = `${index + 1}) ${item.label}`;
       const prefix =
         index === this.selected ? this.theme.fg("accent", "→") : " ";
       const label =
-        index === this.selected
-          ? this.theme.fg("accent", item.label)
-          : item.label;
+        index === this.selected ? this.theme.fg("accent", text) : text;
       lines.push(` ${prefix} ${label}`);
     }
 
@@ -948,7 +1008,7 @@ class PostMergeActionPicker implements Component {
       "",
       this.theme.fg(
         "muted",
-        "↑↓ navigate · <cr> select · <esc> stay · 1/2/3 select",
+        `↑↓ navigate · <cr> select · <esc> stay · 1–${this.items.length} select`,
       ),
       "",
       `${this.theme.fg("muted", "Target")} ${this.theme.fg("warning", sessionIdPrefix(this.params.targetSessionId))} ${this.theme.fg("muted", "← Source")} ${this.theme.fg("success", sessionIdPrefix(this.params.sourceSessionId))}`,
@@ -965,12 +1025,14 @@ class PostMergeActionPicker implements Component {
 async function choosePostMergeAction(
   ctx: ExtensionCommandContext,
   params: { targetSessionId: string; sourceSessionId: string },
+  inTmux: boolean,
 ) {
+  const { items, defaultIndex } = postMergeItems(inTmux);
   if (ctx.mode !== "tui") return "switch" satisfies PostMergeAction;
 
   const result = await ctx.ui.custom<PostMergeAction>(
     (tui, theme, _keybindings, done) =>
-      new PostMergeActionPicker(tui, theme, params, done),
+      new PostMergeActionPicker(tui, theme, params, items, defaultIndex, done),
   );
 
   return result ?? "stay";
@@ -1001,6 +1063,90 @@ async function trashSessionFile(path: string, ctx: ExtensionContext) {
       }
       resolvePromise();
     });
+  });
+}
+
+function trashDetached(path: string) {
+  try {
+    const child = spawn("trash", [path], {
+      stdio: "ignore",
+      detached: true,
+    });
+    child.on("error", () => {});
+    child.unref();
+  } catch {
+    // Best-effort; the pane is closing regardless.
+  }
+}
+
+function closeTmuxPane(ctx: ExtensionContext) {
+  const child = spawn("tmux", ["kill-pane"], { stdio: "ignore" });
+  child.on("error", (error) => {
+    notify(ctx, `Failed to close tmux pane: ${String(error)}`, "error");
+  });
+}
+
+async function branchIntoPane(
+  ctx: ExtensionCommandContext,
+  orientation: "h" | "v",
+  prompt: string,
+) {
+  if (!isInTmux()) {
+    notify(ctx, "Not inside tmux; cannot split a pane", "warning");
+    return;
+  }
+
+  const sourceFile = ctx.sessionManager.getSessionFile();
+  if (!sourceFile) {
+    notify(ctx, "Cannot branch an in-memory session into a pane", "warning");
+    return;
+  }
+
+  const sessionDir = ctx.sessionManager.getSessionDir();
+  let branchId: string;
+  try {
+    branchId = SessionManager.forkFrom(
+      sourceFile,
+      ctx.cwd,
+      sessionDir,
+      {},
+    ).getSessionId();
+  } catch (error) {
+    notify(ctx, `Branch failed: ${String(error)}`, "error");
+    return;
+  }
+
+  const piArgs = ["--session-dir", sessionDir, "--session", branchId];
+  if (prompt) piArgs.push(prompt);
+
+  const envArgs: string[] = [];
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value === undefined) continue;
+    if (key === "TMUX" || key === "TMUX_PANE") continue;
+    envArgs.push("-e", `${key}=${value}`);
+  }
+
+  // Re-exec the same node + Pi entry this process is running, so the new pane
+  // matches the current Pi regardless of how it was launched (alias, shim, PATH).
+  const piEntry = process.argv[1];
+  const command = piEntry
+    ? [process.execPath, piEntry, ...piArgs]
+    : ["pi", ...piArgs];
+
+  const child = spawn(
+    "tmux",
+    [
+      "split-window",
+      orientation === "h" ? "-h" : "-v",
+      "-c",
+      ctx.cwd,
+      ...envArgs,
+      ...command,
+    ],
+    { stdio: "ignore" },
+  );
+  child.on("error", (error) => {
+    notify(ctx, `tmux split failed: ${String(error)}`, "error");
   });
 }
 
@@ -1076,12 +1222,22 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   );
   targetSession.appendLabelChange(summaryId, generated.label);
 
-  const action = await choosePostMergeAction(ctx, {
-    targetSessionId: target.targetSessionId,
-    sourceSessionId,
-  });
+  const action = await choosePostMergeAction(
+    ctx,
+    {
+      targetSessionId: target.targetSessionId,
+      sourceSessionId,
+    },
+    isInTmux(),
+  );
   if (action === "stay") {
     notify(ctx, "Merged into target session", "info");
+    return;
+  }
+
+  if (action === "close-pane" || action === "close-pane-remove") {
+    if (action === "close-pane-remove") trashDetached(sourceSessionFile);
+    closeTmuxPane(ctx);
     return;
   }
 
@@ -1111,10 +1267,17 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("branch", {
-    description: "Clone current session branch and optionally submit a prompt",
+    description:
+      "Clone current branch ([--vsp|--sp] splits a tmux pane); optional prompt",
     handler: async (args, ctx) => {
       try {
         assertCommandIdle(ctx, "/branch");
+
+        const parsed = parseBranchArgs(args);
+        if ("error" in parsed) {
+          notify(ctx, parsed.error, "warning");
+          return;
+        }
 
         const leafId = getBranchableLeafId(ctx.sessionManager);
         if (!leafId) {
@@ -1122,7 +1285,12 @@ export default function (pi: ExtensionAPI) {
           return;
         }
 
-        const prompt = args.trim();
+        if (parsed.split) {
+          await branchIntoPane(ctx, parsed.split, parsed.prompt);
+          return;
+        }
+
+        const prompt = parsed.prompt;
         const options: Parameters<typeof ctx.fork>[1] = { position: "at" };
         if (prompt) {
           options.withSession = async (newCtx) => {
