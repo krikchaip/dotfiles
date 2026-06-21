@@ -45,7 +45,7 @@ def load_api_key(preferred: str | None = None) -> tuple[str, str] | tuple[None, 
         if not path.exists():
             return None
         try:
-            for line in path.read_text().splitlines():
+            for line in path.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line or line.startswith("#") or "=" not in line:
                     continue
@@ -93,13 +93,13 @@ def extract_audio(video_path: str, out_path: Path) -> Path:
         "-hide_banner",
         "-loglevel", "error",
         "-y",
-        "-i", video_path,
+        "-i", str(Path(video_path).resolve()),
         "-vn",
         "-acodec", "libmp3lame",
         "-ar", "16000",
         "-ac", "1",
         "-b:a", "64k",
-        str(out_path),
+        str(out_path.resolve()),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
