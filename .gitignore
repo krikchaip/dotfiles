@@ -2,3 +2,4 @@
 **/.vscode
 **/karabiner/automatic_backups
 **/node_modules
+**/__pycache__
