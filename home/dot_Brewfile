@@ -21,6 +21,8 @@ brew "imagemagick"
 brew "jq"
 brew "k6"
 brew "k9s"
+brew "koekeishiya/formulae/skhd"
+brew "koekeishiya/formulae/yabai"
 brew "lazygit"
 brew "minikube"
 brew "mise"
@@ -31,6 +33,7 @@ brew "pngpaste"
 brew "poppler"     # required by `yazi` for pdf previewing
 brew "resvg"       # required by `yazi` for svg previewing
 brew "ripgrep"
+brew "rsteube/tap/carapace"
 brew "sevenzip"
 brew "sleepwatcher"
 brew "starship"
@@ -40,13 +43,6 @@ brew "yazi"
 brew "yq"
 brew "yt-dlp"
 brew "zoxide"
-
-tap "rsteube/tap"
-brew "carapace"
-
-tap "koekeishiya/formulae"
-brew "skhd"
-brew "yabai"
 
 # cask applications
 tap "buo/cask-upgrade"
