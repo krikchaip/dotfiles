@@ -28,6 +28,13 @@
  *   - Safety Checks: Aborts if target file size or modification time changes
  *     during generation, or if the source session goes non-idle/modified.
  *
+ * /pull \<source-session-id|first-segment\> \[instruction?\]
+ *   Reverse of /merge: pull a summary from a source session into the current
+ *   session. The current session is the merge target. The source session ID or
+ *   first UUID segment is required (no default). No post-merge action picker.
+ *   - Safety Checks: Same snapshot guards as /merge for both source and target.
+ *   - Source active leaf resolved via getLogicalLeafId on opened source file.
+ *
  * Configuration settings (in settings.json):
  *   - branchSummary.model: Model to generate summary text (falls back to active model).
  *   - branchSummary.generateLabelModel: Model to generate short label (falls back to summary model).
@@ -467,13 +474,45 @@ async function resolveConfiguredLabelModel(
   return { target: { model, auth }, usedConfigured: true };
 }
 
+function isMissingFileError(error: unknown): boolean {
+  return (error as { code?: string }).code === "ENOENT";
+}
+
 async function getSnapshot(path: string): Promise<FileSnapshot> {
   const result = await stat(path);
   return { size: result.size, mtimeMs: result.mtimeMs };
 }
 
+async function getOptionalSnapshot(
+  path: string,
+): Promise<FileSnapshot | undefined> {
+  try {
+    return await getSnapshot(path);
+  } catch (error) {
+    if (isMissingFileError(error)) return undefined;
+    throw error;
+  }
+}
+
 function sameSnapshot(a: FileSnapshot, b: FileSnapshot): boolean {
   return a.size === b.size && a.mtimeMs === b.mtimeMs;
+}
+
+function sameOptionalSnapshot(
+  a: FileSnapshot | undefined,
+  b: FileSnapshot | undefined,
+): boolean {
+  if (!a || !b) return a === b;
+  return sameSnapshot(a, b);
+}
+
+function flushSessionFile(sessionManager: CommandSessionManager): void {
+  const rewriteFile = (sessionManager as { _rewriteFile?: () => void })
+    ._rewriteFile;
+  if (typeof rewriteFile !== "function") {
+    throw new Error("Cannot persist current session before reload");
+  }
+  rewriteFile.call(sessionManager);
 }
 
 function parseBranchArgs(
@@ -658,11 +697,11 @@ async function generateMergeSummary(
   instruction: string,
   signal = new AbortController().signal,
   events?: MergeSummaryEvents,
+  sourceSessionManager?: CommandSessionManager,
 ): Promise<MergeSummaryResult> {
-  const sourceLeafId = getLogicalLeafId(ctx.sessionManager);
-  const entries = sourceLeafId
-    ? ctx.sessionManager.getBranch(sourceLeafId)
-    : [];
+  const sm = sourceSessionManager ?? ctx.sessionManager;
+  const sourceLeafId = getLogicalLeafId(sm);
+  const entries = sourceLeafId ? sm.getBranch(sourceLeafId) : [];
   if (entries.length === 0 || !hasConversationEntry(entries)) {
     throw new UserVisibleWarning("Nothing to merge yet");
   }
@@ -846,12 +885,14 @@ async function generateMergeArtifacts(
   },
   signal: AbortSignal,
   events?: MergeSummaryEvents & MergeLabelEvents,
+  sourceSessionManager?: CommandSessionManager,
 ): Promise<MergeArtifacts> {
   const generated = await generateMergeSummary(
     ctx,
     params.instruction,
     signal,
     events,
+    sourceSessionManager,
   );
   const label = await generateSummaryLabel(
     ctx,
@@ -879,11 +920,29 @@ async function generateMergeArtifactsWithSpinner(
     sourceSessionName?: string;
     targetSessionName?: string;
   },
+  spinnerText?: {
+    summaryPhase: string;
+    labelPhase: string;
+    sessionPrefix: string;
+  },
+  sourceSessionManager?: CommandSessionManager,
 ) {
   const controller = new AbortController();
   if (ctx.mode !== "tui") {
-    return generateMergeArtifacts(ctx, params, controller.signal);
+    return generateMergeArtifacts(
+      ctx,
+      params,
+      controller.signal,
+      undefined,
+      sourceSessionManager,
+    );
   }
+
+  const text = spinnerText ?? {
+    summaryPhase: " Merge context into ",
+    labelPhase: " Generating label for ",
+    sessionPrefix: sessionIdPrefix(params.targetSessionId),
+  };
 
   let activeTui: TUI | undefined;
   let baseFocus: unknown;
@@ -923,11 +982,9 @@ async function generateMergeArtifactsWithSpinner(
           theme.fg("accent", frame),
           theme.fg(
             "muted",
-            phase === "summary"
-              ? " Merge context into "
-              : " Generating label for ",
+            phase === "summary" ? text.summaryPhase : text.labelPhase,
           ),
-          theme.fg("accent", sessionIdPrefix(params.targetSessionId)),
+          theme.fg("accent", text.sessionPrefix),
           theme.fg("dim", " · "),
           theme.fg("warning", model),
           theme.fg("dim", " (<esc> to cancel)"),
@@ -938,10 +995,16 @@ async function generateMergeArtifactsWithSpinner(
   );
 
   try {
-    return await generateMergeArtifacts(ctx, params, controller.signal, {
-      onModelStart: (nextModel) => setPhase("summary", nextModel),
-      onLabelModelStart: (nextModel) => setPhase("label", nextModel),
-    });
+    return await generateMergeArtifacts(
+      ctx,
+      params,
+      controller.signal,
+      {
+        onModelStart: (nextModel) => setPhase("summary", nextModel),
+        onLabelModelStart: (nextModel) => setPhase("label", nextModel),
+      },
+      sourceSessionManager,
+    );
   } finally {
     unsubscribe();
     ctx.ui.setWidget(MERGE_SPINNER_WIDGET_KEY, undefined, {
@@ -1185,6 +1248,149 @@ async function branchIntoPane(
   });
 }
 
+function parsePullArgs(args: string) {
+  const trimmed = args.trim();
+  if (!trimmed)
+    return {
+      error: "Usage: /pull <source-session-id|first-segment> [instruction]",
+    };
+
+  const [first = "", ...rest] = trimmed.split(/\s+/);
+  if (!isSupportedMergeSessionId(first)) {
+    return {
+      error: `Invalid session id: ${first}. Use a full UUID or first segment from /session.`,
+    };
+  }
+
+  return { sourceSessionId: first, instruction: rest.join(" ") };
+}
+
+async function pull(args: string, ctx: ExtensionCommandContext) {
+  assertCommandIdle(ctx, "/pull");
+
+  const parsed = parsePullArgs(args);
+  if ("error" in parsed) throw new UserVisibleWarning(parsed.error);
+
+  const targetSessionFile = ctx.sessionManager.getSessionFile();
+  if (!targetSessionFile)
+    throw new Error("Cannot pull into an in-memory session");
+
+  const targetSessionId = ctx.sessionManager.getSessionId();
+  if (matchesSessionId({ id: targetSessionId }, parsed.sourceSessionId)) {
+    throw new Error("Cannot pull from a session into itself");
+  }
+
+  const targetSessionName = ctx.sessionManager.getSessionName();
+  const sourceMatch = await findSessionById(parsed.sourceSessionId, ctx);
+  const sourcePath = resolve(sourceMatch.path);
+
+  if (resolve(targetSessionFile) === sourcePath) {
+    throw new Error("Cannot pull from a session into itself");
+  }
+
+  let sourceSession: ReturnType<typeof SessionManager.open>;
+  try {
+    sourceSession = SessionManager.open(sourcePath);
+  } catch {
+    throw new UserVisibleWarning(
+      `Source session not found: ${parsed.sourceSessionId}`,
+    );
+  }
+  const sourceSessionId = sourceSession.getSessionId();
+  const sourceSessionName = sourceSession.getSessionName();
+  const sourceSessionFile = sourceSession.getSessionFile();
+  if (!sourceSessionFile) throw new Error("Source session has no file");
+
+  let sourceBefore: FileSnapshot;
+  try {
+    sourceBefore = await getSnapshot(sourceSessionFile);
+  } catch (error) {
+    if (!isMissingFileError(error)) throw error;
+    throw new UserVisibleWarning(
+      `Source session file missing: ${parsed.sourceSessionId}`,
+    );
+  }
+  const targetBefore = await getOptionalSnapshot(targetSessionFile);
+  const artifactParams: Parameters<
+    typeof generateMergeArtifactsWithSpinner
+  >[1] = {
+    instruction: parsed.instruction,
+    targetSessionId,
+    sourceSessionId,
+  };
+  if (sourceSessionName) artifactParams.sourceSessionName = sourceSessionName;
+  if (targetSessionName) artifactParams.targetSessionName = targetSessionName;
+
+  const generated = await generateMergeArtifactsWithSpinner(
+    ctx,
+    artifactParams,
+    {
+      summaryPhase: " Pulling context from ",
+      labelPhase: " Generating label for ",
+      sessionPrefix: sessionIdPrefix(sourceSessionId),
+    },
+    sourceSession as unknown as CommandSessionManager,
+  );
+  const sourceAfter = await getOptionalSnapshot(sourceSessionFile);
+  if (!sourceAfter || !sameSnapshot(sourceBefore, sourceAfter)) {
+    throw new UserVisibleWarning(
+      "Source session changed during pull. Re-run /pull.",
+    );
+  }
+
+  const targetAfter = await getOptionalSnapshot(targetSessionFile);
+  if (!ctx.isIdle() || !sameOptionalSnapshot(targetBefore, targetAfter)) {
+    throw new UserVisibleWarning(
+      "Current session changed during pull. Re-run /pull.",
+    );
+  }
+
+  const targetLeafId = getLogicalLeafId(ctx.sessionManager);
+  const targetSession = ctx.sessionManager as unknown as SessionManager;
+  const summaryParams: Parameters<typeof formatSummaryWithMetadata>[0] = {
+    summary: generated.summary,
+    sourceSessionId,
+    sourceSessionFile,
+    instruction: parsed.instruction,
+  };
+  if (sourceSessionName) summaryParams.sourceSessionName = sourceSessionName;
+
+  const summary = formatSummaryWithMetadata(summaryParams);
+  const details: Record<string, unknown> = {
+    ...generated.details,
+    sourceSessionId,
+    sourceSessionFile,
+  };
+  if (sourceSessionName) details.sourceSessionName = sourceSessionName;
+  if (parsed.instruction) details.instruction = parsed.instruction;
+
+  const summaryId = targetSession.branchWithSummary(
+    targetLeafId,
+    summary,
+    details,
+    true,
+  );
+  targetSession.appendLabelChange(summaryId, generated.label);
+  flushSessionFile(targetSession);
+
+  const result = await ctx.switchSession(targetSessionFile, {
+    withSession: async (newCtx) => {
+      notify(
+        newCtx,
+        `Pulled summary from ${sessionIdPrefix(sourceSessionId)}`,
+        "info",
+      );
+    },
+  });
+  if (result.cancelled) {
+    notify(
+      ctx,
+      `Pulled summary from ${sessionIdPrefix(sourceSessionId)}; refresh cancelled`,
+      "warning",
+    );
+  }
+}
+
 async function merge(args: string, ctx: ExtensionCommandContext) {
   assertCommandIdle(ctx, "/merge");
 
@@ -1363,6 +1569,25 @@ export default function (pi: ExtensionAPI) {
           ctx,
           message === "Merge cancelled"
             ? "Merge cancelled; target session unchanged"
+            : message,
+          error instanceof UserVisibleWarning ? "warning" : "error",
+        );
+      }
+    },
+  });
+
+  pi.registerCommand("pull", {
+    description:
+      "Pull summary from source session into current session (reverse of /merge)",
+    handler: async (args, ctx) => {
+      try {
+        await pull(args, ctx);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        notify(
+          ctx,
+          message === "Merge cancelled"
+            ? "Pull cancelled; current session unchanged"
             : message,
           error instanceof UserVisibleWarning ? "warning" : "error",
         );

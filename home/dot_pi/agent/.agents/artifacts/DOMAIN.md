@@ -2,11 +2,11 @@
 
 ## Active Leaf
 
-The entry in a Pi session where the next appended entry attaches. When a session is opened from disk, Pi derives this from the final non-header JSONL entry.
+The entry in a Pi session where the next appended entry attaches. When a session is opened from disk, Pi derives the raw leaf from the final non-header JSONL entry; if that entry is an Active Leaf Marker, the effective Active Leaf is the marker's referenced entry.
 
 ## Active Leaf Marker
 
-A custom entry written by the Branch Merge extension after successful tree navigation so the selected Active Leaf becomes durable across session reopen.
+A custom entry written by the Branch Merge extension after successful tree navigation so the selected Active Leaf becomes durable across session reopen. Only an Active Leaf Marker that is itself the current leaf affects reopening; older markers elsewhere in the tree are historical and ignored.
 
 ## Branch Session
 
@@ -34,7 +34,7 @@ The consecutive user messages for the provider request currently being answered.
 
 ## Merge
 
-A workflow that summarizes the Source Session and writes that summary into the Merge Target.
+A workflow that summarizes the Source Session and writes that summary into the Merge Target. `/merge` and `/pull` are invocation variants of the same workflow, not separate domain concepts.
 
 ## Parent Session
 
@@ -50,7 +50,7 @@ A branch summary entry appended to the Merge Target during a Merge. It carries S
 
 ## Post-Merge Action
 
-The user-selected action after a Merge succeeds, shown in a positional picker whose row numbers and rows depend on whether the Source Session runs inside tmux.
+The user-selected action after `/merge` succeeds, shown in a positional picker whose row numbers and rows depend on whether the Source Session runs inside tmux. `/pull` does not use a Post-Merge Action because it is invoked from the Merge Target.
 
 Outside tmux the rows are: switch to the Merge Target (default cursor), switch and remove the Source Session, and stay in the Source Session.
 
@@ -60,11 +60,11 @@ Number keys map to the visible row numbers. Escape always forces stay in the Sou
 
 ## Session ID
 
-A user-addressable identifier for a Pi session. Merge commands use full UUID-shaped Session IDs copied from `/session`, not partial IDs or session file paths.
+A user-addressable identifier for a Pi session. Merge commands accept a full UUID-shaped Session ID or an unambiguous first UUID segment copied from `/session`, not session file paths; `/pull` requires an explicit Source Session ID or first segment.
 
 ## Source Session
 
-The current Pi session where `/merge` is invoked. Merge summarizes the Source Session's entire Active Leaf path because it may not be related to the Merge Target.
+The Pi session summarized during a Merge. For `/merge`, this is the current session; for `/pull`, this is the explicit Session ID argument. Merge always summarizes only the Source Session's effective Active Leaf path, not the whole session tree.
 
 ## Summary Label
 
