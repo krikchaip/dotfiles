@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.79.8",
+  "lastChangelogVersion": "0.79.9",
   "quietStartup": false,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -19,6 +19,10 @@
     "antigravity/claude-opus-4-6-thinking",
     "github-copilot/gpt-5.5",
     "github-copilot/claude-opus-4.8",
+    "openai-codex/gpt-5.3-codex-spark",
+    "openai-codex/gpt-5.4",
+    "openai-codex/gpt-5.4-mini",
+    "openai-codex/gpt-5.5",
     "opencode/big-pickle",
     "openrouter/openrouter/free"
   ],
