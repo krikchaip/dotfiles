@@ -62,15 +62,16 @@ M.setup = function(opts)
       local ok, state = pcall(MiniFiles.get_explorer_state)
       if not ok or state == nil then return end
 
-      local focus_path = state.branch[#state.branch - 1]
       local leaf_path = state.branch[#state.branch]
+      local focus_path = state.branch[#state.branch - 1] or leaf_path
+      if focus_path == nil then return end
 
       for entry_name, type in vim.fs.dir(focus_path) do
         fs_type[vim.fs.joinpath(focus_path, entry_name)] = type
       end
 
       -- caches the path of the last window before it becomes active
-      M.fs_type(leaf_path)
+      if leaf_path ~= nil then M.fs_type(leaf_path) end
     end,
   })
 
