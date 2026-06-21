@@ -198,7 +198,7 @@ export default function (pi: ExtensionAPI) {
           if (hasSessionList(selector)) {
             patchHighlightCurrentSession(selector, this, doneWithSync);
             patchRenameSelection(selector);
-            patchDeleteActiveSession(selector, this, doneWithSync);
+            patchDeleteActiveSession(selector, this);
             const wrapper = wrapWithSessionPreview(selector, this, previewDeps);
             return { ...result, component: wrapper, focus: wrapper };
           }

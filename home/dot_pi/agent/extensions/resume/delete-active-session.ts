@@ -2,7 +2,7 @@
  * Allows deleting the active session from /resume.
  *
  * Bypasses Pi's active-session delete guard, clears into a new session first,
- * then deletes the old active session and closes the selector.
+ * then deletes the old active session while keeping the selector open.
  */
 
 function getSessionList(selector: any) {
@@ -11,11 +11,7 @@ function getSessionList(selector: any) {
     : selector.sessionList;
 }
 
-export function patchDeleteActiveSession(
-  selector: any,
-  interactiveMode: any,
-  done: () => void,
-) {
+export function patchDeleteActiveSession(selector: any, interactiveMode: any) {
   const sessionList = getSessionList(selector);
   if (!sessionList) return;
 
@@ -36,7 +32,6 @@ export function patchDeleteActiveSession(
     if (isCurrent) {
       await interactiveMode.handleClearCommand();
       await originalOnDeleteSession.call(this, sessionPath);
-      done();
     } else {
       await originalOnDeleteSession.call(this, sessionPath);
     }
