@@ -175,8 +175,14 @@ export function applyRenameSessionRecent(
     };
 
     const origListAll = SessionManager.listAll;
-    SessionManager.listAll = async function (onProgress?: any) {
-      const sessions: any[] = await origListAll(onProgress);
+    SessionManager.listAll = async function (
+      sessionDirOrOnProgress?: any,
+      onProgress?: any,
+    ) {
+      const sessions: any[] = await origListAll(
+        sessionDirOrOnProgress,
+        onProgress,
+      );
       const bumped = bumpModified(sessions);
       for (const s of bumped) {
         if (!s?.path) continue;

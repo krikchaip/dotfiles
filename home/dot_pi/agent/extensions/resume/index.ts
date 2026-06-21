@@ -5,7 +5,7 @@
  * high-level /resume features around Pi's native session selector.
  */
 
-import { realpathSync } from "node:fs";
+import { realpathSync, watch, type FSWatcher } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -48,6 +48,34 @@ function scheduleResumeWarm(sessionManager: any, includeAll = true) {
     usesDefaultSessionDir: sessionManager?.usesDefaultSessionDir?.(),
     includeAll,
   });
+}
+
+function watchSessionDir(sessionManager: any) {
+  const sessionDir = sessionManager?.getSessionDir?.();
+  if (!sessionDir) return undefined;
+
+  let watcher: FSWatcher | undefined;
+  let pending = false;
+  const schedule = () => {
+    if (pending) return;
+    pending = true;
+    setImmediate(() => {
+      pending = false;
+      scheduleResumeWarm(sessionManager, false);
+    });
+  };
+
+  try {
+    watcher = watch(sessionDir, { persistent: false }, (_event, filename) => {
+      if (filename && !String(filename).endsWith(".jsonl")) return;
+      schedule();
+    });
+    watcher.on("error", () => {});
+  } catch {
+    return undefined;
+  }
+
+  return () => watcher?.close();
 }
 
 function loadPreviewDeps(req: NodeRequire, distPath: string) {
@@ -117,8 +145,12 @@ export default function (pi: ExtensionAPI) {
   applyRenameSessionRecent(req, distPath, sessionInfoCache);
   installOptimizeStartup(req, distPath, sessionInfoCache);
 
+  let stopWatchingSessionDir: (() => void) | undefined;
+
   pi.on("session_start", (_event, ctx) => {
     const warm = () => scheduleResumeWarm(ctx.sessionManager, false);
+    stopWatchingSessionDir?.();
+    stopWatchingSessionDir = watchSessionDir(ctx.sessionManager);
     warm();
     ctx.ui.addAutocompleteProvider((current: any) => ({
       triggerCharacters: [
@@ -161,6 +193,15 @@ export default function (pi: ExtensionAPI) {
         );
       },
     }));
+  });
+
+  pi.on("agent_end", (_event, ctx) => {
+    scheduleResumeWarm(ctx.sessionManager, false);
+  });
+
+  pi.on("session_shutdown", () => {
+    stopWatchingSessionDir?.();
+    stopWatchingSessionDir = undefined;
   });
 
   const previewDeps = loadPreviewDeps(req, distPath);
