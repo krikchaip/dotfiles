@@ -5,6 +5,13 @@
  * metadata under ~/.pi/agent/debug/provider-payloads for payload-size debugging.
  * Keep this loaded last so the captured payload includes upstream extension
  * mutations.
+ *
+ * Usage:
+ *   /provider-payload-debug              Show help and current status.
+ *   /provider-payload-debug on|off|once  Set capture mode.
+ *   /provider-payload-debug <prompt>     Capture only this prompt, then turn off.
+ *   --provider-payload-debug             Start session with capture on.
+ *   Ctrl+Alt+D                           Toggle capture on/off.
  */
 
 import { createHash } from "node:crypto";
@@ -12,6 +19,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { KeyId } from "@earendil-works/pi-tui";
 
 type CaptureMode = "off" | "on" | "once";
 
@@ -28,6 +36,7 @@ type Counter = { count: number; bytes: number };
 
 const DEBUG_DIR = join(homedir(), ".pi", "agent", "debug", "provider-payloads");
 const FLAG_NAME = "provider-payload-debug";
+const TOGGLE_KEY: KeyId = "ctrl+alt+d";
 
 let mode: CaptureMode = "off";
 let sequence = 0;
@@ -311,11 +320,41 @@ function statusText(): string {
   return `provider-payload-debug: ${mode}${last}`;
 }
 
+function usageText(): string {
+  return [
+    "Usage:",
+    "  /provider-payload-debug              Show help and current status.",
+    "  /provider-payload-debug on|off|once  Set capture mode.",
+    "  /provider-payload-debug <prompt>     Capture only this prompt, then turn off.",
+    "  --provider-payload-debug             Start session with capture on.",
+    `  ${TOGGLE_KEY}                           Toggle capture on/off.`,
+    "",
+    statusText(),
+  ].join("\n");
+}
+
+function onceText(): string {
+  const last = lastCapture ? `\nlast: ${lastCapture.summaryFile}` : "";
+  return `provider-payload-debug: once\nNext provider request will be captured, then capture turns off.${last}`;
+}
+
+function toggleMode(): void {
+  mode = mode === "on" ? "off" : "on";
+}
+
 export default function (pi: ExtensionAPI) {
   pi.registerFlag(FLAG_NAME, {
     description: "Start with provider payload debug capture enabled",
     type: "boolean",
     default: false,
+  });
+
+  pi.registerShortcut(TOGGLE_KEY, {
+    description: "Toggle provider payload debug capture on/off",
+    handler: async (ctx) => {
+      toggleMode();
+      ctx.ui.notify(statusText(), "info");
+    },
   });
 
   pi.on("session_start", (_event, ctx) => {
@@ -329,31 +368,40 @@ export default function (pi: ExtensionAPI) {
     description:
       "Capture final provider payloads to ~/.pi/agent/debug/provider-payloads",
     handler: async (args, ctx) => {
-      const action = args.trim().toLowerCase();
+      const prompt = args.trim();
+      const action = prompt.toLowerCase();
 
-      if (!action) {
-        ctx.ui.notify(
-          "Usage: /provider-payload-debug once|on|off|status",
-          "info",
-        );
+      if (!prompt) {
+        ctx.ui.notify(usageText(), "info");
         return;
       }
 
-      if (action === "on" || action === "once" || action === "off") {
+      if (action === "on" || action === "off") {
         mode = action;
         ctx.ui.notify(statusText(), "info");
         return;
       }
 
-      if (action === "status") {
-        ctx.ui.notify(statusText(), "info");
+      if (action === "once") {
+        mode = "once";
+        ctx.ui.notify(onceText(), "info");
         return;
       }
 
+      if (!ctx.isIdle()) {
+        ctx.ui.notify(
+          "provider-payload-debug: agent busy; send prompt when idle",
+          "warning",
+        );
+        return;
+      }
+
+      mode = "once";
       ctx.ui.notify(
-        "Usage: /provider-payload-debug once|on|off|status",
-        "warning",
+        "provider-payload-debug: capturing this prompt only; capture turns off after next provider request",
+        "info",
       );
+      pi.sendUserMessage(args);
     },
   });
 
