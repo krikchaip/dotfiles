@@ -17,6 +17,7 @@ import {
   setResumeSessionScope,
 } from "./optimize-startup";
 import {
+  appendSessionInfoFast,
   applyRenameSessionRecent,
   patchRenameSelection,
 } from "./rename-session-recent";
@@ -142,7 +143,14 @@ export default function (pi: ExtensionAPI) {
   const cliPath = realpathSync(process.argv[1]);
   const distPath = dirname(cliPath);
 
-  applyRenameSessionRecent(req, distPath, sessionInfoCache);
+  applyRenameSessionRecent(
+    req,
+    distPath,
+    sessionInfoCache,
+    (sessionManager) => {
+      scheduleResumeWarm(sessionManager, false);
+    },
+  );
   installOptimizeStartup(req, distPath, sessionInfoCache);
 
   let stopWatchingSessionDir: (() => void) | undefined;
@@ -237,6 +245,12 @@ export default function (pi: ExtensionAPI) {
           const selector = result.component;
 
           if (hasSessionList(selector)) {
+            if (typeof selector.renameSession === "function") {
+              selector.renameSession = (sessionPath: string, name: string) => {
+                appendSessionInfoFast(sessionInfoCache, sessionPath, name);
+                scheduleResumeWarm(this.sessionManager, false);
+              };
+            }
             patchHighlightCurrentSession(selector, this, doneWithSync);
             patchRenameSelection(selector);
             patchDeleteActiveSession(selector, this);
