@@ -13,8 +13,9 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Editor } from "@earendil-works/pi-tui";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { extname } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { extname, join } from "node:path";
 
 const PROMPT_PATCH_STATE = Symbol.for(
   "pi-image-attachments.prompt-content.patch",
@@ -52,6 +53,7 @@ export type DraftAttachment = {
   data: string;
   mimeType: string;
   hash: string;
+  sourcePath?: string;
 };
 
 type DraftStoreSnapshot = {
@@ -99,6 +101,10 @@ export type ImageAttachmentsDrafts = {
   }>;
   hasImageSubmitIntent(text: string): boolean;
   placeholderIdAtCursor(editor: any): number | undefined;
+  imagePathTextForCommand(text: string): {
+    text: string;
+    unresolvedIds: number[];
+  };
   previewImagesForText(text: string): DraftAttachment[];
   reconcileEditorDraft(editor: any): void;
   setActiveEditor(editor: any): void;
@@ -115,9 +121,14 @@ class DraftStore {
     this._nextId = persistedMax + 1;
   }
 
-  add(data: string, mimeType: string, hash: string): DraftAttachment {
+  add(
+    data: string,
+    mimeType: string,
+    hash: string,
+    sourcePath?: string,
+  ): DraftAttachment {
     const id = this._nextId++;
-    const item: DraftAttachment = { id, data, mimeType, hash };
+    const item: DraftAttachment = { id, data, mimeType, hash, sourcePath };
     this.items.set(id, item);
     return item;
   }
@@ -393,6 +404,8 @@ function rememberSubmittedImages(messages: unknown, clear = false): void {
         mimeType: block.mimeType,
         hash:
           block.piImageMeta?.hash ?? `${block.mimeType}:${block.data.length}`,
+        sourcePath:
+          draftStore.get(id)?.sourcePath ?? submittedImages.get(id)?.sourcePath,
       });
     }
   }
@@ -526,6 +539,93 @@ function loadImageFromPath(filePath: string):
   } catch {
     return undefined;
   }
+}
+
+const IMAGE_EXTENSION_BY_MIME_TYPE = new Map([
+  ["image/png", ".png"],
+  ["image/jpeg", ".jpg"],
+  ["image/gif", ".gif"],
+  ["image/webp", ".webp"],
+]);
+
+function extensionForMimeType(mimeType: string): string | undefined {
+  return IMAGE_EXTENSION_BY_MIME_TYPE.get(mimeType);
+}
+
+function sourcePathForAttachment(
+  attachment: DraftAttachment,
+): string | undefined {
+  if (!attachment.sourcePath) return undefined;
+
+  const loaded = loadImageFromPath(attachment.sourcePath);
+  if (
+    loaded?.hash === attachment.hash &&
+    loaded.mimeType === attachment.mimeType
+  ) {
+    return attachment.sourcePath;
+  }
+
+  return undefined;
+}
+
+function materializeAttachmentPath(
+  attachment: DraftAttachment,
+): string | undefined {
+  try {
+    const dir = join(homedir(), ".pi", "agent", "tmp", "image-attachments");
+    mkdirSync(dir, { recursive: true });
+
+    const extension = extensionForMimeType(attachment.mimeType);
+    if (!extension) return undefined;
+
+    const filePath = join(dir, `${attachment.hash}${extension}`);
+    if (!existsSync(filePath)) {
+      writeFileSync(filePath, Buffer.from(attachment.data, "base64"));
+    }
+    return filePath;
+  } catch {
+    return undefined;
+  }
+}
+
+function pathForAttachment(attachment: DraftAttachment): string | undefined {
+  return (
+    sourcePathForAttachment(attachment) ?? materializeAttachmentPath(attachment)
+  );
+}
+
+function attachmentForImageId(id: number): DraftAttachment | undefined {
+  return draftStore.get(id) ?? submittedImages.get(id);
+}
+
+function imagePathTextForCommand(text: string): {
+  text: string;
+  unresolvedIds: number[];
+} {
+  const pathById = new Map<number, string>();
+  const unresolvedSeen = new Set<number>();
+  const unresolvedIds: number[] = [];
+
+  const replaced = text.replace(INLINE_PLACEHOLDER_PATTERN, (token, rawId) => {
+    const id = Number(rawId);
+    const cachedPath = pathById.get(id);
+    if (cachedPath) return cachedPath;
+
+    const attachment = attachmentForImageId(id);
+    const filePath = attachment ? pathForAttachment(attachment) : undefined;
+    if (filePath) {
+      pathById.set(id, filePath);
+      return filePath;
+    }
+
+    if (!unresolvedSeen.has(id)) {
+      unresolvedSeen.add(id);
+      unresolvedIds.push(id);
+    }
+    return token;
+  });
+
+  return { text: replaced, unresolvedIds };
 }
 
 function hasImagePayloadPlaceholder(text: string): boolean {
@@ -681,9 +781,10 @@ function addDraftAttachment(
   data: string,
   mimeType: string,
   hash: string,
+  sourcePath?: string,
 ): DraftAttachment {
   nextDraftUndoSnapshot = draftStore.snapshot();
-  return draftStore.add(data, mimeType, hash);
+  return draftStore.add(data, mimeType, hash, sourcePath);
 }
 
 function imageBlockFromDraft(id: number, draft: DraftAttachment): ImageBlock {
@@ -1215,7 +1316,12 @@ function createDragDropHandler(
       return { data: passthrough };
     }
 
-    const draft = addDraftAttachment(loaded.data, loaded.mimeType, loaded.hash);
+    const draft = addDraftAttachment(
+      loaded.data,
+      loaded.mimeType,
+      loaded.hash,
+      imagePath,
+    );
     const placeholder = `[#image ${draft.id}]`;
 
     // Return placeholder wrapped in paste brackets so editor inserts it
@@ -1281,6 +1387,7 @@ export function installDraftAttachments(
   return {
     activePlaceholderSpans,
     hasImageSubmitIntent,
+    imagePathTextForCommand,
     placeholderIdAtCursor(editor: any) {
       return placeholderIdAtCursor(editor ?? activeEditorInstance);
     },
