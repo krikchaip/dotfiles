@@ -172,9 +172,6 @@ M.on_attach = function(bufnr)
   map("n", "[g", node.navigate.git.prev_recursive, opts "Git: Previous Change")
   map("n", "]g", node.navigate.git.next_recursive, opts "Git: Next Change")
   map("n", "s", M.git_add_toggle, opts "Git: Toggle Stage")
-
-  -- opencode
-  map("n", "ga", M.opencode_addpath, opts "OpenCode: Add Node Path")
 end
 
 M.search_node = function(opts)
@@ -287,13 +284,6 @@ M.config_polyfill = function()
 
     tree.config = { view = { side = side } }
   end
-end
-
-M.opencode_addpath = function()
-  local api = require "nvim-tree.api"
-  local n = api.tree.get_node_under_cursor()
-
-  if n then OpenCode.AddPath(n.absolute_path) end
 end
 
 return M

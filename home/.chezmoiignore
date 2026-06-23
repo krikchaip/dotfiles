@@ -1,4 +1,3 @@
 **/*.bak
 **/.pi/agent/tsconfig.json
 **/nushell/history.txt
-**/opencode/node_modules

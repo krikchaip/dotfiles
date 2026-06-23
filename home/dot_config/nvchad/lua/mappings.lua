@@ -282,19 +282,6 @@ map("n", "]z", UFO.NextRegion, { desc = "UFO: Next Region" })
 -- markdown
 map("n", "<leader>v", Markdown.TogglePreview, { desc = "Markdown: Toggle Preview" })
 
--- CodeCompanion
--- map("n", "<M-a>", CodeCompanion.ToggleChat, { desc = "CodeCompanion: Toggle Chat" })
--- map("v", "<M-a>", CodeCompanion.Inline, { desc = "CodeCompanion: Inline Visual", expr = true })
--- map({ "n", "v" }, "<leader>a", CodeCompanion.Actions, { desc = "CodeCompanion: Show Actions" })
-
--- OpenCode
-map({ "n", "t" }, "<M-a>", OpenCode.Toggle, { desc = "OpenCode: Toggle" })
-map({ "n", "x" }, "<leader>a", OpenCode.Actions, { desc = "OpenCode: Show Actions" })
-map("n", "<M-i>", OpenCode.BtwBuffer, { desc = "OpenCode: Btw @buffer" })
-map("x", "<M-i>", OpenCode.BtwThis, { desc = "OpenCode: Btw @this" })
-map("n", "ga", OpenCode.AddBuffer, { desc = "OpenCode: Add @buffer" })
-map("x", "ga", OpenCode.AddThis, { desc = "OpenCode: Add @this" })
-
 -- clipboard management
 map("n", "yr", Clipboard.YankRelative, { desc = "Clipboard: Yank Relative Path" })
 map("n", "yA", Clipboard.YankAbsolute, { desc = "Clipboard: Yank Absolute Path" })

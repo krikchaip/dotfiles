@@ -40,16 +40,6 @@ return {
   },
 
   {
-    "olimorris/codecompanion.nvim",
-    enabled = false,
-    dependencies = { "ravitemer/codecompanion-history.nvim" },
-    cmd = { "CodeCompanion", "CodeCompanionChat" },
-    config = function(_, opts)
-      require("configs.codecompanion").setup(opts)
-    end,
-  },
-
-  {
     "esmuellert/codediff.nvim",
     cmd = "CodeDiff",
     config = function(_, opts)
@@ -99,7 +89,6 @@ return {
     opts = {
       library = {
         { path = "snacks.nvim", words = { "Snacks" } },
-        { path = "opencode.nvim", words = { "opencode" } },
       },
     },
   },
@@ -129,13 +118,6 @@ return {
   },
 
   {
-    "nickjvandyke/opencode.nvim",
-    config = function(_, opts)
-      require("configs.opencode").setup(opts)
-    end,
-  },
-
-  {
     "hedyhli/outline.nvim",
     dependencies = {
       "epheien/outline-treesitter-provider.nvim",
@@ -158,7 +140,7 @@ return {
   {
     "MeanderingProgrammer/render-markdown.nvim",
     dependencies = { "lewis6991/gitsigns.nvim" },
-    ft = { "markdown", "codecompanion" },
+    ft = { "markdown" },
     config = function(_, opts)
       require("configs.render-markdown").setup(opts)
     end,

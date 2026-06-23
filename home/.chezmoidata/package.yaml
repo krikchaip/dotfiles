@@ -12,7 +12,6 @@ package:
 
   npm:
     - "@earendil-works/pi-coding-agent"
-    - "@fission-ai/openspec"
     - pi-antigravity-rotator
     - skills
     - tree-sitter-cli

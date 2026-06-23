@@ -123,8 +123,6 @@ M.on_attach = function(bufnr)
 
   map("n", "<Esc>", MiniFiles.close, opts "Close (Esc)")
 
-  map("n", "ga", M.opencode_addpath, opts "Add entry path to OpenCode")
-
   map("n", "yA", M.copy_absolute, opts "Copy absolute path")
   map("n", "yr", M.copy_relative, opts "Copy relative path")
 
@@ -293,11 +291,6 @@ M.split = function(direction)
     MiniFiles.set_target_window(target)
     MiniFiles.go_in { close_on_file = true }
   end
-end
-
-M.opencode_addpath = function()
-  local entry = MiniFiles.get_fs_entry()
-  if entry then OpenCode.AddPath(entry.path) end
 end
 
 M.copy_absolute = function()

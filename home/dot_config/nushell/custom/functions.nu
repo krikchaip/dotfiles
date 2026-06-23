@@ -148,60 +148,6 @@ def "image paste-tmux" [--md]: nothing -> nothing {
   }
 }
 
-# opencode wrapper with predefined environment variables
-def --wrapped opencode [...rest] {
-  opencode-tmux-popup ...$rest
-}
-
-# delete opencode cache and reinstall plugins
-def "opencode upgrade plugins" []: nothing -> nothing {
-  rm -rf ~/.cache/opencode
-  print "[OpenCode] Cache folder cleared ✅"
-
-  cd ~/.config/opencode
-  bun add @opencode-ai/plugin@latest
-  chezmoi re-add package.json bun.lock
-}
-
-# opencode session manager with fzf
-def "opencode session manager" []: nothing -> nothing {
-  loop {
-    let result = (
-      opencode session list --format json
-      | from json
-      | each {|s|
-          let t = (char tab)
-          let updated_human = (($s.updated | into int) * 1000000 | into datetime | format date "%a, %d %b %Y %H:%M")
-          $"($s.id)($t)[($updated_human)]($t)($s.title)"
-      }
-      | str join (char nl)
-      | (
-        fzf --layout=reverse --with-nth=2.. --delimiter="\t" --expect=ctrl-x
-          --border=rounded --border-label=" OpenCode Sessions " --info=inline-right --prompt="❯ " --pointer="▶"
-          --header $"Keybindings: enter=open, ctrl-x=delete\n\nUpdated                 \tTitle"
-      )
-    )
-
-    if ($result | is-empty) { break }
-
-    let lines = ($result | lines)
-    let key = ($lines | first)
-    let selection = ($lines | skip 1 | first)
-
-    if ($selection | is-empty) { break }
-
-    let id = ($selection | split row "\t" | first)
-
-    if $key == "ctrl-x" {
-      opencode session delete $id
-      continue
-    }
-
-    opencode --session $id --port
-    break
-  }
-}
-
 # override all modified files (MM) in chezmoi to source state
 def "chezmoi override" [] {
   let mms = (chezmoi status | lines | parse "MM {path}" | get path)

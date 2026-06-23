@@ -99,16 +99,6 @@ alias pex = pipenv run
 alias pesh = pipenv shell
 alias dj = pipenv run ./manage.py
 
-# opencode
-alias oc = opencode
-alias occ = opencode -c
-alias occp = opencode -c --port
-alias ocm = opencode session manager
-alias ocp = opencode --port
-
-# openspec
-alias opsx = openspec
-
 # agent-browser
 alias agb = agent-browser
 
