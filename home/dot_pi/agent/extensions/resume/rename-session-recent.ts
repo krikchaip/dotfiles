@@ -5,14 +5,7 @@
  * session list ordering, and keeps selection on the renamed item after rename.
  */
 
-import { randomUUID } from "node:crypto";
-import {
-  appendFileSync,
-  closeSync,
-  openSync,
-  readSync,
-  statSync,
-} from "node:fs";
+import { closeSync, openSync, readSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const RENAME_PATCHED = "__renameBumpPatched";
@@ -56,61 +49,6 @@ function updateCachedSessionInfo(
   } catch {
     // ignore
   }
-}
-
-function latestEntryId(sessionPath: string) {
-  try {
-    const st = statSync(sessionPath);
-    const fd = openSync(sessionPath, "r");
-    try {
-      const length = Math.min(st.size, SESSION_INFO_TAIL_BYTES);
-      const start = Math.max(0, st.size - length);
-      const buffer = Buffer.alloc(length);
-      const bytesRead = readSync(fd, buffer, 0, length, start);
-      const content = buffer.toString("utf8", 0, bytesRead);
-      const lines = content.split("\n");
-      if (start > 0) lines.shift();
-
-      for (let i = lines.length - 1; i >= 0; i--) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        try {
-          const entry = JSON.parse(line);
-          if (typeof entry?.id === "string") return entry.id;
-        } catch {
-          // ignore malformed JSONL lines
-        }
-      }
-    } finally {
-      closeSync(fd);
-    }
-  } catch {
-    return undefined;
-  }
-}
-
-export function appendSessionInfoFast(
-  sessionInfoCache: SessionInfoCache,
-  sessionPath: string,
-  name: string,
-) {
-  const next = name.trim();
-  if (!next) return;
-
-  const timestamp = new Date();
-  const entry: any = {
-    type: "session_info",
-    id: randomUUID().slice(0, 8),
-    timestamp: timestamp.toISOString(),
-    name: next,
-  };
-  const parentId = latestEntryId(sessionPath);
-  if (parentId) entry.parentId = parentId;
-
-  appendFileSync(sessionPath, `${JSON.stringify(entry)}\n`);
-  const t = timestamp.getTime();
-  renameTimestamps.set(sessionPath, t);
-  updateCachedSessionInfo(sessionInfoCache, sessionPath, next, t);
 }
 
 function latestSessionInfoTimestamp(sessionPath: string) {
@@ -299,6 +237,12 @@ export function applyRenameSessionRecent(
   return SessionManager;
 }
 
+function getSessionList(selector: any) {
+  return typeof selector.getSessionList === "function"
+    ? selector.getSessionList()
+    : selector.sessionList;
+}
+
 function updateSelectorSessionName(
   selector: any,
   target: string,
@@ -320,6 +264,22 @@ function updateSelectorSessionName(
   selector.sessionList?.filteredSessions?.forEach((node: any) =>
     update(node.session),
   );
+}
+
+function refreshSelectorSessions(selector: any, target: string) {
+  const sessionList = getSessionList(selector);
+  if (!sessionList) return;
+
+  const showCwd = selector.scope === "all";
+  const sessions = showCwd
+    ? (selector.allSessions ?? [])
+    : (selector.currentSessions ?? []);
+
+  sessionList.setSessions?.(sessions, showCwd);
+  const idx = sessionList.filteredSessions?.findIndex(
+    (node: any) => node.session?.path === target,
+  );
+  if (idx >= 0) sessionList.selectedIndex = idx;
 }
 
 export function patchRenameSelection(selector: any) {
@@ -344,6 +304,7 @@ export function patchRenameSelection(selector: any) {
     try {
       await renameSession(target, next);
       updateSelectorSessionName(this, target, next);
+      refreshSelectorSessions(this, target);
     } finally {
       this.exitRenameMode();
     }

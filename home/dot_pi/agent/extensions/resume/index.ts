@@ -17,7 +17,6 @@ import {
   setResumeSessionScope,
 } from "./optimize-startup";
 import {
-  appendSessionInfoFast,
   applyRenameSessionRecent,
   patchRenameSelection,
 } from "./rename-session-recent";
@@ -245,12 +244,6 @@ export default function (pi: ExtensionAPI) {
           const selector = result.component;
 
           if (hasSessionList(selector)) {
-            if (typeof selector.renameSession === "function") {
-              selector.renameSession = (sessionPath: string, name: string) => {
-                appendSessionInfoFast(sessionInfoCache, sessionPath, name);
-                scheduleResumeWarm(this.sessionManager, false);
-              };
-            }
             patchHighlightCurrentSession(selector, this, doneWithSync);
             patchRenameSelection(selector);
             patchDeleteActiveSession(selector, this);
