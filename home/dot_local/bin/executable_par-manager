@@ -3,6 +3,7 @@
 set -euo pipefail
 
 export PATH="$HOME/.local/share/mise/installs/node/latest/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+export PI_ROTATOR_ADMIN_TOKEN="local"
 
 LABEL="com.r3nniw.pi-antigravity-rotator"
 
