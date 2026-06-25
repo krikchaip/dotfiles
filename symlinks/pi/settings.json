@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.1",
+  "lastChangelogVersion": "0.80.2",
   "quietStartup": false,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -56,11 +56,11 @@
     "npm"
   ],
   "packages": [
+    "git:github.com/krikchaip/pi-background-tasks@personal",
     "git:github.com/krikchaip/pi-cc-tools@personal",
     "git:github.com/krikchaip/pi-powerline-footer@personal",
     "git:github.com/krikchaip/pi-treex@personal",
     "npm:@gotgenes/pi-permission-system",
-    "npm:@vanillagreen/pi-background-tasks",
     "npm:@vanillagreen/pi-caveman",
     "npm:pi-mcp-adapter",
     "npm:pi-token-burden",
@@ -104,8 +104,8 @@
     "preset": "default"
   },
   "powerlineShortcuts": {
-    "copyEditor": "ctrl+alt+c",
-    "cutEditor": "ctrl+alt+x",
+    "copyEditor": "alt+c",
+    "cutEditor": "alt+x",
     "editorEnd": "ctrl+shift+e",
     "editorStart": "ctrl+shift+a",
     "jumpChatBottom": "ctrl+shift+down",
@@ -119,4 +119,3 @@
     "stashHistory": "ctrl+alt+h"
   }
 }
-

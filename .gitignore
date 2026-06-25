@@ -3,3 +3,4 @@
 **/karabiner/automatic_backups
 **/node_modules
 **/__pycache__
+**/.pi/tasks/**
