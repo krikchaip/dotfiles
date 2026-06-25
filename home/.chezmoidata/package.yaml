@@ -6,6 +6,7 @@ package:
     - nodejs
     - pipx
     - python
+    - uv
 
   python:
     - neovim-remote
