@@ -10,6 +10,9 @@
       "@earendil-works/pi-ai": [
         "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai"
       ],
+      "@earendil-works/pi-ai/compat": [
+        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/compat.d.ts"
+      ],
       "@earendil-works/pi-coding-agent": [
         "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent"
       ],
