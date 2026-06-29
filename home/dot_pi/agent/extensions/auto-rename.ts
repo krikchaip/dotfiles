@@ -19,6 +19,7 @@ import type {
   ExtensionCommandContext,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import type { Component, TUI } from "@earendil-works/pi-tui";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -45,6 +46,21 @@ type DialoguePart = {
 };
 
 const EXTENSION_NAME = "auto-rename";
+const RENAME_SPINNER_WIDGET_KEY = `${EXTENSION_NAME}:spinner`;
+const RENAME_WIDGET_PLACEMENT = "aboveEditor";
+const RENAME_SPINNER_FRAMES = [
+  "·",
+  "✢",
+  "✳",
+  "✶",
+  "✻",
+  "✽",
+  "✻",
+  "✶",
+  "✳",
+  "✢",
+];
+const RENAME_SPINNER_INTERVAL_MS = 250;
 const OUTPUT_TOKENS = 64;
 const CONTEXT_RESERVE_TOKENS = 4096;
 const DEFAULT_CONTEXT_WINDOW = 32_000;
@@ -84,7 +100,7 @@ async function loadSettings(ctx: ExtensionContext): Promise<Settings> {
       warnedSettings = true;
       notify(
         ctx,
-        `${EXTENSION_NAME}: failed to read ${settingsPath}: ${String(error)}`,
+        `[${EXTENSION_NAME}] failed to read ${settingsPath}: ${String(error)}`,
         "warning",
       );
     }
@@ -243,6 +259,56 @@ function buildNamingPrompt(parts: DialoguePart[], model: PiModel): string {
   ].join("\n");
 }
 
+function createRenameSpinner(
+  tui: TUI,
+  renderLine: (frame: string) => string,
+): Component & { dispose(): void } {
+  let frameIndex = 0;
+  const timer = setInterval(() => {
+    frameIndex = (frameIndex + 1) % RENAME_SPINNER_FRAMES.length;
+    tui.requestRender();
+  }, RENAME_SPINNER_INTERVAL_MS);
+  (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
+
+  return {
+    render: () => [renderLine(RENAME_SPINNER_FRAMES[frameIndex]!)],
+    invalidate: () => {},
+    dispose: () => clearInterval(timer),
+  };
+}
+
+async function withRenameSpinner<T>(
+  ctx: ExtensionContext,
+  modelLabel: string,
+  run: () => Promise<T>,
+): Promise<T> {
+  if (ctx.mode !== "tui") return run();
+
+  ctx.ui.setWidget(
+    RENAME_SPINNER_WIDGET_KEY,
+    (tui, theme) => {
+      return createRenameSpinner(tui, (frame) =>
+        [
+          " ",
+          theme.fg("accent", frame),
+          theme.fg("muted", " Generating session name"),
+          theme.fg("dim", " · "),
+          theme.fg("warning", modelLabel),
+        ].join(""),
+      );
+    },
+    { placement: RENAME_WIDGET_PLACEMENT },
+  );
+
+  try {
+    return await run();
+  } finally {
+    ctx.ui.setWidget(RENAME_SPINNER_WIDGET_KEY, undefined, {
+      placement: RENAME_WIDGET_PLACEMENT,
+    });
+  }
+}
+
 function normalizeName(raw: string): string | undefined {
   const collapsed = raw.replace(/\s+/g, " ").trim();
   if (!collapsed || /\.\s*$/.test(collapsed)) return undefined;
@@ -272,8 +338,10 @@ function responseText(response: Awaited<ReturnType<typeof complete>>): string {
     .trim();
 }
 
-async function generateName(ctx: ExtensionContext): Promise<string> {
-  const model = await resolveNamingModel(ctx);
+async function generateName(
+  ctx: ExtensionContext,
+  model: PiModel,
+): Promise<string> {
   const parts = branchDialogueParts(ctx.sessionManager.getBranch());
   if (parts.length === 0) throw new Error("no user/assistant messages found");
 
@@ -311,9 +379,13 @@ async function renameSession(
   ctx: ExtensionContext,
   pi: ExtensionAPI,
 ): Promise<string> {
-  const name = await generateName(ctx);
-  pi.setSessionName(name);
-  return name;
+  const model = await resolveNamingModel(ctx);
+
+  return withRenameSpinner(ctx, modelName(model), async () => {
+    const name = await generateName(ctx, model);
+    pi.setSessionName(name);
+    return name;
+  });
 }
 
 function hasUserMessage(ctx: ExtensionContext): boolean {
@@ -361,7 +433,7 @@ export default function autoRenameExtension(pi: ExtensionAPI) {
       const key = `${ctx.model?.provider ?? "none"}/${ctx.model?.id ?? "none"}:${message}`;
       if (!warnedAutoFailures.has(key)) {
         warnedAutoFailures.add(key);
-        notify(ctx, `${EXTENSION_NAME}: ${message}`, "warning");
+        notify(ctx, `[${EXTENSION_NAME}] ${message}`, "warning");
       }
     }
   });
@@ -384,7 +456,7 @@ export default function autoRenameExtension(pi: ExtensionAPI) {
       } catch (error) {
         notify(
           ctx,
-          `${EXTENSION_NAME}: ${error instanceof Error ? error.message : String(error)}`,
+          `[${EXTENSION_NAME}] ${error instanceof Error ? error.message : String(error)}`,
           "warning",
         );
       }
