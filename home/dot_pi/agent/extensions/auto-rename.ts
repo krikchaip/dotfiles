@@ -66,11 +66,12 @@ const CONTEXT_RESERVE_TOKENS = 4096;
 const DEFAULT_CONTEXT_WINDOW = 32_000;
 const ESTIMATED_CHARS_PER_TOKEN = 4;
 const SYSTEM_PROMPT = [
-  "You generate names for Pi coding agent sessions.",
-  "Return exactly one session name and nothing else.",
-  "The name must contain 2-8 words and be clear at first glance.",
-  "Give more weight to recent exchanges than to older context.",
-  "Do not end the name with a full stop.",
+  "You are a session name generator for the Pi coding agent. You must respond with exactly one session name and nothing else.",
+  "",
+  "Follow these rules when generating a session name:",
+  "- The session name must contain 2-8 words.",
+  "- Do not end the session name with a period.",
+  "- Infer the topic from the entire conversation, but give greater weight to recent exchanges than earlier ones.",
 ].join("\n");
 
 let warnedSettings = false;
@@ -234,6 +235,7 @@ function buildConversationBlock(parts: DialoguePart[], model: PiModel): string {
   }
 
   return [
+    "Generate a session name for this active session branch.",
     "Conversation excerpts are newest to oldest. Exchange index 1 is most recent.",
     omitted > 0
       ? `${omitted} older message(s) omitted because the naming model context budget was full.`
@@ -243,20 +245,6 @@ function buildConversationBlock(parts: DialoguePart[], model: PiModel): string {
   ]
     .filter((part): part is string => typeof part === "string")
     .join("\n");
-}
-
-function buildNamingPrompt(parts: DialoguePart[], model: PiModel): string {
-  return [
-    "Generate a session name for this active session branch.",
-    "Naming rules:",
-    "- Use 2-8 words.",
-    "- Keep the name short and specific.",
-    "- Make the name immediately understandable.",
-    "- Prioritize the most recent exchange over older exchanges.",
-    "- Output only the name.",
-    "",
-    buildConversationBlock(parts, model),
-  ].join("\n");
 }
 
 function createRenameSpinner(
@@ -355,7 +343,9 @@ async function generateName(
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: buildNamingPrompt(parts, model) }],
+          content: [
+            { type: "text", text: buildConversationBlock(parts, model) },
+          ],
           timestamp: Date.now(),
         },
       ],
