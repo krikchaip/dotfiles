@@ -41,11 +41,12 @@
 
       "*curl *": "ask",
 
-      "*git add *": "deny",
-      "*git commit *": "deny",
-      "*git merge *": "ask",
-      "*git push *": "deny",
-      "*git reset *": "ask",
+      "*git* add *": "deny",
+      "*git* commit *": "deny",
+      "*git* merge *": "ask",
+      "*git* push *": "deny",
+      "*git* reset *": "ask",
+
       "*git worktree remove *": "ask",
 
       "*kubectl *": "ask",
