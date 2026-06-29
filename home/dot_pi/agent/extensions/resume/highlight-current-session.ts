@@ -21,7 +21,9 @@ export function patchHighlightCurrentSession(
   if (!sessionList) return;
 
   const originalSetSessions = sessionList.setSessions;
-  let hasInitialSelected = false;
+  const selected = sessionList.filteredSessions?.[sessionList.selectedIndex];
+  let hasInitialSelected =
+    !!selected && sessionList.isCurrentSessionPath?.(selected.session.path);
 
   sessionList.setSessions = function (
     this: any,
