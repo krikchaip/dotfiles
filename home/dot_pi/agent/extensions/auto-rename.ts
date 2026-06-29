@@ -61,8 +61,8 @@ const RENAME_SPINNER_FRAMES = [
   "✢",
 ];
 const RENAME_SPINNER_INTERVAL_MS = 250;
-const OUTPUT_TOKENS = 64;
-const CONTEXT_RESERVE_TOKENS = 4096;
+const OUTPUT_TOKENS = 1024;
+const MAX_CONVERSATION_TOKENS = 32_000;
 const DEFAULT_CONTEXT_WINDOW = 32_000;
 const ESTIMATED_CHARS_PER_TOKEN = 4;
 const SYSTEM_PROMPT = [
@@ -189,9 +189,9 @@ function estimateTokens(text: string): number {
 }
 
 function conversationBudgetTokens(model: PiModel): number {
-  return Math.max(
-    1_000,
-    (model.contextWindow ?? DEFAULT_CONTEXT_WINDOW) - CONTEXT_RESERVE_TOKENS,
+  return Math.min(
+    MAX_CONVERSATION_TOKENS,
+    Math.floor((model.contextWindow ?? DEFAULT_CONTEXT_WINDOW) * 0.25),
   );
 }
 
