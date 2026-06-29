@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -n "${NVIM:-}" ]] && command -v nvr >/dev/null 2>&1; then
+  nvr -cc vsplit \
+    -c 'set winfixbuf bufhidden=delete | nnoremap <buffer> q <C-w>q' \
+    --remote-send '<M-g>' \
+    --remote-wait-silent "$@"
+else
+  env NVIM_APPNAME="${NVIM_APPNAME:-nvchad}" nvim -- "$@"
+fi
