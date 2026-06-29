@@ -19,3 +19,11 @@ _Avoid_: Dependency, plugin
 **Session name**:
 A short display label for a Pi session, shown in session selection instead of relying on the first prompt.
 _Avoid_: Title, chat name
+
+**Active session branch**:
+The current path through a Pi session tree, from first relevant entry to the current leaf.
+_Avoid_: Full session, chat history
+
+**Automatic rename**:
+A one-time session name generation attempt tied to the first user prompt in a new unnamed Pi session.
+_Avoid_: Periodic rename, background rename

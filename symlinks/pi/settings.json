@@ -44,6 +44,10 @@
     "model": "antigravity/gemini-3.5-flash-high",
     "generateLabelModel": "antigravity/gemini-3.5-flash-medium"
   },
+  "autoRename": {
+    "enabled": true,
+    "model": "antigravity/gemini-3.5-flash-high"
+  },
   "skills": [
     "-skills/caveman/SKILL.md"
   ],
