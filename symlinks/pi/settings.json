@@ -81,6 +81,8 @@
         "+skills/librarian/SKILL.md"
       ]
     },
+    "packages/image-attachments",
+    "packages/resume",
     "packages/provider-payload-debug"
   ],
   "vstack": {
