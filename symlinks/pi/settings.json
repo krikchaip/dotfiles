@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.2",
+  "lastChangelogVersion": "0.80.3",
   "quietStartup": false,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -62,6 +62,7 @@
   "packages": [
     "git:github.com/krikchaip/pi-background-tasks@personal",
     "git:github.com/krikchaip/pi-cc-tools@personal",
+    "git:github.com/krikchaip/pi-copy-message@personal",
     "git:github.com/krikchaip/pi-goal@personal",
     "git:github.com/krikchaip/pi-powerline-footer@personal",
     "git:github.com/krikchaip/pi-treex@personal",
