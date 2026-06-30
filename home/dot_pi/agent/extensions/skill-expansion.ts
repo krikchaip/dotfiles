@@ -2,8 +2,8 @@
  * Skill references without prompt pollution.
  *
  * Native Pi expands whole-message `/skill:name` into full `SKILL.md` content.
- * This extension disables that expansion and leaves `/skill:name` markers in the
- * user's prompt unchanged. At provider-call time only, the `context` event adds
+ * This extension disables that expansion and leaves `/skill:name` and `/name`
+ * markers in the user's prompt unchanged. At provider-call time only, the `context` event adds
  * a hidden text block near content that mentions skills with resolved skill file
  * paths. Session history stays clean; resume/fork/retry reconstructs hidden
  * blocks transiently as long as referenced skills still exist.
@@ -205,6 +205,7 @@ function withHiddenUserSkillReferences<T>(message: T, skills: SkillLike[]): T {
   const references = findReferencedSkills(
     textForSkillMatching(userMessage.content),
     skills,
+    true,
   );
   if (references.length === 0) return message;
 
