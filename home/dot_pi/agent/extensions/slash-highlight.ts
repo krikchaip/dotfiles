@@ -125,6 +125,56 @@ function nextInverseState(sequence: string, inverse: boolean) {
   return next;
 }
 
+function foregroundSequence(codes: number[]) {
+  return `\x1b[${codes.join(";")}m`;
+}
+
+function nextForegroundState(sequence: string, foreground: string) {
+  const codes = sgrCodes(sequence);
+  let next = foreground;
+
+  for (let i = 0; i < codes.length; i++) {
+    const code = codes[i];
+
+    if (code === 0 || code === 39) {
+      next = "";
+      continue;
+    }
+
+    if ((code >= 30 && code <= 37) || (code >= 90 && code <= 97)) {
+      next = foregroundSequence([code]);
+      continue;
+    }
+
+    if (code !== 38) continue;
+
+    const mode = codes[i + 1];
+    if (mode === 5 && codes[i + 2] !== undefined) {
+      next = foregroundSequence([38, 5, codes[i + 2]]);
+      i += 2;
+      continue;
+    }
+
+    if (
+      mode === 2 &&
+      codes[i + 2] !== undefined &&
+      codes[i + 3] !== undefined &&
+      codes[i + 4] !== undefined
+    ) {
+      next = foregroundSequence([
+        38,
+        2,
+        codes[i + 2],
+        codes[i + 3],
+        codes[i + 4],
+      ]);
+      i += 4;
+    }
+  }
+
+  return next;
+}
+
 function highlightVisibleRanges(
   text: string,
   ranges: Array<{ start: number; end: number }>,
@@ -140,6 +190,7 @@ function highlightVisibleRanges(
   let result = "";
   let visibleIndex = 0;
   let inverse = false;
+  let foreground = "";
 
   for (let i = 0; i < text.length; ) {
     if (text[i] === "\x1b") {
@@ -147,6 +198,7 @@ function highlightVisibleRanges(
       const sequence = text.slice(i, end);
       result += sequence;
       inverse = nextInverseState(sequence, inverse);
+      foreground = nextForegroundState(sequence, foreground);
       i = end;
       continue;
     }
@@ -155,7 +207,9 @@ function highlightVisibleRanges(
     if (codePoint === undefined) break;
     const char = String.fromCodePoint(codePoint);
     result +=
-      highlightedPositions.has(visibleIndex) && !inverse ? color(char) : char;
+      highlightedPositions.has(visibleIndex) && !inverse
+        ? color(char) + foreground
+        : char;
     visibleIndex++;
     i += char.length;
   }
@@ -186,7 +240,7 @@ function skillNames(pi: ExtensionAPI) {
 }
 
 function hasMatchingPrefix(prefix: string, names: Set<string>) {
-  if (prefix === "") return names.size > 0;
+  if (prefix === "") return false;
   for (const name of names) {
     if (name.startsWith(prefix)) return true;
   }
