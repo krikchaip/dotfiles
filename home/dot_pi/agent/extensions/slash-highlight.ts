@@ -43,9 +43,9 @@ const BUILTIN_COMMANDS = [
 const HIGHLIGHT_COLOR: ThemeColor = "accent";
 
 const COMMAND_TOKEN_PATTERN = /^\/([A-Za-z0-9:_-]*)/;
-const EDITOR_SKILL_TOKEN_PATTERN = /\/skill:([A-Za-z0-9-]*)/g;
+const EDITOR_SKILL_TOKEN_PATTERN = /(^|[^\w/-])(\/(?:skill:)?([A-Za-z0-9-]*))/g;
 const HISTORY_SKILL_TOKEN_PATTERN =
-  /\/skill:([A-Za-z0-9-]+)(?=$|[^A-Za-z0-9-])/g;
+  /(^|[^\w/-])(\/(?:skill:)?([A-Za-z0-9-]+))(?=$|[^A-Za-z0-9-])/g;
 
 type EditorHighlightState = {
   originalRender: (width: number) => string[];
@@ -59,14 +59,6 @@ type UserMessageHighlightState = {
   getSkillNames: () => Set<string>;
   color: (text: string) => string;
 };
-
-function escapeRegExp(text: string) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function replaceAll(text: string, token: string, replacement: string) {
-  return text.replace(new RegExp(escapeRegExp(token), "g"), replacement);
-}
 
 function escapeEnd(text: string, start: number) {
   if (text[start] !== "\x1b") return start;
@@ -210,52 +202,46 @@ function editorCommandToken(text: string, names: Set<string>) {
   return hasMatchingPrefix(prefix, names) ? token : undefined;
 }
 
-function editorSkillTokens(text: string, names: Set<string>) {
-  const tokens = new Set<string>();
+function skillTokenRanges(
+  text: string,
+  names: Set<string>,
+  allowPrefix: boolean,
+) {
+  const ranges: Array<{ start: number; end: number }> = [];
+  const pattern = allowPrefix
+    ? EDITOR_SKILL_TOKEN_PATTERN
+    : HISTORY_SKILL_TOKEN_PATTERN;
 
-  for (const match of text.matchAll(EDITOR_SKILL_TOKEN_PATTERN)) {
-    const token = match[0];
-    const prefix = match[1] ?? "";
-    if (hasMatchingPrefix(prefix, names)) tokens.add(token);
+  for (const match of text.matchAll(pattern)) {
+    const token = match[2];
+    const name = match[3] ?? "";
+    const matches = allowPrefix
+      ? hasMatchingPrefix(name, names)
+      : names.has(name);
+    if (!token || !matches || match.index === undefined) continue;
+
+    const start = match.index + (match[1]?.length ?? 0);
+    ranges.push({ start, end: start + token.length });
   }
 
-  return [...tokens].sort((a, b) => b.length - a.length);
-}
-
-function historySkillTokens(line: string, names: Set<string>) {
-  const tokens = new Set<string>();
-
-  for (const match of line.matchAll(HISTORY_SKILL_TOKEN_PATTERN)) {
-    const token = match[0];
-    const name = match[1];
-    if (name && names.has(name)) tokens.add(token);
-  }
-
-  return [...tokens].sort((a, b) => b.length - a.length);
+  return ranges;
 }
 
 function highlightEditorLine(
   line: string,
   commandToken: string | undefined,
-  skillTokens: string[],
+  skillNames: Set<string>,
   color: (text: string) => string,
   state: { commandDone: boolean },
 ) {
   const visible = visibleText(line);
-  const ranges: Array<{ start: number; end: number }> = [];
+  const ranges = skillTokenRanges(visible, skillNames, true);
 
   if (commandToken && !state.commandDone) {
     const index = visible.indexOf(commandToken);
     if (index >= 0) {
       ranges.push({ start: index, end: index + commandToken.length });
       state.commandDone = true;
-    }
-  }
-
-  for (const token of skillTokens) {
-    for (let index = visible.indexOf(token); index >= 0; ) {
-      ranges.push({ start: index, end: index + token.length });
-      index = visible.indexOf(token, index + token.length);
     }
   }
 
@@ -296,16 +282,16 @@ function patchEditorRender(
     const lines = nextState.originalRender.call(this, width) as string[];
     const text = typeof this.getText === "function" ? this.getText() : "";
     const commandToken = editorCommandToken(text, nextState.getCommandNames());
-    const skillTokens = editorSkillTokens(text, nextState.getSkillNames());
+    const names = nextState.getSkillNames();
 
-    if (!commandToken && skillTokens.length === 0) return lines;
+    if (!commandToken && names.size === 0) return lines;
 
     const renderState = { commandDone: false };
     return lines.map((line) =>
       highlightEditorLine(
         line,
         commandToken,
-        skillTokens,
+        names,
         nextState.color,
         renderState,
       ),
@@ -345,13 +331,13 @@ function patchUserMessageRender(
     const names = nextState.getSkillNames();
     if (names.size === 0) return lines;
 
-    return lines.map((line) => {
-      let highlighted = line;
-      for (const token of historySkillTokens(line, names)) {
-        highlighted = replaceAll(highlighted, token, nextState.color(token));
-      }
-      return highlighted;
-    });
+    return lines.map((line) =>
+      highlightVisibleRanges(
+        line,
+        skillTokenRanges(visibleText(line), names, false),
+        nextState.color,
+      ),
+    );
   };
 }
 
