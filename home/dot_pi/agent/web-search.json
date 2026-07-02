@@ -1,5 +1,5 @@
 {
-  "workflow": "none",
+  "workflow": "auto-summary",
   "provider": "exa",
   "summaryModel": "antigravity/gemini-3.5-flash-high",
   "allowBrowserCookies": true
