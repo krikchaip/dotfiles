@@ -15,7 +15,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 
 /** Confirm before dropping sessions with this many entries or more. */
-const CONFIRM_THRESHOLD = 50;
+const CONFIRM_THRESHOLD = 100;
 
 function isInTmux(): boolean {
   return Boolean(process.env.TMUX);
