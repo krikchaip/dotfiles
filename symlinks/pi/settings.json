@@ -72,16 +72,11 @@
     "npm:@vanillagreen/pi-caveman",
     "npm:pi-mcp-adapter",
     "npm:pi-token-burden",
+    "npm:pi-web-access",
     {
       "source": "npm:@victor-software-house/pi-curated-themes",
       "skills": [
         "-skills/adapt-ghostty-theme-to-pi/SKILL.md"
-      ]
-    },
-    {
-      "source": "npm:pi-web-access",
-      "skills": [
-        "+skills/librarian/SKILL.md"
       ]
     },
     "packages/image-attachments",
@@ -129,3 +124,4 @@
     "stashHistory": "ctrl+alt+h"
   }
 }
+
