@@ -6,7 +6,7 @@
   "schedulingEnabled": false,
   "scopeModels": false,
   "disableDefaultAgents": true,
-  "toolDescriptionMode": "compact",
+  "toolDescriptionMode": "custom",
   "fleetView": true,
   "widgetMode": "background"
 }
