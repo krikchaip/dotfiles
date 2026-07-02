@@ -4,7 +4,7 @@ display_name: General
 tools: all
 extensions: [pi-mcp-adapter, pi-web-access]
 model: inherit
-max_turns: 20
+max_turns: 50
 prompt_mode: append
 run_in_background: true
 ---

@@ -4,7 +4,7 @@ display_name: Explore
 tools: read, bash, grep, find, ls
 extensions: [pi-mcp-adapter, pi-web-access]
 model: antigravity/gemini-3.5-flash-high
-max_turns: 20
+max_turns: 50
 prompt_mode: replace
 run_in_background: true
 ---

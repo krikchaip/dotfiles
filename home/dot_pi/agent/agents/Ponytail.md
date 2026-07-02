@@ -6,7 +6,7 @@ extensions: [pi-mcp-adapter, pi-web-access]
 skills: ponytail
 model: inherit
 thinking: xhigh
-max_turns: 30
+max_turns: 0
 prompt_mode: replace
 inherit_context: true
 ---
