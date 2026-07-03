@@ -31,8 +31,8 @@ type TextBlock = {
   piSkillReferencePaths?: true;
 };
 
-type UserMessageLike = {
-  role: "user";
+type SkillReferenceMessageLike = {
+  role: "user" | "custom";
   content: string | unknown[];
 };
 
@@ -198,12 +198,16 @@ function readToolCallPaths(messages: unknown[], cwd: string) {
   return paths;
 }
 
-function withHiddenUserSkillReferences<T>(message: T, skills: SkillLike[]): T {
-  if ((message as any)?.role !== "user") return message;
+function withHiddenMessageSkillReferences<T>(
+  message: T,
+  skills: SkillLike[],
+): T {
+  const role = (message as any)?.role;
+  if (role !== "user" && role !== "custom") return message;
 
-  const userMessage = message as UserMessageLike;
+  const skillReferenceMessage = message as SkillReferenceMessageLike;
   const references = findReferencedSkills(
-    textForSkillMatching(userMessage.content),
+    textForSkillMatching(skillReferenceMessage.content),
     skills,
     true,
   );
@@ -215,17 +219,20 @@ function withHiddenUserSkillReferences<T>(message: T, skills: SkillLike[]): T {
     piSkillReferencePaths: true,
   };
 
-  if (Array.isArray(userMessage.content)) {
-    if (hasSkillReferenceBlock(userMessage.content)) return message;
+  if (Array.isArray(skillReferenceMessage.content)) {
+    if (hasSkillReferenceBlock(skillReferenceMessage.content)) return message;
     return {
       ...(message as object),
-      content: [...userMessage.content, hiddenBlock],
+      content: [...skillReferenceMessage.content, hiddenBlock],
     } as T;
   }
 
   return {
     ...(message as object),
-    content: [{ type: "text", text: userMessage.content }, hiddenBlock],
+    content: [
+      { type: "text", text: skillReferenceMessage.content },
+      hiddenBlock,
+    ],
   } as T;
 }
 
@@ -292,18 +299,18 @@ export default function (pi: ExtensionAPI) {
       const readPaths = readToolCallPaths(event.messages, ctx.cwd);
       return {
         messages: event.messages.flatMap((message) => {
-          const messageWithUserRefs = withHiddenUserSkillReferences(
+          const messageWithRefs = withHiddenMessageSkillReferences(
             message,
             skills,
           );
           const hiddenMessage = hiddenReadSkillReferenceMessage(
-            messageWithUserRefs,
+            messageWithRefs,
             skills,
             readPaths,
           );
           return hiddenMessage
-            ? [messageWithUserRefs, hiddenMessage]
-            : [messageWithUserRefs];
+            ? [messageWithRefs, hiddenMessage]
+            : [messageWithRefs];
         }),
       };
     } catch (error) {
