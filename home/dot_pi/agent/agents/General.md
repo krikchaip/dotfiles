@@ -1,5 +1,5 @@
 ---
-description: "General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you."
+description: "General-purpose agent for general, multi-step work: researching questions, locating and reading relevant code, implementing changes to files, and verifying results. Choose this one as the go-to when no more specialized subagent fits and delegating adds real value over doing it yourself."
 display_name: General
 tools: all
 extensions: [pi-mcp-adapter, pi-web-access]

@@ -8,5 +8,6 @@
   "disableDefaultAgents": true,
   "toolDescriptionMode": "custom",
   "fleetView": true,
-  "widgetMode": "background"
+  "widgetMode": "background",
+  "orchestrator": false
 }
