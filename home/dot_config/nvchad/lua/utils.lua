@@ -306,6 +306,22 @@ Term = {
   end,
 }
 
+Tmux = {
+  SetPaneOption = function(name, value)
+    local pane = vim.env.TMUX_PANE
+    if not pane then return end
+
+    local args = { "tmux", "set-option", "-p", "-t", pane, name }
+    if value == nil then
+      table.insert(args, 4, "-u")
+    else
+      table.insert(args, value)
+    end
+
+    vim.fn.jobstart(args, { detach = true })
+  end,
+}
+
 Telescope = {
   Grep = function()
     require("configs.telescope").grep()

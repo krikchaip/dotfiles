@@ -3,6 +3,20 @@ require "nvchad.autocmds"
 local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
+local PANE_APP = "@pane_nvim_app"
+
+-- Tell tmux this pane runs NvChad so global bindings can pass NvChad keys through.
+Tmux.SetPaneOption(PANE_APP, "nvchad")
+
+-- Clear the marker before exit so reused panes do not keep stale NvChad routing.
+autocmd("VimLeavePre", {
+  desc = "Clear NvChad tmux pane marker",
+  group = augroup("tmux-pane-nvim-app", { clear = true }),
+  callback = function()
+    Tmux.SetPaneOption(PANE_APP)
+  end,
+})
+
 -- prevent horizontal scrolling in terminal windows such as nvterm
 autocmd("TermOpen", {
   desc = "Prevent accidental horizontal scrolling in terminal windows",
