@@ -32,7 +32,7 @@ M.config = function(opts)
       ["<M-u>"] = "results_scrolling_up",
 
       -- item selection (qflist)
-      ["<M-Tab>"] = "drop_all",
+      ["<C-Tab>"] = "drop_all",
     },
   }
 
