@@ -9,5 +9,5 @@
   "toolDescriptionMode": "custom",
   "fleetView": true,
   "widgetMode": "background",
-  "orchestrator": true
+  "orchestrator": false
 }
