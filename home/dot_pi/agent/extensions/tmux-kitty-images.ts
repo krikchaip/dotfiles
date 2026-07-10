@@ -19,10 +19,13 @@
  *          the image id encoded in the cell foreground color.
  *      tmux tracks those cells as ordinary text, so the image scrolls with the
  *      content, clips to the pane, and never re-transmits on scroll.
- *   3. Wrapping `process.stdout.write` to envelope the (one-time) transmit APC
- *      in a tmux DCS passthrough.
+ *   3. Patching Pi TUI overlay composition only for U=1 placeholder lines,
+ *      preserving the unmasked image cells around every overlay.
+ *   4. Wrapping `process.stdout.write` to envelope Kitty APCs in tmux DCS
+ *      passthrough and clear only visible placements before scroll-region
+ *      repaints.
  *
- * A single `Image.prototype` override covers every surface — chat history,
+ * These patches apply to every Pi TUI surface — chat history,
  * tool results, the startup banner, and pi-paster's draft preview all go
  * through `new Image(...)`.
  *
@@ -77,15 +80,39 @@ interface ImageCtor {
   prototype: ImageInstance;
 }
 
+interface TuiInstance {
+  compositeLineAt(
+    baseLine: string,
+    overlayLine: string,
+    startCol: number,
+    overlayWidth: number,
+    totalWidth: number,
+  ): string;
+}
+
 interface PiTuiModule {
   Image: ImageCtor;
+  TUI: { prototype: TuiInstance };
   getCapabilities(): Capabilities;
   setCapabilities(caps: Capabilities): void;
   getCellDimensions(): CellSize;
+  visibleWidth(text: string): number;
+  truncateToWidth(
+    text: string,
+    width: number,
+    suffix: string,
+    strict: boolean,
+  ): string;
 }
 
 // Kitty Unicode-placeholder constants (graphics protocol spec).
 const PLACEHOLDER = String.fromCodePoint(0x10eeee);
+const DELETE_VISIBLE_PLACEMENTS = "\x1b_Ga=d,d=a,q=2\x1b\\";
+const SYNCHRONIZED_OUTPUT_BEGIN = "\x1b[?2026h";
+const SCROLL_REGION = /\x1b\[\d+;\d+r/;
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+  granularity: "grapheme",
+});
 
 // Byte-exact ordered list: index N → diacritic encoding row/column number N.
 // Source: kitty tools/utils/images/rowcolumn_diacritics.go (297 entries).
@@ -247,12 +274,15 @@ function transmitImage(id: number, base64: string): void {
 }
 
 /** Create/refresh the virtual placement for an id at the given cell size. */
+let hasVirtualPlacements = false;
+
 function placeVirtual(
   imageId: number,
   placementId: number,
   columns: number,
   rows: number,
 ): void {
+  hasVirtualPlacements = true;
   process.stdout.write(
     `\x1b_Ga=p,U=1,i=${imageId},p=${placementId},c=${columns},r=${rows},q=2\x1b\\`,
   );
@@ -281,6 +311,91 @@ function placeholderLines(
   }
 
   return lines;
+}
+
+function sliceAnsiColumns(
+  mod: PiTuiModule,
+  text: string,
+  startCol: number,
+  length: number,
+): string {
+  if (length <= 0) return "";
+
+  const endCol = startCol + length;
+  const tokens = text.split(/(\x1b\[[0-9;?]*[ -/]*[@-~])/g);
+  let col = 0;
+  let result = "";
+  let pendingAnsi = "";
+
+  tokenLoop: for (const token of tokens) {
+    if (!token) continue;
+    if (token.startsWith("\x1b[")) {
+      if (col >= startCol && col < endCol) result += token;
+      else if (col < startCol) pendingAnsi += token;
+      continue;
+    }
+
+    for (const { segment } of graphemeSegmenter.segment(token)) {
+      const width = Math.max(0, mod.visibleWidth(segment));
+      if (col >= startCol && col < endCol && col + width <= endCol) {
+        if (pendingAnsi) {
+          result += pendingAnsi;
+          pendingAnsi = "";
+        }
+        result += segment;
+      }
+      col += width;
+      if (col >= endCol) break tokenLoop;
+    }
+  }
+
+  return result;
+}
+
+function installU1OverlayComposition(mod: PiTuiModule): void {
+  const proto = mod.TUI.prototype;
+  const original = proto.compositeLineAt;
+
+  proto.compositeLineAt = function (
+    baseLine,
+    overlayLine,
+    startCol,
+    overlayWidth,
+    totalWidth,
+  ) {
+    if (!baseLine.includes(PLACEHOLDER)) {
+      return original.call(
+        this,
+        baseLine,
+        overlayLine,
+        startCol,
+        overlayWidth,
+        totalWidth,
+      );
+    }
+
+    const afterStart = startCol + overlayWidth;
+    const before = sliceAnsiColumns(mod, baseLine, 0, startCol);
+    const after = sliceAnsiColumns(
+      mod,
+      baseLine,
+      afterStart,
+      Math.max(0, totalWidth - afterStart),
+    );
+    const beforePad = " ".repeat(
+      Math.max(0, startCol - mod.visibleWidth(before)),
+    );
+    const overlay = mod.truncateToWidth(overlayLine, overlayWidth, "", true);
+    const overlayPad = " ".repeat(
+      Math.max(0, overlayWidth - mod.visibleWidth(overlay)),
+    );
+    const composed = `${before}\x1b[0m${beforePad}${overlay}${overlayPad}\x1b[0m${after}\x1b[0m`;
+    const truncated = mod.truncateToWidth(composed, totalWidth, "", true);
+    return (
+      truncated +
+      " ".repeat(Math.max(0, totalWidth - mod.visibleWidth(truncated)))
+    );
+  };
 }
 
 function installU1Renderer(mod: PiTuiModule): void {
@@ -366,6 +481,19 @@ function installU1Renderer(mod: PiTuiModule): void {
 let stdoutPatched = false;
 let originalWrite: ((...args: unknown[]) => boolean) | undefined;
 
+function prepareViewportRepaint(text: string): string {
+  if (
+    !hasVirtualPlacements ||
+    !text.includes(SYNCHRONIZED_OUTPUT_BEGIN) ||
+    !SCROLL_REGION.test(text)
+  )
+    return text;
+  return text.replace(
+    SYNCHRONIZED_OUTPUT_BEGIN,
+    `${SYNCHRONIZED_OUTPUT_BEGIN}${DELETE_VISIBLE_PLACEMENTS}`,
+  );
+}
+
 function wrapKittyForTmux(text: string): string {
   if (!text.includes("\x1b_G")) return text;
   return text.replace(
@@ -388,12 +516,13 @@ function patchStdout(): void {
     const chunk = args[0];
 
     if (typeof chunk === "string") {
-      if (chunk.includes("\x1b_G")) args[0] = wrapKittyForTmux(chunk);
+      args[0] = wrapKittyForTmux(prepareViewportRepaint(chunk));
     } else if (Buffer.isBuffer(chunk)) {
       const asString = chunk.toString("latin1");
-
-      if (asString.includes("\x1b_G"))
-        args[0] = Buffer.from(wrapKittyForTmux(asString), "latin1");
+      args[0] = Buffer.from(
+        wrapKittyForTmux(prepareViewportRepaint(asString)),
+        "latin1",
+      );
     }
 
     return args.length > 1 ? originalWrite!(...args) : originalWrite!(args[0]);
@@ -443,6 +572,7 @@ export default function tmuxKittyImages(pi: ExtensionAPI): void {
         hyperlinks: current.hyperlinks,
       });
 
+      installU1OverlayComposition(mod);
       installU1Renderer(mod);
       patchStdout();
       registerExitCleanup();
