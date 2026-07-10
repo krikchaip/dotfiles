@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.3",
+  "lastChangelogVersion": "0.80.6",
   "quietStartup": false,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -9,8 +9,8 @@
   "followUpMode": "all",
   "autocompleteMaxVisible": 10,
   "theme": "everforest-dark-hard",
-  "defaultProvider": "antigravity",
-  "defaultModel": "claude-opus-4-6-thinking",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-terra",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": true,
   "enabledModels": [
@@ -19,10 +19,11 @@
     "antigravity/claude-opus-4-6-thinking",
     "github-copilot/gpt-5.5",
     "github-copilot/claude-opus-4.8",
+    "github-copilot/claude-fable-5",
     "openai-codex/gpt-5.3-codex-spark",
-    "openai-codex/gpt-5.4",
-    "openai-codex/gpt-5.4-mini",
-    "openai-codex/gpt-5.5",
+    "openai-codex/gpt-5.6-luna",
+    "openai-codex/gpt-5.6-terra",
+    "openai-codex/gpt-5.6-sol",
     "opencode/big-pickle",
     "openrouter/openrouter/free"
   ],
