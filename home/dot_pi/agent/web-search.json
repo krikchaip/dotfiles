@@ -1,6 +1,6 @@
 {
-  "workflow": "auto-summary",
-  "provider": "exa",
+  "workflow": "none",
+  "provider": "tavily",
   "summaryModel": "antigravity/gemini-3.5-flash-high",
   "allowBrowserCookies": true
 }
