@@ -20,8 +20,10 @@
  *     aborts (no in-process fallback).
  *
  * /merge \[target-session-id|first-segment?\] \[instruction?\]
- *   Summarize the full active path of the current source session and append a
- *   branch_summary entry to the target session's active leaf. The target may be
+ *   Summarize the merge delta from the current source session and append a
+ *   branch_summary entry to the target session's active leaf. The merge delta
+ *   contains source active-path entries absent from the target active path or
+ *   its prior merge watermarks. The target may be
  *   a full UUID or first UUID segment; otherwise the parent session is used.
  *   - Atomic Operations: Target writes (summary and label change) are written
  *     sequentially only after both generation phases succeed.
@@ -101,6 +103,7 @@ type PostMergeItem = {
 
 const EXTENSION_NAME = "branch-merge";
 const ACTIVE_LEAF_MARKER = "branch-merge:active-leaf";
+const MERGE_WATERMARK_FIELD = "branchMergeSourceEntryIds";
 const MERGE_SPINNER_WIDGET_KEY = `${EXTENSION_NAME}:summary-spinner`;
 const MERGE_WIDGET_PLACEMENT = "aboveEditor";
 const MERGE_SPINNER_FRAMES = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
@@ -190,6 +193,7 @@ type MergeSummaryResult = {
     readFiles: string[];
     modifiedFiles: string[];
   };
+  sourceEntryIds: string[];
   summaryModel: SummaryModelTarget;
 };
 
@@ -235,14 +239,68 @@ function getLogicalLeafId(
   return typeof leafId === "string" ? leafId : null;
 }
 
-function hasConversationEntry(entries: BranchEntry[]) {
-  return entries.some(
-    (entry) =>
-      entry.type === "message" ||
-      entry.type === "custom_message" ||
-      entry.type === "branch_summary" ||
-      entry.type === "compaction",
+function isMergeableEntry(entry: BranchEntry) {
+  return (
+    (entry.type === "message" && entry.message.role !== "toolResult") ||
+    entry.type === "custom_message" ||
+    entry.type === "branch_summary" ||
+    entry.type === "compaction"
   );
+}
+
+function hasConversationEntry(entries: BranchEntry[]) {
+  return entries.some(isMergeableEntry);
+}
+
+function getEntryMergeWatermarks(entry: BranchEntry): string[] | null {
+  if (entry.type !== "branch_summary" || !isRecord(entry.details)) return null;
+
+  const value = entry.details[MERGE_WATERMARK_FIELD];
+  if (!Array.isArray(value) || !value.every((id) => typeof id === "string"))
+    return null;
+
+  return value;
+}
+
+function getMergeWatermarks(entries: BranchEntry[]) {
+  const watermarks = new Set<string>();
+
+  for (const entry of entries) {
+    for (const id of getEntryMergeWatermarks(entry) ?? []) watermarks.add(id);
+  }
+
+  return watermarks;
+}
+
+function getMergeDelta(
+  sourceSessionManager: CommandSessionManager,
+  targetSessionManager: CommandSessionManager,
+) {
+  const sourceLeafId = getLogicalLeafId(sourceSessionManager);
+  const targetLeafId = getLogicalLeafId(targetSessionManager);
+  const sourceEntries = sourceLeafId
+    ? sourceSessionManager.getBranch(sourceLeafId)
+    : [];
+  const targetEntries = targetLeafId
+    ? targetSessionManager.getBranch(targetLeafId)
+    : [];
+  const knownEntryIds = new Set(targetEntries.map((entry) => entry.id));
+
+  for (const id of getMergeWatermarks(targetEntries)) knownEntryIds.add(id);
+
+  const entries = sourceEntries.filter((entry) => {
+    if (!isMergeableEntry(entry) || knownEntryIds.has(entry.id)) return false;
+
+    const watermarks = getEntryMergeWatermarks(entry);
+    return !watermarks || !watermarks.every((id) => knownEntryIds.has(id));
+  });
+  const sourceEntryIds = [
+    ...new Set(
+      entries.flatMap((entry) => getEntryMergeWatermarks(entry) ?? [entry.id]),
+    ),
+  ];
+
+  return { entries, sourceEntryIds };
 }
 
 function getBranchableLeafId(
@@ -698,12 +756,13 @@ async function generateMergeSummary(
   signal = new AbortController().signal,
   events?: MergeSummaryEvents,
   sourceSessionManager?: CommandSessionManager,
+  targetSessionManager?: CommandSessionManager,
 ): Promise<MergeSummaryResult> {
-  const sm = sourceSessionManager ?? ctx.sessionManager;
-  const sourceLeafId = getLogicalLeafId(sm);
-  const entries = sourceLeafId ? sm.getBranch(sourceLeafId) : [];
-  if (entries.length === 0 || !hasConversationEntry(entries)) {
-    throw new UserVisibleWarning("Nothing to merge yet");
+  const source = sourceSessionManager ?? ctx.sessionManager;
+  const target = targetSessionManager ?? ctx.sessionManager;
+  const { entries, sourceEntryIds } = getMergeDelta(source, target);
+  if (entries.length === 0) {
+    throw new UserVisibleWarning("Nothing new to merge");
   }
 
   const settings = await loadSettings(ctx);
@@ -743,6 +802,7 @@ async function generateMergeSummary(
         readFiles: result.readFiles ?? [],
         modifiedFiles: result.modifiedFiles ?? [],
       },
+      sourceEntryIds,
       summaryModel: target,
     };
   };
@@ -886,6 +946,7 @@ async function generateMergeArtifacts(
   signal: AbortSignal,
   events?: MergeSummaryEvents & MergeLabelEvents,
   sourceSessionManager?: CommandSessionManager,
+  targetSessionManager?: CommandSessionManager,
 ): Promise<MergeArtifacts> {
   const generated = await generateMergeSummary(
     ctx,
@@ -893,6 +954,7 @@ async function generateMergeArtifacts(
     signal,
     events,
     sourceSessionManager,
+    targetSessionManager,
   );
   const label = await generateSummaryLabel(
     ctx,
@@ -926,6 +988,7 @@ async function generateMergeArtifactsWithSpinner(
     sessionPrefix: string;
   },
   sourceSessionManager?: CommandSessionManager,
+  targetSessionManager?: CommandSessionManager,
 ) {
   const controller = new AbortController();
   if (ctx.mode !== "tui") {
@@ -935,6 +998,7 @@ async function generateMergeArtifactsWithSpinner(
       controller.signal,
       undefined,
       sourceSessionManager,
+      targetSessionManager,
     );
   }
 
@@ -1004,6 +1068,7 @@ async function generateMergeArtifactsWithSpinner(
         onLabelModelStart: (nextModel) => setPhase("label", nextModel),
       },
       sourceSessionManager,
+      targetSessionManager,
     );
   } finally {
     unsubscribe();
@@ -1330,6 +1395,7 @@ async function pull(args: string, ctx: ExtensionCommandContext) {
       sessionPrefix: sessionIdPrefix(sourceSessionId),
     },
     sourceSession as unknown as CommandSessionManager,
+    ctx.sessionManager,
   );
   const sourceAfter = await getOptionalSnapshot(sourceSessionFile);
   if (!sourceAfter || !sameSnapshot(sourceBefore, sourceAfter)) {
@@ -1358,6 +1424,7 @@ async function pull(args: string, ctx: ExtensionCommandContext) {
   const summary = formatSummaryWithMetadata(summaryParams);
   const details: Record<string, unknown> = {
     ...generated.details,
+    [MERGE_WATERMARK_FIELD]: generated.sourceEntryIds,
     sourceSessionId,
     sourceSessionFile,
   };
@@ -1401,7 +1468,8 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   const sourceSessionName = ctx.sessionManager.getSessionName();
   const target = await resolveMergeTarget(args, ctx);
   const targetPath = resolve(target.path);
-  const targetSessionName = SessionManager.open(targetPath).getSessionName();
+  const targetSession = SessionManager.open(targetPath);
+  const targetSessionName = targetSession.getSessionName();
 
   if (resolve(sourceSessionFile) === targetPath) {
     throw new Error("Cannot merge a session into itself");
@@ -1422,6 +1490,9 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   const generated = await generateMergeArtifactsWithSpinner(
     ctx,
     artifactParams,
+    undefined,
+    ctx.sessionManager,
+    targetSession,
   );
   const sourceAfter = await getSnapshot(sourceSessionFile);
   const targetAfter = await getSnapshot(targetPath);
@@ -1436,7 +1507,6 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
     throw new Error("Target session changed during merge. Re-run /merge.");
   }
 
-  const targetSession = SessionManager.open(targetPath);
   const targetLeafId = targetSession.getLeafId();
   const summaryParams: Parameters<typeof formatSummaryWithMetadata>[0] = {
     summary: generated.summary,
@@ -1449,6 +1519,7 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   const summary = formatSummaryWithMetadata(summaryParams);
   const details: Record<string, unknown> = {
     ...generated.details,
+    [MERGE_WATERMARK_FIELD]: generated.sourceEntryIds,
     sourceSessionId,
     sourceSessionFile,
   };
