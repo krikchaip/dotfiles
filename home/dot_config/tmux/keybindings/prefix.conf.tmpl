@@ -30,24 +30,6 @@ bind -N "[Window] Split vertically"          C-v   split-window -h -c "#{pane_cu
 bind -N "[Window] Rename current"            r     command-prompt -p "Rename window:" -I "#W" { rename-window "%%" }
 bind -N "[Window] Rename current"            C-r   command-prompt -p "Rename window:" -I "#W" { rename-window "%%" }
 bind -N "[Window] Kill current"              Q     confirm-before -p "Kill window: #W? (y/n)" kill-window
-bind -N "[Window] Goto #1"                   1     select-window -t :=1
-bind -N "[Window] Goto #1"                   C-1   select-window -t :=1
-bind -N "[Window] Goto #2"                   2     select-window -t :=2
-bind -N "[Window] Goto #2"                   C-2   select-window -t :=2
-bind -N "[Window] Goto #3"                   3     select-window -t :=3
-bind -N "[Window] Goto #3"                   C-3   select-window -t :=3
-bind -N "[Window] Goto #4"                   4     select-window -t :=4
-bind -N "[Window] Goto #4"                   C-4   select-window -t :=4
-bind -N "[Window] Goto #5"                   5     select-window -t :=5
-bind -N "[Window] Goto #5"                   C-5   select-window -t :=5
-bind -N "[Window] Goto #6"                   6     select-window -t :=6
-bind -N "[Window] Goto #6"                   C-6   select-window -t :=6
-bind -N "[Window] Goto #7"                   7     select-window -t :=7
-bind -N "[Window] Goto #7"                   C-7   select-window -t :=7
-bind -N "[Window] Goto #8"                   8     select-window -t :=8
-bind -N "[Window] Goto #8"                   C-8   select-window -t :=8
-bind -N "[Window] Goto #9"                   9     select-window -t :=9
-bind -N "[Window] Goto #9"                   C-9   select-window -t :=9
 bind -N "[Window] Goto next"              -r ]     next-window
 bind -N "[Window] Goto next"              -r C-]   next-window
 bind -N "[Window] Goto previous"          -r [     previous-window
