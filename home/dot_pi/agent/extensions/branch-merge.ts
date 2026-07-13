@@ -8,16 +8,16 @@
  *   - Async Execution: Fork submits the prompt asynchronously to prevent the TUI
  *     core editor text clear from wiping typed characters during switch.
  *   - Tmux Pane Split: --vsp splits a side-by-side pane (tmux split-window -h);
- *     --sp splits a top/bottom pane (tmux split-window -v). The branch is forked
- *     to disk (SessionManager.forkFrom) and runs in the new pane by re-exec'ing
- *     the same node + Pi entry this process runs (process.execPath +
- *     process.argv\[1\]) with `--session-dir <dir> --session <branch-id>
- *     [prompt]`, so the new pane matches the current Pi regardless of how it was
- *     launched (alias, shim, PATH). Focus jumps to the new pane while the source
- *     pane stays on the source session, unchanged. The current process env is
- *     forwarded to the new pane via tmux `-e` (skipping TMUX/TMUX_PANE so tmux
- *     sets the correct pane identity). A split flag outside tmux warns and
- *     aborts (no in-process fallback).
+ *     --sp splits a top/bottom pane (tmux split-window -v). Split requires a
+ *     file-backed source session; in-memory sessions warn and abort. The branch
+ *     is forked to disk (SessionManager.forkFrom) and runs in the new pane by
+ *     re-exec'ing the same node + Pi entry this process runs (process.execPath +
+ *     process.argv\[1\]), or `pi` when no entry is available, with
+ *     `--session-dir <dir> --session <branch-id> [prompt]`. Focus jumps to the
+ *     new pane while the source pane stays on the source session, unchanged. The
+ *     current process env is forwarded to the new pane via tmux `-e` (skipping
+ *     TMUX/TMUX_PANE so tmux sets the correct pane identity). A split flag
+ *     outside tmux warns and aborts (no in-process fallback).
  *
  * /merge \[target-session-id|first-segment?\] \[instruction?\]
  *   Summarize the merge delta from the current source session and append a
@@ -52,7 +52,8 @@
  *
  * User Interface & Interaction:
  *   - Above-Editor Spinner: Shows active phase, target/model info, and allows
- *     Esc to cancel. Escape prioritized to close active menus/overlays first.
+ *     cancellation through the `app.interrupt` keybinding (typically Esc). An
+ *     active overlay or another focused component receives the interrupt first.
  *   - Footer Modal: Choice screen with theme-colored accent borders, target (warning)
  *     and source (success) session IDs. Rows are positional and context-aware:
  *     outside tmux [switch, switch-remove, stay] with the cursor defaulting to
