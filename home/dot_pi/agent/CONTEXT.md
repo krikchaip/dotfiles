@@ -63,3 +63,11 @@ _Avoid_: Reversed conversation, exchange indexes
 **Streaming pane branch**:
 An independently opened session branch while source response remains active. It begins immediately before source active session branch's latest real user message and leaves source response intact.
 _Avoid_: Cloning partial assistant output, resending current user message, aborting source response
+
+**Extended new command**:
+`/new` behavior augmented by documented child and pane-split arguments. Same-pane forms are unavailable during streaming; idle bare `/new` retains Pi's native new-session action.
+_Avoid_: Replacement new command, streaming session replacement
+
+**New child session**:
+A blank session whose parent link points to an existing, valid session file active when it was created. It inherits no conversation context.
+_Avoid_: Branch, clone, context copy, dangling parent link
