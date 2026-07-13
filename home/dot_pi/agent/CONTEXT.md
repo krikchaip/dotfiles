@@ -37,5 +37,29 @@ Mergeable entries on a source active session branch whose identifiers are absent
 _Avoid_: Full source summary, content diff
 
 **Automatic rename**:
-A one-time session name generation attempt tied to the first user prompt in a new unnamed Pi session.
+A one-time session name generation attempt tied to the first user prompt in a new unnamed Pi session. Uses session rename scope.
 _Avoid_: Periodic rename, background rename
+
+**Session rename scope**:
+All eligible messages on active session branch; excludes messages on abandoned or sibling branches.
+_Avoid_: Entire session tree, chat history
+
+**Recent rename window**:
+A suffix of eligible user and assistant messages from active session branch. It alone determines session name; broader session work is irrelevant. When `recent` lacks `N`, window has 10 messages, or five recent exchanges.
+_Avoid_: Exchange count, arbitrary history slice, whole-session topic
+
+**Rename command**:
+`/rename` and `/rename session` use session rename scope; `/rename recent [N]` uses recent rename window. Other arguments are invalid. Argument completion offers `recent` and `session`.
+_Avoid_: Silent input fallback, unsupported rename modes
+
+**Budgeted rename excerpt**:
+Chronologically ordered suffix of selected rename scope that fits naming-model context budget. Older messages are omitted.
+_Avoid_: Reversed conversation, arbitrary message selection
+
+**Rename prompt dialogue**:
+Selected messages presented oldest to newest with role labels and no positional indexes.
+_Avoid_: Reversed conversation, exchange indexes
+
+**Streaming pane branch**:
+An independently opened session branch while source response remains active. It begins immediately before source active session branch's latest real user message and leaves source response intact.
+_Avoid_: Cloning partial assistant output, resending current user message, aborting source response

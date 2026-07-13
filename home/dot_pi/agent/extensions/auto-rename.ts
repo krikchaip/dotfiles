@@ -2,7 +2,9 @@
  * Semantic session naming for Pi.
  *
  * Automatically names new unnamed sessions after the first assistant reply.
- * Use /rename to regenerate the current session name on demand.
+ * Use /rename or /rename session to name from the active session branch, or
+ * /rename recent \[N\] to name from only its latest N user/assistant messages
+ * (default N: 10).
  *
  * Configure in ~/.pi/agent/settings.json:
  * {
@@ -45,6 +47,10 @@ type DialoguePart = {
   text: string;
 };
 
+type RenameScope =
+  | { type: "session" }
+  | { type: "recent"; messageCount: number };
+
 const EXTENSION_NAME = "auto-rename";
 const RENAME_SPINNER_WIDGET_KEY = `${EXTENSION_NAME}:spinner`;
 const RENAME_WIDGET_PLACEMENT = "aboveEditor";
@@ -65,13 +71,15 @@ const OUTPUT_TOKENS = 1024;
 const MAX_CONVERSATION_TOKENS = 32_000;
 const DEFAULT_CONTEXT_WINDOW = 32_000;
 const ESTIMATED_CHARS_PER_TOKEN = 4;
+const DEFAULT_RECENT_MESSAGE_COUNT = 10;
+const RENAME_USAGE = "Usage: /rename [recent [N]|session]";
 const SYSTEM_PROMPT = [
   "You are a session name generator for the Pi coding agent. You must respond with exactly one session name and nothing else.",
   "",
   "Follow these rules when generating a session name:",
   "- The session name must contain 2-8 words.",
   "- Do not end the session name with a period.",
-  "- Infer the topic from the entire conversation, but give greater weight to recent exchanges than earlier ones.",
+  "- Infer the topic from the provided dialogue, giving greater weight to recent messages when it spans multiple exchanges.",
 ].join("\n");
 
 let warnedSettings = false;
@@ -195,12 +203,34 @@ function conversationBudgetTokens(model: PiModel): number {
   );
 }
 
-function formatPart(part: DialoguePart, newestIndex: number): string {
-  return [
-    `<exchange index="${newestIndex}" role="${part.role}">`,
-    part.text,
-    "</exchange>",
-  ].join("\n");
+function parseRenameScope(args: string): RenameScope {
+  const tokens = args.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0 || (tokens.length === 1 && tokens[0] === "session")) {
+    return { type: "session" };
+  }
+
+  if (tokens[0] !== "recent") throw new Error(RENAME_USAGE);
+  if (tokens.length === 1) {
+    return { type: "recent", messageCount: DEFAULT_RECENT_MESSAGE_COUNT };
+  }
+  if (tokens.length !== 2 || !/^[1-9]\d*$/.test(tokens[1]!)) {
+    throw new Error(RENAME_USAGE);
+  }
+
+  const messageCount = Number(tokens[1]);
+  if (!Number.isSafeInteger(messageCount)) throw new Error(RENAME_USAGE);
+  return { type: "recent", messageCount };
+}
+
+function selectDialogueParts(
+  parts: DialoguePart[],
+  scope: RenameScope,
+): DialoguePart[] {
+  return scope.type === "recent" ? parts.slice(-scope.messageCount) : parts;
+}
+
+function formatPart(part: DialoguePart): string {
+  return [`<message role="${part.role}">`, part.text, "</message>"].join("\n");
 }
 
 function buildConversationBlock(parts: DialoguePart[], model: PiModel): string {
@@ -209,12 +239,12 @@ function buildConversationBlock(parts: DialoguePart[], model: PiModel): string {
   let used = 0;
   let omitted = 0;
 
-  for (let i = parts.length - 1, newestIndex = 1; i >= 0; i--, newestIndex++) {
-    const formatted = formatPart(parts[i], newestIndex);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const formatted = formatPart(parts[i]!);
     const tokens = estimateTokens(formatted);
 
     if (used + tokens <= budget) {
-      selected.push(formatted);
+      selected.unshift(formatted);
       used += tokens;
       continue;
     }
@@ -222,11 +252,8 @@ function buildConversationBlock(parts: DialoguePart[], model: PiModel): string {
     const remaining = Math.max(0, budget - used);
     if (remaining > 100 && selected.length === 0) {
       const maxChars = remaining * ESTIMATED_CHARS_PER_TOKEN;
-      selected.push(
-        formatPart(
-          { ...parts[i], text: parts[i].text.slice(-maxChars) },
-          newestIndex,
-        ),
+      selected.unshift(
+        formatPart({ ...parts[i]!, text: parts[i]!.text.slice(-maxChars) }),
       );
       used = budget;
     }
@@ -235,8 +262,7 @@ function buildConversationBlock(parts: DialoguePart[], model: PiModel): string {
   }
 
   return [
-    "Generate a session name for this active session branch.",
-    "Conversation excerpts are newest to oldest. Exchange index 1 is most recent.",
+    "Generate a session name from this provided dialogue.",
     omitted > 0
       ? `${omitted} older message(s) omitted because the naming model context budget was full.`
       : undefined,
@@ -329,8 +355,12 @@ function responseText(response: Awaited<ReturnType<typeof complete>>): string {
 async function generateName(
   ctx: ExtensionContext,
   model: PiModel,
+  scope: RenameScope,
 ): Promise<string> {
-  const parts = branchDialogueParts(ctx.sessionManager.getBranch());
+  const parts = selectDialogueParts(
+    branchDialogueParts(ctx.sessionManager.getBranch()),
+    scope,
+  );
   if (parts.length === 0) throw new Error("no user/assistant messages found");
 
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
@@ -368,11 +398,12 @@ async function generateName(
 async function renameSession(
   ctx: ExtensionContext,
   pi: ExtensionAPI,
+  scope: RenameScope,
 ): Promise<string> {
   const model = await resolveNamingModel(ctx);
 
   return withRenameSpinner(ctx, modelName(model), async () => {
-    const name = await generateName(ctx, model);
+    const name = await generateName(ctx, model, scope);
     pi.setSessionName(name);
     return name;
   });
@@ -416,7 +447,7 @@ export default function autoRenameExtension(pi: ExtensionAPI) {
     }
 
     try {
-      await renameSession(ctx, pi);
+      await renameSession(ctx, pi, { type: "session" });
       autoRenameArmed = false;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -437,11 +468,27 @@ export default function autoRenameExtension(pi: ExtensionAPI) {
   });
 
   pi.registerCommand("rename", {
-    description: "Generate a semantic session name from the active branch",
-    handler: async (_args: string, ctx: ExtensionCommandContext) => {
-      await ctx.waitForIdle();
+    description: "Generate a semantic session name: session or recent [N]",
+    getArgumentCompletions: (prefix) => {
+      const items = [
+        {
+          value: "session",
+          label: "session",
+          description: "Use active branch history",
+        },
+        {
+          value: "recent",
+          label: "recent",
+          description: "Use latest [N] messages (default to 10).",
+        },
+      ].filter((item) => item.value.startsWith(prefix.trim()));
+      return items.length > 0 ? items : null;
+    },
+    handler: async (args: string, ctx: ExtensionCommandContext) => {
       try {
-        const name = await renameSession(ctx, pi);
+        const scope = parseRenameScope(args);
+        await ctx.waitForIdle();
+        const name = await renameSession(ctx, pi, scope);
         notify(ctx, `Session renamed: ${name}`, "info");
       } catch (error) {
         notify(
