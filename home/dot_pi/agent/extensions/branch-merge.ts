@@ -9,15 +9,20 @@
  *     core editor text clear from wiping typed characters during switch.
  *   - Tmux Pane Split: --vsp splits a side-by-side pane (tmux split-window -h);
  *     --sp splits a top/bottom pane (tmux split-window -v). Split requires a
- *     file-backed source session; in-memory sessions warn and abort. The branch
- *     is forked to disk (SessionManager.forkFrom) and runs in the new pane by
- *     re-exec'ing the same node + Pi entry this process runs (process.execPath +
- *     process.argv\[1\]), or `pi` when no entry is available, with
- *     `--session-dir <dir> --session <branch-id> [prompt]`. Focus jumps to the
- *     new pane while the source pane stays on the source session, unchanged. The
- *     current process env is forwarded to the new pane via tmux `-e` (skipping
- *     TMUX/TMUX_PANE so tmux sets the correct pane identity). A split flag
- *     outside tmux warns and aborts (no in-process fallback).
+ *     file-backed source session; in-memory sessions warn and abort. While the
+ *     agent streams, split is the only supported branch form: it forks state
+ *     immediately before the active branch's latest real user message, leaving
+ *     the new editor empty and source streaming uninterrupted. An explicit
+ *     prompt is sent only in the new pane. If that user message begins the
+ *     session, the child is empty. The branch runs in the new pane by re-exec'ing the same
+ *     node + Pi entry this process runs (process.execPath + process.argv\[1\]),
+ *     or `pi` when no entry is available, with `--session-dir <dir>` and, for
+ *     nonempty branches, `--session <branch-id> [prompt]`. Focus jumps to the
+ *     new pane while the source pane
+ *     stays on the source session, unchanged. The current process env is
+ *     forwarded to the new pane via tmux `-e` (skipping TMUX/TMUX_PANE so tmux
+ *     sets the correct pane identity). A split flag outside tmux warns and
+ *     aborts (no in-process fallback).
  *
  * /merge \[target-session-id|first-segment?\] \[instruction?\]
  *   Summarize the merge delta from the current source session and append a
@@ -312,6 +317,23 @@ function getBranchableLeafId(
   if (!sessionManager.getEntry(leafId)) return null;
   if (!hasConversationEntry(sessionManager.getBranch(leafId))) return null;
   return leafId;
+}
+
+function latestRealUserEntry(
+  sessionManager: CommandSessionManager,
+): { parentId: string | null; hasPriorConversation: boolean } | null {
+  const branch = sessionManager.getBranch();
+  for (let index = branch.length - 1; index >= 0; index--) {
+    const entry = branch[index];
+    if (entry.type === "message" && entry.message.role === "user") {
+      return {
+        parentId: entry.parentId,
+        hasPriorConversation: hasConversationEntry(branch.slice(0, index)),
+      };
+    }
+  }
+
+  return null;
 }
 
 function notify(
@@ -1254,6 +1276,7 @@ async function branchIntoPane(
   ctx: ExtensionCommandContext,
   orientation: "h" | "v",
   prompt: string,
+  whileStreaming = false,
 ) {
   if (!isInTmux()) {
     notify(ctx, "Not inside tmux; cannot split a pane", "warning");
@@ -1267,20 +1290,41 @@ async function branchIntoPane(
   }
 
   const sessionDir = ctx.sessionManager.getSessionDir();
-  let branchId: string;
+  let branchId: string | undefined;
   try {
-    branchId = SessionManager.forkFrom(
-      sourceFile,
-      ctx.cwd,
-      sessionDir,
-      {},
-    ).getSessionId();
+    if (!whileStreaming) {
+      branchId = SessionManager.forkFrom(
+        sourceFile,
+        ctx.cwd,
+        sessionDir,
+        {},
+      ).getSessionId();
+    } else {
+      const userEntry = latestRealUserEntry(ctx.sessionManager);
+      if (!userEntry) {
+        notify(ctx, "Nothing to branch before", "warning");
+        return;
+      }
+
+      if (userEntry.parentId && userEntry.hasPriorConversation) {
+        const branch = SessionManager.open(sourceFile, sessionDir);
+        if (!branch.createBranchedSession(userEntry.parentId)) {
+          throw new Error("Unable to create branch session");
+        }
+        branchId = branch.getSessionId();
+      } else {
+        // Pi does not persist empty sessions. Let child Pi create its own fresh
+        // session instead of launching it with an unresolvable session ID.
+        branchId = undefined;
+      }
+    }
   } catch (error) {
     notify(ctx, `Branch failed: ${String(error)}`, "error");
     return;
   }
 
-  const piArgs = ["--session-dir", sessionDir, "--session", branchId];
+  const piArgs = ["--session-dir", sessionDir];
+  if (branchId) piArgs.push("--session", branchId);
   if (prompt) piArgs.push(prompt);
 
   const envArgs: string[] = [];
@@ -1584,11 +1628,25 @@ export default function (pi: ExtensionAPI) {
       "Clone current branch ([--vsp|--sp] splits a tmux pane); optional prompt",
     handler: async (args, ctx) => {
       try {
-        assertCommandIdle(ctx, "/branch");
-
         const parsed = parseBranchArgs(args);
         if ("error" in parsed) {
           notify(ctx, parsed.error, "warning");
+          return;
+        }
+
+        const whileStreaming = !ctx.isIdle();
+        if (whileStreaming && !parsed.split) {
+          notify(
+            ctx,
+            "Branch while streaming requires --sp or --vsp",
+            "warning",
+          );
+          return;
+        }
+        if (!whileStreaming) assertCommandIdle(ctx, "/branch");
+
+        if (parsed.split && whileStreaming) {
+          await branchIntoPane(ctx, parsed.split, parsed.prompt, true);
           return;
         }
 
