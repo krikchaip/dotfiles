@@ -4,6 +4,7 @@ display_name: Ponytail
 tools: all
 extensions: [pi-mcp-adapter, pi-web-access, pi-permission-system]
 skills: ponytail
+model: antigravity/claude-opus-4-6-thinking
 thinking: high
 max_turns: 0
 prompt_mode: replace
