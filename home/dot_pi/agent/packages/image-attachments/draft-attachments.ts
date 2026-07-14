@@ -81,8 +81,10 @@ type PromptPatchState = {
   originalRunAgentPrompt: (messages: any) => Promise<void>;
 };
 
+type ClipboardPasteHandler = (this: any) => Promise<void> | void;
+
 type PastePatchState = {
-  originalHandleClipboardImagePaste?: () => Promise<void>;
+  originalHandleClipboardPaste?: ClipboardPasteHandler;
 };
 
 type HistoryPatchState = {
@@ -1096,30 +1098,21 @@ function patchPromptContent() {
 
 function patchClipboardImagePaste() {
   const prototype = InteractiveMode.prototype as any;
-  const existing = prototype[PASTE_PATCH_STATE] as
-    | PastePatchState
-    | boolean
-    | undefined;
-  const state: PastePatchState =
-    existing && typeof existing === "object"
-      ? existing
-      : { originalHandleClipboardImagePaste: undefined };
+  const state = (prototype[PASTE_PATCH_STATE] ?? {}) as PastePatchState;
 
-  if (!state.originalHandleClipboardImagePaste && existing !== true) {
-    state.originalHandleClipboardImagePaste =
-      prototype.handleClipboardImagePaste;
-  }
-
+  state.originalHandleClipboardPaste ??= prototype.handleClipboardPaste;
   prototype[PASTE_PATCH_STATE] = state;
 
-  prototype.handleClipboardImagePaste = async function (this: any) {
+  prototype.handleClipboardPaste = async function (this: any) {
+    const fallback = () => state.originalHandleClipboardPaste?.call(this);
+
     try {
       const pkgUrl = import.meta.resolve("@earendil-works/pi-coding-agent");
       const clipUrl = new URL("./utils/clipboard-image.js", pkgUrl).href;
       const { readClipboardImage } = await import(clipUrl);
 
       const image = await readClipboardImage();
-      if (!image) return;
+      if (!image) return fallback();
 
       const data = Buffer.from(image.bytes).toString("base64");
       const hash = createHash("sha256").update(image.bytes).digest("hex");
@@ -1128,7 +1121,7 @@ function patchClipboardImagePaste() {
       this.editor.insertTextAtCursor?.(`[#image ${draft.id}]`);
       this.ui.requestRender();
     } catch {
-      return state.originalHandleClipboardImagePaste?.call(this);
+      return fallback();
     }
   };
 }
