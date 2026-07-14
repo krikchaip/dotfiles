@@ -49,8 +49,12 @@ A suffix of eligible user and assistant messages from active session branch. It 
 _Avoid_: Exchange count, arbitrary history slice, whole-session topic
 
 **Rename command**:
-`/rename` and `/rename session` use session rename scope; `/rename recent [N]` uses recent rename window. Other arguments are invalid. Argument completion offers `recent` and `session`.
+`/rename` and `/rename session` use session rename scope; `/rename recent [N]` uses recent rename window. Other arguments are invalid. Argument completion offers `recent` and `session`; after `recent`, it offers `2`, `4`, `6`, `10`, and `16`.
 _Avoid_: Silent input fallback, unsupported rename modes
+
+**Session ID completion**:
+Dynamic command-argument autocomplete for target or source sessions in current directory only. It inserts full UUIDs, shows UUID first segment as row label, and shows session name as description; unnamed sessions show `[Untitled]`. Active session is excluded.
+_Avoid_: Global session scans, static session list, ambiguous short UUID insertion, active-session self-reference
 
 **Budgeted rename excerpt**:
 Chronologically ordered suffix of selected rename scope that fits naming-model context budget. Older messages are omitted.

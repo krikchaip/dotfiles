@@ -24,6 +24,12 @@ type SessionInfoCache = Map<
   { mtimeMs: number; size: number; info: any }
 >;
 
+type SessionFileState = Map<string, { mtimeMs: number; size: number }>;
+type SessionListSnapshot = {
+  files: SessionFileState;
+  sessions: any[];
+};
+
 function updateCachedSessionInfo(
   sessionInfoCache: SessionInfoCache,
   sessionPath: string,
@@ -143,68 +149,92 @@ export function applyRenameSessionRecent(
       join(distPath, "core", "session-manager.js"),
     );
     const { readdir } = req("node:fs/promises");
+    const sessionListSnapshots = new Map<string, SessionListSnapshot>();
+    const sessionListInFlight = new Map<string, Promise<any[]>>();
+
+    const readSessionFileState = async (
+      dir: string,
+    ): Promise<SessionFileState | undefined> => {
+      try {
+        const dirEntries: string[] = await readdir(dir);
+        const files = new Map<string, { mtimeMs: number; size: number }>();
+        for (const name of dirEntries) {
+          if (!name.endsWith(".jsonl")) continue;
+          const filePath = join(dir, name);
+          const st = statSync(filePath);
+          files.set(filePath, { mtimeMs: st.mtimeMs, size: st.size });
+        }
+        return files;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const sameSessionFileState = (
+      left: SessionFileState | undefined,
+      right: SessionFileState | undefined,
+    ) => {
+      if (!left || !right || left.size !== right.size) return false;
+      for (const [filePath, stat] of left) {
+        const other = right.get(filePath);
+        if (
+          !other ||
+          other.mtimeMs !== stat.mtimeMs ||
+          other.size !== stat.size
+        ) {
+          return false;
+        }
+      }
+      return true;
+    };
 
     SessionManager.list = async function (
       cwd: string,
       sessionDir?: string,
       onProgress?: any,
     ) {
-      // Fast path: check if all files in dir are cached and unchanged
       const dir = sessionDir ? sessionDir : getDefaultSessionDir(cwd);
+      const cacheKey = `${cwd}\0${dir}`;
+      const pending = sessionListInFlight.get(cacheKey);
+      if (pending) return pending;
 
-      try {
-        const dirEntries = await readdir(dir);
-        const files = dirEntries
-          .filter((f: string) => f.endsWith(".jsonl"))
-          .map((f: string) => join(dir, f));
+      const load = (async () => {
+        const filesBefore = await readSessionFileState(dir);
+        const snapshot = sessionListSnapshots.get(cacheKey);
+        if (snapshot && sameSessionFileState(snapshot.files, filesBefore)) {
+          onProgress?.(filesBefore?.size ?? 0, filesBefore?.size ?? 0);
+          return bumpModified(snapshot.sessions);
+        }
 
-        let allCached = true;
-        const cachedSessions: any[] = [];
-
-        for (const filePath of files) {
+        const sessions: any[] = await origList(cwd, sessionDir, onProgress);
+        const bumped = bumpModified(sessions);
+        for (const s of bumped) {
+          if (!s?.path) continue;
           try {
-            const st = statSync(filePath);
-            const cached = sessionInfoCache.get(filePath);
-            if (
-              cached &&
-              cached.mtimeMs === st.mtimeMs &&
-              cached.size === st.size
-            ) {
-              cachedSessions.push(cached.info);
-            } else {
-              allCached = false;
-              break;
-            }
+            const st = statSync(s.path);
+            sessionInfoCache.set(s.path, {
+              mtimeMs: st.mtimeMs,
+              size: st.size,
+              info: s,
+            });
           } catch {
-            allCached = false;
-            break;
+            // ignore
           }
         }
 
-        if (allCached && files.length > 0) {
-          onProgress?.(files.length, files.length);
-          return bumpModified(cachedSessions);
-        }
-      } catch {
-        // fall through to full load
-      }
-
-      const sessions: any[] = await origList(cwd, sessionDir, onProgress);
-      const bumped = bumpModified(sessions);
-      for (const s of bumped) {
-        if (!s?.path) continue;
-        try {
-          const st = statSync(s.path);
-          sessionInfoCache.set(s.path, {
-            mtimeMs: st.mtimeMs,
-            size: st.size,
-            info: s,
+        const filesAfter = await readSessionFileState(dir);
+        if (sameSessionFileState(filesBefore, filesAfter) && filesAfter) {
+          sessionListSnapshots.set(cacheKey, {
+            files: filesAfter,
+            sessions: bumped,
           });
-        } catch {
-          // ignore
         }
-      }
-      return bumped;
+        return bumped;
+      })().finally(() => {
+        sessionListInFlight.delete(cacheKey);
+      });
+      sessionListInFlight.set(cacheKey, load);
+      return load;
     };
 
     const origListAll = SessionManager.listAll;

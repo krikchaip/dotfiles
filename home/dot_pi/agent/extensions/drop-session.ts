@@ -41,6 +41,24 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("drop", {
     description:
       "Drop current session and start a new one; -q closes tmux pane",
+    getArgumentCompletions: (prefix) => {
+      const value = prefix.trim();
+      if (/\s/.test(value)) return null;
+
+      const items = [
+        {
+          value: "-q",
+          label: "-q",
+          description: "Drop session and close current tmux pane",
+        },
+        {
+          value: "--quit",
+          label: "--quit",
+          description: "Drop session and close current tmux pane",
+        },
+      ].filter((item) => item.value.startsWith(value));
+      return items.length > 0 ? items : null;
+    },
     handler: async (args, ctx) => {
       const options = parseArgs(args);
       if (!options) {

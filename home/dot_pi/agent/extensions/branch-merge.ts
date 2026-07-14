@@ -78,6 +78,7 @@ import {
   type ExtensionAPI,
   type ExtensionCommandContext,
   type ExtensionContext,
+  type SessionInfo,
   type Theme,
 } from "@earendil-works/pi-coding-agent";
 import { completeSimple } from "@earendil-works/pi-ai/compat";
@@ -120,6 +121,95 @@ const SUMMARY_LABEL_MAX_TOKENS = 4096;
 const UUID_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const UUID_FIRST_SEGMENT_RE = /^[0-9a-fA-F]{8}$/;
+
+/** Session-ID argument completion state, kept local to this extension. */
+type SessionAutocompleteContext = Pick<
+  ExtensionContext,
+  "cwd" | "sessionManager"
+>;
+type SessionAutocompleteCache = {
+  sessions?: SessionInfo[];
+  updatedAt?: number;
+  pending?: Promise<SessionInfo[]>;
+};
+
+const CURRENT_PROJECT_SESSION_CACHE_MS = 10_000;
+const MAX_SESSION_SUGGESTIONS = 50;
+
+function readCachedSessions(
+  cache: SessionAutocompleteCache,
+  maxAge: number,
+  load: () => Promise<SessionInfo[]>,
+): Promise<SessionInfo[]> {
+  const refresh = () => {
+    cache.pending = load()
+      .then((sessions) => {
+        cache.sessions = sessions;
+        cache.updatedAt = Date.now();
+        return sessions;
+      })
+      .finally(() => {
+        cache.pending = undefined;
+      });
+    return cache.pending;
+  };
+
+  if (cache.sessions) {
+    if (Date.now() - (cache.updatedAt ?? 0) >= maxAge && !cache.pending) {
+      void refresh().catch(() => {});
+    }
+    return Promise.resolve(cache.sessions);
+  }
+  return cache.pending ?? refresh();
+}
+
+function createSessionArgumentCompletions(
+  getContext: () => SessionAutocompleteContext | undefined,
+) {
+  const currentProjectCaches = new Map<string, SessionAutocompleteCache>();
+
+  return async (prefix: string) => {
+    const trimmed = prefix.trim();
+    if (/\s/.test(trimmed)) return null;
+
+    const ctx = getContext();
+    if (!ctx) return null;
+
+    try {
+      const sessionDir = ctx.sessionManager.getSessionDir();
+      const cacheKey = `${ctx.cwd}\0${sessionDir}`;
+      let currentProjectCache = currentProjectCaches.get(cacheKey);
+      if (!currentProjectCache) {
+        currentProjectCache = {};
+        currentProjectCaches.set(cacheKey, currentProjectCache);
+      }
+      const current = await readCachedSessions(
+        currentProjectCache,
+        CURRENT_PROJECT_SESSION_CACHE_MS,
+        () => SessionManager.list(ctx.cwd, sessionDir),
+      );
+      const currentId = ctx.sessionManager.getSessionId();
+      const matches = (session: SessionInfo) =>
+        session.id !== currentId &&
+        session.id.toLowerCase().startsWith(trimmed.toLowerCase());
+      const toItem = (session: SessionInfo) => ({
+        value: session.id,
+        label: session.id.slice(0, 8),
+        description: session.name?.trim() || "[Untitled]",
+      });
+      const sortByModified = (a: SessionInfo, b: SessionInfo) =>
+        b.modified.getTime() - a.modified.getTime();
+      const items = current
+        .filter(matches)
+        .sort(sortByModified)
+        .slice(0, MAX_SESSION_SUGGESTIONS)
+        .map(toItem);
+      return items.length > 0 ? items : null;
+    } catch {
+      return null;
+    }
+  };
+}
 
 const POST_MERGE_BASE_ITEMS: readonly PostMergeItem[] = [
   { value: "switch", label: "Switch to target" },
@@ -1613,6 +1703,16 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
 }
 
 export default function (pi: ExtensionAPI) {
+  let autocompleteContext: ExtensionContext | undefined;
+  const sessionArgumentCompletions = createSessionArgumentCompletions(
+    () => autocompleteContext,
+  );
+
+  pi.on("session_start", (_event, ctx) => {
+    autocompleteContext = ctx;
+    void sessionArgumentCompletions("");
+  });
+
   pi.on("session_tree", async (event) => {
     if (!event.newLeafId) return;
 
@@ -1626,6 +1726,24 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("branch", {
     description:
       "Clone current branch ([--vsp|--sp] splits a tmux pane); optional prompt",
+    getArgumentCompletions: (prefix) => {
+      const value = prefix.trim();
+      if (/\s/.test(value)) return null;
+
+      const items = [
+        {
+          value: "--sp",
+          label: "--sp",
+          description: "Split tmux pane top-to-bottom",
+        },
+        {
+          value: "--vsp",
+          label: "--vsp",
+          description: "Split tmux pane side-by-side",
+        },
+      ].filter((item) => item.value.startsWith(value));
+      return items.length > 0 ? items : null;
+    },
     handler: async (args, ctx) => {
       try {
         const parsed = parseBranchArgs(args);
@@ -1690,6 +1808,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.registerCommand("merge", {
     description: "Summarize current session into parent or target session",
+    getArgumentCompletions: sessionArgumentCompletions,
     handler: async (args, ctx) => {
       try {
         await merge(args, ctx);
@@ -1709,6 +1828,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("pull", {
     description:
       "Pull summary from source session into current session (reverse of /merge)",
+    getArgumentCompletions: sessionArgumentCompletions,
     handler: async (args, ctx) => {
       try {
         await pull(args, ctx);

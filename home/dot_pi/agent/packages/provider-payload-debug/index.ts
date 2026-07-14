@@ -367,6 +367,29 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("provider-payload-debug", {
     description:
       "Capture final provider payloads to ~/.pi/agent/debug/provider-payloads",
+    getArgumentCompletions: (prefix) => {
+      const value = prefix.trim();
+      if (/\s/.test(value)) return null;
+
+      const items = [
+        {
+          value: "on",
+          label: "on",
+          description: "Capture every provider request",
+        },
+        {
+          value: "off",
+          label: "off",
+          description: "Stop provider payload capture",
+        },
+        {
+          value: "once",
+          label: "once",
+          description: "Capture next provider request only",
+        },
+      ].filter((item) => item.value.startsWith(value.toLowerCase()));
+      return items.length > 0 ? items : null;
+    },
     handler: async (args, ctx) => {
       const prompt = args.trim();
       const action = prompt.toLowerCase();

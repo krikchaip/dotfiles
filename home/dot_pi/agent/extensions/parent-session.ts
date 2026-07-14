@@ -14,6 +14,7 @@ import { resolve } from "node:path";
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
+  ExtensionContext,
   SessionHeader,
   SessionInfo,
 } from "@earendil-works/pi-coding-agent";
@@ -25,6 +26,95 @@ type ParentCommandResult = SessionInfo | { error: string };
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UUID_FIRST_SEGMENT_RE = /^[0-9a-f]{8}$/i;
+
+/** Session-ID argument completion state, kept local to this extension. */
+type SessionAutocompleteContext = Pick<
+  ExtensionContext,
+  "cwd" | "sessionManager"
+>;
+type SessionAutocompleteCache = {
+  sessions?: SessionInfo[];
+  updatedAt?: number;
+  pending?: Promise<SessionInfo[]>;
+};
+
+const CURRENT_PROJECT_SESSION_CACHE_MS = 10_000;
+const MAX_SESSION_SUGGESTIONS = 50;
+
+function readCachedSessions(
+  cache: SessionAutocompleteCache,
+  maxAge: number,
+  load: () => Promise<SessionInfo[]>,
+): Promise<SessionInfo[]> {
+  const refresh = () => {
+    cache.pending = load()
+      .then((sessions) => {
+        cache.sessions = sessions;
+        cache.updatedAt = Date.now();
+        return sessions;
+      })
+      .finally(() => {
+        cache.pending = undefined;
+      });
+    return cache.pending;
+  };
+
+  if (cache.sessions) {
+    if (Date.now() - (cache.updatedAt ?? 0) >= maxAge && !cache.pending) {
+      void refresh().catch(() => {});
+    }
+    return Promise.resolve(cache.sessions);
+  }
+  return cache.pending ?? refresh();
+}
+
+function createSessionArgumentCompletions(
+  getContext: () => SessionAutocompleteContext | undefined,
+) {
+  const currentProjectCaches = new Map<string, SessionAutocompleteCache>();
+
+  return async (prefix: string) => {
+    const trimmed = prefix.trim();
+    if (/\s/.test(trimmed)) return null;
+
+    const ctx = getContext();
+    if (!ctx) return null;
+
+    try {
+      const sessionDir = ctx.sessionManager.getSessionDir();
+      const cacheKey = `${ctx.cwd}\0${sessionDir}`;
+      let currentProjectCache = currentProjectCaches.get(cacheKey);
+      if (!currentProjectCache) {
+        currentProjectCache = {};
+        currentProjectCaches.set(cacheKey, currentProjectCache);
+      }
+      const current = await readCachedSessions(
+        currentProjectCache,
+        CURRENT_PROJECT_SESSION_CACHE_MS,
+        () => SessionManager.list(ctx.cwd, sessionDir),
+      );
+      const currentId = ctx.sessionManager.getSessionId();
+      const matches = (session: SessionInfo) =>
+        session.id !== currentId &&
+        session.id.toLowerCase().startsWith(trimmed.toLowerCase());
+      const toItem = (session: SessionInfo) => ({
+        value: session.id,
+        label: session.id.slice(0, 8),
+        description: session.name?.trim() || "[Untitled]",
+      });
+      const sortByModified = (a: SessionInfo, b: SessionInfo) =>
+        b.modified.getTime() - a.modified.getTime();
+      const items = current
+        .filter(matches)
+        .sort(sortByModified)
+        .slice(0, MAX_SESSION_SUGGESTIONS)
+        .map(toItem);
+      return items.length > 0 ? items : null;
+    } catch {
+      return null;
+    }
+  };
+}
 
 function isSupportedSessionId(value: string) {
   return UUID_RE.test(value) || UUID_FIRST_SEGMENT_RE.test(value);
@@ -159,8 +249,34 @@ async function wouldCreateCycle(targetPath: string, currentPath: string) {
 }
 
 export default function (pi: ExtensionAPI) {
+  let autocompleteContext: ExtensionContext | undefined;
+  const sessionArgumentCompletions = createSessionArgumentCompletions(
+    () => autocompleteContext,
+  );
+
+  pi.on("session_start", (_event, ctx) => {
+    autocompleteContext = ctx;
+    void sessionArgumentCompletions("");
+  });
+
   pi.registerCommand("parent", {
     description: "Jump to, set, or remove the current session parent link",
+    getArgumentCompletions: async (prefix) => {
+      const value = prefix.trim();
+      if (/\s/.test(value)) return null;
+
+      const removeItem = {
+        value: "--rm",
+        label: "--rm",
+        description: "Remove current parent link",
+      };
+      const sessions = await sessionArgumentCompletions(prefix);
+      const items = [
+        ...("--rm".startsWith(value) ? [removeItem] : []),
+        ...(sessions ?? []),
+      ];
+      return items.length > 0 ? items : null;
+    },
     handler: async (rawArgs, ctx) => {
       const args = rawArgs.trim();
       const currentPath = ctx.sessionManager.getSessionFile();

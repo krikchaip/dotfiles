@@ -470,6 +470,22 @@ export default function autoRenameExtension(pi: ExtensionAPI) {
   pi.registerCommand("rename", {
     description: "Generate a semantic session name: session or recent [N]",
     getArgumentCompletions: (prefix) => {
+      const recentCount = prefix.match(/^recent\s+(\d*)$/);
+      if (recentCount) {
+        const items = [2, 4, 6, 10, 16].map((count) => ({
+          value: `recent ${count}`,
+          label: String(count),
+          description: `Use latest ${count} messages`,
+        }));
+        const value = recentCount[1];
+        const matches = items.filter((item) =>
+          item.label.startsWith(value),
+        );
+        return matches.length > 0 ? matches : null;
+      }
+
+      const value = prefix.trim();
+      if (/\s/.test(value)) return null;
       const items = [
         {
           value: "session",
@@ -481,7 +497,7 @@ export default function autoRenameExtension(pi: ExtensionAPI) {
           label: "recent",
           description: "Use latest [N] messages (default to 10).",
         },
-      ].filter((item) => item.value.startsWith(prefix.trim()));
+      ].filter((item) => item.value.startsWith(value));
       return items.length > 0 ? items : null;
     },
     handler: async (args: string, ctx: ExtensionCommandContext) => {
