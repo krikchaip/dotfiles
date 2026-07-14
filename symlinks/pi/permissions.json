@@ -41,8 +41,8 @@
 
       "*curl *": "ask",
 
-      "*git* add *": "deny",
-      "*git* commit *": "deny",
+      "*git* add *": "ask",
+      "*git* commit *": "ask",
       "*git* merge *": "ask",
       "*git* push *": "deny",
       "*git* reset *": "ask",
