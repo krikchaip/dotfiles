@@ -1,11 +1,11 @@
 /**
  * Per-message thinking summaries for Pi.
  *
- * When Pi hides thinking blocks, temporarily replace the built-in hidden label
- * with a summary from the current message. Expanded thinking remains unchanged.
+ * When Pi hides thinking blocks, render one summary for each thinking block.
+ * Expanded thinking remains unchanged.
  */
 
-import type { AssistantMessage, ThinkingContent } from "@earendil-works/pi-ai";
+import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { existsSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -17,14 +17,36 @@ const PREFIX_PATTERN = /^(?:thinking:\s*)+/i;
 const LEADING_ANSI_FRAGMENT_PATTERN = /^(?:\s*;?\d{1,3}(?:;\d{1,3})*m)+\s*/;
 
 type ThemeLike = {
-  fg(color: "accent" | "thinkingText", text: string): string;
+  fg(color: "accent" | "error" | "thinkingText", text: string): string;
   bold(text: string): string;
   italic(text: string): string;
 };
 
+type ContentContainer = {
+  clear(): void;
+  addChild(child: unknown): void;
+};
+
+type TuiModule = {
+  Markdown: new (
+    text: string,
+    paddingX?: number,
+    paddingY?: number,
+    markdownTheme?: unknown,
+    options?: { color?: (text: string) => string; italic?: boolean },
+  ) => unknown;
+  Spacer: new (height: number) => unknown;
+  Text: new (text: string, paddingX?: number, paddingY?: number) => unknown;
+};
+
 type AssistantMessageComponentInstance = {
+  contentContainer: ContentContainer;
+  hasToolCalls: boolean;
   hideThinkingBlock: boolean;
   hiddenThinkingLabel: string;
+  lastMessage?: AssistantMessage;
+  markdownTheme: unknown;
+  outputPad: number;
   updateContent(message: AssistantMessage): void;
 };
 
@@ -41,18 +63,6 @@ type ThemeModule = {
 };
 
 let patched = false;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isThinkingBlock(value: unknown): value is ThinkingContent {
-  return (
-    isRecord(value) &&
-    value.type === "thinking" &&
-    typeof value.thinking === "string"
-  );
-}
 
 function stripPresentation(text: string): string {
   let current = text.replace(ANSI_PATTERN, "");
@@ -107,19 +117,6 @@ function formatThinkingSummary(theme: ThemeLike, summary: string): string {
   return `${label} ${body}`;
 }
 
-function getMessageThinkingSummary(
-  content: AssistantMessage["content"],
-): string | undefined {
-  for (const block of content) {
-    if (!isThinkingBlock(block)) continue;
-
-    const summary = getThinkingSummary(block.thinking);
-    if (summary) return summary;
-  }
-
-  return undefined;
-}
-
 function getPiDistDir(): string {
   const argPath = process.argv[1];
   if (!argPath) throw new Error("Cannot locate Pi entrypoint");
@@ -151,10 +148,14 @@ async function patchAssistantMessageComponent(): Promise<void> {
   const themeUrl = pathToFileURL(
     join(distDir, "modes/interactive/theme/theme.js"),
   ).href;
+  const tuiUrl = pathToFileURL(
+    join(distDir, "../node_modules/@earendil-works/pi-tui/dist/index.js"),
+  ).href;
 
-  const [componentModule, themeModule] = await Promise.all([
+  const [componentModule, themeModule, tuiModule] = await Promise.all([
     import(componentUrl) as Promise<AssistantMessageModule>,
     import(themeUrl) as Promise<ThemeModule>,
+    import(tuiUrl) as Promise<TuiModule>,
   ]);
 
   const proto = componentModule.AssistantMessageComponent?.prototype;
@@ -168,24 +169,103 @@ async function patchAssistantMessageComponent(): Promise<void> {
     this: AssistantMessageComponentInstance,
     message: AssistantMessage,
   ): void {
-    if (this.hideThinkingBlock) {
-      const summary = getMessageThinkingSummary(message.content);
-      if (summary) {
-        const previousLabel = this.hiddenThinkingLabel;
-        this.hiddenThinkingLabel = formatThinkingSummary(
-          themeModule.theme,
-          summary,
-        );
+    if (!this.hideThinkingBlock) {
+      return originalUpdateContent.call(this, message);
+    }
 
-        try {
-          return originalUpdateContent.call(this, message);
-        } finally {
-          this.hiddenThinkingLabel = previousLabel;
-        }
+    this.lastMessage = message;
+    this.contentContainer.clear();
+
+    const hasVisibleContent = message.content.some(
+      (content) =>
+        (content.type === "text" && content.text.trim()) ||
+        (content.type === "thinking" && content.thinking.trim()),
+    );
+    if (hasVisibleContent) {
+      this.contentContainer.addChild(new tuiModule.Spacer(1));
+    }
+
+    for (let i = 0; i < message.content.length; i++) {
+      const content = message.content[i];
+      if (content.type === "text" && content.text.trim()) {
+        this.contentContainer.addChild(
+          new tuiModule.Markdown(
+            content.text.trim(),
+            this.outputPad,
+            0,
+            this.markdownTheme,
+          ),
+        );
+        continue;
+      }
+
+      if (content.type !== "thinking" || !content.thinking.trim()) continue;
+
+      const hasVisibleContentAfter = message.content
+        .slice(i + 1)
+        .some(
+          (next) =>
+            (next.type === "text" && next.text.trim()) ||
+            (next.type === "thinking" && next.thinking.trim()),
+        );
+      const summary = getThinkingSummary(content.thinking);
+      const label = summary
+        ? formatThinkingSummary(themeModule.theme, summary)
+        : this.hiddenThinkingLabel;
+      this.contentContainer.addChild(
+        new tuiModule.Text(
+          themeModule.theme.italic(themeModule.theme.fg("thinkingText", label)),
+          this.outputPad,
+          0,
+        ),
+      );
+      if (hasVisibleContentAfter) {
+        this.contentContainer.addChild(new tuiModule.Spacer(1));
       }
     }
 
-    return originalUpdateContent.call(this, message);
+    const hasToolCalls = message.content.some(
+      (content) => content.type === "toolCall",
+    );
+    this.hasToolCalls = hasToolCalls;
+    if (message.stopReason === "length") {
+      this.contentContainer.addChild(new tuiModule.Spacer(1));
+      this.contentContainer.addChild(
+        new tuiModule.Text(
+          themeModule.theme.fg(
+            "error",
+            "Error: Model stopped because it reached the maximum output token limit. The response may be incomplete.",
+          ),
+          this.outputPad,
+          0,
+        ),
+      );
+    } else if (!hasToolCalls && message.stopReason === "aborted") {
+      const abortMessage =
+        message.errorMessage && message.errorMessage !== "Request was aborted"
+          ? message.errorMessage
+          : "Operation aborted";
+      this.contentContainer.addChild(new tuiModule.Spacer(1));
+      this.contentContainer.addChild(
+        new tuiModule.Text(
+          themeModule.theme.fg("error", abortMessage),
+          this.outputPad,
+          0,
+        ),
+      );
+    } else if (!hasToolCalls && message.stopReason === "error") {
+      this.contentContainer.addChild(new tuiModule.Spacer(1));
+      this.contentContainer.addChild(
+        new tuiModule.Text(
+          themeModule.theme.fg(
+            "error",
+            `Error: ${message.errorMessage || "Unknown error"}`,
+          ),
+          this.outputPad,
+          0,
+        ),
+      );
+    }
   };
 
   patched = true;
