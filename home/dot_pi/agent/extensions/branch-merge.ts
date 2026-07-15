@@ -92,9 +92,10 @@ import {
   type TUI,
 } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
+import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 type PostMergeAction =
   | "switch"
@@ -115,6 +116,10 @@ const MERGE_SPINNER_WIDGET_KEY = `${EXTENSION_NAME}:summary-spinner`;
 const MERGE_WIDGET_PLACEMENT = "aboveEditor";
 const MERGE_SPINNER_FRAMES = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
 const MERGE_SPINNER_INTERVAL_MS = 250;
+const INTERNAL_MERGED_SESSION_REFRESH_COMMAND = "__branch-merge-refresh";
+const MERGED_SESSION_REFRESH_DEBOUNCE_MS = 100;
+const MERGED_SESSION_REFRESH_RETRY_MS = 250;
+const MERGED_SESSION_PENDING_RETRY_MS = 1_000;
 const SUMMARY_LABEL_MAX_LENGTH = 60;
 const SUMMARY_LABEL_WORD_BOUNDARY_MIN_INDEX = 20;
 const SUMMARY_LABEL_MAX_TOKENS = 4096;
@@ -1702,8 +1707,160 @@ async function merge(args: string, ctx: ExtensionCommandContext) {
   if (result.cancelled) notify(ctx, "Switch cancelled", "warning");
 }
 
+function isExternalMergeSummary(entry: BranchEntry, knownIds: Set<string>) {
+  if (entry.type !== "branch_summary" || knownIds.has(entry.id)) return false;
+  if (!isRecord(entry.details)) return false;
+
+  return (
+    typeof entry.details.sourceSessionId === "string" &&
+    Array.isArray(entry.details[MERGE_WATERMARK_FIELD])
+  );
+}
+
+function currentSessionHasExternalMerge(ctx: ExtensionContext) {
+  const sessionFile = ctx.sessionManager.getSessionFile();
+  if (!sessionFile) return false;
+
+  const knownIds = new Set(
+    ctx.sessionManager.getEntries().map((entry) => entry.id),
+  );
+  return SessionManager.open(sessionFile)
+    .getBranch()
+    .some((entry) => isExternalMergeSummary(entry, knownIds));
+}
+
+function watchForExternalMerge(
+  ctx: ExtensionContext,
+  requestRefresh: () => Promise<boolean>,
+) {
+  const sessionFile = ctx.sessionManager.getSessionFile();
+  if (ctx.mode !== "tui" || !sessionFile)
+    return { stop: () => {}, onAgentSettled: () => {} };
+
+  let closed = false;
+  let refreshRequested = false;
+  let diskDirty = true;
+  let mergePending = false;
+  let diskRetryDelay = MERGED_SESSION_REFRESH_RETRY_MS;
+  let diskTimer: ReturnType<typeof setTimeout> | undefined;
+  let pendingTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const agentCanYield = () => ctx.isIdle() && !ctx.hasPendingMessages();
+
+  const scheduleDiskCheck = (delay: number) => {
+    if (closed || refreshRequested || mergePending || !diskDirty) return;
+    if (diskTimer) clearTimeout(diskTimer);
+    diskTimer = setTimeout(checkDisk, delay);
+    diskTimer.unref?.();
+  };
+
+  const schedulePendingCheck = () => {
+    if (closed || refreshRequested || !mergePending || pendingTimer) return;
+    pendingTimer = setTimeout(() => {
+      pendingTimer = undefined;
+      checkPending();
+    }, MERGED_SESSION_PENDING_RETRY_MS);
+    pendingTimer.unref?.();
+  };
+
+  const checkPending = () => {
+    if (closed || refreshRequested || !mergePending) return;
+    if (!agentCanYield() || ctx.ui.getEditorText().length > 0) {
+      schedulePendingCheck();
+      return;
+    }
+
+    refreshRequested = true;
+    void requestRefresh()
+      .then((submitted) => {
+        if (closed || submitted) return;
+        refreshRequested = false;
+        schedulePendingCheck();
+      })
+      .catch(() => {
+        if (closed) return;
+        refreshRequested = false;
+        schedulePendingCheck();
+      });
+  };
+
+  const checkDisk = () => {
+    diskTimer = undefined;
+    if (closed || refreshRequested || mergePending || !diskDirty) return;
+
+    // Target writes while streaming are frequent. Defer all disk parsing until
+    // the agent settles; `agent_settled` invokes this check immediately.
+    if (!agentCanYield()) return;
+
+    try {
+      if (!currentSessionHasExternalMerge(ctx)) {
+        diskDirty = false;
+        diskRetryDelay = MERGED_SESSION_REFRESH_RETRY_MS;
+        return;
+      }
+    } catch {
+      scheduleDiskCheck(diskRetryDelay);
+      diskRetryDelay = Math.min(diskRetryDelay * 2, 5_000);
+      return;
+    }
+
+    diskDirty = false;
+    mergePending = true;
+    checkPending();
+  };
+
+  const sessionDirectory = dirname(sessionFile);
+  const sessionFilename = basename(sessionFile);
+  let watcher: ReturnType<typeof watch>;
+  try {
+    // Fresh sessions receive a planned path before their first assistant entry
+    // creates the file. Watch its existing directory so that first write, plus
+    // atomic replacements, cannot leave this runtime without a watcher.
+    watcher = watch(sessionDirectory, { persistent: false }, (_event, name) => {
+      if (name && name.toString() !== sessionFilename) return;
+      diskDirty = true;
+      scheduleDiskCheck(MERGED_SESSION_REFRESH_DEBOUNCE_MS);
+    });
+  } catch {
+    return { stop: () => {}, onAgentSettled: () => {} };
+  }
+
+  watcher.on("error", () => {
+    watcher.close();
+    closed = true;
+    if (diskTimer) clearTimeout(diskTimer);
+    if (pendingTimer) clearTimeout(pendingTimer);
+  });
+
+  // `/reload` does not replace SessionManager. Scan once for an earlier merge.
+  scheduleDiskCheck(MERGED_SESSION_REFRESH_DEBOUNCE_MS);
+
+  return {
+    stop: () => {
+      closed = true;
+      watcher.close();
+      if (diskTimer) clearTimeout(diskTimer);
+      if (pendingTimer) clearTimeout(pendingTimer);
+    },
+    onAgentSettled: () => {
+      if (closed || refreshRequested) return;
+      if (mergePending) {
+        if (pendingTimer) clearTimeout(pendingTimer);
+        pendingTimer = undefined;
+        checkPending();
+      } else {
+        scheduleDiskCheck(0);
+      }
+    },
+  };
+}
+
 export default function (pi: ExtensionAPI) {
   let autocompleteContext: ExtensionContext | undefined;
+  let externalMergeWatcher = {
+    stop: () => {},
+    onAgentSettled: () => {},
+  };
   const sessionArgumentCompletions = createSessionArgumentCompletions(
     () => autocompleteContext,
   );
@@ -1711,6 +1868,38 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
     autocompleteContext = ctx;
     void sessionArgumentCompletions("");
+
+    externalMergeWatcher.stop();
+    externalMergeWatcher = watchForExternalMerge(
+      ctx,
+      () =>
+        new Promise((resolve) => {
+          // Pi permits session replacement only from command handlers. Re-check
+          // after `/reload` yields input ownership; never overwrite a new draft.
+          const submitTimer = setTimeout(() => {
+            if (
+              !ctx.isIdle() ||
+              ctx.hasPendingMessages() ||
+              ctx.ui.getEditorText().length > 0
+            ) {
+              resolve(false);
+              return;
+            }
+            ctx.ui.setEditorText(`/${INTERNAL_MERGED_SESSION_REFRESH_COMMAND}`);
+            process.stdin.emit("data", Buffer.from("\r"));
+            resolve(true);
+          }, 0);
+          submitTimer.unref?.();
+        }),
+    );
+  });
+
+  pi.on("agent_settled", () => {
+    externalMergeWatcher.onAgentSettled();
+  });
+
+  pi.on("session_shutdown", () => {
+    externalMergeWatcher.stop();
   });
 
   pi.on("session_tree", async (event) => {
@@ -1819,6 +2008,31 @@ export default function (pi: ExtensionAPI) {
           message === "Merge cancelled"
             ? "Merge cancelled; target session unchanged"
             : message,
+          error instanceof UserVisibleWarning ? "warning" : "error",
+        );
+      }
+    },
+  });
+
+  pi.registerCommand(INTERNAL_MERGED_SESSION_REFRESH_COMMAND, {
+    handler: async (_args, ctx) => {
+      try {
+        assertCommandIdle(ctx, "automatic session refresh");
+        const sessionFile = ctx.sessionManager.getSessionFile();
+        if (!sessionFile)
+          throw new Error("Cannot refresh an in-memory session");
+
+        const result = await ctx.switchSession(sessionFile, {
+          withSession: async (newCtx) => {
+            notify(newCtx, "Merged summary loaded", "info");
+          },
+        });
+        if (result.cancelled)
+          notify(ctx, "Automatic session refresh cancelled", "warning");
+      } catch (error) {
+        notify(
+          ctx,
+          error instanceof Error ? error.message : String(error),
           error instanceof UserVisibleWarning ? "warning" : "error",
         );
       }
