@@ -34,7 +34,7 @@ const BULK_DELETE_ACTIONS = [
 
 type EditorInstance = any;
 type Suggestion = { value?: unknown };
-type Suggestions = { items?: Suggestion[] };
+type Suggestions = { items?: Suggestion[]; prefix?: unknown };
 type InputHandler = (data: string) => unknown;
 type ApplySuggestions = (suggestions: Suggestions, state: unknown) => unknown;
 
@@ -162,6 +162,18 @@ function isOpeningArgumentContinuation(editor: EditorInstance) {
   );
 }
 
+function isCurrentSlashArgumentSuggestions(
+  editor: EditorInstance,
+  suggestions: Suggestions,
+) {
+  const currentArguments = slashArguments(textBeforeCursor(editor));
+  return (
+    Boolean(currentArguments) &&
+    typeof suggestions.prefix === "string" &&
+    suggestions.prefix.trimEnd() === currentArguments
+  );
+}
+
 function hasTerminalExactSuggestion(
   editor: EditorInstance,
   suggestions: Suggestions,
@@ -269,8 +281,11 @@ function patchEditor() {
     state: unknown,
   ) {
     if (hasRememberedTerminalArgument(this)) {
-      this.cancelAutocomplete();
-      return;
+      if (isCurrentSlashArgumentSuggestions(this, suggestions)) {
+        this.cancelAutocomplete();
+        return;
+      }
+      clearTerminalArgument(this);
     }
     if (hasTerminalExactSuggestion(this, suggestions)) {
       rememberTerminalArgument(this);
