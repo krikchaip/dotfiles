@@ -289,6 +289,17 @@ function skillTokenRanges(
   return ranges;
 }
 
+function staticThemeColor(color: (text: string) => string) {
+  const marker = "\u{10FFFF}";
+  const rendered = color(marker);
+  const markerIndex = rendered.indexOf(marker);
+  if (markerIndex < 0) return (text: string) => text;
+
+  const prefix = rendered.slice(0, markerIndex);
+  const suffix = rendered.slice(markerIndex + marker.length);
+  return (text: string) => prefix + text + suffix;
+}
+
 function highlightEditorLine(
   line: string,
   commandToken: string | undefined,
@@ -414,7 +425,9 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     refreshCaches();
-    const color = (text: string) => ctx.ui.theme.fg(HIGHLIGHT_COLOR, text);
+    const color = staticThemeColor((text) =>
+      ctx.ui.theme.fg(HIGHLIGHT_COLOR, text),
+    );
 
     try {
       patchEditorRender(

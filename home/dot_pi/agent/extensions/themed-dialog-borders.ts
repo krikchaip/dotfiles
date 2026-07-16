@@ -21,6 +21,17 @@ function isDefaultBorderColor(color: unknown) {
   return String(color).includes('theme.fg("border"');
 }
 
+function staticThemeColor(color: (text: string) => string) {
+  const marker = "\u{10FFFF}";
+  const rendered = color(marker);
+  const markerIndex = rendered.indexOf(marker);
+  if (markerIndex < 0) return (text: string) => text;
+
+  const prefix = rendered.slice(0, markerIndex);
+  const suffix = rendered.slice(markerIndex + marker.length);
+  return (text: string) => prefix + text + suffix;
+}
+
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
     const prototype =
@@ -29,7 +40,7 @@ export default function (pi: ExtensionAPI) {
         render(width: number): string[];
       };
 
-    const accent = (text: string) => ctx.ui.theme.fg("accent", text);
+    const accent = staticThemeColor((text) => ctx.ui.theme.fg("accent", text));
     const state = prototype[PATCH_STATE];
     if (state) {
       state.accent = accent;

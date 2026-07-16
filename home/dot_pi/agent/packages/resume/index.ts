@@ -8,7 +8,10 @@
 import { realpathSync, watch, type FSWatcher } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { patchDeleteActiveSession } from "./delete-active-session";
 import { patchHighlightCurrentSession } from "./highlight-current-session";
 import {
@@ -153,11 +156,17 @@ export default function (pi: ExtensionAPI) {
   installOptimizeStartup(req, distPath, sessionInfoCache);
 
   let stopWatchingSessionDir: (() => void) | undefined;
+  let activeSessionManager: ExtensionContext["sessionManager"] | undefined;
 
   pi.on("session_start", (_event, ctx) => {
-    const warm = () => scheduleResumeWarm(ctx.sessionManager, false);
+    activeSessionManager = ctx.sessionManager;
+    const warm = () => {
+      if (activeSessionManager) {
+        scheduleResumeWarm(activeSessionManager, false);
+      }
+    };
     stopWatchingSessionDir?.();
-    stopWatchingSessionDir = watchSessionDir(ctx.sessionManager);
+    stopWatchingSessionDir = watchSessionDir(activeSessionManager);
     warm();
     ctx.ui.addAutocompleteProvider((current: any) => ({
       triggerCharacters: [
@@ -209,6 +218,7 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_shutdown", () => {
     stopWatchingSessionDir?.();
     stopWatchingSessionDir = undefined;
+    activeSessionManager = undefined;
   });
 
   const previewDeps = loadPreviewDeps(req, distPath);

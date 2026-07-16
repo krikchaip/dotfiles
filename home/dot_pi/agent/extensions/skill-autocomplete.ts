@@ -93,7 +93,7 @@ function filterSkills(
 
 function createSkillAutocompleteProvider(
   current: AutocompleteProvider,
-  pi: ExtensionAPI,
+  getSkillCommands: () => SkillCommand[],
 ): AutocompleteProvider {
   return {
     async getSuggestions(
@@ -107,7 +107,7 @@ function createSkillAutocompleteProvider(
         return current.getSuggestions(lines, cursorLine, cursorCol, options);
       }
 
-      const items = filterSkills(skillCommands(pi), context.query);
+      const items = filterSkills(getSkillCommands(), context.query);
       if (items.length === 0) return null;
 
       return {
@@ -182,6 +182,15 @@ function patchEditorInlineSlashTrigger() {
 }
 
 export default function (pi: ExtensionAPI) {
+  let cachedSkillCommands: SkillCommand[] = [];
+  const refreshSkillCommands = () => {
+    try {
+      cachedSkillCommands = skillCommands(pi);
+    } catch (error) {
+      console.error("skill-autocomplete: failed to refresh skills", error);
+    }
+  };
+
   try {
     patchEditorInlineSlashTrigger();
   } catch (error) {
@@ -189,8 +198,11 @@ export default function (pi: ExtensionAPI) {
   }
 
   pi.on("session_start", (_event, ctx) => {
+    refreshSkillCommands();
     ctx.ui.addAutocompleteProvider((current) =>
-      createSkillAutocompleteProvider(current, pi),
+      createSkillAutocompleteProvider(current, () => cachedSkillCommands),
     );
   });
+
+  pi.on("resources_discover", refreshSkillCommands);
 }

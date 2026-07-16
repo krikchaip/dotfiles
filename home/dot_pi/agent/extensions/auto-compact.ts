@@ -369,8 +369,25 @@ function builtInThresholdText(
 }
 
 export default function (pi: ExtensionAPI) {
+  let sessionGeneration = 0;
+
+  const deferForActiveSession = (
+    ctx: ExtensionContext,
+    task: (ctx: ExtensionContext) => Promise<void>,
+  ) => {
+    const generation = sessionGeneration;
+    setTimeout(() => {
+      if (generation === sessionGeneration) void task(ctx);
+    }, 0);
+  };
+
   pi.on("session_start", (_event, ctx) => {
+    sessionGeneration++;
     resetBranchState(ctx);
+  });
+
+  pi.on("session_shutdown", () => {
+    sessionGeneration++;
   });
 
   pi.on("session_tree", (_event, ctx) => {
@@ -382,9 +399,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("agent_end", (_event, ctx) => {
-    setTimeout(() => {
-      void maybeTriggerEarlyAuto(ctx);
-    }, 0);
+    deferForActiveSession(ctx, maybeTriggerEarlyAuto);
   });
 
   pi.on("session_before_compact", async (event, ctx) => {
@@ -465,10 +480,10 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_compact", (_event, ctx) => {
     earlyAutoInFlight = false;
     allowEarlyAfterCompaction = false;
-    setTimeout(() => {
-      if (lastCompactionNotice) notify(ctx, lastCompactionNotice, "info");
+    deferForActiveSession(ctx, async (activeCtx) => {
+      if (lastCompactionNotice) notify(activeCtx, lastCompactionNotice, "info");
       lastCompactionNotice = undefined;
-      void checkStuckThreshold(ctx);
-    }, 0);
+      await checkStuckThreshold(activeCtx);
+    });
   });
 }

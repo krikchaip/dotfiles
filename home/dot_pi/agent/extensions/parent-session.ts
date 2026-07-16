@@ -249,14 +249,21 @@ async function wouldCreateCycle(targetPath: string, currentPath: string) {
 }
 
 export default function (pi: ExtensionAPI) {
-  let autocompleteContext: ExtensionContext | undefined;
+  let autocompleteContext: SessionAutocompleteContext | undefined;
   const sessionArgumentCompletions = createSessionArgumentCompletions(
     () => autocompleteContext,
   );
 
   pi.on("session_start", (_event, ctx) => {
-    autocompleteContext = ctx;
+    autocompleteContext = {
+      cwd: ctx.cwd,
+      sessionManager: ctx.sessionManager,
+    };
     void sessionArgumentCompletions("");
+  });
+
+  pi.on("session_shutdown", () => {
+    autocompleteContext = undefined;
   });
 
   pi.registerCommand("parent", {

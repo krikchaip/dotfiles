@@ -485,6 +485,7 @@ function registerShortcutCommand(
 }
 
 export default function (pi: ExtensionAPI) {
+  let sessionGeneration = 0;
   const undoShortcuts = configuredShortcuts(
     "app.session.undo",
     DEFAULT_UNDO_SHORTCUTS,
@@ -517,6 +518,8 @@ export default function (pi: ExtensionAPI) {
   }
 
   pi.on("session_start", (_event, ctx) => {
+    sessionGeneration++;
+    const generation = sessionGeneration;
     resetState();
     redoKeyHint = redoShortcuts[0] ?? "alt+shift+u";
 
@@ -532,7 +535,9 @@ export default function (pi: ExtensionAPI) {
       if (data !== "\x1bU") return;
 
       setImmediate(() => {
-        void triggerShortcutCommand(ctx, "redo");
+        if (generation === sessionGeneration) {
+          void triggerShortcutCommand(ctx, "redo");
+        }
       });
 
       return { consume: true };
@@ -540,6 +545,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", () => {
+    sessionGeneration++;
     resetState();
   });
 

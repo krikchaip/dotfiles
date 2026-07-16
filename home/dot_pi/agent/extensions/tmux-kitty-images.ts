@@ -561,7 +561,10 @@ function loadPiTui(): Promise<PiTuiModule> {
 export default function tmuxKittyImages(pi: ExtensionAPI): void {
   if (!inTmux() || !outerTerminalSupportsKitty()) return;
 
+  let sessionGeneration = 0;
+
   pi.on("session_start", async (_event: unknown, ctx: ExtensionContext) => {
+    const generation = ++sessionGeneration;
     try {
       const mod = await loadPiTui();
       const current = mod.getCapabilities();
@@ -577,10 +580,16 @@ export default function tmuxKittyImages(pi: ExtensionAPI): void {
       patchStdout();
       registerExitCleanup();
     } catch (error) {
-      ctx.ui.notify(
-        `tmux-kitty-images failed: ${error instanceof Error ? error.message : String(error)}`,
-        "warning",
-      );
+      if (generation === sessionGeneration) {
+        ctx.ui.notify(
+          `tmux-kitty-images failed: ${error instanceof Error ? error.message : String(error)}`,
+          "warning",
+        );
+      }
     }
+  });
+
+  pi.on("session_shutdown", () => {
+    sessionGeneration++;
   });
 }

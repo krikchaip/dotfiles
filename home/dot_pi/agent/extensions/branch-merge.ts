@@ -1856,7 +1856,8 @@ function watchForExternalMerge(
 }
 
 export default function (pi: ExtensionAPI) {
-  let autocompleteContext: ExtensionContext | undefined;
+  let autocompleteContext: SessionAutocompleteContext | undefined;
+  let sessionGeneration = 0;
   let externalMergeWatcher = {
     stop: () => {},
     onAgentSettled: () => {},
@@ -1866,7 +1867,11 @@ export default function (pi: ExtensionAPI) {
   );
 
   pi.on("session_start", (_event, ctx) => {
-    autocompleteContext = ctx;
+    const generation = ++sessionGeneration;
+    autocompleteContext = {
+      cwd: ctx.cwd,
+      sessionManager: ctx.sessionManager,
+    };
     void sessionArgumentCompletions("");
 
     externalMergeWatcher.stop();
@@ -1878,6 +1883,7 @@ export default function (pi: ExtensionAPI) {
           // after `/reload` yields input ownership; never overwrite a new draft.
           const submitTimer = setTimeout(() => {
             if (
+              generation !== sessionGeneration ||
               !ctx.isIdle() ||
               ctx.hasPendingMessages() ||
               ctx.ui.getEditorText().length > 0
@@ -1899,6 +1905,8 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", () => {
+    sessionGeneration++;
+    autocompleteContext = undefined;
     externalMergeWatcher.stop();
   });
 
