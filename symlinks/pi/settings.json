@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.7",
+  "lastChangelogVersion": "0.80.9",
   "quietStartup": false,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -66,11 +66,11 @@
     "git:github.com/krikchaip/pi-cc-tools@personal",
     "git:github.com/krikchaip/pi-goal@personal",
     "git:github.com/krikchaip/pi-powerline-footer@personal",
+    "git:github.com/krikchaip/pi-token-burden@personal",
     "git:github.com/krikchaip/pi-treex@personal",
     "npm:@gotgenes/pi-permission-system@20.6.0",
     "npm:@vanillagreen/pi-caveman",
     "npm:pi-mcp-adapter",
-    "npm:pi-token-burden",
     "npm:pi-web-access",
     {
       "source": "npm:@victor-software-house/pi-curated-themes",
