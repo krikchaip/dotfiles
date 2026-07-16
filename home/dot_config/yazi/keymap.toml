@@ -32,6 +32,11 @@ run  = "plugin smart-paste"
 desc = "Paste yanked files"
 
 [[mgr.prepend_keymap]]
+on   = "D"
+run  = "noop"
+desc = "Permanent deletion disabled"
+
+[[mgr.prepend_keymap]]
 on   = "z"
 run  = "plugin zoxide"
 desc = "Jump to directory via zoxide"
