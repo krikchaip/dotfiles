@@ -68,6 +68,7 @@ const RENAME_SPINNER_FRAMES = [
 ];
 const RENAME_SPINNER_INTERVAL_MS = 250;
 const OUTPUT_TOKENS = 1024;
+const MAX_SESSION_NAME_CHARACTERS = 100;
 const MAX_CONVERSATION_TOKENS = 32_000;
 const DEFAULT_CONTEXT_WINDOW = 32_000;
 const ESTIMATED_CHARS_PER_TOKEN = 4;
@@ -327,8 +328,7 @@ function normalizeName(raw: string): string | undefined {
   const collapsed = raw.replace(/\s+/g, " ").trim();
   if (!collapsed || /\.\s*$/.test(collapsed)) return undefined;
 
-  const words = collapsed.split(/\s+/);
-  if (words.length < 2 || words.length > 8) return undefined;
+  if ([...collapsed].length > MAX_SESSION_NAME_CHARACTERS) return undefined;
 
   const lowered = collapsed.toLocaleLowerCase();
   const firstLetterIndex = lowered.search(/\p{L}/u);
