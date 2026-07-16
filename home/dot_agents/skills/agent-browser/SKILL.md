@@ -36,7 +36,13 @@ Run `agent-browser skills list` to see everything available on the installed ver
 
 Use contexts when the user specifically asks to log in as a particular person (e.g., admin, user1) or explicitly mentions using a specific context. This approach maintains persistent sessions (cookies/logins) and isolated artifact storage. If no specific context or user login is requested, use standard generic execution.
 
-**Context Location**: `.agents/browser/context/<name>/`
+**Context Location**: `<workspace-root>/.agents/browser/context/<name>/`
+
+### Workspace-root policy
+
+`<workspace-root>` is the root workspace supplied by the active agent harness, usually as session environment metadata or the initial working directory. Record that exact absolute path as `WORKSPACE_ROOT` before the first browser command and keep it unchanged for the task.
+
+When selecting or creating a context, inspect only `$WORKSPACE_ROOT/.agents/browser/context/`. Never derive the path from the shell's current directory after `cd`, `git rev-parse`, a repository root, or a Git worktree. If the harness does not provide a reliable workspace root, ask the user instead of guessing or creating a context elsewhere.
 
 ### Directory structure
 
@@ -48,41 +54,44 @@ Each context directory must contain:
 
 ### Creating a new context
 
-If the requested context directory does not exist, initialize it first:
+If the requested context directory does not exist, initialize it under `WORKSPACE_ROOT` first:
 
 ```bash
-mkdir -p .agents/browser/context/<name>/{state,downloads}
+CONTEXT_DIR="$WORKSPACE_ROOT/.agents/browser/context/<name>"
+mkdir -p "$CONTEXT_DIR"/{state,downloads}
 echo '{
   "$schema": "https://agent-browser.dev/schema.json",
   "session": "<name>",
   "profile": "./state",
   "downloadPath": "./downloads",
   "screenshotDir": "./downloads"
-}' > .agents/browser/context/<name>/agent-browser.json
+}' > "$CONTEXT_DIR/agent-browser.json"
 ```
 
 ### Execution rule
 
 To use an existing context, you must run commands **WITHIN** its specific directory. The CLI auto-loads the local `agent-browser.json` if run from there. If your shell tool doesn't support a working directory parameter, explicitly `cd` into it.
 
+For context-bound work, never pass `--session`, `--profile`, `--state`, or `--restore`, and never set `AGENT_BROWSER_SESSION`. The `session` and `profile` fields belong only in `agent-browser.json`; the context folder is the sole selection mechanism.
+
 **Examples:**
 
 ```bash
 # Example 1: Reusing a persistent session (e.g., user1 is already logged into Jira)
-cd .agents/browser/context/user1 && \
+cd "$WORKSPACE_ROOT/.agents/browser/context/user1" && \
 agent-browser open "https://jira.example.com/browse/PROJ-123" && \
 agent-browser get title && \
 agent-browser click "@add-comment"
 # The session cookies from state/ are automatically used.
 
 # Example 2: Artifact isolation (UI downloads)
-cd .agents/browser/context/user1 && \
+cd "$WORKSPACE_ROOT/.agents/browser/context/user1" && \
 agent-browser open "https://example.com/reports" && \
 agent-browser click "@export-csv"
-# File saves to .agents/browser/context/user1/downloads/ via agent-browser.json
+# File saves to $WORKSPACE_ROOT/.agents/browser/context/user1/downloads/ via agent-browser.json
 
 # Example 3: Artifact isolation (CLI commands)
-cd .agents/browser/context/user1 && \
+cd "$WORKSPACE_ROOT/.agents/browser/context/user1" && \
 agent-browser open "https://mylovely.website" && \
 agent-browser screenshot downloads/report-view.png && \
 agent-browser download "@download-btn" downloads/file.pdf
@@ -93,21 +102,21 @@ P.S. While UI interactions (like clicking a download button) automatically use t
 
 ### Global context
 
-For stateless or generic tasks, you must run commands outside of the isolated context folders so state and downloads fall back to standard system/project paths.
+For stateless or generic tasks, you must run commands outside of the isolated context folders so state and downloads fall back to standard system paths.
 
-If your shell is currently inside an `.agents/browser/context/<name>` directory, you must explicitly `cd` back to your project workspace before executing the browser command.
+If your shell is currently inside an `.agents/browser/context/<name>` directory, explicitly `cd "$WORKSPACE_ROOT"` before executing the browser command.
 
-If you are already at the project root, simply run the commands directly.
+If you are already at the workspace root, run the commands directly.
 
 **Examples:**
 
 ```bash
 # Example 1: Currently inside a context folder (must cd out first)
-cd ~/projects/my-app && \
+cd "$WORKSPACE_ROOT" && \
 agent-browser open "https://example.com/public" && \
 agent-browser screenshot screen.png
 
-# Example 2: Already at the project root (no cd required)
+# Example 2: Already at the workspace root (no cd required)
 agent-browser open "https://example.com/public" && \
 agent-browser screenshot screen.png
 ```
