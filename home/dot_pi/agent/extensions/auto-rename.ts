@@ -1,7 +1,8 @@
 /**
  * Semantic session naming for Pi.
  *
- * Automatically names new unnamed sessions after the first assistant reply.
+ * Automatically names eligible sessions once after their initial workload settles.
+ * Cloned/forked children use only user/assistant messages absent from the parent.
  * Use /rename or /rename session to name from the active session branch, or
  * /rename recent \[N\] to name from only its latest N user/assistant messages
  * (default N: 10).
@@ -21,6 +22,7 @@ import type {
   ExtensionCommandContext,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -50,6 +52,21 @@ type DialoguePart = {
 type RenameScope =
   | { type: "session" }
   | { type: "recent"; messageCount: number };
+
+type AutoRenamePlan =
+  | {
+      type: "session";
+      expectedNameEntryId: string | undefined;
+    }
+  | {
+      type: "child";
+      expectedNameEntryId: string | undefined;
+      parentEntryIds: Set<string>;
+    };
+
+type SessionNameEntry = {
+  id: string;
+};
 
 const EXTENSION_NAME = "auto-rename";
 const RENAME_SPINNER_WIDGET_KEY = `${EXTENSION_NAME}:spinner`;
@@ -176,11 +193,22 @@ function textFromContent(content: unknown): string {
     .trim();
 }
 
-function branchDialogueParts(branch: unknown[]): DialoguePart[] {
+function branchDialogueParts(
+  branch: unknown[],
+  excludedEntryIds?: ReadonlySet<string>,
+): DialoguePart[] {
   const parts: DialoguePart[] = [];
 
   for (const entry of branch) {
     if (!isRecord(entry) || entry.type !== "message") continue;
+    if (
+      excludedEntryIds &&
+      typeof entry.id === "string" &&
+      excludedEntryIds.has(entry.id)
+    ) {
+      continue;
+    }
+
     const message = entry.message;
     if (!isRecord(message)) continue;
     if (message.role !== "user" && message.role !== "assistant") continue;
@@ -191,6 +219,33 @@ function branchDialogueParts(branch: unknown[]): DialoguePart[] {
   }
 
   return parts;
+}
+
+function latestSessionNameEntry(
+  entries: unknown[],
+): SessionNameEntry | undefined {
+  for (let index = entries.length - 1; index >= 0; index--) {
+    const entry = entries[index];
+    if (
+      !isRecord(entry) ||
+      entry.type !== "session_info" ||
+      typeof entry.id !== "string"
+    ) {
+      continue;
+    }
+
+    return { id: entry.id };
+  }
+
+  return undefined;
+}
+
+function entryIds(entries: unknown[]): Set<string> {
+  return new Set(
+    entries.flatMap((entry) =>
+      isRecord(entry) && typeof entry.id === "string" ? [entry.id] : [],
+    ),
+  );
 }
 
 function estimateTokens(text: string): number {
@@ -352,15 +407,11 @@ function responseText(response: Awaited<ReturnType<typeof complete>>): string {
     .trim();
 }
 
-async function generateName(
+async function generateNameFromParts(
   ctx: ExtensionContext,
   model: PiModel,
-  scope: RenameScope,
+  parts: DialoguePart[],
 ): Promise<string> {
-  const parts = selectDialogueParts(
-    branchDialogueParts(ctx.sessionManager.getBranch()),
-    scope,
-  );
   if (parts.length === 0) throw new Error("no user/assistant messages found");
 
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
@@ -395,6 +446,18 @@ async function generateName(
   return name;
 }
 
+async function generateName(
+  ctx: ExtensionContext,
+  model: PiModel,
+  scope: RenameScope,
+): Promise<string> {
+  const parts = selectDialogueParts(
+    branchDialogueParts(ctx.sessionManager.getBranch()),
+    scope,
+  );
+  return generateNameFromParts(ctx, model, parts);
+}
+
 async function renameSession(
   ctx: ExtensionContext,
   pi: ExtensionAPI,
@@ -421,34 +484,110 @@ function hasUserMessage(ctx: ExtensionContext): boolean {
     );
 }
 
-function shouldArmAutoRename(
+function ordinaryAutoRenamePlan(
   event: { source: string },
   ctx: ExtensionContext,
   pi: ExtensionAPI,
-): boolean {
+): AutoRenamePlan | undefined {
+  if (
+    event.source === "extension" ||
+    pi.getSessionName() ||
+    latestSessionNameEntry(ctx.sessionManager.getEntries()) ||
+    hasUserMessage(ctx)
+  ) {
+    return undefined;
+  }
+
+  return { type: "session", expectedNameEntryId: undefined };
+}
+
+function autoRenamePlan(
+  event: { source: string },
+  ctx: ExtensionContext,
+  pi: ExtensionAPI,
+): AutoRenamePlan | undefined {
+  const parentSession = ctx.sessionManager.getHeader()?.parentSession;
+  if (!parentSession) return ordinaryAutoRenamePlan(event, ctx, pi);
+
+  let parentEntryIds: Set<string>;
+  try {
+    parentEntryIds = entryIds(SessionManager.open(parentSession).getEntries());
+  } catch {
+    return ordinaryAutoRenamePlan(event, ctx, pi);
+  }
+
+  const childEntries = ctx.sessionManager.getEntries();
+  const currentNameEntry = latestSessionNameEntry(childEntries);
+  if (currentNameEntry && !parentEntryIds.has(currentNameEntry.id)) {
+    return undefined;
+  }
+
+  const childDialogue = ctx.sessionManager.getBranch().filter((entry) => {
+    if (!isRecord(entry) || entry.type !== "message") return false;
+    if (typeof entry.id !== "string" || parentEntryIds.has(entry.id)) {
+      return false;
+    }
+    return isRecord(entry.message) && entry.message.role === "user";
+  });
+  if (childDialogue.length > 0) return undefined;
+
+  return {
+    type: "child",
+    expectedNameEntryId: currentNameEntry?.id,
+    parentEntryIds,
+  };
+}
+
+function nameChoiceUnchanged(ctx: ExtensionContext, plan: AutoRenamePlan) {
   return (
-    event.source !== "extension" && !pi.getSessionName() && !hasUserMessage(ctx)
+    latestSessionNameEntry(ctx.sessionManager.getEntries())?.id ===
+    plan.expectedNameEntryId
   );
 }
 
+function autoRenameDialogue(
+  ctx: ExtensionContext,
+  plan: AutoRenamePlan,
+): DialoguePart[] {
+  return branchDialogueParts(
+    ctx.sessionManager.getBranch(),
+    plan.type === "child" ? plan.parentEntryIds : undefined,
+  );
+}
+
+async function runAutoRename(
+  ctx: ExtensionContext,
+  pi: ExtensionAPI,
+  plan: AutoRenamePlan,
+): Promise<void> {
+  if (!nameChoiceUnchanged(ctx, plan)) return;
+
+  const model = await resolveNamingModel(ctx);
+  await withRenameSpinner(ctx, modelName(model), async () => {
+    const name = await generateNameFromParts(
+      ctx,
+      model,
+      autoRenameDialogue(ctx, plan),
+    );
+    if (nameChoiceUnchanged(ctx, plan)) pi.setSessionName(name);
+  });
+}
+
 export default function autoRenameExtension(pi: ExtensionAPI) {
-  let autoRenameArmed = false;
+  let pendingAutoRename: AutoRenamePlan | undefined;
 
   pi.on("input", (event, ctx) => {
-    if (shouldArmAutoRename(event, ctx, pi)) autoRenameArmed = true;
+    pendingAutoRename ??= autoRenamePlan(event, ctx, pi);
     return { action: "continue" };
   });
 
-  pi.on("agent_end", async (_event, ctx) => {
-    if (!autoRenameArmed) return;
-    if (pi.getSessionName()) {
-      autoRenameArmed = false;
-      return;
-    }
+  pi.on("agent_settled", async (_event, ctx) => {
+    const plan = pendingAutoRename;
+    pendingAutoRename = undefined;
+    if (!plan) return;
 
     try {
-      await renameSession(ctx, pi, { type: "session" });
-      autoRenameArmed = false;
+      await runAutoRename(ctx, pi, plan);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const key = `${ctx.model?.provider ?? "none"}/${ctx.model?.id ?? "none"}:${message}`;
@@ -460,11 +599,11 @@ export default function autoRenameExtension(pi: ExtensionAPI) {
   });
 
   pi.on("session_start", () => {
-    autoRenameArmed = false;
+    pendingAutoRename = undefined;
   });
 
   pi.on("session_shutdown", () => {
-    autoRenameArmed = false;
+    pendingAutoRename = undefined;
   });
 
   pi.registerCommand("rename", {
@@ -478,9 +617,7 @@ export default function autoRenameExtension(pi: ExtensionAPI) {
           description: `Use latest ${count} messages`,
         }));
         const value = recentCount[1];
-        const matches = items.filter((item) =>
-          item.label.startsWith(value),
-        );
+        const matches = items.filter((item) => item.label.startsWith(value));
         return matches.length > 0 ? matches : null;
       }
 

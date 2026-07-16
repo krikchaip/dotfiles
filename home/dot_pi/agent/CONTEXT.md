@@ -37,8 +37,16 @@ Mergeable entries on a source active session branch whose identifiers are absent
 _Avoid_: Full source summary, content diff
 
 **Automatic rename**:
-A one-time session name generation attempt tied to the first user prompt in a new unnamed Pi session. Uses session rename scope.
-_Avoid_: Periodic rename, background rename
+A single session name generation attempt after processing settles for the initial workload in a new unnamed Pi session, an unnamed cloned or forked child session, or a child session that inherited its parent's non-empty session name. In a child session, the initial workload begins with its first child-only user message regardless of submission origin and includes any steering or follow-up prompts queued before the agent settles. A settled workload containing only the user prompt remains nameable. Eligibility survives process restart before that workload. Success, failure, cancellation, or invalid output consumes the attempt; later naming remains available through the rename command.
+_Avoid_: First low-level turn only, retry after later prompts, periodic rename, background rename
+
+**Inherited-name automatic rename**:
+Automatic rename for a child session carrying a non-empty session name inherited from its parent. Inheritance is established by a copied session-name entry, so a later independent parent rename does not change eligibility. Any later child name entry cancels it because explicit user choice wins. A missing or unreadable parent does not qualify; an unnamed child follows ordinary automatic rename.
+_Avoid_: Current-name equality check, overwriting user choice, rename-on-every-child, parent-history rename
+
+**Child rename delta**:
+User and assistant messages on a child active session branch whose entry identifiers are absent from every entry in its parent session. It alone determines automatic rename for both unnamed and inherited-name child sessions; copied labels, metadata, summaries, and tool results are excluded.
+_Avoid_: Merge delta, message-count guess, whole child branch
 
 **Session rename scope**:
 All eligible messages on active session branch; excludes messages on abandoned or sibling branches.
