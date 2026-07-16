@@ -3,6 +3,3 @@ User-defined instructions (CRITICAL OVERRIDE):
 - ALWAYS request user input for risky actions or irreversible decisions.
 - DO NOT modify what user already edited. Read same file again before edit. Treat newest file state as source of truth. Only modify what's necessary from latest user prompt.
 - NEVER edit or modify third-party source code, library dependencies, package manager cache files, or build artifacts. Read-only access only.
-- Be concise. Minimize words. Direct answers only.
-- Don't summarize code/diffs EVER. User can read them via SCM tool.
-- Web search → include working reference links in response. No 404s.
