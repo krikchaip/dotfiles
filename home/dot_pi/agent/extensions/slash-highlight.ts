@@ -239,6 +239,14 @@ function skillNames(pi: ExtensionAPI) {
   );
 }
 
+let cachedCommandNames = new Set<string>(BUILTIN_COMMANDS);
+let cachedSkillNames = new Set<string>();
+
+function refreshCommandCaches(pi: ExtensionAPI) {
+  cachedCommandNames = commandNames(pi);
+  cachedSkillNames = skillNames(pi);
+}
+
 function hasMatchingPrefix(prefix: string, names: Set<string>) {
   if (prefix === "") return false;
   for (const name of names) {
@@ -396,13 +404,22 @@ function patchUserMessageRender(
 }
 
 export default function (pi: ExtensionAPI) {
+  const refreshCaches = () => {
+    try {
+      refreshCommandCaches(pi);
+    } catch (error) {
+      console.error("slash-highlight: failed to refresh command caches", error);
+    }
+  };
+
   pi.on("session_start", (_event, ctx) => {
+    refreshCaches();
     const color = (text: string) => ctx.ui.theme.fg(HIGHLIGHT_COLOR, text);
 
     try {
       patchEditorRender(
-        () => commandNames(pi),
-        () => skillNames(pi),
+        () => cachedCommandNames,
+        () => cachedSkillNames,
         color,
       );
     } catch (error) {
@@ -410,9 +427,11 @@ export default function (pi: ExtensionAPI) {
     }
 
     try {
-      patchUserMessageRender(() => skillNames(pi), color);
+      patchUserMessageRender(() => cachedSkillNames, color);
     } catch (error) {
       console.error("slash-highlight: failed to patch user messages", error);
     }
   });
+
+  pi.on("resources_discover", refreshCaches);
 }
