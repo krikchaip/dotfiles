@@ -732,9 +732,15 @@ Clipboard = {
       line_range = string.format("L%d-%d", range["start"], range["end"])
     end
 
+    local fence_length = 3
+    for backticks in content:gmatch "`+" do
+      fence_length = math.max(fence_length, #backticks + 1)
+    end
+    local fence = string.rep("`", fence_length)
+
     local context = ""
       .. string.format("%s:%s\n\n", raw_path, line_range)
-      .. string.format("```%s\n%s\n```\n\n", vim.bo.filetype, content)
+      .. string.format("%s%s\n%s\n%s\n\n", fence, vim.bo.filetype, content, fence)
 
     vim.fn.setreg("+", context)
     vim.notify "Copied region with context to clipboard"
