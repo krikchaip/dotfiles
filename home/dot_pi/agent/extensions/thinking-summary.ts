@@ -173,6 +173,9 @@ async function patchAssistantMessageComponent(): Promise<void> {
       return originalUpdateContent.call(this, message);
     }
 
+    // Preserve cache invalidation and other side effects from earlier patches.
+    originalUpdateContent.call(this, message);
+
     this.lastMessage = message;
     this.contentContainer.clear();
 
