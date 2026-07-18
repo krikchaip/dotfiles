@@ -95,6 +95,11 @@
   },
   "powerline": {
     "placement": "below",
+    "sessionTitle": {
+      "enabled": true,
+      "alignment": "right"
+    },
+    "showLastPrompt": false,
     "layout": {
       "left": [
         "model",
