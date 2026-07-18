@@ -86,17 +86,6 @@
     "extensionManager": {
       "disabledItems": [],
       "config": {
-        "@vanillagreen/pi-background-tasks": {
-          "toolRenderMode": "compact",
-          "autoBackgroundPatterns": "^(yarn|npm|pnpm) (start|dev)",
-          "backgroundBashShortcut": "none",
-          "widgetToggleShortcut": "alt+h",
-          "dashboardShortcut": "alt+shift+h",
-          "widgetPlacement": "aboveEditor"
-        },
-        "@vanillagreen/pi-extension-manager": {
-          "defaultSaveScope": "user"
-        },
         "@vanillagreen/pi-caveman": {
           "mode": "full",
           "boundaryNormalForCommits": false
@@ -105,7 +94,17 @@
     }
   },
   "powerline": {
-    "preset": "default"
+    "placement": "below",
+    "layout": {
+      "left": [
+        "model",
+        "thinking",
+        "context_pct_plain"
+      ],
+      "right": [
+        "extension_statuses"
+      ]
+    }
   },
   "powerlineShortcuts": {
     "copyEditor": "alt+c",
