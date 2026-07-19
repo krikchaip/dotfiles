@@ -312,7 +312,7 @@ function refreshSelectorSessions(selector: any, target: string) {
   if (idx >= 0) sessionList.selectedIndex = idx;
 }
 
-export function patchRenameSelection(selector: any) {
+export function patchRenameSelection(selector: any, interactiveMode: any) {
   if (typeof selector.confirmRename !== "function") return;
 
   selector.confirmRename = async function (this: any, value: string) {
@@ -332,7 +332,18 @@ export function patchRenameSelection(selector: any) {
     }
 
     try {
-      await renameSession(target, next);
+      const sessionList = getSessionList(this);
+      if (
+        sessionList?.isCurrentSessionPath?.(target) &&
+        interactiveMode.sessionManager?.appendSessionInfo
+      ) {
+        // Pi's selector otherwise opens a second SessionManager and leaves the
+        // active session state stale until a reload.
+        interactiveMode.sessionManager.appendSessionInfo(next);
+        interactiveMode.ui?.requestRender?.();
+      } else {
+        await renameSession(target, next);
+      }
       updateSelectorSessionName(this, target, next);
       refreshSelectorSessions(this, target);
     } finally {
