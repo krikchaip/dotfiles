@@ -1046,7 +1046,11 @@ function createMergeSpinner(
   (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
 
   return {
-    render: () => [renderLine(MERGE_SPINNER_FRAMES[frameIndex]!)],
+    render: (width) => {
+      const line = renderLine(MERGE_SPINNER_FRAMES[frameIndex]!);
+      if (width <= 1) return [truncateToWidth(line, width)];
+      return [` ${truncateToWidth(line, width - 2)} `];
+    },
     invalidate: () => {},
     dispose: () => clearInterval(timer),
   };
