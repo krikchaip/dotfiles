@@ -374,6 +374,8 @@ export function patchTmuxSessionSplit(
         `tmux split failed: ${result.error}`,
         true,
       );
+      return;
     }
+    closePicker();
   };
 }
