@@ -4,6 +4,7 @@
  * /new \[--sp|--vsp\] \[child\]
  *   - Bare /new keeps Pi's native behavior while idle.
  *   - child creates a blank session linked to the current persisted session.
+ *   - Alt+Shift+N creates a child session and preserves the editor draft.
  *   - --vsp opens a side-by-side tmux pane; --sp opens a top/bottom pane.
  *   - Split forms leave the source session untouched and may run while streaming.
  *   - Same-pane forms are blocked while streaming.
@@ -26,6 +27,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 
 const PATCH_STATE = Symbol.for("pi.extended-new.patch-state");
+const NEW_CHILD_ACTION = "app.session.newChild";
 const ARGUMENT_HINT = "[--sp|--vsp] [child]";
 const USAGE = `Usage: /new ${ARGUMENT_HINT}`;
 
@@ -42,8 +44,20 @@ type AutocompleteItem = {
 type PatchedInteractiveMode = {
   setupEditorSubmitHandler(...args: unknown[]): unknown;
   createBaseAutocompleteProvider(...args: unknown[]): unknown;
-  defaultEditor?: { onSubmit?: (text: string) => Promise<unknown> | unknown };
+  defaultEditor?: {
+    onAction?(action: string, handler: () => void): void;
+    onSubmit?: (text: string) => Promise<unknown> | unknown;
+  };
   editor?: { setText?(text: string): void };
+  keybindings?: {
+    definitions?: Record<
+      string,
+      { defaultKeys: string[]; description: string }
+    >;
+    rebuild?(): void;
+  };
+  chatContainer?: { addChild(child: unknown): void };
+  ui?: { requestRender(): void };
   runtimeHost?: {
     newSession(options?: { parentSession?: string }): Promise<{
       cancelled: boolean;
@@ -185,6 +199,50 @@ function patchNewAutocomplete(provider: unknown) {
   if (!command) throw new Error("Built-in /new autocomplete entry not found");
   command.argumentHint = ARGUMENT_HINT;
   command.getArgumentCompletions = completionItems;
+}
+
+function installNewChildKeybinding(mode: PatchedInteractiveMode) {
+  const keybindings = mode.keybindings;
+  if (!keybindings?.definitions) {
+    throw new Error("Interactive keybindings unavailable");
+  }
+  if (keybindings.definitions[NEW_CHILD_ACTION]) return;
+
+  keybindings.definitions[NEW_CHILD_ACTION] = {
+    defaultKeys: ["alt+shift+n"],
+    description: "Start a child session",
+  };
+  keybindings.rebuild?.();
+}
+
+function showNewChildStarted(mode: PatchedInteractiveMode) {
+  const cliEntry = process.argv[1];
+  if (!mode.chatContainer || !mode.ui || !cliEntry) {
+    mode.showStatus?.("New child session started");
+    return;
+  }
+
+  try {
+    const req = createRequire(__filename);
+    const distPath = dirname(realpathSync(cliEntry));
+    const { Spacer, Text } = req(
+      join(distPath, "..", "node_modules", "@earendil-works", "pi-tui"),
+    ) as {
+      Spacer: new (height: number) => unknown;
+      Text: new (text: string, paddingX: number, paddingY: number) => unknown;
+    };
+    const { theme } = req(
+      join(distPath, "modes", "interactive", "theme", "theme.js"),
+    ) as { theme: { fg(color: string, text: string): string } };
+
+    mode.chatContainer.addChild(new Spacer(1));
+    mode.chatContainer.addChild(
+      new Text(`${theme.fg("accent", "✓ New child session started")}`, 1, 1),
+    );
+    mode.ui.requestRender();
+  } catch {
+    mode.showStatus?.("New child session started");
+  }
 }
 
 function piCommand(args: string[]) {
@@ -347,7 +405,7 @@ async function handleExtendedNew(
   try {
     const result = await mode.runtimeHost.newSession({ parentSession });
     if (result.cancelled) return;
-    mode.showStatus?.("New child session started");
+    showNewChildStarted(mode);
   } catch (error) {
     mode.showError?.(
       `Failed to create child session: ${error instanceof Error ? error.message : String(error)}`,
@@ -398,6 +456,16 @@ function installPatch(InteractiveMode: { prototype: PatchedInteractiveMode }) {
     if (typeof nativeOnSubmit !== "function") {
       throw new Error("Interactive editor submit handler unavailable");
     }
+
+    installNewChildKeybinding(this);
+
+    const onAction = this.defaultEditor?.onAction;
+    if (typeof onAction !== "function") {
+      throw new Error("Interactive editor action handler unavailable");
+    }
+    onAction.call(this.defaultEditor, NEW_CHILD_ACTION, () => {
+      void handleExtendedNew(this, { child: true });
+    });
 
     this.defaultEditor!.onSubmit = async (text: string) => {
       const parsed = parseArgs(text);
