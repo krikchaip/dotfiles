@@ -36,6 +36,11 @@ set -g status-interval 5
 # show messages and indicators until a key is pressed
 set -g display-time 2000
 
+# tmux 3.7 requires fill colors to cover the full message line;
+# tokyo-night-tmux overwrites these styles without them
+set -g message-style "bg=#7aa2f7,fg=#2A2F41,fill=#7aa2f7"
+set -g message-command-style "fg=#7aa2f7,bg=#2A2F41,fill=#2A2F41"
+
 # fix extended keys not working in v3.5
 # ref: https://github.com/tmux/tmux/issues/4140
 set -g extended-keys on
