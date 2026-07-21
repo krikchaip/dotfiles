@@ -24,8 +24,15 @@ import {
   patchRenameSelection,
 } from "./rename-session-recent";
 import { wrapWithSessionPreview } from "./session-preview";
+import {
+  advertiseTmuxSession,
+  clearTmuxSessionAdvertisement,
+  isTmuxResumeSplitAvailable,
+  patchTmuxSessionSplit,
+} from "./tmux-session-split";
 
 const RESUME_PATCHED = "__resumePreviewPatched";
+const RESUME_INPUT_ACTIVE = "__resumeInputActive";
 
 const sessionInfoCache = new Map<
   string,
@@ -155,11 +162,15 @@ export default function (pi: ExtensionAPI) {
   );
   installOptimizeStartup(req, distPath, sessionInfoCache);
 
+  const tmuxSplitAvailable = isTmuxResumeSplitAvailable();
   let stopWatchingSessionDir: (() => void) | undefined;
   let activeSessionManager: ExtensionContext["sessionManager"] | undefined;
 
   pi.on("session_start", (_event, ctx) => {
     activeSessionManager = ctx.sessionManager;
+    if (tmuxSplitAvailable && ctx.mode === "tui") {
+      advertiseTmuxSession(ctx.sessionManager.getSessionFile());
+    }
     const warm = () => {
       if (activeSessionManager) {
         scheduleResumeWarm(activeSessionManager, false);
@@ -216,6 +227,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", () => {
+    if (tmuxSplitAvailable) clearTmuxSessionAdvertisement();
     stopWatchingSessionDir?.();
     stopWatchingSessionDir = undefined;
     activeSessionManager = undefined;
@@ -229,6 +241,21 @@ export default function (pi: ExtensionAPI) {
 
   if (!proto[RESUME_PATCHED]) {
     const originalShow = proto.showSessionSelector;
+    const originalAddTerminalInputListener =
+      proto.addExtensionTerminalInputListener;
+
+    if (typeof originalAddTerminalInputListener === "function") {
+      proto.addExtensionTerminalInputListener = function (
+        this: PatchedInteractiveMode,
+        handler: (data: string) => unknown,
+      ) {
+        return originalAddTerminalInputListener.call(
+          this,
+          (data: string) =>
+            this[RESUME_INPUT_ACTIVE] ? undefined : handler(data),
+        );
+      };
+    }
 
     proto.showSessionSelector = function (this: PatchedInteractiveMode) {
       setResumeSessionScope(
@@ -247,21 +274,29 @@ export default function (pi: ExtensionAPI) {
             try {
               done();
             } finally {
+              this[RESUME_INPUT_ACTIVE] = false;
               scheduleResumeWarm(this.sessionManager, false);
             }
           };
           const result = factory(doneWithSync);
           const selector = result.component;
 
-          if (hasSessionList(selector)) {
+          if (!hasSessionList(selector)) return result;
+
+          this[RESUME_INPUT_ACTIVE] = true;
+          try {
             patchHighlightCurrentSession(selector, this, doneWithSync);
             patchRenameSelection(selector, this);
             patchDeleteActiveSession(selector, this);
+            if (tmuxSplitAvailable) {
+              patchTmuxSessionSplit(selector, this);
+            }
             const wrapper = wrapWithSessionPreview(selector, this, previewDeps);
             return { ...result, component: wrapper, focus: wrapper };
+          } catch (error) {
+            this[RESUME_INPUT_ACTIVE] = false;
+            throw error;
           }
-
-          return result;
         });
       };
 

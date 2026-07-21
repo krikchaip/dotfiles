@@ -457,9 +457,23 @@ class ResumeSelectorWithPreview {
   render(width: number) {
     const selectorLines = compactSelectorLines(this.selector.render(width));
     const session = selectedSession(this.selector);
+    const previewLines = this.preview.render(
+      session,
+      width,
+      selectorLines.length,
+    );
+
+    // Pi clips overflowing custom components from the top. Preserve the
+    // selector header (including warnings) and give the preview only the rows
+    // left above Pi's two-line footer.
+    const terminalRows = this.interactiveMode.ui?.terminal?.rows;
+    if (!terminalRows) return [...selectorLines, ...previewLines];
+
+    const availableRows = Math.max(3, terminalRows - 2);
+    const visibleSelector = selectorLines.slice(0, availableRows);
     return [
-      ...selectorLines,
-      ...this.preview.render(session, width, selectorLines.length),
+      ...visibleSelector,
+      ...previewLines.slice(0, availableRows - visibleSelector.length),
     ];
   }
 
