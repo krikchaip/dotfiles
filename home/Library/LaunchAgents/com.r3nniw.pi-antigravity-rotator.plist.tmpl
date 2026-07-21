@@ -27,17 +27,6 @@
       <string>--displaywakeup</string>
       <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-wake</string>
 
-      <!-- idle timeout (150 = 15s in 0.1s units; 36000 = 1hr) -->
-      <string>--timeout</string>
-      <string>36000</string>
-
-      <!-- after idle timeout -> kill PAR -->
-      <string>--idle</string>
-      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-idle</string>
-
-      <!-- resume from idle → start PAR -->
-      <string>--idleresume</string>
-      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-wake</string>
     </array>
 
     <key>EnvironmentVariables</key>

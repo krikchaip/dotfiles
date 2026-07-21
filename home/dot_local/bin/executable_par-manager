@@ -117,17 +117,10 @@ on_sleep() {
 }
 
 on_wake() {
-  log_event "Event: wake/display-wake/idle-resume"
+  log_event "Event: wake/display-wake"
   par_start
 
   # [ -n "$PAR_STATE_CHANGED" ] && notify "Resuming — PAR process started."
-}
-
-on_idle() {
-  log_event "Event: idle timeout"
-  par_kill
-
-  # [ -n "$PAR_STATE_CHANGED" ] && notify "Idle detected — PAR process stopped."
 }
 
 # ---------- public commands ----------
@@ -256,7 +249,9 @@ login_service() {
 
   while true; do
     local api_json
-    api_json=$(curl -s --max-time 2 "http://localhost:${port}/api/status" || true)
+    api_json=$(curl -s --max-time 2 \
+      -H "Authorization: Bearer $PI_ROTATOR_ADMIN_TOKEN" \
+      "http://localhost:${port}/api/status" || true)
 
     echo ""
     echo "=== Logged In Accounts ==="
@@ -390,7 +385,6 @@ main() {
       ;;
     _on-sleep) on_sleep ;;
     _on-wake)  on_wake  ;;
-    _on-idle)  on_idle  ;;
 
     *)
       echo "Unknown command: $1" >&2
