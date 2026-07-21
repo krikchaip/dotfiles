@@ -300,8 +300,9 @@ export function patchTmuxSessionSplit(
       : matchesKey(data, SPLIT_RIGHT_KEY)
         ? "right"
         : undefined;
+    const isConfirm = matchesKey(data, "enter");
 
-    if (!direction || this.mode !== "list") {
+    if ((!direction && !isConfirm) || this.mode !== "list") {
       clearPendingJump();
       return originalHandleInput.call(this, data);
     }
@@ -315,12 +316,17 @@ export function patchTmuxSessionSplit(
         : this.sessionList;
     if (list?.isCurrentSessionPath?.(session.path)) {
       clearPendingJump();
+      if (isConfirm) return originalHandleInput.call(this, data);
       showStatus(this, interactiveMode, "Session already active in this pane");
       return;
     }
 
     const existingPane = paneRunningSession(session.path);
-    const key = direction === "down" ? SPLIT_DOWN_KEY : SPLIT_RIGHT_KEY;
+    const key = isConfirm
+      ? "tui.select.confirm"
+      : direction === "down"
+        ? SPLIT_DOWN_KEY
+        : SPLIT_RIGHT_KEY;
     const now = Date.now();
 
     if (existingPane) {
@@ -358,7 +364,9 @@ export function patchTmuxSessionSplit(
     }
 
     clearPendingJump();
-    const result = splitSession(session, interactiveMode, direction);
+    if (isConfirm) return originalHandleInput.call(this, data);
+
+    const result = splitSession(session, interactiveMode, direction!);
     if (!result.ok) {
       showStatus(
         this,
