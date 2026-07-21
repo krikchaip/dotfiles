@@ -159,10 +159,10 @@ function advertisedPanes() {
   return panes;
 }
 
-function paneRunningSession(path: string) {
+function paneRunningSession(path: string, panes: PaneSession[]) {
   const canonicalPath = canonicalSessionPath(path);
   const currentPane = tmuxPaneId();
-  return advertisedPanes().find(
+  return panes.find(
     (pane) => pane.paneId !== currentPane && pane.path === canonicalPath,
   );
 }
@@ -283,6 +283,7 @@ export function patchTmuxSessionSplit(
   }
 
   const originalHandleInput = selector.handleInput;
+  const openSessionPanes = advertisedPanes();
   let pendingJump: PendingJump | undefined;
 
   const clearPendingJump = () => {
@@ -316,12 +317,11 @@ export function patchTmuxSessionSplit(
         : this.sessionList;
     if (list?.isCurrentSessionPath?.(session.path)) {
       clearPendingJump();
-      if (isConfirm) return originalHandleInput.call(this, data);
       showStatus(this, interactiveMode, "Session already active in this pane");
       return;
     }
 
-    const existingPane = paneRunningSession(session.path);
+    const existingPane = paneRunningSession(session.path, openSessionPanes);
     const key = isConfirm
       ? "tui.select.confirm"
       : direction === "down"
