@@ -289,7 +289,7 @@ export default function (pi: ExtensionAPI) {
             patchRenameSelection(selector, this);
             patchDeleteActiveSession(selector, this);
             if (tmuxSplitAvailable) {
-              patchTmuxSessionSplit(selector, this);
+              patchTmuxSessionSplit(selector, this, doneWithSync);
             }
             const wrapper = wrapWithSessionPreview(selector, this, previewDeps);
             return { ...result, component: wrapper, focus: wrapper };

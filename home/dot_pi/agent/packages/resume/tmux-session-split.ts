@@ -257,7 +257,11 @@ function appendSplitHints(line: string, width: number) {
   return truncateToWidth(`${line}${sep}${hints}`, width, "…");
 }
 
-export function patchTmuxSessionSplit(selector: any, interactiveMode: any) {
+export function patchTmuxSessionSplit(
+  selector: any,
+  interactiveMode: any,
+  closePicker: () => void,
+) {
   if (!isTmuxResumeSplitAvailable()) return;
 
   const originalHeaderRender = selector.header?.render;
@@ -334,7 +338,9 @@ export function patchTmuxSessionSplit(selector: any, interactiveMode: any) {
             `tmux pane jump failed: ${resultError(result)}`,
             true,
           );
+          return;
         }
+        closePicker();
         return;
       }
 
