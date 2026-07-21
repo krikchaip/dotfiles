@@ -7,7 +7,8 @@
 
     <key>ProgramArguments</key>
     <array>
-      <string>/opt/homebrew/sbin/sleepwatcher</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager</string>
+      <string>_run-sleepwatcher</string>
       <string>--verbose</string>
 
       <!-- system sleep → kill PAR -->

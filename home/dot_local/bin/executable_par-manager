@@ -12,6 +12,7 @@ SERVICE_TARGET="gui/$(id -u)/${LABEL}"
 OUT_LOG="/tmp/${LABEL}.out.log"
 ERR_LOG="/tmp/${LABEL}.err.log"
 
+SLEEPWATCHER_BIN="${SLEEPWATCHER_BIN:-/opt/homebrew/sbin/sleepwatcher}"
 PAR_BIN="${PAR_BIN:-$(command -v pi-antigravity-rotator 2>/dev/null || echo "$HOME/.local/share/mise/installs/npm-pi-antigravity-rotator/latest/bin/pi-antigravity-rotator")}"
 PAR_PIDFILE="/tmp/${LABEL}.pid"
 PAR_LOG="/tmp/${LABEL}.par.log"
@@ -102,6 +103,11 @@ notify() {
 }
 
 # ---------- sleepwatcher hooks (internal, called by launchd plist) ----------
+
+run_sleepwatcher() {
+  par_start
+  exec "$SLEEPWATCHER_BIN" "$@"
+}
 
 on_sleep() {
   log_event "Event: sleep/display-sleep"
@@ -377,7 +383,11 @@ main() {
       login_service
       ;;
 
-    # Internal hooks called by sleepwatcher (via launchd plist)
+    # Internal hooks called by launchd/sleepwatcher
+    _run-sleepwatcher)
+      shift
+      run_sleepwatcher "$@"
+      ;;
     _on-sleep) on_sleep ;;
     _on-wake)  on_wake  ;;
     _on-idle)  on_idle  ;;
