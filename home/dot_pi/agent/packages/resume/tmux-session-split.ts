@@ -293,6 +293,18 @@ export function patchTmuxSessionSplit(
   };
 
   selector.handleInput = function (this: any, data: string) {
+    const list =
+      typeof this.getSessionList === "function"
+        ? this.getSessionList()
+        : this.sessionList;
+
+    // Confirmation owns Enter/Escape. Do not turn confirmation Enter into a
+    // tmux pane action for the selected active session.
+    if (list?.confirmingDeletePath) {
+      clearPendingJump();
+      return originalHandleInput.call(this, data);
+    }
+
     const direction: SplitDirection | undefined = matchesKey(
       data,
       SPLIT_DOWN_KEY,
@@ -311,10 +323,6 @@ export function patchTmuxSessionSplit(
     const session = selectedSession(this);
     if (!session?.path) return;
 
-    const list =
-      typeof this.getSessionList === "function"
-        ? this.getSessionList()
-        : this.sessionList;
     if (list?.isCurrentSessionPath?.(session.path)) {
       clearPendingJump();
       showStatus(this, interactiveMode, "Session already active in this pane");
