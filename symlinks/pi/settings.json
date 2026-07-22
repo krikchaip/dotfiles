@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.81.0",
+  "lastChangelogVersion": "0.81.1",
   "quietStartup": false,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -34,9 +34,9 @@
       "enabled": true,
       "absoluteTokens": "100k",
       "contextWindowFamilies": {
-        "200k": "100k",
-        "400k": "150k",
-        "1m": "200k"
+        "200k": "150k",
+        "400k": "200k",
+        "1m": "350k"
       }
     }
   },
