@@ -24,6 +24,10 @@ _Avoid_: Title, chat name
 The current path through a Pi session tree, from first relevant entry to the current leaf.
 _Avoid_: Full session, chat history
 
+**Turn-boundary compaction**:
+Early context compaction requested after a completed assistant turn reaches the configured threshold and no user input is queued. A tool-bearing turn resumes automatically after compaction; queued user input runs first and receives another threshold check at its turn boundary; a final-answer turn stops after compaction.
+_Avoid_: Per-tool compaction, idle compaction, built-in compaction
+
 **Mergeable session entry**:
 An active session branch node that Pi can include in a generated summary: a message, custom message, compaction, or branch summary.
 _Avoid_: Label, marker, session name

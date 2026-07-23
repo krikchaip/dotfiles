@@ -30,6 +30,7 @@
  */
 
 import {
+  AgentSession,
   compact,
   type ExtensionAPI,
   type ExtensionContext,
@@ -39,6 +40,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 const EXTENSION_NAME = "auto-compact";
+const MAX_EARLY_BACKOFF_TURNS = 8;
+const EARLY_CONTINUATION =
+  "Continue from the completed tool results without repeating completed work. Follow any newer user instruction first.";
+const EARLY_COMPACTION_MARKER = "\u0000auto-compact:turn-boundary";
+const TURN_BOUNDARY_PATCH = Symbol.for(`${EXTENSION_NAME}.turn-boundary`);
 
 type PiModel = NonNullable<ExtensionContext["model"]>;
 
@@ -67,10 +73,99 @@ let earlyAutoInFlight = false;
 let allowEarlyAfterCompaction = true;
 let earlyAutoDisabledForBranch = false;
 let stuckWarningShown = false;
+let earlyFailureCount = 0;
+let earlyBackoffTurnsRemaining = 0;
 let pendingEarlyReason: string | undefined;
 let lastCompactionNotice: string | undefined;
 
 const warned = new Set<string>();
+
+type AgentLoopConfig = {
+  shouldStopAfterTurn?: (turn: unknown) => boolean | Promise<boolean>;
+};
+
+type AgentLike = {
+  createLoopConfig: (...args: unknown[]) => AgentLoopConfig;
+  state: { isStreaming: boolean };
+  [TURN_BOUNDARY_PATCH]?: AgentTurnBoundaryState;
+};
+
+type AgentTurnBoundaryState = {
+  originalCreateLoopConfig: AgentLike["createLoopConfig"];
+  canStopCurrentRun: boolean;
+  stopAfterTurn: boolean;
+};
+
+type PatchedAgentSessionPrototype = typeof AgentSession.prototype & {
+  [TURN_BOUNDARY_PATCH]?: {
+    originalRunAgentPrompt: AgentSession["_runAgentPrompt"];
+    originalCompact: AgentSession["compact"];
+  };
+};
+
+function installAgentTurnStop(agent: AgentLike) {
+  if (agent[TURN_BOUNDARY_PATCH]) return;
+
+  const originalCreateLoopConfig = agent.createLoopConfig;
+  const state: AgentTurnBoundaryState = {
+    originalCreateLoopConfig,
+    canStopCurrentRun: false,
+    stopAfterTurn: false,
+  };
+  agent[TURN_BOUNDARY_PATCH] = state;
+
+  agent.createLoopConfig = function patchedCreateLoopConfig(...args) {
+    const config = originalCreateLoopConfig.apply(this, args);
+    const originalShouldStopAfterTurn = config.shouldStopAfterTurn;
+    state.canStopCurrentRun = true;
+
+    return {
+      ...config,
+      shouldStopAfterTurn: async (turn) => {
+        if (state.stopAfterTurn) return true;
+        return (await originalShouldStopAfterTurn?.(turn)) ?? false;
+      },
+    };
+  };
+}
+
+function installTurnBoundaryCompactionPatch() {
+  const prototype = AgentSession.prototype as PatchedAgentSessionPrototype;
+  if (prototype[TURN_BOUNDARY_PATCH]) return;
+
+  const originalRunAgentPrompt = prototype._runAgentPrompt;
+  const originalCompact = prototype.compact;
+  prototype[TURN_BOUNDARY_PATCH] = {
+    originalRunAgentPrompt,
+    originalCompact,
+  };
+
+  prototype._runAgentPrompt = function patchedRunAgentPrompt(...args) {
+    installAgentTurnStop(this.agent as AgentLike);
+    return originalRunAgentPrompt.apply(this, args);
+  };
+
+  prototype.compact = function patchedCompact(customInstructions) {
+    if (customInstructions !== EARLY_COMPACTION_MARKER)
+      return originalCompact.call(this, customInstructions);
+
+    const agent = this.agent as AgentLike;
+    installAgentTurnStop(agent);
+    const state = agent[TURN_BOUNDARY_PATCH]!;
+    if (!agent.state.isStreaming || !state.canStopCurrentRun) {
+      return Promise.reject(
+        new Error("turn-boundary compaction unavailable outside an active run"),
+      );
+    }
+
+    state.stopAfterTurn = true;
+    return (async () => {
+      await this.waitForIdle();
+      state.stopAfterTurn = false;
+      return originalCompact.call(this);
+    })();
+  };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -261,8 +356,7 @@ async function resolveConfiguredModel(
   }
 
   const model = ctx.modelRegistry.find(ref.provider, ref.id) as
-    | PiModel
-    | undefined;
+    PiModel | undefined;
   if (!model) {
     warnOnce(
       ctx,
@@ -290,40 +384,69 @@ function branchLastEntry(ctx: ExtensionContext) {
   return branch[branch.length - 1];
 }
 
+function resetEarlyBackoff() {
+  earlyFailureCount = 0;
+  earlyBackoffTurnsRemaining = 0;
+}
+
+function recordEarlyFailure() {
+  earlyFailureCount++;
+  earlyBackoffTurnsRemaining = Math.min(
+    2 ** (earlyFailureCount - 1),
+    MAX_EARLY_BACKOFF_TURNS,
+  );
+}
+
 function resetBranchState(ctx: ExtensionContext) {
   earlyAutoInFlight = false;
   earlyAutoDisabledForBranch = false;
   stuckWarningShown = false;
+  resetEarlyBackoff();
   pendingEarlyReason = undefined;
   allowEarlyAfterCompaction = branchLastEntry(ctx)?.type !== "compaction";
 }
 
-async function maybeTriggerEarlyAuto(ctx: ExtensionContext) {
+async function maybeTriggerEarlyAuto(
+  ctx: ExtensionContext,
+  continueAfterAttempt: () => void,
+) {
   const settings = await loadSettings(ctx);
   const config = getCompactionConfig(settings);
   const threshold = resolveThreshold(ctx, config);
   const tokens = ctx.getContextUsage()?.tokens;
 
   if (!threshold || tokens === null || tokens === undefined) return;
-  if (tokens < threshold.tokens) return;
+  if (tokens < threshold.tokens) {
+    resetEarlyBackoff();
+    return;
+  }
   if (earlyAutoInFlight || earlyAutoDisabledForBranch) return;
   if (!allowEarlyAfterCompaction || branchLastEntry(ctx)?.type === "compaction")
     return;
-  if (!ctx.isIdle() || ctx.hasPendingMessages()) return;
+  if (ctx.hasPendingMessages()) return;
+  if (earlyBackoffTurnsRemaining > 0) {
+    earlyBackoffTurnsRemaining--;
+    return;
+  }
 
   pendingEarlyReason = `${formatTokens(tokens)} >= ${formatTokens(threshold.tokens)} (${threshold.source})`;
   notify(ctx, `auto-compact threshold reached: ${pendingEarlyReason}`, "info");
 
   earlyAutoInFlight = true;
   ctx.compact({
+    customInstructions: EARLY_COMPACTION_MARKER,
     onComplete: () => {
       earlyAutoInFlight = false;
+      resetEarlyBackoff();
       pendingEarlyReason = undefined;
+      continueAfterAttempt();
     },
     onError: (error) => {
       earlyAutoInFlight = false;
+      recordEarlyFailure();
       pendingEarlyReason = undefined;
       notify(ctx, `[${EXTENSION_NAME}] ${error.message}`, "error");
+      continueAfterAttempt();
     },
   });
 }
@@ -369,7 +492,10 @@ function builtInThresholdText(
 }
 
 export default function (pi: ExtensionAPI) {
+  installTurnBoundaryCompactionPatch();
+
   let sessionGeneration = 0;
+  const terminatingToolCalls = new Set<string>();
 
   const deferForActiveSession = (
     ctx: ExtensionContext,
@@ -383,14 +509,18 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     sessionGeneration++;
+    terminatingToolCalls.clear();
     resetBranchState(ctx);
   });
 
   pi.on("session_shutdown", () => {
     sessionGeneration++;
+    terminatingToolCalls.clear();
   });
 
   pi.on("session_tree", (_event, ctx) => {
+    sessionGeneration++;
+    terminatingToolCalls.clear();
     resetBranchState(ctx);
   });
 
@@ -398,8 +528,47 @@ export default function (pi: ExtensionAPI) {
     if (event.message.role === "assistant") allowEarlyAfterCompaction = true;
   });
 
-  pi.on("agent_end", (_event, ctx) => {
-    deferForActiveSession(ctx, maybeTriggerEarlyAuto);
+  pi.on("tool_execution_end", (event) => {
+    if (event.result?.terminate === true)
+      terminatingToolCalls.add(event.toolCallId);
+  });
+
+  pi.on("turn_end", async (event, ctx) => {
+    const allToolsTerminate =
+      event.toolResults.length > 0 &&
+      event.toolResults.every((result) =>
+        terminatingToolCalls.has(result.toolCallId),
+      );
+    terminatingToolCalls.clear();
+
+    if (
+      event.message.role !== "assistant" ||
+      event.message.stopReason === "error" ||
+      event.message.stopReason === "aborted"
+    )
+      return;
+
+    const generation = sessionGeneration;
+    const shouldResume = event.toolResults.length > 0 && !allToolsTerminate;
+    await maybeTriggerEarlyAuto(ctx, () => {
+      deferForActiveSession(ctx, async (activeCtx) => {
+        if (
+          !shouldResume ||
+          generation !== sessionGeneration ||
+          activeCtx.hasPendingMessages()
+        )
+          return;
+
+        pi.sendMessage(
+          {
+            customType: `${EXTENSION_NAME}-continuation`,
+            content: EARLY_CONTINUATION,
+            display: false,
+          },
+          { deliverAs: "followUp", triggerTurn: true },
+        );
+      });
+    });
   });
 
   pi.on("session_before_compact", async (event, ctx) => {
@@ -479,6 +648,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_compact", (_event, ctx) => {
     earlyAutoInFlight = false;
+    resetEarlyBackoff();
     allowEarlyAfterCompaction = false;
     deferForActiveSession(ctx, async (activeCtx) => {
       if (lastCompactionNotice) notify(activeCtx, lastCompactionNotice, "info");
