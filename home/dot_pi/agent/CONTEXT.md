@@ -87,3 +87,19 @@ _Avoid_: Replacement new command, streaming session replacement
 **New child session**:
 A blank session whose parent link points to an existing, valid session file active when it was created. It inherits no conversation context.
 _Avoid_: Branch, clone, context copy, dangling parent link
+
+**Main quest**:
+A parent Pi session that owns the user's overall outcome and accepts or rejects delegated results.
+_Avoid_: Orchestrator, root agent, main thread
+
+**Side quest**:
+A persistent child Pi session delegated a coherent, independently reviewable objective with a return contract to its main quest. Granular helper work and retrieval-only tasks are not side quests.
+_Avoid_: Microtask, lookup agent, background job
+
+**Side-quest handoff**:
+The work contract sent from a main quest to a side quest, stating purpose, context, constraints, expected outcome, and acceptance evidence.
+_Avoid_: Prompt fragment, file-search request, context dump
+
+**Side-quest review loop**:
+Evaluation of a returned side-quest result by its main quest, followed when needed by resuming the same child session with corrections or follow-up work.
+_Avoid_: Blind result acceptance, unrelated retry, new child session
