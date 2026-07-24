@@ -32,6 +32,7 @@
 import {
   AgentSession,
   compact,
+  getLatestCompactionEntry,
   type ExtensionAPI,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
@@ -44,7 +45,11 @@ const MAX_EARLY_BACKOFF_TURNS = 8;
 const EARLY_CONTINUATION =
   "Continue from the completed tool results without repeating completed work. Follow any newer user instruction first.";
 const EARLY_COMPACTION_MARKER = "\u0000auto-compact:turn-boundary";
+const EARLY_COMPACTION_CONTINUE_MARKER = `${EARLY_COMPACTION_MARKER}:continue`;
+const EARLY_COMPACTION_BASELINE = ":after-compaction=";
+const NO_COMPACTION_BASELINE = "none";
 const TURN_BOUNDARY_PATCH = Symbol.for(`${EXTENSION_NAME}.turn-boundary`);
+const TURN_BOUNDARY_PATCH_VERSION = 3;
 
 type PiModel = NonNullable<ExtensionContext["model"]>;
 
@@ -71,6 +76,7 @@ type Threshold = {
 
 let earlyAutoInFlight = false;
 let allowEarlyAfterCompaction = true;
+let postCompactionUsagePending = false;
 let earlyAutoDisabledForBranch = false;
 let stuckWarningShown = false;
 let earlyFailureCount = 0;
@@ -84,8 +90,15 @@ type AgentLoopConfig = {
   shouldStopAfterTurn?: (turn: unknown) => boolean | Promise<boolean>;
 };
 
+type AgentMessageQueue = {
+  drain: () => unknown[];
+};
+
 type AgentLike = {
   createLoopConfig: (...args: unknown[]) => AgentLoopConfig;
+  hasQueuedMessages: () => boolean;
+  steeringQueue?: AgentMessageQueue;
+  followUpQueue?: AgentMessageQueue;
   state: { isStreaming: boolean };
   [TURN_BOUNDARY_PATCH]?: AgentTurnBoundaryState;
 };
@@ -96,12 +109,74 @@ type AgentTurnBoundaryState = {
   stopAfterTurn: boolean;
 };
 
-type PatchedAgentSessionPrototype = typeof AgentSession.prototype & {
-  [TURN_BOUNDARY_PATCH]?: {
-    originalRunAgentPrompt: AgentSession["_runAgentPrompt"];
-    originalCompact: AgentSession["compact"];
-  };
+type RunAgentPrompt = (messages: unknown[]) => Promise<void>;
+type HandlePostAgentRun = () => Promise<boolean>;
+
+type CoreAgentSession = {
+  agent: AgentSession["agent"];
+  sessionManager: AgentSession["sessionManager"];
+  waitForIdle: AgentSession["waitForIdle"];
+  _runAgentPrompt: RunAgentPrompt;
+  _handlePostAgentRun: HandlePostAgentRun;
+  compact: AgentSession["compact"];
 };
+
+type AgentSessionPatch = {
+  version?: number;
+  originalRunAgentPrompt: RunAgentPrompt;
+  originalHandlePostAgentRun?: HandlePostAgentRun;
+  originalCompact: AgentSession["compact"];
+};
+
+type PatchedAgentSessionPrototype = CoreAgentSession & {
+  [TURN_BOUNDARY_PATCH]?: AgentSessionPatch;
+};
+
+type EarlyCompactionMarker = {
+  continueCurrentWork: boolean;
+  baselineCompactionId: string | null | undefined;
+};
+
+function createEarlyCompactionMarker(
+  continueCurrentWork: boolean,
+  baselineCompactionId: string | undefined,
+): string {
+  const prefix = continueCurrentWork
+    ? EARLY_COMPACTION_CONTINUE_MARKER
+    : EARLY_COMPACTION_MARKER;
+  return `${prefix}${EARLY_COMPACTION_BASELINE}${baselineCompactionId ?? NO_COMPACTION_BASELINE}`;
+}
+
+function parseEarlyCompactionMarker(
+  customInstructions: string | undefined,
+): EarlyCompactionMarker | undefined {
+  if (!customInstructions) return undefined;
+
+  const continueCurrentWork = customInstructions.startsWith(
+    EARLY_COMPACTION_CONTINUE_MARKER,
+  );
+  const prefix = continueCurrentWork
+    ? EARLY_COMPACTION_CONTINUE_MARKER
+    : EARLY_COMPACTION_MARKER;
+  if (customInstructions === prefix) {
+    return { continueCurrentWork, baselineCompactionId: undefined };
+  }
+
+  const encodedBaseline = customInstructions.slice(
+    `${prefix}${EARLY_COMPACTION_BASELINE}`.length,
+  );
+  if (
+    !customInstructions.startsWith(`${prefix}${EARLY_COMPACTION_BASELINE}`) ||
+    !encodedBaseline
+  )
+    return undefined;
+
+  return {
+    continueCurrentWork,
+    baselineCompactionId:
+      encodedBaseline === NO_COMPACTION_BASELINE ? null : encodedBaseline,
+  };
+}
 
 function installAgentTurnStop(agent: AgentLike) {
   if (agent[TURN_BOUNDARY_PATCH]) return;
@@ -129,27 +204,71 @@ function installAgentTurnStop(agent: AgentLike) {
   };
 }
 
-function installTurnBoundaryCompactionPatch() {
-  const prototype = AgentSession.prototype as PatchedAgentSessionPrototype;
-  if (prototype[TURN_BOUNDARY_PATCH]) return;
+function drainNextAgentQueue(agent: AgentLike): unknown[] {
+  const steering = agent.steeringQueue?.drain() ?? [];
+  if (steering.length > 0) return steering;
+  return agent.followUpQueue?.drain() ?? [];
+}
 
-  const originalRunAgentPrompt = prototype._runAgentPrompt;
-  const originalCompact = prototype.compact;
+function installTurnBoundaryCompactionPatch() {
+  const prototype =
+    AgentSession.prototype as unknown as PatchedAgentSessionPrototype;
+  const existing = prototype[TURN_BOUNDARY_PATCH];
+  if (existing?.version === TURN_BOUNDARY_PATCH_VERSION) return;
+
+  // Reloads must replace stale wrappers while retaining the original core methods.
+  const originalRunAgentPrompt =
+    existing?.originalRunAgentPrompt ?? prototype._runAgentPrompt;
+  const originalHandlePostAgentRun =
+    existing?.originalHandlePostAgentRun ?? prototype._handlePostAgentRun;
+  const originalCompact = existing?.originalCompact ?? prototype.compact;
   prototype[TURN_BOUNDARY_PATCH] = {
+    version: TURN_BOUNDARY_PATCH_VERSION,
     originalRunAgentPrompt,
+    originalHandlePostAgentRun,
     originalCompact,
   };
 
   prototype._runAgentPrompt = function patchedRunAgentPrompt(...args) {
-    installAgentTurnStop(this.agent as AgentLike);
+    installAgentTurnStop(this.agent as unknown as AgentLike);
     return originalRunAgentPrompt.apply(this, args);
   };
 
-  prototype.compact = function patchedCompact(customInstructions) {
-    if (customInstructions !== EARLY_COMPACTION_MARKER)
-      return originalCompact.call(this, customInstructions);
+  prototype._handlePostAgentRun = async function patchedHandlePostAgentRun(
+    ...args
+  ) {
+    const agent = this.agent as unknown as AgentLike;
+    const state = agent[TURN_BOUNDARY_PATCH];
+    if (!state?.stopAfterTurn) {
+      return originalHandlePostAgentRun.apply(this, args);
+    }
 
-    const agent = this.agent as AgentLike;
+    // AgentSession normally restarts the provider loop when agent-level custom
+    // messages are queued. Hide only that final queue check so compaction gets
+    // the strict turn boundary; retries and built-in compaction still run.
+    const hadOwnHasQueuedMessages = Object.prototype.hasOwnProperty.call(
+      agent,
+      "hasQueuedMessages",
+    );
+    const originalHasQueuedMessages = agent.hasQueuedMessages;
+    agent.hasQueuedMessages = () => false;
+    try {
+      return await originalHandlePostAgentRun.apply(this, args);
+    } finally {
+      if (hadOwnHasQueuedMessages) {
+        agent.hasQueuedMessages = originalHasQueuedMessages;
+      } else {
+        Reflect.deleteProperty(agent, "hasQueuedMessages");
+      }
+    }
+  };
+
+  prototype.compact = function patchedCompact(customInstructions) {
+    const marker = parseEarlyCompactionMarker(customInstructions);
+    if (!marker) return originalCompact.call(this, customInstructions);
+
+    const { continueCurrentWork } = marker;
+    const agent = this.agent as unknown as AgentLike;
     installAgentTurnStop(agent);
     const state = agent[TURN_BOUNDARY_PATCH]!;
     if (!agent.state.isStreaming || !state.canStopCurrentRun) {
@@ -162,7 +281,37 @@ function installTurnBoundaryCompactionPatch() {
     return (async () => {
       await this.waitForIdle();
       state.stopAfterTurn = false;
-      return originalCompact.call(this);
+
+      // Pi's built-in threshold may compact the same turn while this request
+      // waits for the strict boundary. Reuse that result instead of issuing a
+      // second compaction that can only fail with "Already compacted".
+      const latestCompaction = getLatestCompactionEntry(
+        this.sessionManager.getBranch(),
+      );
+      const wasSuperseded =
+        marker.baselineCompactionId !== undefined &&
+        latestCompaction?.id !== marker.baselineCompactionId;
+      const result =
+        wasSuperseded && latestCompaction
+          ? {
+              summary: latestCompaction.summary,
+              firstKeptEntryId: latestCompaction.firstKeptEntryId,
+              tokensBefore: latestCompaction.tokensBefore,
+              usage: latestCompaction.usage,
+              details: latestCompaction.details,
+            }
+          : await originalCompact.call(this);
+
+      // A final answer does not need a synthetic continuation, but custom
+      // messages queued during its turn still need a session-managed run.
+      if (!continueCurrentWork && agent.hasQueuedMessages()) {
+        const queuedMessages = drainNextAgentQueue(agent);
+        if (queuedMessages.length > 0) {
+          await originalRunAgentPrompt.call(this, queuedMessages);
+        }
+      }
+
+      return result;
     })();
   };
 }
@@ -356,7 +505,8 @@ async function resolveConfiguredModel(
   }
 
   const model = ctx.modelRegistry.find(ref.provider, ref.id) as
-    PiModel | undefined;
+    | PiModel
+    | undefined;
   if (!model) {
     warnOnce(
       ctx,
@@ -403,11 +553,13 @@ function resetBranchState(ctx: ExtensionContext) {
   stuckWarningShown = false;
   resetEarlyBackoff();
   pendingEarlyReason = undefined;
-  allowEarlyAfterCompaction = branchLastEntry(ctx)?.type !== "compaction";
+  postCompactionUsagePending = branchLastEntry(ctx)?.type === "compaction";
+  allowEarlyAfterCompaction = !postCompactionUsagePending;
 }
 
 async function maybeTriggerEarlyAuto(
   ctx: ExtensionContext,
+  continueCurrentWork: boolean,
   continueAfterAttempt: () => void,
 ) {
   const settings = await loadSettings(ctx);
@@ -433,8 +585,14 @@ async function maybeTriggerEarlyAuto(
   notify(ctx, `auto-compact threshold reached: ${pendingEarlyReason}`, "info");
 
   earlyAutoInFlight = true;
+  const baselineCompactionId = getLatestCompactionEntry(
+    ctx.sessionManager.getBranch(),
+  )?.id;
   ctx.compact({
-    customInstructions: EARLY_COMPACTION_MARKER,
+    customInstructions: createEarlyCompactionMarker(
+      continueCurrentWork,
+      baselineCompactionId,
+    ),
     onComplete: () => {
       earlyAutoInFlight = false;
       resetEarlyBackoff();
@@ -524,8 +682,18 @@ export default function (pi: ExtensionAPI) {
     resetBranchState(ctx);
   });
 
-  pi.on("message_end", (event) => {
-    if (event.message.role === "assistant") allowEarlyAfterCompaction = true;
+  pi.on("message_end", (event, ctx) => {
+    if (event.message.role !== "assistant") return;
+    if (!postCompactionUsagePending) {
+      allowEarlyAfterCompaction = true;
+      return;
+    }
+
+    postCompactionUsagePending = false;
+    deferForActiveSession(ctx, async (activeCtx) => {
+      await checkStuckThreshold(activeCtx);
+      if (!earlyAutoDisabledForBranch) allowEarlyAfterCompaction = true;
+    });
   });
 
   pi.on("tool_execution_end", (event) => {
@@ -550,7 +718,7 @@ export default function (pi: ExtensionAPI) {
 
     const generation = sessionGeneration;
     const shouldResume = event.toolResults.length > 0 && !allToolsTerminate;
-    await maybeTriggerEarlyAuto(ctx, () => {
+    await maybeTriggerEarlyAuto(ctx, shouldResume, () => {
       deferForActiveSession(ctx, async (activeCtx) => {
         if (
           !shouldResume ||
@@ -647,13 +815,12 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_compact", (_event, ctx) => {
-    earlyAutoInFlight = false;
-    resetEarlyBackoff();
+    if (!earlyAutoInFlight) resetEarlyBackoff();
     allowEarlyAfterCompaction = false;
+    postCompactionUsagePending = true;
     deferForActiveSession(ctx, async (activeCtx) => {
       if (lastCompactionNotice) notify(activeCtx, lastCompactionNotice, "info");
       lastCompactionNotice = undefined;
-      await checkStuckThreshold(activeCtx);
     });
   });
 }
