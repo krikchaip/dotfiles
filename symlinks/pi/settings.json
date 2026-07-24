@@ -17,11 +17,6 @@
     "antigravity/gemini-3.5-flash-high",
     "antigravity/gemini-3.1-pro-high",
     "antigravity/claude-opus-4-6-thinking",
-    "github-copilot/gpt-5.6-terra",
-    "github-copilot/gpt-5.6-sol",
-    "github-copilot/claude-opus-4.8",
-    "github-copilot/claude-fable-5",
-    "openai-codex/gpt-5.3-codex-spark",
     "openai-codex/gpt-5.6-luna",
     "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.6-sol",
@@ -126,4 +121,4 @@
     "scrollChatUp": "ctrl+up",
     "stashHistory": "ctrl+alt+h"
   }
-}
+}}
