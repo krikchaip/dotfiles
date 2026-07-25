@@ -24,8 +24,8 @@ Where are agent definitions discovered, how are same-name definitions resolved, 
 - Discover named definitions only from `<cwd>/.pi/agents/*.md` and `$PI_CODING_AGENT_DIR/agents/*.md` (default `~/.pi/agent/agents/*.md`). Project definitions override same-name global definitions.
 - Do not scan `.agents/agents/` and do not ship bundled agent definitions. Users create every named definition.
 - Agent files are shared with other plugins. Ignore and do not consume unknown frontmatter fields; do not warn, reject the agent, or interpret unsupported pi-subagents fields as aliases.
-- Missing `subagent_type` selects the special default agent cloned from the parent. There is no explicit `"default"` value, and `default.md` does not define the default agent.
-- The default agent clones the parent's current model, thinking level, system prompt, working directory, enabled tools, loaded extensions, and skills. It does not clone conversation history unless `inherit_context: true`.
+- Missing `subagent_type` selects the general-purpose default agent cloned from the parent. There is no explicit `"default"` value, and `default.md` does not define the default agent. The tool parameter description tells the model to omit `subagent_type` for general-purpose use.
+- The default agent clones the parent's current model, thinking level, system prompt, working directory, enabled tools, loaded extensions, and skills. Conversation inheritance defaults to enabled unless frontmatter or the `Agent` call sets `inherit_context: false`.
 - Subagent sessions never receive `Agent` or any other subagent-spawning tool. This hard prohibition overrides parent cloning, named-agent frontmatter, and future configuration.
 - Expose discovered agent names and full frontmatter descriptions in the parent system prompt. Normalize whitespace only; do not truncate descriptions.
 - Keep the `Agent` tool description short; do not duplicate the agent catalog there.
@@ -33,8 +33,8 @@ Where are agent definitions discovered, how are same-name definitions resolved, 
 - Named agents clone the current parent session configuration as their baseline. Any frontmatter field omitted by the named definition inherits the corresponding parent value rather than resetting to Pi defaults.
 - Agent definitions have no `prompt_mode`. Preserve Pi's native prompt construction and section order for the resolved child configuration. Append preloaded skill content after Pi's native prompt, then append the agent definition's Markdown body last.
 - Consume one pane-mode field, `interactive: boolean`, in both named-agent frontmatter and the `Agent` request. `true` keeps the pane open after a completed turn; `false` or omission starts autonomously and closes after completion. A per-call value overrides frontmatter, and manual pane input permanently changes the session to interactive. Do not consume `auto-exit`; auto-exit is derived lifecycle behavior rather than configuration.
-- Consume `inherit_context: boolean` in named-agent frontmatter as the default for copying the parent conversation. A per-call `Agent.inherit_context` value overrides it; omission defaults to `false`. Do not consume Hazat's `session-mode`; lineage and session association are separate from conversation copying.
-- Do not consume `cwd` in MVP frontmatter. Every child inherits the parent working directory; `Agent` also has no per-call `cwd`.
+- Consume `inherit_context: boolean` in named-agent frontmatter as the default for copying the parent conversation. A per-call `Agent.inherit_context` value overrides it; total omission defaults to `true`. Set it false for a fresh, parent-unbiased context such as an adversarial review, second opinion, or unrelated task. Context is copied once at launch; later parent turns are not synchronized. Do not consume Hazat's `session-mode`; lineage and session association are separate from conversation copying.
+- Do not consume `cwd` in MVP frontmatter. Every new child starts in the parent session's current working directory at invocation; `Agent` also has no per-call `cwd`. Pass that directory explicitly to tmux pane creation rather than relying on tmux's focused-pane directory.
 - Do not consume `max_turns` in MVP frontmatter. Autonomous runs stop through normal model completion or direct pane cancellation; no turn-count limiter or graceful-turn subsystem is included.
 - Do not consume `display_name`. The filename is the canonical agent name, required non-empty frontmatter `description` explains the role, and required per-call `Agent.description` supplies the short task label used by the pane and parent status UI.
 - Consume `enabled: false` as a project-level tombstone for disabling a same-name global agent. Resolve precedence first, then omit the disabled name from the parent catalog and `Agent.subagent_type` enum. A disabled tombstone needs no description or prompt body. Do not provide a hidden-but-directly-invokable state such as `disable-model-invocation`.
@@ -61,7 +61,7 @@ tools: all | none | name, name | [name, name]
 disallowed_tools: name, name | [name, name]
 available_skills: true | false | [name, name]
 preload_skills: [name, name]
-inherit_context: false
+inherit_context: true
 interactive: false
 ---
 
@@ -70,7 +70,7 @@ Optional agent instructions.
 
 `description` is catalog text, not a UI alias; do not consume `display_name`. Expose every valid enabled name and its full whitespace-normalized description in the parent system prompt. Do not truncate it or duplicate the catalog in the short `Agent` tool description. Build `Agent.subagent_type` from those names at registration time; it has no `"default"` value.
 
-An omitted `subagent_type` creates the default parent clone: current model, thinking, native system-prompt inputs, working directory, enabled tools, loaded extensions, and skills. It copies no conversation unless `inherit_context: true`. A named agent starts from the same parent baseline, then applies consumed frontmatter and appends preloaded skill bodies followed by its Markdown body after Pi's native prompt sections. There is no `prompt_mode`.
+An omitted `subagent_type` creates the general-purpose parent clone: current model, thinking, native system-prompt inputs, working directory, enabled tools, loaded extensions, and skills. It copies the parent conversation by default. A named agent starts from the same parent baseline, then applies consumed frontmatter and appends preloaded skill bodies followed by its Markdown body after Pi's native prompt sections. There is no `prompt_mode`.
 
 A present `model` must exactly match `provider/model-id` in Pi's registry; invalid explicit values abort launch without fallback. Omitted model and thinking inherit the parent. Invalid thinking values abort launch; valid unsupported levels use Pi's native clamp.
 
@@ -78,6 +78,6 @@ Omitted `tools` inherits the parent's enabled set. Present `tools` replaces it w
 
 `available_skills` controls the lazy catalog: omission inherits the parent catalog, `true` selects all normally model-invocable child-discovered skills, `false` selects none, and a list selects exactly those names. Explicit names may select skills hidden from model invocation; broad `true` may not. `preload_skills` independently injects full named skill bodies and removes duplicates from the lazy catalog. Unknown names abort launch. Without `read`, omit a non-empty lazy catalog with a launch warning, but still inject preloaded skills.
 
-Per-call `Agent.inherit_context` and `Agent.interactive` override same-name frontmatter. Otherwise both default false. `inherit_context` controls parent-conversation copying only. `interactive: false` starts autonomously and closes after completion; `true` stays open. Manual pane input permanently changes that session to interactive.
+Per-call `Agent.inherit_context` and `Agent.interactive` override same-name frontmatter. Without either override, `inherit_context` defaults true and `interactive` defaults false. `inherit_context` controls one-time parent-conversation copying only; set it false for independent or adversarial work unaffected by the parent's conversation. `interactive: false` starts autonomously and closes after completion; `true` stays open. Manual pane input permanently changes that session to interactive.
 
-Every child inherits the parent working directory and uses one persistent plugin-owned Pi session file. MVP ignores `auto-exit`, `cwd`, `max_turns`, `memory`, `persist_session`, `output_transcript`, `session_dir`, `session-mode`, `disable-model-invocation`, extension-selection fields, isolation fields, `run_in_background`, `skills`, and every other unsupported field.
+Every new child starts in the parent session's current working directory, passed explicitly during tmux pane creation, and uses one persistent plugin-owned Pi session file. MVP ignores `auto-exit`, `cwd`, `max_turns`, `memory`, `persist_session`, `output_transcript`, `session_dir`, `session-mode`, `disable-model-invocation`, extension-selection fields, isolation fields, `run_in_background`, `skills`, and every other unsupported field.

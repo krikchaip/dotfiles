@@ -21,22 +21,25 @@ An implementation-ready specification for the tmux-only Pi `side-quests` extensi
 - Support tmux only. Outside tmux, warn once at extension startup, register no tools or other extension functions, and remain inert.
 - The model may use its judgment to launch a side quest when useful. Delegation is optional, not restricted to explicit user requests, and never forced on every task.
 - Delegate coherent objectives with clear purpose and a return contract, not granular helper work the main quest can perform directly. Retrieval-only work never qualifies regardless of file count; search may support a side quest but cannot be its final objective. The main quest owns review and acceptance of returned evidence or changes.
-- Give each parent Pi session one shared sub-agent tmux window. Create it on first spawn, reuse it for that session, and remove it when its final sub-agent pane closes.
-- Use the parent Pi session name directly as the visible tmux window name. Keep at most its first five words and append `...` when more words exist.
+- Give each parent Pi session one shared sub-agent tmux window. Create it on first spawn and reuse it for that session. Remove it after the final managed pane closes only when no unmanaged panes remain; never kill a user-created pane merely to remove the window.
+- Name the shared tmux window with the first segment of the parent Pi session UUID. Use the full session ID for ownership and the canonical tmux window ID for targeting; the short window name is display-only.
 - Treat the parent session as the main quest and each persistent child session as a side quest. MVP `Agent` launches side quests asynchronously so the main quest never waits. Omit `run_in_background`; synchronous child-process waiting remains a future backlog option.
-- Autonomous panes close when work finishes. Interactive panes stay open until explicitly finished.
-- Manual input changes an autonomous pane into an interactive pane.
+- Every child Pi pane can accept terminal input. `interactive` controls lifecycle only: autonomous panes close after `agent_end`, while persistent panes stay open until explicitly finished. Manual input permanently changes an autonomous pane to persistent mode.
+- Do not expose a model-callable completion tool. Register child-only `/subagent-done` in every child so users can explicitly complete persistent or taken-over work; while an agent turn is active it refuses with a warning notification, and while idle it writes the trusted completion marker and shuts down.
 - Reapply the intended pane layout when agents start or stop instead of relying only on tmux reflow.
 - Support locked `binary` and `ternary` pane-layout modes through one arity-based algorithm; canonical landscape and portrait geometry lives in `prototypes/pane_layout_prototype.py`.
 - Final specification must clearly separate features removed, excluded, or simplified from `pi-interactive-subagents` from features added by this extension.
 - Do not store child session files in the parent's normal Pi session folder. Defer exact `side-quests`-owned folder structure and retention policy.
-- Discover named agents only from project `.pi/agents/` and global `$PI_CODING_AGENT_DIR/agents/`; project wins name collisions. Do not scan `.agents/agents/` or ship bundled agents. An omitted `subagent_type` clones the parent's current runtime configuration, but conversation history remains gated by `inherit_context`; there is no explicit `"default"` enum value.
+- Discover named agents only from project `.pi/agents/` and global `$PI_CODING_AGENT_DIR/agents/`; project wins name collisions. Do not scan `.agents/agents/` or ship bundled agents. An omitted `subagent_type` means general-purpose use and clones the parent's current runtime configuration; there is no explicit `"default"` enum value. `inherit_context` defaults true and may be set false for fresh, parent-unbiased work.
 - Never expose `Agent` or any other subagent-spawning tool inside a subagent, regardless of inherited or requested permissions.
-- When any key bound to Pi's `app.interrupt` action interrupts the main quest, broadcast that key input to every live side-quest pane without consuming the main quest's input. Never hard-code Escape. Interrupt input originating in a child pane remains local to that child.
-- Never hard-code user-visible shortcut labels or duplicate Pi actions with extension shortcuts. Match Pi's effective keybindings and render hints with the corresponding action ID; completion expansion uses `app.tools.expand`.
+- Never propagate main-quest interruption and never expose `subagent_interrupt` to the model or an interrupt action in the parent widget. Interrupt a child only from its own pane through Pi's effective `app.interrupt` action.
+- Preserve HazAT's restrained live-widget frame and rows. `/side-quests` enters navigation mode without a global shortcut: effective selection actions move a restrained chevron highlight, confirm jumps the invoking tmux client to the selected pane, cancel returns to the editor, and scoped `d` asks for confirmation before closing that child as a trusted cancellation. Navigation keys never apply while ordinary editor input owns focus.
+- On parent quit, process loss, or session replacement (`new`, `resume`, or `fork`), terminate every child owned by that parent session without deleting its session files or emitting terminal handoffs. Children monitor unique owner liveness so abrupt parent loss cannot orphan them.
+- Do not hard-code, inspect, replay, or duplicate Pi's interrupt keybinding. For user-visible shortcut labels, render effective bindings through the corresponding action ID; completion expansion uses `app.tools.expand`.
 - Keep parent orchestration inert in child sessions, but load a child-only runtime companion from the same package for activity, heartbeat, takeover, and resolved lifecycle behavior. It never registers `Agent` or another spawning tool.
 - Track child status through atomically replaced runtime snapshots plus a periodic heartbeat and parent one-second polling. After 60 seconds, missing, invalid, wrong-child, or stale-heartbeat snapshots become `stalled`; never infer stalled from task duration or transcript inactivity.
-- In the same poll, verify canonical tmux pane IDs still exist. After one grace poll for a racing terminal marker, classify an unmarked disappeared pane as `closed`, wake the parent, preserve its resumable session, remove its widget row, and reflow; never misreport it as completed or infer who closed it.
+- In the same poll, verify canonical tmux pane IDs still exist. After one grace poll for a racing terminal marker, classify any unmarked disappearance as `closed`, including clean process quit, EOF, pane/window removal, or an uncaptured crash. Wake the parent, preserve its resumable session, remove its widget row, and reflow; never misreport it as completed or infer who closed it. Captured failures stay `failed`, and expected parent-shutdown teardown stays silent.
+- Start every new child in the parent session's current working directory at invocation, passed explicitly to tmux pane creation. Expose no per-call or frontmatter `cwd` override.
 
 ## Decisions so far
 
@@ -48,8 +51,7 @@ An implementation-ready specification for the tmux-only Pi `side-quests` extensi
 
 ## Not yet specified
 
-- Reliable window association when visible session names collide.
-- Result delivery and minimal status visibility in the parent Pi session.
+- Result delivery and live-widget behavior across `/reload`.
 - Exact `side-quests`-owned child-session folder structure and persistence policy.
 - Verification and acceptance boundaries for the final specification.
 
