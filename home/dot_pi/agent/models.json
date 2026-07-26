@@ -6,12 +6,6 @@
       "apiKey": "google-antigravity",
       "models": [
         {
-          "id": "gemini-3-flash",
-          "input": ["text", "image"],
-          "contextWindow": 1048576,
-          "maxTokens": 65536
-        },
-        {
           "id": "gemini-3.5-flash-medium",
           "input": ["text", "image"],
           "contextWindow": 1048576,
@@ -19,6 +13,18 @@
         },
         {
           "id": "gemini-3.5-flash-high",
+          "input": ["text", "image"],
+          "contextWindow": 1048576,
+          "maxTokens": 65536
+        },
+        {
+          "id": "gemini-3.6-flash-medium",
+          "input": ["text", "image"],
+          "contextWindow": 1048576,
+          "maxTokens": 65536
+        },
+        {
+          "id": "gemini-3.6-flash-high",
           "input": ["text", "image"],
           "contextWindow": 1048576,
           "maxTokens": 65536
