@@ -24,6 +24,17 @@ end
 
 M.setup = function()
   require("goto-preview").setup(M.config {})
+
+  -- Pass the closed window to goto-preview so unrelated floating windows do not corrupt its preview stack.
+  -- ref: https://github.com/rmagatti/goto-preview/blob/d2d6923c9b9e0e43f0b9b566f261a8b1ae016540/lua/goto-preview/lib.lua#L206-L234
+  local group = vim.api.nvim_create_augroup("goto-preview", { clear = false })
+  vim.api.nvim_clear_autocmds { group = group, event = "WinClosed" }
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = group,
+    callback = function(args)
+      require("goto-preview").remove_win(tonumber(args.match))
+    end,
+  })
 end
 
 M.get_config = function(data)
@@ -102,6 +113,10 @@ end
 
 M.close = function()
   vim.cmd "wincmd q"
+
+  local winnr = vim.api.nvim_get_current_win()
+  local ok, is_preview = pcall(vim.api.nvim_win_get_var, winnr, "is-goto-preview-window")
+  if ok and is_preview == 1 then M.post_open_hook(vim.api.nvim_win_get_buf(winnr), winnr) end
 end
 
 M.close_all = function()

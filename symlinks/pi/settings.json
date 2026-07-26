@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.82.0",
+  "lastChangelogVersion": "0.82.1",
   "quietStartup": false,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -121,4 +121,4 @@
     "scrollChatUp": "ctrl+up",
     "stashHistory": "ctrl+alt+h"
   }
-}}
+}
