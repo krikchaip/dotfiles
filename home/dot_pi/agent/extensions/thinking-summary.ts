@@ -204,6 +204,17 @@ async function patchAssistantMessageComponent(): Promise<void> {
 
       if (content.type !== "thinking" || !content.thinking.trim()) continue;
 
+      const previousVisibleContent = message.content
+        .slice(0, i)
+        .findLast(
+          (previous) =>
+            (previous.type === "text" && previous.text.trim()) ||
+            (previous.type === "thinking" && previous.thinking.trim()),
+        );
+      if (previousVisibleContent?.type === "text") {
+        this.contentContainer.addChild(new tuiModule.Spacer(1));
+      }
+
       const hasVisibleContentAfter = message.content
         .slice(i + 1)
         .some(
