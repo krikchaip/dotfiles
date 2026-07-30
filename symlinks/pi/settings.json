@@ -85,7 +85,7 @@
       "disabledItems": [],
       "config": {
         "@vanillagreen/pi-caveman": {
-          "mode": "full",
+          "mode": "off",
           "boundaryNormalForCommits": false
         }
       }
