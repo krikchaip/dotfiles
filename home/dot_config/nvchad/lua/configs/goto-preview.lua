@@ -112,15 +112,32 @@ M.map = function(mappings)
 end
 
 M.close = function()
+  local winnr = vim.api.nvim_get_current_win()
+  local parent_win = get_win_config(winnr).win
+
   vim.cmd "wincmd q"
 
-  local winnr = vim.api.nvim_get_current_win()
+  winnr = vim.api.nvim_get_current_win()
   local ok, is_preview = pcall(vim.api.nvim_win_get_var, winnr, "is-goto-preview-window")
-  if ok and is_preview == 1 then M.post_open_hook(vim.api.nvim_win_get_buf(winnr), winnr) end
+  if ok and is_preview == 1 then
+    M.post_open_hook(vim.api.nvim_win_get_buf(winnr), winnr)
+  elseif parent_win and parent_win ~= 0 and vim.api.nvim_win_is_valid(parent_win) then
+    set_win(parent_win)
+  end
 end
 
 M.close_all = function()
+  local parent_win = get_win_config(vim.api.nvim_get_current_win()).win
+
+  while parent_win and parent_win ~= 0 and vim.api.nvim_win_is_valid(parent_win) do
+    local ok, is_preview = pcall(vim.api.nvim_win_get_var, parent_win, "is-goto-preview-window")
+    if not ok or is_preview ~= 1 then break end
+    parent_win = get_win_config(parent_win).win
+  end
+
   require("goto-preview").close_all_win()
+
+  if parent_win and parent_win ~= 0 and vim.api.nvim_win_is_valid(parent_win) then set_win(parent_win) end
 end
 
 -- Open preview window using telescope-esque bindings
