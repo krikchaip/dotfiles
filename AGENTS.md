@@ -2,6 +2,7 @@ Dotfiles repo:
 - This is a `chezmoi`-managed dotfiles repository
 - Source files are located in `~/.local/share/chezmoi/home/`
 - DO NOT edit files in `~` directly; always edit the source templates/files in the repo and run `chezmoi apply` to copy files to user's home directory
+- When moving or renaming a managed source file, remove its old target file after applying the new one. Chezmoi does not track moves or renames, so it leaves stale target files behind.
 
 Package installation/management:
 - Binaries and tools are managed via `home/dot_Brewfile` using Homebrew
