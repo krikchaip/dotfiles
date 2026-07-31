@@ -98,11 +98,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
 type PostMergeAction =
-  | "switch"
-  | "switch-remove"
-  | "close-pane"
-  | "close-pane-remove"
-  | "stay";
+  "switch" | "switch-remove" | "close-pane" | "close-pane-remove" | "stay";
 
 type PostMergeItem = {
   value: PostMergeAction;
@@ -373,6 +369,78 @@ function getMergeWatermarks(entries: BranchEntry[]) {
   return watermarks;
 }
 
+function isTargetMergeEcho(
+  entry: BranchEntry,
+  targetSessionId: string,
+  knownIds: Set<string>,
+) {
+  if (entry.type !== "branch_summary" || !isRecord(entry.details)) return false;
+  if (entry.details.sourceSessionId !== targetSessionId) return false;
+
+  const watermarks = getEntryMergeWatermarks(entry);
+  return (
+    Boolean(watermarks?.length) && watermarks.every((id) => knownIds.has(id))
+  );
+}
+
+function getMergedSourceSessionIds(
+  targetEntries: BranchEntry[],
+  knownIds: Set<string>,
+) {
+  const sourceSessionIds = new Set<string>();
+  const visitedSessionFiles = new Set<string>();
+
+  const visit = (entries: BranchEntry[], requireKnownNodeId: boolean) => {
+    for (const entry of entries) {
+      if (entry.type !== "branch_summary" || !isRecord(entry.details)) continue;
+      if (requireKnownNodeId && !knownIds.has(entry.id)) continue;
+
+      const sourceSessionId = entry.details.sourceSessionId;
+      if (typeof sourceSessionId !== "string") continue;
+      sourceSessionIds.add(sourceSessionId);
+
+      const sourceSessionFile = entry.details.sourceSessionFile;
+      if (
+        typeof sourceSessionFile !== "string" ||
+        visitedSessionFiles.size >= 32
+      ) {
+        continue;
+      }
+
+      const path = resolve(sourceSessionFile);
+      if (visitedSessionFiles.has(path)) continue;
+      visitedSessionFiles.add(path);
+
+      try {
+        const session = SessionManager.open(path);
+        const leafId = getLogicalLeafId(
+          session as unknown as CommandSessionManager,
+        );
+        if (leafId) visit(session.getBranch(leafId), true);
+      } catch {
+        // Historical merge metadata can refer to a deleted session. It cannot
+        // establish transitive provenance in that case.
+      }
+    }
+  };
+
+  visit(targetEntries, false);
+  return sourceSessionIds;
+}
+
+function isKnownSourceSummary(
+  entry: BranchEntry,
+  sourceWasPreviouslyMerged: boolean,
+  knownIds: Set<string>,
+) {
+  if (!sourceWasPreviouslyMerged) return false;
+
+  const watermarks = getEntryMergeWatermarks(entry);
+  return (
+    Boolean(watermarks?.length) && watermarks.every((id) => knownIds.has(id))
+  );
+}
+
 function getMergeDelta(
   sourceSessionManager: CommandSessionManager,
   targetSessionManager: CommandSessionManager,
@@ -386,22 +454,64 @@ function getMergeDelta(
     ? targetSessionManager.getBranch(targetLeafId)
     : [];
   const knownEntryIds = new Set(targetEntries.map((entry) => entry.id));
+  const targetSessionId = targetSessionManager.getSessionId();
 
   for (const id of getMergeWatermarks(targetEntries)) knownEntryIds.add(id);
+  const sourceWasPreviouslyMerged = getMergedSourceSessionIds(
+    targetEntries,
+    knownEntryIds,
+  ).has(sourceSessionManager.getSessionId());
 
-  const entries = sourceEntries.filter((entry) => {
-    if (!isMergeableEntry(entry) || knownEntryIds.has(entry.id)) return false;
-
-    const watermarks = getEntryMergeWatermarks(entry);
-    return !watermarks || !watermarks.every((id) => knownEntryIds.has(id));
-  });
+  // An entry ID is the only proof that its content reached this target. A
+  // merged branch summary can carry watermarks for its own source entries, but
+  // those IDs do not prove the summary text itself was transferred. Keep that
+  // node until its own ID is known, or later merges can lose its compacted
+  // context while still treating the source work as already merged. The one
+  // exception is a summary sourced from this target: it is an echo created by
+  // merging the target into the source, so do not merge it back when all of
+  // its source entries are already known. Likewise, a source session already
+  // represented through a known ancestor merge must not replay its legacy
+  // summary-node IDs when their watermarks are fully known.
+  const entries = sourceEntries.filter(
+    (entry) =>
+      isMergeableEntry(entry) &&
+      !knownEntryIds.has(entry.id) &&
+      !isTargetMergeEcho(entry, targetSessionId, knownEntryIds) &&
+      !isKnownSourceSummary(entry, sourceWasPreviouslyMerged, knownEntryIds),
+  );
   const sourceEntryIds = [
     ...new Set(
-      entries.flatMap((entry) => getEntryMergeWatermarks(entry) ?? [entry.id]),
+      entries.flatMap((entry) => [
+        entry.id,
+        ...(getEntryMergeWatermarks(entry) ?? []),
+      ]),
     ),
   ];
 
   return { entries, sourceEntryIds };
+}
+
+function entriesForMergeSummary(entries: BranchEntry[]) {
+  let lastCompactionIndex = -1;
+  for (let index = entries.length - 1; index >= 0; index--) {
+    if (entries[index].type === "compaction") {
+      lastCompactionIndex = index;
+      break;
+    }
+  }
+  if (lastCompactionIndex === -1) return entries;
+
+  // A compaction already represents the conversation before it. Passing that
+  // raw history as well makes `prepareBranchEntries` exhaust its newest-first
+  // token budget before it can retain all compacted and merged source context.
+  // Keep each source summary node and only the conversation after the latest
+  // compaction. This is the complete compacted representation of the source.
+  return entries.filter(
+    (entry, index) =>
+      index > lastCompactionIndex ||
+      entry.type === "compaction" ||
+      entry.type === "branch_summary",
+  );
 }
 
 function getBranchableLeafId(
@@ -568,8 +678,7 @@ async function resolveConfiguredSummaryModel(
   }
 
   const model = ctx.modelRegistry.find(ref.provider, ref.id) as
-    | PiModel
-    | undefined;
+    PiModel | undefined;
   if (!model) {
     warnOnce(
       ctx,
@@ -626,8 +735,7 @@ async function resolveConfiguredLabelModel(
   }
 
   const model = ctx.modelRegistry.find(ref.provider, ref.id) as
-    | PiModel
-    | undefined;
+    PiModel | undefined;
   if (!model) {
     warnOnce(
       ctx,
@@ -883,6 +991,12 @@ async function generateMergeSummary(
     throw new UserVisibleWarning("Nothing new to merge");
   }
 
+  const mergeInstructions = [
+    "This is a branch merge. Create one integrated summary from every supplied conversation entry, compaction summary, and branch summary. Reconcile overlaps, but retain the decisions, constraints, completed work, unresolved work, and next steps from each source summary.",
+    instruction,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const settings = await loadSettings(ctx);
   const config = getBranchSummaryConfig(settings);
   const reserveTokens = parseTokenValue(config.reserveTokens);
@@ -899,12 +1013,15 @@ async function generateMergeSummary(
       signal,
     };
     if (target.auth.headers) options.headers = target.auth.headers;
-    if (instruction) options.customInstructions = instruction;
+    options.customInstructions = mergeInstructions;
     if (reserveTokens !== undefined) options.reserveTokens = reserveTokens;
 
     let result: Awaited<ReturnType<typeof generateBranchSummary>>;
     try {
-      result = await generateBranchSummary(entries, options);
+      result = await generateBranchSummary(
+        entriesForMergeSummary(entries),
+        options,
+      );
     } catch (error) {
       if (signal.aborted) throw new UserVisibleWarning("Merge cancelled");
       throw error;
