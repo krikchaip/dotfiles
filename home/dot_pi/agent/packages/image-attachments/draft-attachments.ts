@@ -847,6 +847,18 @@ function submittedRefIdsFromMessage(
   return ids;
 }
 
+function resendableImagesForIds(
+  ids: number[],
+  existingImages: ImageBlock[] | undefined,
+): ImageBlock[] {
+  const existingIds = new Set(imageIdsFromBlocks(existingImages));
+  return ids.flatMap((id) => {
+    if (existingIds.has(id)) return [];
+    const submitted = submittedImages.get(id);
+    return submitted ? [imageBlockFromDraft(id, submitted)] : [];
+  });
+}
+
 function transformDraftPlaceholders(message: any): {
   count: number;
   submittedIds: number[];
@@ -986,6 +998,19 @@ function transformStreamingInput(
       submittedIds: draftResult.submittedIds,
       submittedRefIds,
       ...parts,
+    };
+  }
+
+  // Pi dequeues only text. Rebuild queued image bytes from the transient
+  // submission cache when that text is sent again.
+  const resendableImages = resendableImagesForIds(submittedRefIds, images);
+  if (resendableImages.length > 0) {
+    return {
+      changed: true,
+      submittedIds: [],
+      submittedRefIds,
+      text,
+      images: [...(images ?? []), ...resendableImages],
     };
   }
 
@@ -1129,8 +1154,7 @@ function patchClipboardImagePaste() {
 function patchPromptHistory() {
   const prototype = Editor.prototype as any;
   const existing = prototype[HISTORY_PATCH_STATE] as
-    | HistoryPatchState
-    | undefined;
+    HistoryPatchState | undefined;
   const legacy = prototype[LEGACY_EDITOR_PATCH_STATE] as any;
   const state: HistoryPatchState = existing ?? {
     originalPushUndoSnapshot:
