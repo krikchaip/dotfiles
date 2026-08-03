@@ -340,8 +340,7 @@ function isMergeableEntry(entry: BranchEntry) {
   return (
     (entry.type === "message" && entry.message.role !== "toolResult") ||
     entry.type === "custom_message" ||
-    entry.type === "branch_summary" ||
-    entry.type === "compaction"
+    entry.type === "branch_summary"
   );
 }
 
@@ -462,6 +461,12 @@ function getMergeDelta(
     knownEntryIds,
   ).has(sourceSessionManager.getSessionId());
 
+  const isUnknownSourceEntry = (entry: BranchEntry) =>
+    isMergeableEntry(entry) &&
+    !knownEntryIds.has(entry.id) &&
+    !isTargetMergeEcho(entry, targetSessionId, knownEntryIds) &&
+    !isKnownSourceSummary(entry, sourceWasPreviouslyMerged, knownEntryIds);
+
   // An entry ID is the only proof that its content reached this target. A
   // merged branch summary can carry watermarks for its own source entries, but
   // those IDs do not prove the summary text itself was transferred. Keep that
@@ -472,46 +477,43 @@ function getMergeDelta(
   // its source entries are already known. Likewise, a source session already
   // represented through a known ancestor merge must not replay its legacy
   // summary-node IDs when their watermarks are fully known.
-  const entries = sourceEntries.filter(
-    (entry) =>
-      isMergeableEntry(entry) &&
-      !knownEntryIds.has(entry.id) &&
-      !isTargetMergeEcho(entry, targetSessionId, knownEntryIds) &&
-      !isKnownSourceSummary(entry, sourceWasPreviouslyMerged, knownEntryIds),
-  );
+  const deltaEntries = sourceEntries.filter(isUnknownSourceEntry);
   const sourceEntryIds = [
     ...new Set(
-      entries.flatMap((entry) => [
+      deltaEntries.flatMap((entry) => [
         entry.id,
         ...(getEntryMergeWatermarks(entry) ?? []),
       ]),
     ),
   ];
 
-  return { entries, sourceEntryIds };
-}
-
-function entriesForMergeSummary(entries: BranchEntry[]) {
-  let lastCompactionIndex = -1;
-  for (let index = entries.length - 1; index >= 0; index--) {
-    if (entries[index].type === "compaction") {
-      lastCompactionIndex = index;
-      break;
+  // A compaction is a cumulative representation, not new source work. It can
+  // replace raw delta entries only when every earlier mergeable entry is also
+  // unknown to the target. Otherwise it would replay known target history.
+  let hasKnownSourceContent = false;
+  let latestDeltaSafeCompactionIndex = -1;
+  for (let index = 0; index < sourceEntries.length; index++) {
+    const entry = sourceEntries[index];
+    if (entry.type === "compaction") {
+      if (!hasKnownSourceContent) latestDeltaSafeCompactionIndex = index;
+      continue;
+    }
+    if (isMergeableEntry(entry) && !isUnknownSourceEntry(entry)) {
+      hasKnownSourceContent = true;
     }
   }
-  if (lastCompactionIndex === -1) return entries;
 
-  // A compaction already represents the conversation before it. Passing that
-  // raw history as well makes `prepareBranchEntries` exhaust its newest-first
-  // token budget before it can retain all compacted and merged source context.
-  // Keep each source summary node and only the conversation after the latest
-  // compaction. This is the complete compacted representation of the source.
-  return entries.filter(
-    (entry, index) =>
-      index > lastCompactionIndex ||
-      entry.type === "compaction" ||
-      entry.type === "branch_summary",
-  );
+  const entries =
+    latestDeltaSafeCompactionIndex === -1
+      ? deltaEntries
+      : [
+          sourceEntries[latestDeltaSafeCompactionIndex],
+          ...sourceEntries
+            .slice(latestDeltaSafeCompactionIndex + 1)
+            .filter(isUnknownSourceEntry),
+        ];
+
+  return { entries, sourceEntryIds };
 }
 
 function getBranchableLeafId(
@@ -992,7 +994,7 @@ async function generateMergeSummary(
   }
 
   const mergeInstructions = [
-    "This is a branch merge. Create one integrated summary from every supplied conversation entry, compaction summary, and branch summary. Reconcile overlaps, but retain the decisions, constraints, completed work, unresolved work, and next steps from each source summary.",
+    "This is a branch merge. The supplied content represents only source work not known to the target. Create one integrated summary that retains its decisions, constraints, completed work, unresolved work, and next steps.",
     instruction,
   ]
     .filter(Boolean)
@@ -1018,10 +1020,7 @@ async function generateMergeSummary(
 
     let result: Awaited<ReturnType<typeof generateBranchSummary>>;
     try {
-      result = await generateBranchSummary(
-        entriesForMergeSummary(entries),
-        options,
-      );
+      result = await generateBranchSummary(entries, options);
     } catch (error) {
       if (signal.aborted) throw new UserVisibleWarning("Merge cancelled");
       throw error;

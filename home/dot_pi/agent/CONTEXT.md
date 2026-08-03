@@ -29,15 +29,19 @@ Early context compaction requested after a completed assistant turn reaches the 
 _Avoid_: Per-tool compaction, idle compaction, built-in compaction
 
 **Mergeable session entry**:
-An active session branch node that Pi can include in a generated summary: a message, custom message, compaction, or branch summary.
-_Avoid_: Label, marker, session name
+An active session branch node that represents independent work Pi can include in a generated merge summary: a message, custom message, or branch summary. A compaction is a cumulative representation, not independent work.
+_Avoid_: Compaction, label, marker, session name
+
+**Delta-safe compaction**:
+A cumulative context summary whose represented history contains no work already known to the merge target. It can stand in for older merge-delta entries without replaying target history.
+_Avoid_: Latest compaction, new compaction
 
 **Merge watermark**:
 Globally meaningful source entry identifiers recorded on a target merge summary to prevent later merges from re-summarizing already transferred work.
 _Avoid_: Source-session-local marker, last merged timestamp, summary text matching
 
 **Merge delta**:
-Mergeable entries on a source active session branch whose identifiers are absent from both the target active session branch and its active-branch merge watermarks. A merge summary is also absent when every source identifier in its own merge watermark is already known to the target; when transferred, those identifiers propagate rather than the summary node ID. An empty merge delta produces no merge.
+Mergeable entries on a source active session branch whose identifiers are absent from both the target active session branch and its active-branch merge watermarks. A merge summary is also absent when every source identifier in its own merge watermark is already known to the target; when transferred, those identifiers propagate rather than the summary node ID. A compaction does not create merge delta; a delta-safe compaction can only represent it during summary generation. An empty merge delta produces no merge.
 _Avoid_: Full source summary, content diff
 
 **Automatic rename**:
