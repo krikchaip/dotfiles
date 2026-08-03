@@ -47,10 +47,7 @@
     "enabled": true,
     "model": "antigravity/gemini-3.6-flash-high"
   },
-  "skills": [
-    "-skills/caveman/SKILL.md",
-    "-skills/ponytail/SKILL.md"
-  ],
+  "skills": [],
   "extensions": [],
   "npmCommand": [
     "mise",
