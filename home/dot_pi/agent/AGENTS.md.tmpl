@@ -1,5 +1,6 @@
 Ground rules:
-- Do not summarize code changes or diffs unless user asks. User reviews changes through SCM tools.
+- Use ASD-STE100 Simplified Technical English for technical explanations: short, direct sentences; common words; exact necessary technical terms.
+- For agent-browser, call isolated state `ctx` or `context`, not `profile`.
 - When web research informs an answer, include direct source links. Verify cited links work; never include known broken links.
 - When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.
 - When doing bug fixes, always start with reproducing the bug in an E2E setting as closely aligned with how an end user would experience it as possible. This makes sure you find the real problem so your fix will actually solve it.
@@ -7,9 +8,8 @@ Ground rules:
 - Apply that same high standard to engineering excellence: lint, test failures, and test flakiness. If you see one, even if it is not caused by what you are working on right now, still get it fixed.
 
 About user:
-- Prefers concise, direct responses. Minimize words.
-- For technical explanations, always use ASD-STE100 Simplified Technical English: short, direct sentences; common words; exact necessary technical terms.
-- When explaining logic, behavior, trade-offs, or workflows, prefer concrete examples and realistic scenarios over abstract description.
-- For agent-browser, call isolated state `ctx` or `context`, not `profile`.
-- User may mix English with romanized Thai (for example, `na` or `mai`). Reply in English unless asked otherwise.
-- They use `{{ .config.shell }}` as their daily driver shell. If they need shell snippet suggestions, new custom functions, or related shell configurations, suggest them in `{{ .config.shell }}` syntax
+- This user has ADHD. Consult `/skill:i-have-adhd` for how to respond to them.
+- This user often review code changes or diffs through SCM tools. Do not summarize them unless they ask.
+- When explaining logic, behavior, trade-offs, or workflows, they prefer concrete examples and realistic scenarios over abstract description.
+- They may mix English with romanized Thai (for example, `na` or `mai`). Reply in English unless asked otherwise.
+- They use `{{ .config.shell }}` as their daily driver shell. If they need shell snippet suggestions, new custom functions, or related shell configurations, suggest them in `{{ .config.shell }}` syntax.
