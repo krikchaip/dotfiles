@@ -67,7 +67,6 @@
     "git:github.com/krikchaip/pi-token-burden@personal",
     "git:github.com/krikchaip/pi-treex@personal",
     "npm:@gotgenes/pi-permission-system@20.6.0",
-    "npm:@vanillagreen/pi-caveman",
     "npm:pi-mcp-adapter",
     "npm:pi-web-access",
     {
@@ -80,17 +79,6 @@
     "packages/resume",
     "packages/provider-payload-debug"
   ],
-  "vstack": {
-    "extensionManager": {
-      "disabledItems": [],
-      "config": {
-        "@vanillagreen/pi-caveman": {
-          "mode": "off",
-          "boundaryNormalForCommits": false
-        }
-      }
-    }
-  },
   "powerline": {
     "placement": "below",
     "sessionTitle": {
