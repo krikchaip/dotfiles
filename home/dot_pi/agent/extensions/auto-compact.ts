@@ -77,7 +77,6 @@ type Threshold = {
 let earlyAutoInFlight = false;
 let allowEarlyAfterCompaction = true;
 let postCompactionUsagePending = false;
-let earlyAutoDisabledForBranch = false;
 let stuckWarningShown = false;
 let earlyFailureCount = 0;
 let earlyBackoffTurnsRemaining = 0;
@@ -272,14 +271,20 @@ function installTurnBoundaryCompactionPatch() {
     installAgentTurnStop(agent);
     const state = agent[TURN_BOUNDARY_PATCH]!;
     if (!agent.state.isStreaming || !state.canStopCurrentRun) {
-      return Promise.reject(
-        new Error("turn-boundary compaction unavailable outside an active run"),
-      );
+      if (continueCurrentWork) {
+        return Promise.reject(
+          new Error("turn-boundary compaction unavailable outside an active run"),
+        );
+      }
+      return originalCompact.call(this);
     }
 
     state.stopAfterTurn = true;
     return (async () => {
       await this.waitForIdle();
+      // Let SessionManager append the completed turn before it chooses a cut.
+      // Without this boundary, a tool-ending turn can appear too small to compact.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
       state.stopAfterTurn = false;
 
       // Pi's built-in threshold may compact the same turn while this request
@@ -549,7 +554,6 @@ function recordEarlyFailure() {
 
 function resetBranchState(ctx: ExtensionContext) {
   earlyAutoInFlight = false;
-  earlyAutoDisabledForBranch = false;
   stuckWarningShown = false;
   resetEarlyBackoff();
   pendingEarlyReason = undefined;
@@ -572,7 +576,7 @@ async function maybeTriggerEarlyAuto(
     resetEarlyBackoff();
     return;
   }
-  if (earlyAutoInFlight || earlyAutoDisabledForBranch) return;
+  if (earlyAutoInFlight) return;
   if (!allowEarlyAfterCompaction || branchLastEntry(ctx)?.type === "compaction")
     return;
   if (ctx.hasPendingMessages()) return;
@@ -623,7 +627,6 @@ async function checkStuckThreshold(ctx: ExtensionContext) {
   )
     return;
 
-  earlyAutoDisabledForBranch = true;
   if (stuckWarningShown) return;
 
   stuckWarningShown = true;
@@ -631,7 +634,7 @@ async function checkStuckThreshold(ctx: ExtensionContext) {
     ctx,
     `[${EXTENSION_NAME}] context still above early threshold after compaction (${formatTokens(tokens)} >= ${formatTokens(
       threshold.tokens,
-    )}). Early auto-compact disabled for this branch. Consider a handoff doc, /fork, /new, higher threshold, or lower keepRecentTokens.`,
+    )}). Auto-compaction will retry at the next eligible turn. Consider a handoff doc, /fork, /new, higher threshold, or lower keepRecentTokens.`,
     "warning",
   );
 }
@@ -658,11 +661,23 @@ export default function (pi: ExtensionAPI) {
   const deferForActiveSession = (
     ctx: ExtensionContext,
     task: (ctx: ExtensionContext) => Promise<void>,
+    delay = 0,
   ) => {
     const generation = sessionGeneration;
     setTimeout(() => {
       if (generation === sessionGeneration) void task(ctx);
-    }, 0);
+    }, delay);
+  };
+
+  const triggerSettledAuto = (ctx: ExtensionContext) => {
+    deferForActiveSession(
+      ctx,
+      async (activeCtx) => {
+        if (!activeCtx.isIdle()) return;
+        await maybeTriggerEarlyAuto(activeCtx, false, () => {});
+      },
+      25,
+    );
   };
 
   pi.on("session_start", (_event, ctx) => {
@@ -692,8 +707,12 @@ export default function (pi: ExtensionAPI) {
     postCompactionUsagePending = false;
     deferForActiveSession(ctx, async (activeCtx) => {
       await checkStuckThreshold(activeCtx);
-      if (!earlyAutoDisabledForBranch) allowEarlyAfterCompaction = true;
+      allowEarlyAfterCompaction = true;
     });
+  });
+
+  pi.on("agent_settled", (_event, ctx) => {
+    triggerSettledAuto(ctx);
   });
 
   pi.on("tool_execution_end", (event) => {
