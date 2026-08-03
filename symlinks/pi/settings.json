@@ -59,7 +59,6 @@
   "packages": [
     "git:github.com/krikchaip/pi-background-tasks@personal",
     "git:github.com/krikchaip/pi-cc-tools@personal",
-    "git:github.com/krikchaip/pi-goal@personal",
     "git:github.com/krikchaip/pi-powerline-footer@personal",
     "git:github.com/krikchaip/pi-token-burden@personal",
     "git:github.com/krikchaip/pi-treex@personal",
