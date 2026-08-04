@@ -611,3 +611,120 @@ A closed child:
 - Disappears from the live widget.
 - Causes remaining panes to reflow.
 
+## Reload, exit, and crash behavior
+
+### `/reload`
+
+`/reload` hands live children to the new extension instance:
+
+- Child processes and panes stay alive.
+- The old widget and poller stop.
+- The new instance validates and adopts the same owned children.
+- Pending terminal events are handled before the first restored widget is rendered.
+- The widget, polling, and layout are rebuilt.
+- Agent-file changes apply only to new children.
+- Existing children keep their saved manifest policy.
+- Events written during reload are delivered once.
+- Already delivered events are not duplicated.
+- Focus stays on the main quest.
+
+### Main quest exit or session replacement
+
+On quit, `/new`, `/resume`, `/fork`, or `/clone`:
+
+- Side Quests marks shutdown as expected.
+- Every child owned by that main quest stops.
+- Managed panes close.
+- No misleading child completion handoff is emitted.
+- Saved child sessions remain available.
+
+### Abrupt parent loss
+
+Children monitor both:
+
+- The unique parent process identity
+- A lease renewed by the parent poller
+
+If the parent process dies, children stop. If reload removes or breaks Side Quests, the lease expires after its default 60-second grace period and children stop even when the parent Pi process remains alive. This prevents orphan child processes.
+
+## Session storage and resume safety
+
+Side Quests stores data outside Pi's normal session tree:
+
+```text
+$PI_CODING_AGENT_DIR/side-quests/
+├── sessions/<parent-session-uuid>/<child-session-uuid>/
+│   ├── session.jsonl
+│   ├── manifest.json
+│   └── mailbox/
+│       ├── request.json
+│       └── response.json
+└── runtime/<parent-session-uuid>/
+    ├── owner.json
+    └── children/<child-session-uuid>/
+        ├── activity.json
+        └── terminal.json
+```
+
+Persistent data:
+
+- `session.jsonl` contains the Pi child session.
+- `manifest.json` contains identity, lineage, CWD, lifecycle, model, thinking, exact tools, skills, prompt policy, and schema version.
+- Resolved capability and prompt-policy fields stay immutable.
+- Continuation can update only the task label and permanent lifecycle promotion.
+- Unanswered requests remain until they receive a matching response.
+
+Replaceable runtime data:
+
+- Tracks owner health, pane ownership, current activity, and trusted terminal state.
+- Can be cleaned after the recorded owner process and lease are both dead.
+
+Resume safety:
+
+- The absolute `session.jsonl` path is the canonical child identifier.
+- The path must be a regular managed file under the Side Quests root.
+- Real path, directory IDs, manifest IDs, and parent lineage must agree.
+- Missing files, malformed manifests, foreign sessions, and symlink escapes are rejected.
+- Resuming never opens an arbitrary file as a Pi session.
+
+Storage safety:
+
+- Directories and files use owner-only access.
+- Manifests, mailboxes, activity, owner, and terminal files use atomic replacement.
+- IDs and schema versions are validated before use.
+- Responses are removed after the child accepts them.
+- Session files and unanswered requests have no automatic expiry.
+- Closing, failure, cancellation, shutdown, or reload does not delete a session.
+
+Side-quest sessions do not appear in Pi's normal `/resume` list. Resume them only through `Agent.resume` with the path returned to the main quest.
+
+## Safety boundaries
+
+Side Quests:
+
+- Launches Pi children only.
+- Never launches Claude Code or another agent runtime.
+- Prevents nested side quests.
+- Never gives a child a spawning tool.
+- Keeps child permissions fixed across takeover and resume.
+- Preserves unmanaged tmux panes and their processes.
+- Does not broadcast parent interruption to children.
+- Stops owned children when their owner disappears.
+- Keeps saved sessions until explicit deletion.
+- Requires the main quest to review returned evidence or changes.
+
+## Not included
+
+Side Quests does not include:
+
+- Synchronous or foreground `Agent` calls
+- `run_in_background` or a foreground/background switch
+- Result-polling, steering, or parent interrupt tools
+- Mandatory delegation or an orchestrator
+- Task queues, groups, scheduling, or nested agents
+- Worktree or isolation management
+- Per-call model, tools, skills, thinking, CWD, prompt, or turn-limit controls
+- Bundled agents, cross-session agent memory, or fuzzy model matching
+- Alternate transcripts or ephemeral child sessions
+- Automatic age-based cleanup or a session-deletion UI
+- A dense fleet dashboard or a child tool-list widget
