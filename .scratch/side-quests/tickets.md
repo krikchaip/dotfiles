@@ -8,21 +8,21 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 ## 1. Establish package architecture and verification loop
 
-**Status:** ready-for-human
+**Status:** done
 
 **What to build:** Establish a working local Pi package foundation with a small declarative composition root, cohesive deep modules, and an executable verification loop. Complete this ticket with the user in the loop: agree on module interfaces, ownership invariants, and test seams before those decisions are locked. The independently demoable product behavior is safe startup: outside tmux, Side Quests warns exactly once and remains fully inert; inside tmux, parent and child roles load only their intended package surfaces without startup errors.
 
 **Blocked by:** None — can start immediately.
 
-- [ ] Agree with the user on the deep module interfaces for agent policy, persistent state and mailboxes, tmux ownership and layout, parent coordination and event delivery, parent UI, and child lifecycle and activity.
-- [ ] Keep the package entrypoint declarative and keep parsing, persistence, process control, layout, polling, and rendering inside their owning modules.
-- [ ] Expose one normal parent extension entrypoint while keeping the child companion package-internal and explicitly loadable only by managed child processes.
-- [ ] Detect inert, parent, and child roles before any role-specific registration or resource startup.
-- [ ] Outside tmux, show exactly one warning and register no tool, command, hook-driven UI, timer, poller, or child resource.
-- [ ] Agree on test seams before writing tests: the complete installed Pi extension is primary; pure policy, storage validation, event identity, lifecycle, mailbox, and layout interfaces are supplemental seams.
-- [ ] Provide repeatable commands for formatting, typecheck, unit tests, pane-layout prototype checks, and isolated real Pi-in-tmux E2E tests.
-- [ ] Make the E2E harness apply chezmoi source, isolate Pi and tmux state, drive a real TUI through a PTY, fail closed on missing evidence, preserve readable logs, and clean all temporary processes and files.
-- [ ] Demonstrate supported and unsupported startup through the real harness with no lint, typecheck, test, or process-leak failure.
+- [x] Agree with the user on the deep module interfaces for agent policy, persistent state and mailboxes, tmux ownership and layout, parent coordination and event delivery, parent UI, and child lifecycle and activity.
+- [x] Keep the package entrypoint declarative and keep parsing, persistence, process control, layout, polling, and rendering inside their owning modules.
+- [x] Expose one normal parent extension entrypoint while keeping the child companion package-internal and explicitly loadable only by managed child processes.
+- [x] Detect inert, parent, and child roles before any role-specific registration or resource startup.
+- [x] Outside tmux, show exactly one warning and register no tool, command, hook-driven UI, timer, poller, or child resource.
+- [x] Agree on test seams before writing tests: the complete installed Pi extension is primary; pure policy, storage validation, event identity, lifecycle, mailbox, and layout interfaces are supplemental seams.
+- [x] Provide repeatable commands for formatting, typecheck, unit tests, pane-layout prototype checks, and isolated real Pi-in-tmux E2E tests.
+- [x] Make the E2E harness apply chezmoi source, isolate Pi and tmux state, drive a real TUI through a PTY, fail closed on missing evidence, preserve readable logs, and clean all temporary processes and files.
+- [x] Demonstrate supported and unsupported startup through the real harness with no lint, typecheck, test, or process-leak failure.
 
 ## 2. Deliver the complete day-to-day MVP
 
@@ -149,3 +149,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [ ] Run formatter, typecheck, lint, unit tests, integration tests, prototype checks, package application checks, and isolated real Pi-in-tmux E2E tests with no failure or flake.
 - [ ] Prove there is no focus theft, duplicate delivery, stale response, stale widget, leaked process, malformed geometry, unsafe resume, session-list pollution, or mutation of unrelated panes.
 - [ ] Leave the specification, map amendments, resolved design tickets, README, package behavior, and test evidence consistent with each other.
+
+## Comments
+
+- Ticket 1 claimed. The composition root is approved. Parent and child each use a barrel `index.ts`; both surfaces are split into `parent/index.ts`, `parent/runtime.ts`, `parent/ui.ts`, and `child/index.ts`, `child/runtime.ts`, `child/ui.ts`. Storage stays as direct `store/*.ts` imports without a barrel. `agent-definitions/` owns definition discovery and immutable child capability resolution, and has one barrel `agent-definitions/index.ts` that encapsulates its internal parts. Tmux starts as one cohesive `tmux.ts` module; it alone runs tmux commands and identifies managed panes/windows through persisted canonical IDs and full owner IDs, never display names or pane geometry. `parent/runtime.ts` owns Pi registrations, polling, coordination, persistence/tmux calls, and parent event delivery. `parent/ui.ts` only renders and emits navigation intents; the runtime validates and applies them. The parent and child runtime/UI boundaries are provisionally approved and can be refined when concrete behavior exists. `child/runtime.ts` owns child tools, activity and lifecycle state, terminal-state writes, and dynamic child commands; `child/ui.ts` only renders its runtime-provided identity view. Each `store/` file is named for its storage type (for example, `manifest.ts`, `mailbox.ts`, `activity.ts`, and `terminal.ts`), with separate direct-import domain-operation utilities where needed. `store/` has no barrel. Testing follows a reverse pyramid: user-journey E2E tests are primary; integration tests are next; small focused unit tests cover low-cost deterministic logic such as pane layout. The otherwise inert unsupported-tmux path may register one `session_start` hook solely to show its one warning; it must register nothing else.

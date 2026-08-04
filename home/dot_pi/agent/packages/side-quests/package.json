@@ -3,6 +3,27 @@
   "private": true,
   "version": "0.0.0",
   "pi": {
-    "extensions": []
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "type": "module",
+  "scripts": {
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "check": "biome check .",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run test/unit",
+    "test:e2e": "test/e2e/startup.sh",
+    "test": "bun run check && bun run typecheck && bun run test:unit && bun run test:e2e"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@earendil-works/pi-coding-agent": "0.83.0",
+    "vitest": "^3.1.2"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
   }
 }

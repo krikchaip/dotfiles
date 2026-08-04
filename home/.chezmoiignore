@@ -1,3 +1,4 @@
 **/*.bak
+**/.pi/agent/**/node_modules/
 **/.pi/agent/tsconfig.json
 **/nushell/history.txt
