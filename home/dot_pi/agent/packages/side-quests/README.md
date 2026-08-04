@@ -366,7 +366,7 @@ Activity states:
 
 `reply needed` appears after the activity state when a child has an unanswered request, such as `active · reply needed`. It does not replace `starting`, `active`, `waiting`, or `stalled`.
 
-Completion and failure are result messages, not permanent widget rows. The widget remains visible whenever at least one child is live; there is no status-visibility toggle.
+Completion and terminal failure are result messages, not permanent widget rows. A recoverable interactive turn failure returns its live row to `waiting`. The widget remains visible whenever at least one child is live; there is no status-visibility toggle.
 
 ### `/side-quests`
 
@@ -510,11 +510,104 @@ The user controls an interactive child directly in its pane. Widget-only health 
 
 ## Results and terminal states
 
-Side Quests delivers each trusted terminal event to the main quest at most once. Completion and failure wake the parent model so it can run the side-quest review loop. A terminal result includes the canonical session path when available.
+Side Quests delivers each trusted terminal event to the main quest at most once. Completion and terminal failure wake the parent model so it can run the side-quest review loop. A recoverable turn failure in a live interactive child is not terminal and remains local to that pane. A terminal result includes the canonical session path when available.
+
+### Result display
+
+Result messages support collapsed and expanded views:
+
+- The default view is collapsed.
+- Clear status text distinguishes success, failure, cancellation, and closure.
+- The expanded view shows additional result details.
+- Pi's normal `app.tools.expand` action controls expansion.
+- The hint displays your effective binding.
+- Side Quests does not register or show a hard-coded expansion shortcut.
 
 ### Completed
 
-- Returns the child's final assistant response.
-- Preserves the saved session for later resume.
-- Does not copy the full child transcript into the main quest.
+A completed result has two sources:
+
+- An autonomous child reaches normal agent completion. Side Quests records completion and closes its pane automatically.
+- An idle interactive child receives `/subagent-done`. Side Quests records trusted completion and closes its pane explicitly. The end of an ordinary interactive agent turn alone does not produce completion because its pane remains available for more work.
+
+Both paths wake the parent model once, return the child's final assistant response, and include the canonical session path. The saved session remains available for later resume, but the full child transcript is not copied into the main quest. An unanswered `ask_parent` request remains saved and does not prevent completion.
+
+### Failed
+
+Failure handling depends on whether the child can continue.
+
+#### Autonomous turn failure
+
+An exhausted provider or agent-loop error ends autonomous work. Side Quests records a terminal failed result, closes the child, removes its widget row, and wakes the parent model:
+
+```text
+Side quest failed
+Security reviewer — audit auth
+Error: Provider request failed: rate limit exceeded
+Resume: /managed/path/to/session.jsonl
+```
+
+The error and canonical session path let the parent report the problem, start another child, or call `Agent.resume` to retry from the saved conversation.
+
+#### Interactive turn failure
+
+A provider or agent-loop error ends only the current turn when the interactive Pi process remains healthy. The error stays visible in the child pane, the pane remains open, and its widget row returns to `waiting`. Side Quests does not send a failed result or wake the parent model.
+
+```text
+provider or agent-loop error
+        ↓
+error remains visible in the interactive child pane
+        ↓
+pane stays open · widget shows waiting
+        ↓
+user retries, changes the prompt, or later uses /subagent-done
+```
+
+If the user retries successfully and then runs `/subagent-done`, the parent receives a completed result from that explicit completion.
+
+#### Terminal process failure
+
+A fatal or nonzero child-process exit is terminal for both autonomous and interactive children because the pane can no longer continue. Side Quests removes the row and wakes the parent with a failed result. If the current run produced an assistant response before exit, the result includes it as diagnostic context but remains failed:
+
+```text
+Side quest failed
+Security reviewer — audit auth
+Error: Child process exited with status 1
+Last response from this run: Found an unsafe token fallback in src/auth.ts.
+Resume: /managed/path/to/session.jsonl
+```
+
+Side Quests never substitutes an old response for a terminal failed run. For example:
+
+1. An earlier turn ends with `No auth issues found.`
+2. The parent resumes the child with `Check refresh-token rotation.`
+3. The provider fails before an autonomous child produces a new response, or an interactive child process exits.
+4. The parent receives the new error and resume path. It does not receive `No auth issues found.` as if that were the result of the new request.
+
+### Cancelled
+
+- A confirmed close from `/side-quests` writes a trusted cancellation state.
+- The saved session remains resumable.
+
+### Closed
+
+`closed` means the pane disappeared without a trusted completion, cancellation, error, or expected parent-shutdown marker.
+
+Examples include:
+
+- `/quit` or EOF inside the child
+- `tmux kill-pane`
+- Whole-window removal
+- A clean process exit without semantic completion
+- An uncaptured crash
+
+The parent monitor polls snapshots and tmux pane IDs once per second. After a pane disappears, it waits one more poll for a child terminal marker. A marker produces `completed`, `failed`, or `cancelled`; otherwise the parent reports `closed` and wakes the model. A `closed` result can include the final assistant response but never claims completion or a cause. It states when an unanswered `ask_parent` request remains saved.
+
+A closed child:
+
+- Wakes the parent.
+- Leaves the saved session resumable.
+- Preserves an unanswered parent-request mailbox.
+- Disappears from the live widget.
+- Causes remaining panes to reflow.
 
