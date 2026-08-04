@@ -106,6 +106,7 @@ For a new side quest:
 - Omitted `subagent_type` clones the current parent model, thinking level, native prompt inputs, working directory, enabled tools, loaded extensions, and skills.
 - A call-level `inherit_context` overrides the named agent setting. If both are omitted, it defaults to `true`.
 - A call-level `interactive` overrides the named agent setting. If both are omitted, it defaults to `false`.
+- `prompt` is stored as a normal user message after any inherited conversation. With fresh context, it is the child's first conversation message.
 
 `Agent` returns only after:
 
@@ -137,11 +138,11 @@ When `resume` is present:
 - `interactive: true` permanently promotes the session.
 - `interactive: false` cannot demote an interactive session.
 
-Continuation behavior depends on child state:
+Every `Agent.resume` prompt is stored as a custom continuation message, not as a user-authored message. Delivery depends on child state:
 
-- **Live and idle:** the child receives the message immediately.
-- **Live and active:** the child receives it after the current tool batch, without interruption.
-- **Stopped:** Side Quests reopens the saved session in a new pane and sends the message.
+- **Live and idle:** the child receives the custom message immediately.
+- **Live and active:** the custom message is queued until the current tool batch finishes, without interruption.
+- **Stopped:** Side Quests reopens the saved session in a new pane and delivers the custom message as its first continuation.
 - **Already live:** Side Quests never starts a duplicate process for the same session.
 
 The acknowledgement states whether Side Quests launched, continued, or reopened the child. It always includes the canonical session path.
@@ -341,18 +342,18 @@ Side Quests keeps pane placement predictable and adapts it to wide or tall windo
 The parent widget appears above the editor while live children exist:
 
 ```text
-╭─ Side Quests · 2 live ───────────────────────────╮
-│  00:42  Security reviewer — audit auth    active │
-│  00:18  general — reproduce UI bug       waiting │
-╰──────────────────────────────────────────────────╯
+╭─ Side Quests · 2 live ────────────────────────────────────────────╮
+│  00:00:42  Security reviewer — audit auth  active · reply needed  │
+│  00:00:18  general — reproduce UI bug      waiting                │
+╰───────────────────────────────────────────────────────────────────╯
 ```
 
 Each row shows:
 
-- Elapsed time
+- Elapsed time as `HH:MM:SS`
 - Agent display name or canonical name
 - Current task label from `Agent.description`
-- Right-aligned activity state
+- Activity state in the right-side column
 
 Long task labels are shortened first on narrow terminals. Agent identity and lifecycle state remain visible.
 
@@ -362,6 +363,8 @@ Activity states:
 - `active`: the child is processing model or tool work.
 - `waiting`: the child is idle or waiting for parent guidance.
 - `stalled`: the child's health snapshot is missing, invalid, mismatched, or stale for 60 seconds.
+
+`reply needed` appears after the activity state when a child has an unanswered request, such as `active · reply needed`. It does not replace `starting`, `active`, `waiting`, or `stalled`.
 
 Completion and failure are result messages, not permanent widget rows. The widget remains visible whenever at least one child is live; there is no status-visibility toggle.
 
@@ -380,24 +383,27 @@ The parent widget has no interrupt action. To interrupt one child, open that chi
 
 ## Child identity and lifecycle
 
-Every child pane shows one compact identity line above its editor:
+Every child pane shows one compact identity box above its editor:
 
 ```text
-Security reviewer — audit auth · autonomous · awaiting parent
+╭─ Security reviewer ────────────────────────────────╮
+│  00:13:14  audit auth  autonomous · reply pending  │
+╰────────────────────────────────────────────────────╯
 ```
 
-The line shows:
+The box shows:
 
-- Agent display name, or canonical name when no display name exists
+- Agent display name, or canonical name when no display name exists, in the title
+- Elapsed time as `HH:MM:SS`
 - Current `Agent.description`
 - `autonomous` or `interactive`
-- `awaiting parent` when a question is pending
+- `reply pending` when a parent response is pending
 
 ### Autonomous children
 
 - Autonomous is the default lifecycle.
-- The pane closes after normal autonomous completion.
-- A pending `ask_parent` question keeps the pane open and healthy.
+- The pane closes after normal autonomous completion, even when an `ask_parent` response is pending.
+- An unanswered request remains saved after the child completes or closes.
 - Long work does not become stalled only because it takes a long time.
 
 ### Interactive children
@@ -427,4 +433,66 @@ These actions do not promote it:
 - While idle, it writes a trusted completion marker and shuts down.
 - It is not a model tool.
 - It is never registered in the parent.
+
+## Asking the parent for help
+
+Every child has an `ask_parent` tool.
+
+Use it when the child needs information or a decision from the main quest:
+
+```text
+child sends ask_parent ────────► parent wakes with reply needed
+         │                                  │
+         ▼                                  ▼
+continues independent work         answers with Agent.resume
+         │                                  │
+         └──────── receives custom reply ◄──┘
+```
+
+Rules:
+
+- A child can have only one unanswered request.
+- The first `ask_parent` call writes the request and returns normally.
+- Other tools in the same batch still run.
+- The child continues work without waiting for the answer.
+- Another `ask_parent` call fails until the first request is answered.
+- The request remains saved if the child completes or closes first.
+
+The main quest answers through `Agent.resume` only. The answer is a persisted custom message:
+
+- A live idle child receives it immediately.
+- A live active child receives it after its current tool batch, without interruption.
+- A stopped child reopens and receives it as its first continuation.
+- The request clears only after the matching response is accepted.
+
+Lifecycle and parent-request state are independent. An interactive terminal prompt can start more work while a parent request remains pending. It does not cancel the request.
+
+## Health monitoring
+
+The child writes a small activity snapshot and heartbeat. The parent checks child snapshots and canonical tmux pane IDs once per second.
+
+A child becomes `stalled` after 60 seconds when its snapshot:
+
+- Never appears
+- Is missing or invalid
+- Names the wrong child
+- Has a stale heartbeat
+
+A current heartbeat keeps long-running work healthy. Side Quests does not use task duration or transcript inactivity as a progress timeout.
+
+### Autonomous child health events
+
+When an autonomous child first becomes `stalled`, its parent row changes to `stalled` and Side Quests sends one persisted stall event to the main quest. That event starts or queues a parent model turn. The event identifies the child and explains the health failure, such as a heartbeat that has been stale for 60 seconds.
+
+Side Quests does not restart, interrupt, resume, or close the child automatically. The parent model can respond to the event with the tools available to it. For example, it can send guidance through `Agent.resume`, launch another child as a fallback, report the problem, or take no action and continue waiting. Sending guidance does not repair a frozen process, and launching a fallback does not close the stalled child.
+
+If the child later writes a valid snapshot with a current heartbeat, its row returns to `active` or `waiting`. Side Quests then sends one persisted recovery event and wakes the parent model once for that `stalled`-to-healthy transition. This can tell the parent that an original child recovered after it launched a fallback or changed its plan. Later healthy heartbeats do not cause more parent turns. A new stall can produce a new stall event and a later recovery event.
+
+For example, a stopped child process can miss heartbeats for 60 seconds and become `stalled`. If the process resumes, its next current heartbeat marks it healthy and produces one recovery event. A long model or tool operation does not stall while the heartbeat remains current.
+
+### Interactive child health events
+
+Interactive children use the same snapshot checks, 60-second threshold, and widget transitions. They do not use the same parent-wake behavior. A stall changes the row to `stalled`, and recovery changes it back to `active` or `waiting`, but neither transition starts a parent model turn.
+
+The user controls an interactive child directly in its pane. Widget-only health changes avoid injecting an unexpected parent turn during that manual work.
 

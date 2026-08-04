@@ -23,7 +23,7 @@ Acceptance requires all automated checks plus real Pi-in-tmux E2E coverage. Unit
 
 - Launch one child, then enough children to exercise binary and ternary rows, leftovers, landscape/portrait transposition, narrow windows, resize, completion, cancellation, manual pane closure, and resume.
 - Assert exact pane rectangles from `tmux list-panes`, stable canonical pane IDs, deterministic reflow, and unchanged main-quest focus.
-- Inspect screenshots for the restrained parent widget, child identity widget, parent `reply needed` and child `reply pending` states alongside active and idle activity, selected-row state, key hints from Pi's effective bindings, clipping, wrapping, and stale rows.
+- Inspect screenshots for the restrained parent widget, bordered child identity box, `HH:MM:SS` elapsed time, parent `reply needed` and child `reply pending` states alongside active and idle activity, exact two-cell outer padding and inter-column gaps, vertically aligned parent column starts, selected-row state, key hints from Pi's effective bindings, clipping, wrapping, and stale rows.
 - Verify `/side-quests` navigation, pane jump, confirmed close, and no broadcast keypresses. Verify child interruption only from that child's pane through Pi's effective `app.interrupt` action.
 
 ### Lifecycle and messaging checks
