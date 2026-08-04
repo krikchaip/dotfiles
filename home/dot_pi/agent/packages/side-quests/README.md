@@ -405,16 +405,18 @@ The box shows:
 - The pane closes after normal autonomous completion, even when an `ask_parent` response is pending.
 - An unanswered request remains saved after the child completes or closes.
 - Long work does not become stalled only because it takes a long time.
+- `/subagent-done` is not registered or shown while the child remains autonomous.
 
 ### Interactive children
 
-- `interactive: true` starts a persistent pane.
+- `interactive: true` starts a persistent pane and registers `/subagent-done` immediately.
 - The pane stays open after an agent turn ends.
 - Tool permissions stay unchanged during takeover.
 - Use `/subagent-done` when the work is complete.
 
-Only one action permanently promotes an autonomous child to interactive:
+Two explicit actions permanently promote an autonomous child to interactive:
 
+- Call `Agent.resume` with `interactive: true`.
 - Submit an accepted, non-command prompt directly in the child terminal.
 
 These actions do not promote it:
@@ -422,17 +424,27 @@ These actions do not promote it:
 - Typing or editing without submission
 - Pasting or navigation
 - Running an extension command
-- Receiving a parent continuation
-- Receiving any extension-injected message
+- Receiving a parent continuation with `interactive` omitted
+- Receiving any other extension-injected message
 
 ### `/subagent-done`
 
-`/subagent-done` exists only inside children.
+`/subagent-done` is a user command for finishing interactive child work. It is not a model tool and is never registered in the parent.
 
-- During an active turn, it refuses to close and shows a warning.
-- While idle, it writes a trusted completion marker and shuts down.
-- It is not a model tool.
-- It is never registered in the parent.
+Command availability follows the child's current persisted lifecycle:
+
+- A child launched with `interactive: true` registers the command during startup.
+- An autonomous child does not register or show the command.
+- Calling `Agent.resume` with `interactive: true` promotes an autonomous child and registers the command immediately.
+- When an autonomous child accepts a direct non-command prompt, it becomes interactive and registers the command immediately, even though the new turn is active.
+- Interactive state and command availability survive `/reload` and session reopen. The original launch option does not override a later promotion.
+
+The command takes no arguments:
+
+- While idle, `/subagent-done` atomically writes a trusted completion marker, sends the final assistant response to the parent as a completion result, and shuts down the child. The saved session remains resumable.
+- An unanswered `ask_parent` request does not block completion. The request remains saved after the pane closes.
+
+If the user types `/subagent-done` or `/subagent-done anything` while the child is autonomous, Side Quests shows that the command is available only in interactive mode. The text does not reach the model, complete the child, or promote it to interactive mode.
 
 ## Asking the parent for help
 
@@ -495,4 +507,14 @@ For example, a stopped child process can miss heartbeats for 60 seconds and beco
 Interactive children use the same snapshot checks, 60-second threshold, and widget transitions. They do not use the same parent-wake behavior. A stall changes the row to `stalled`, and recovery changes it back to `active` or `waiting`, but neither transition starts a parent model turn.
 
 The user controls an interactive child directly in its pane. Widget-only health changes avoid injecting an unexpected parent turn during that manual work.
+
+## Results and terminal states
+
+Side Quests delivers each trusted terminal event to the main quest at most once. Completion and failure wake the parent model so it can run the side-quest review loop. A terminal result includes the canonical session path when available.
+
+### Completed
+
+- Returns the child's final assistant response.
+- Preserves the saved session for later resume.
+- Does not copy the full child transcript into the main quest.
 

@@ -28,7 +28,8 @@ Acceptance requires all automated checks plus real Pi-in-tmux E2E coverage. Unit
 
 ### Lifecycle and messaging checks
 
-- Autonomous completion closes its pane even with an unanswered parent request; interactive completion keeps it; only an accepted interactive prompt permanently promotes lifecycle.
+- Normal autonomous completion closes its pane even with an unanswered parent request; the end of a normal interactive agent turn keeps its pane open until explicit `/subagent-done`. Explicit `Agent.resume` with `interactive: true` or an accepted interactive prompt permanently promotes lifecycle; ordinary continuation and programmatic messages do not.
+- `/subagent-done` is absent while autonomous, and guarded manual input cannot reach the model or promote lifecycle. It registers immediately for initially interactive, explicitly resume-promoted, or terminal-promoted children and remains registered after reload or reopen. Arguments show usage; active turns refuse completion; idle completion succeeds while retaining the session and any unanswered parent request.
 - A new launch stores `Agent.prompt` as a normal user-role message. Every `Agent.resume` prompt is a persisted custom message, including immediate idle delivery, active `steer` delivery after the current tool batch, and the first continuation after reopen.
 - `ask_parent` returns without terminating the child turn, permits sibling tool calls, rejects another request while one is pending, survives pane close and reload, accepts one response, and never promotes lifecycle.
 - Completion, failure, cancellation, unmarked closure, stall, recovery, and child-pane interruption each produce the correct single parent event and widget transition.
