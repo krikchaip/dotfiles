@@ -487,15 +487,21 @@ function getMergeDelta(
     ),
   ];
 
-  // A compaction is a cumulative representation, not new source work. It can
-  // replace raw delta entries only when every earlier mergeable entry is also
-  // unknown to the target. Otherwise it would replay known target history.
+  // A compaction is a cumulative representation, not new source work. Keep
+  // every checkpoint whose earlier mergeable entries are all unknown to the
+  // target, as Pi branch summarization does. Earlier checkpoints can preserve
+  // details that a later lossy compaction omitted. Once known target content
+  // appears, later cumulative checkpoints are unsafe because they replay it.
   let hasKnownSourceContent = false;
   let latestDeltaSafeCompactionIndex = -1;
+  const deltaSafeCompactions: BranchEntry[] = [];
   for (let index = 0; index < sourceEntries.length; index++) {
     const entry = sourceEntries[index];
     if (entry.type === "compaction") {
-      if (!hasKnownSourceContent) latestDeltaSafeCompactionIndex = index;
+      if (!hasKnownSourceContent) {
+        latestDeltaSafeCompactionIndex = index;
+        deltaSafeCompactions.push(entry);
+      }
       continue;
     }
     if (isMergeableEntry(entry) && !isUnknownSourceEntry(entry)) {
@@ -507,7 +513,7 @@ function getMergeDelta(
     latestDeltaSafeCompactionIndex === -1
       ? deltaEntries
       : [
-          sourceEntries[latestDeltaSafeCompactionIndex],
+          ...deltaSafeCompactions,
           ...sourceEntries
             .slice(latestDeltaSafeCompactionIndex + 1)
             .filter(isUnknownSourceEntry),
@@ -994,8 +1000,39 @@ async function generateMergeSummary(
   }
 
   const mergeInstructions = [
-    "This is a branch merge. The supplied content represents only source work not known to the target. Create one integrated summary that retains its decisions, constraints, completed work, unresolved work, and next steps.",
-    instruction,
+    `Create a structured summary of this branch merge.
+
+The supplied content represents only source work not known to the target. Treat every supplied compaction summary as required baseline context. A compaction summary is cumulative: it represents the complete source conversation before the entries that follow it. Integrate later entries into that baseline. Do not replace the baseline with a summary of only the recent entries.
+
+Retain the goals, constraints, preferences, completed work, unresolved work, decisions, next steps, exact file paths, function names, and error messages from every supplied compaction summary, branch summary, and conversation entry. Reconcile information only when a later entry supersedes it.
+
+Use this EXACT format:
+
+## Goal
+[What was the user trying to accomplish?]
+
+## Constraints & Preferences
+- [Constraints, preferences, and requirements]
+- [Or "(none)" if none were mentioned]
+
+## Progress
+### Done
+- [x] [Completed tasks and changes]
+
+### In Progress
+- [ ] [Work started but not finished]
+
+### Blocked
+- [Issues preventing progress, or "(none)"]
+
+## Key Decisions
+- **[Decision]**: [Brief rationale]
+
+## Next Steps
+1. [What should happen next]
+
+Keep each section concise, but never omit the compaction baseline in favor of recent work.`,
+    instruction ? `Additional user instruction: ${instruction}` : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -1016,6 +1053,7 @@ async function generateMergeSummary(
     };
     if (target.auth.headers) options.headers = target.auth.headers;
     options.customInstructions = mergeInstructions;
+    options.replaceInstructions = true;
     if (reserveTokens !== undefined) options.reserveTokens = reserveTokens;
 
     let result: Awaited<ReturnType<typeof generateBranchSummary>>;
