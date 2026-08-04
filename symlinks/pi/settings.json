@@ -72,8 +72,9 @@
       ]
     },
     "packages/image-attachments",
+    "packages/provider-payload-debug",
     "packages/resume",
-    "packages/provider-payload-debug"
+    "packages/side-quests"
   ],
   "powerline": {
     "placement": "below",

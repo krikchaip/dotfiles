@@ -1,0 +1,8 @@
+{
+  "name": "side-quests",
+  "private": true,
+  "version": "0.0.0",
+  "pi": {
+    "extensions": []
+  }
+}
