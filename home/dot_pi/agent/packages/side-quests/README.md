@@ -1,12 +1,14 @@
 # Side Quests
 
-Side Quests lets Pi delegate independent work to other Pi sessions without blocking your current session.
+Side Quests lets a parent Pi agent delegate complete tasks to sub-agents without blocking its current work.
 
-- Your current Pi session is the **main quest**.
-- Each delegated Pi session is a **side quest**.
-- Each side quest runs in an interactive tmux pane.
-- You can watch, open, guide, stop, and resume a side quest.
-- The main quest reviews all returned work before it accepts the result.
+- The **parent agent** performs the user's overall task, called the **main quest**.
+- The parent agent spawns a **sub-agent** through `Agent` to perform a **side quest**.
+- Each sub-agent runs in an interactive tmux pane and a persistent child session.
+- You can watch, open, guide, stop, and resume a sub-agent.
+- The parent agent reviews all returned side-quest work before it accepts the result.
+
+Agent terms name actors. Quest terms name tasks. A side quest is not a sub-agent, session, process, or pane.
 
 ## Requirements
 
@@ -25,7 +27,7 @@ Side Quests does not support cmux, Zellij, WezTerm, or a non-tmux fallback.
 ## How it works
 
 ```text
-┌──────────────────── Main quest ────────────────────┐
+┌────────────── Parent agent · main quest ───────────┐
 │ You and Pi continue the main task                  │
 │                                                    │
 │  Agent(...) ───────────────┐                       │
@@ -33,20 +35,20 @@ Side Quests does not support cmux, Zellij, WezTerm, or a non-tmux fallback.
 │  result + session path ◀───┼──────────────┐        │
 └────────────────────────────┼──────────────┼────────┘
                              ▼              │
-              ┌──── Shared tmux window ─────┴───────┐
-              │ side quest 1 │ side quest 2 │ ...   │
-              │     Pi       │      Pi      │       │
-              └──────────────┴──────────────┴───────┘
+              ┌─── Shared sub-agent window ─┴─────────┐
+              │ sub-agent  1 │ sub-agent  2 │ ...     │
+              │ side quest 1 │ side quest 2 │         │
+              └──────────────┴──────────────┴─────────┘
 ```
 
 1. Start Pi inside tmux.
 2. Ask Pi to delegate a clear, independent outcome.
-3. Pi calls `Agent` and starts a child Pi session.
-4. Continue your main task while the child works.
+3. The parent agent calls `Agent` and starts a sub-agent in a child Pi session.
+4. Continue the main quest while the sub-agent works on its side quest.
 5. Watch progress in the Side Quests widget.
-6. Review the result when it returns to the main quest.
+6. Review the result when it returns to the parent agent.
 
-Side quests are optional. Pi can start one when delegation is useful, even when you do not ask for one directly.
+Side quests are optional. The parent agent can delegate one when useful, even when you do not ask for one directly.
 
 A good side quest has:
 
@@ -58,12 +60,13 @@ A good side quest has:
 
 Good examples:
 
+- Research a topic and return a sourced synthesis or recommendation.
 - Implement one feature and return its test results.
 - Diagnose a bug and return the cause plus a verified fix.
 - Compare two designs and return a recommendation with trade-offs.
 - Audit a subsystem and return specific risks and evidence.
 
-Do not use a side quest for granular helper work that the main quest can do directly. Retrieval-only work stays in the main quest. Search can support a side quest, but search cannot be its final objective.
+Do not use a side quest for granular helper work that the parent agent can do directly while it performs the main quest. Fetching a file, reading files, basic lookup, retrieval-only work, and search without a complete outcome stay with the parent agent. Search can support a side quest, but search cannot be its final objective.
 
 ## The `Agent` tool
 
@@ -89,23 +92,22 @@ Side Quests exposes one model tool named `Agent`.
 
 ### Optional fields
 
-- `subagent_type` selects a named agent.
-- Omit `subagent_type` for a general-purpose copy of the parent setup.
-- `resume` continues a saved side quest by its absolute `session.jsonl` path.
+- `subagent_type` selects `general-purpose` or a named agent.
+- Omit `subagent_type` for the normal general-purpose form. Explicit `general-purpose` behaves identically.
+- `resume` continues a saved sub-agent session by its absolute `session.jsonl` path.
 - `inherit_context` controls whether a new child receives the parent conversation.
 - `interactive` controls whether the child stays open after its current work ends.
 
-Unknown fields are rejected. An unknown, disabled, or invalid `subagent_type` fails before Side Quests creates a pane or session. `Agent` does not accept per-call model, thinking, tools, skills, working directory, turn limit, system prompt, isolation, worktree, or background-mode settings.
+Unknown fields are rejected. An unknown or invalid `subagent_type`, or a disabled named agent, fails before Side Quests creates a pane or session. `Agent` does not accept per-call model, thinking, tools, skills, working directory, turn limit, system prompt, isolation, worktree, or background-mode settings.
 
-### New side quest
+### Launch a sub-agent for a new side quest
 
 For a new side quest:
 
 - `resume` is omitted.
-- `subagent_type` can select a named agent.
-- Omitted `subagent_type` clones the current parent model, thinking level, native prompt inputs, working directory, enabled tools, loaded extensions, and skills.
-- A call-level `inherit_context` overrides the named agent setting. If both are omitted, it defaults to `true`.
-- A call-level `interactive` overrides the named agent setting. If both are omitted, it defaults to `false`.
+- The standard agent clones the current parent model, thinking level, native prompt inputs, working directory, enabled tools, loaded extensions, and skills, then applies any resolved `general-purpose.md` customization.
+- A call-level `inherit_context` overrides the resolved agent setting. If both are omitted, it defaults to `true`.
+- A call-level `interactive` overrides the resolved agent setting. If both are omitted, it defaults to `false`.
 - `prompt` is stored as a normal user message after any inherited conversation. With fresh context, it is the child's first conversation message.
 
 `Agent` returns only after:
@@ -114,9 +116,9 @@ For a new side quest:
 - The child Pi process has started.
 - The persistent child session file exists.
 
-The response includes the canonical session path. The main quest can continue immediately. `Agent` never waits for completion.
+The response includes the canonical session path. The parent agent can continue the main quest immediately. `Agent` never waits for completion.
 
-### Continue or resume a side quest
+### Continue or resume a sub-agent
 
 Pass the returned session path through `resume`:
 
@@ -153,9 +155,9 @@ Its structured details contain:
 - Current running status
 - Canonical session path
 
-## Named agents
+## Agent definitions
 
-Named agents give side quests a reusable role and capability policy.
+Agent definitions give general-purpose and named sub-agents reusable instructions and capability policy.
 
 Side Quests discovers Markdown files from:
 
@@ -165,7 +167,18 @@ Side Quests discovers Markdown files from:
 
 It does not scan `.agents/agents/` and does not include bundled agents.
 
-### Names and precedence
+### General-purpose configuration
+
+General-purpose delegation is always available. Omitted `subagent_type` and explicit `general-purpose` behave identically.
+
+- Without a winning `general-purpose.md`, the child is a plain clone of the parent setup.
+- Project `.pi/agents/general-purpose.md` shadows the global file.
+- A valid file supports the same model, thinking, tools, skills, context, lifecycle, display-name, and Markdown-body overrides as a named agent.
+- `description` is optional because the standard agent does not need selection guidance.
+- A malformed winning file warns once and rejects general-purpose launches. It never falls back to the global file or plain clone.
+- `enabled: false` in either scope removes that customization and restores the plain parent clone. A project tombstone also shadows global customization. It never disables the standard agent.
+
+### Named-agent names and precedence
 
 - The case-sensitive filename stem is the agent name.
 - `.pi/agents/security.md` defines `security`.
@@ -175,9 +188,9 @@ It does not scan `.agents/agents/` and does not include bundled agents.
 - A valid enabled file needs a non-empty `description`. Its Markdown body is optional.
 - A broken winning file is excluded and produces one path-specific warning.
 - `enabled: false` disables that name and can act as a project tombstone. A tombstone needs no description or body.
-- `default.md` does not replace the general-purpose parent clone.
+- `general-purpose` is reserved for the standard agent and follows the special rules above.
 
-Pi receives the full description of each valid agent in its system prompt. The `subagent_type` choices update after `/reload`.
+Pi receives each valid non-general-purpose agent's canonical name and full whitespace-normalized description in the system prompt's **Guidelines** section. The `subagent_type` choices always include `general-purpose` and update after `/reload`.
 
 ### Agent file example
 
@@ -232,11 +245,11 @@ Security reviewer — audit auth permissions · autonomous
 └── display_name    └── Agent.description
 ```
 
-`display_name` stays with the named agent. `Agent.description` can change each time the main quest continues or reopens the session.
+`display_name` stays with the named agent. `Agent.description` can change each time the parent agent continues or reopens the sub-agent session.
 
 Two other description fields guide the child:
 
-- Frontmatter `description` tells the parent model when and why to select this agent. It cannot be empty.
+- Frontmatter `description` tells the parent agent when and why to select this agent. It cannot be empty for a non-general-purpose agent and is optional for `general-purpose`.
 - The Markdown body gives the selected child its agent-specific instructions.
 
 ### How child instructions are assembled
@@ -296,23 +309,23 @@ If the child does not have `read`, Side Quests omits a non-empty lazy skill cata
 - Context inheritance copies the parent conversation once at launch.
 - Later parent messages are not synchronized automatically.
 - Use `inherit_context: false` for an independent review, adversarial review, second opinion, or unrelated task.
-- Every new child starts in the main quest's current working directory at invocation time.
+- Every new child starts in the parent agent's current working directory at invocation time.
 - Agent files and `Agent` calls cannot override the working directory.
 
 Every child inherits the parent's loaded extensions. Side Quests remains child-safe: parent orchestration is inactive, while the child companion handles identity, activity, communication, and lifecycle.
 
 ## Tmux windows and panes
 
-Each main quest owns one shared side-quest window.
+Each parent agent session owns one shared sub-agent window.
 
 - Side Quests creates the window on the first launch.
 - The window name uses the first segment of the parent session UUID as a short display label.
 - Side Quests records the complete parent session ID and canonical tmux window ID. This makes sure it manages only that session's window and panes.
 - Each live child gets one pane in that window.
 - New and reopened panes start detached.
-- Pi starts directly as the pane process in the main quest's current working directory.
+- Pi starts directly as the pane process in the parent agent's current working directory.
 - Side Quests does not start an intermediate shell, replay terminal keystrokes, or wait for a shell-ready delay.
-- Starting or resuming a side quest does not switch panes. You remain in the main quest.
+- Starting or resuming a sub-agent does not switch panes. You remain with the parent agent.
 - Use `/side-quests` to select and open a child pane.
 
 When the last managed pane closes:
@@ -450,13 +463,13 @@ If the user types `/subagent-done` or `/subagent-done anything` while the child 
 
 Every child has an `ask_parent` tool.
 
-Use it when the child needs information or a decision from the main quest:
+Use it when the sub-agent needs information or a decision from the parent agent:
 
-```text
-child sends ask_parent ────────► parent wakes with reply needed
+```tex
+sub-agent sends ask_parent ─────► parent agent wakes with reply needed
          │                                  │
          ▼                                  ▼
-continues independent work         answers with Agent.resume
+continues its side quest            answers with Agent.resume
          │                                  │
          └──────── receives custom reply ◄──┘
 ```
@@ -470,7 +483,7 @@ Rules:
 - Another `ask_parent` call fails until the first request is answered.
 - The request remains saved if the child completes or closes first.
 
-The main quest answers through `Agent.resume` only. The answer is a persisted custom message:
+The parent agent answers through `Agent.resume` only. The answer is a persisted custom message:
 
 - A live idle child receives it immediately.
 - A live active child receives it after its current tool batch, without interruption.
@@ -494,23 +507,23 @@ A current heartbeat keeps long-running work healthy. Side Quests does not use ta
 
 ### Autonomous child health events
 
-When an autonomous child first becomes `stalled`, its parent row changes to `stalled` and Side Quests sends one persisted stall event to the main quest. That event starts or queues a parent model turn. The event identifies the child and explains the health failure, such as a heartbeat that has been stale for 60 seconds.
+When an autonomous child first becomes `stalled`, its parent row changes to `stalled` and Side Quests sends one persisted stall event to the parent agent. That event starts or queues a parent agent turn. The event identifies the child and explains the health failure, such as a heartbeat that has been stale for 60 seconds.
 
-Side Quests does not restart, interrupt, resume, or close the child automatically. The parent model can respond to the event with the tools available to it. For example, it can send guidance through `Agent.resume`, launch another child as a fallback, report the problem, or take no action and continue waiting. Sending guidance does not repair a frozen process, and launching a fallback does not close the stalled child.
+Side Quests does not restart, interrupt, resume, or close the child automatically. The parent agent can respond to the event with the tools available to it. For example, it can send guidance through `Agent.resume`, launch another child as a fallback, report the problem, or take no action and continue waiting. Sending guidance does not repair a frozen process, and launching a fallback does not close the stalled child.
 
-If the child later writes a valid snapshot with a current heartbeat, its row returns to `active` or `waiting`. Side Quests then sends one persisted recovery event and wakes the parent model once for that `stalled`-to-healthy transition. This can tell the parent that an original child recovered after it launched a fallback or changed its plan. Later healthy heartbeats do not cause more parent turns. A new stall can produce a new stall event and a later recovery event.
+If the child later writes a valid snapshot with a current heartbeat, its row returns to `active` or `waiting`. Side Quests then sends one persisted recovery event and wakes the parent agent once for that `stalled`-to-healthy transition. This can tell the parent that an original child recovered after it launched a fallback or changed its plan. Later healthy heartbeats do not cause more parent turns. A new stall can produce a new stall event and a later recovery event.
 
 For example, a stopped child process can miss heartbeats for 60 seconds and become `stalled`. If the process resumes, its next current heartbeat marks it healthy and produces one recovery event. A long model or tool operation does not stall while the heartbeat remains current.
 
 ### Interactive child health events
 
-Interactive children use the same snapshot checks, 60-second threshold, and widget transitions. They do not use the same parent-wake behavior. A stall changes the row to `stalled`, and recovery changes it back to `active` or `waiting`, but neither transition starts a parent model turn.
+Interactive children use the same snapshot checks, 60-second threshold, and widget transitions. They do not use the same parent-wake behavior. A stall changes the row to `stalled`, and recovery changes it back to `active` or `waiting`, but neither transition starts a parent agent turn.
 
 The user controls an interactive child directly in its pane. Widget-only health changes avoid injecting an unexpected parent turn during that manual work.
 
 ## Results and terminal states
 
-Side Quests delivers each trusted terminal event to the main quest at most once. Completion and terminal failure wake the parent model so it can run the side-quest review loop. A recoverable turn failure in a live interactive child is not terminal and remains local to that pane. A terminal result includes the canonical session path when available.
+Side Quests delivers each trusted terminal event to the parent agent at most once. Completion and terminal failure wake the parent agent so it can run the side-quest review loop. A recoverable turn failure in a live interactive child is not terminal and remains local to that pane. A terminal result includes the canonical session path when available.
 
 ### Result display
 
@@ -530,7 +543,7 @@ A completed result has two sources:
 - An autonomous child reaches normal agent completion. Side Quests records completion and closes its pane automatically.
 - An idle interactive child receives `/subagent-done`. Side Quests records trusted completion and closes its pane explicitly. The end of an ordinary interactive agent turn alone does not produce completion because its pane remains available for more work.
 
-Both paths wake the parent model once, return the child's final assistant response, and include the canonical session path. The saved session remains available for later resume, but the full child transcript is not copied into the main quest. An unanswered `ask_parent` request remains saved and does not prevent completion.
+Both paths wake the parent agent once, return the child's final assistant response, and include the canonical session path. The saved session remains available for later resume, but the full child transcript is not copied into the parent session. An unanswered `ask_parent` request remains saved and does not prevent completion.
 
 ### Failed
 
@@ -538,10 +551,10 @@ Failure handling depends on whether the child can continue.
 
 #### Autonomous turn failure
 
-An exhausted provider or agent-loop error ends autonomous work. Side Quests records a terminal failed result, closes the child, removes its widget row, and wakes the parent model:
+An exhausted provider or agent-loop error ends autonomous work. Side Quests records a terminal failed result, closes the child, removes its widget row, and wakes the parent agent:
 
 ```text
-Side quest failed
+Sub-agent failed
 Security reviewer — audit auth
 Error: Provider request failed: rate limit exceeded
 Resume: /managed/path/to/session.jsonl
@@ -551,7 +564,7 @@ The error and canonical session path let the parent report the problem, start an
 
 #### Interactive turn failure
 
-A provider or agent-loop error ends only the current turn when the interactive Pi process remains healthy. The error stays visible in the child pane, the pane remains open, and its widget row returns to `waiting`. Side Quests does not send a failed result or wake the parent model.
+A provider or agent-loop error ends only the current turn when the interactive Pi process remains healthy. The error stays visible in the child pane, the pane remains open, and its widget row returns to `waiting`. Side Quests does not send a failed result or wake the parent agent.
 
 ```text
 provider or agent-loop error
@@ -570,7 +583,7 @@ If the user retries successfully and then runs `/subagent-done`, the parent rece
 A fatal or nonzero child-process exit is terminal for both autonomous and interactive children because the pane can no longer continue. Side Quests removes the row and wakes the parent with a failed result. If the current run produced an assistant response before exit, the result includes it as diagnostic context but remains failed:
 
 ```text
-Side quest failed
+Sub-agent failed
 Security reviewer — audit auth
 Error: Child process exited with status 1
 Last response from this run: Found an unsafe token fallback in src/auth.ts.
@@ -626,14 +639,14 @@ A closed child:
 - Existing children keep their saved manifest policy.
 - Events written during reload are delivered once.
 - Already delivered events are not duplicated.
-- Focus stays on the main quest.
+- Focus stays on the parent agent's pane.
 
-### Main quest exit or session replacement
+### Parent agent exit or session replacement
 
 On quit, `/new`, `/resume`, `/fork`, or `/clone`:
 
 - Side Quests marks shutdown as expected.
-- Every child owned by that main quest stops.
+- Every child owned by that parent agent session stops.
 - Managed panes close.
 - No misleading child completion handoff is emitted.
 - Saved child sessions remain available.
@@ -696,7 +709,7 @@ Storage safety:
 - Session files and unanswered requests have no automatic expiry.
 - Closing, failure, cancellation, shutdown, or reload does not delete a session.
 
-Side-quest sessions do not appear in Pi's normal `/resume` list. Resume them only through `Agent.resume` with the path returned to the main quest.
+Sub-agent sessions do not appear in Pi's normal `/resume` list. Resume them only through `Agent.resume` with the path returned to the parent agent.
 
 ## Safety boundaries
 
@@ -704,14 +717,14 @@ Side Quests:
 
 - Launches Pi children only.
 - Never launches Claude Code or another agent runtime.
-- Prevents nested side quests.
+- Prevents nested sub-agents.
 - Never gives a child a spawning tool.
 - Keeps child permissions fixed across takeover and resume.
 - Preserves unmanaged tmux panes and their processes.
 - Does not broadcast parent interruption to children.
 - Stops owned children when their owner disappears.
 - Keeps saved sessions until explicit deletion.
-- Requires the main quest to review returned evidence or changes.
+- Requires the parent agent to review returned evidence or changes.
 
 ## Not included
 

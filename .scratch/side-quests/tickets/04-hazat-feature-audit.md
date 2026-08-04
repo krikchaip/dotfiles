@@ -3,6 +3,8 @@
 Type: grilling
 Status: resolved
 
+Domain terms follow the [specification](../spec.md#domain-model): parent agent and sub-agent name actors; main quest and side quest name tasks.
+
 ## Question
 
 Walking through `hazat/pi-interactive-subagents`' README in order, which features and behaviors should `side-quests` retain, simplify, replace, or exclude, and which earlier wayfinding decisions should change?
@@ -17,13 +19,13 @@ Walking through `hazat/pi-interactive-subagents`' README in order, which feature
 - Consult `tintinweb/pi-subagents` only when a HazAT section reaches tool compatibility or inspires a targeted addition; defer a narrow compatibility-delta check until the HazAT audit is complete.
 - Exact session-directory structure, retention, and acceptance tests may remain dedicated follow-up tickets.
 - Name the shared tmux window with the first hyphen-delimited segment of the parent Pi session UUID. Treat that short name as display-only; retain the full parent session ID as ownership identity and target the canonical tmux window ID for every operation.
-- Creating or resuming a side-quest pane does not steal tmux focus from the main quest. The user switches to the shared side-quest window explicitly.
+- Creating or resuming a sub-agent pane does not steal tmux focus from the parent agent. The user switches to the shared sub-agent window explicitly.
 
 ### How It Works — retained with targeted replacements
 
-- Retain asynchronous launch, one isolated Pi process and persistent session per side quest, concurrent launches, a restrained above-editor status widget, and terminal completion/failure delivery that wakes the parent model. Keep a recoverable interactive turn failure local.
+- Retain asynchronous launch, one isolated Pi process and persistent session per sub-agent, concurrent launches, a restrained above-editor status widget, and terminal completion/failure delivery that wakes the parent model. Keep a recoverable interactive turn failure local.
 - Replace HazAT's `subagent` tool with the resolved `Agent` interface.
-- Replace independent multiplexer placement with one shared tmux window per main quest and the resolved `binary` or `ternary` layout.
+- Replace independent multiplexer placement with one shared sub-agent tmux window per parent session and the resolved `binary` or `ternary` layout.
 - Support Pi on tmux only; exclude HazAT's other runtimes and multiplexer backends.
 - Retain HazAT's child-written activity snapshots and one-second parent polling. Tiny per-child reads favor deterministic behavior over `fs.watch` complexity and missed-event recovery. Add a periodic child heartbeat so a readable but frozen snapshot eventually becomes unhealthy; heartbeat age measures child event-loop liveness, never task progress.
 - Retain Pi activity states `starting`, `active`, `waiting`, and `stalled`. Exclude `running`, which is only HazAT's fallback for runtimes without Pi snapshots. Completion and terminal failure are notification outcomes rather than persistent widget states; a recoverable interactive turn failure returns its live row to `waiting`.
@@ -39,7 +41,7 @@ Walking through `hazat/pi-interactive-subagents`' README in order, which feature
 ### What's Included — resolved with a smaller surface
 
 - Replace HazAT's parent-facing tools with the single resolved `Agent` tool; fold resume into `Agent.resume` and expose the discovered catalog through the parent system prompt instead of `subagents_list`.
-- Do not expose a model-callable `subagent_interrupt` tool and do not propagate main-quest interruption. Never inspect or replay terminal keys, subscribe to the main run's abort signal for broadcasting, or synthesize an interrupt through `pi.events`. The parent live-status UI has no interrupt action. To interrupt a child run, the user jumps to that child pane and invokes Pi's normal effective `app.interrupt` action there. Parent interruption affects only the parent.
+- Do not expose a model-callable `subagent_interrupt` tool and do not propagate parent-agent interruption. Never inspect or replay terminal keys, subscribe to the main run's abort signal for broadcasting, or synthesize an interrupt through `pi.events`. The parent live-status UI has no interrupt action. To interrupt a child run, the user jumps to that child pane and invokes Pi's normal effective `app.interrupt` action there. Parent interruption affects only the parent.
 - Exclude HazAT's `/plan`, `/iterate`, and `/subagent` commands. Existing `home/dot_pi/agent/extensions/branch-merge.ts` owns interactive branch/fork/merge workflows, so `side-quests` does not duplicate them. Its only parent command is the `/side-quests` live-pane navigator specified below.
 - Exclude all bundled agents. Discovery uses only the resolved project and global scopes.
 - Replace the model-callable child `subagent_done` tool with a child-only `/subagent-done` command. Every child Pi pane is terminal-interactive; lifecycle controls command availability and persistence, not whether the pane accepts input. Dynamically register the command at startup for an initially interactive child, immediately after explicit `Agent.resume` promotion, or immediately when an autonomous child accepts a direct non-command prompt and becomes permanently interactive. Restore registration from persisted lifecycle state after reload, adoption, or reopen. Do not register or show it while autonomous; reject `/subagent-done` and `/subagent-done ...` through an autonomous input guard without sending text to the model or promoting lifecycle. Never register it in the parent or expose it to the model. The command accepts no arguments and renders `Usage: /subagent-done` when arguments are present. During streaming or another active agent turn, keep the child open and tell the user to wait or interrupt first. While idle, atomically write the trusted completion marker, deliver the final assistant response as completion, retain the resumable session and any unanswered parent request, and shut down the child.

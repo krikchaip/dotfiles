@@ -92,18 +92,26 @@ _Avoid_: Replacement new command, streaming session replacement
 A blank session whose parent link points to an existing, valid session file active when it was created. It inherits no conversation context.
 _Avoid_: Branch, clone, context copy, dangling parent link
 
+**Parent agent**:
+The Pi agent that performs the main quest, delegates side quests through `Agent`, and reviews returned results.
+_Avoid_: Main quest, orchestrator, root agent, main thread
+
+**Sub-agent**:
+A Pi agent spawned by the parent agent to perform a side quest in a persistent child session.
+_Avoid_: Side quest, task, background job
+
 **Main quest**:
-A parent Pi session that owns the user's overall outcome and accepts or rejects delegated results.
-_Avoid_: Orchestrator, root agent, main thread
+The overall task performed by the parent agent. It owns the user's outcome and includes review and acceptance of delegated results.
+_Avoid_: Parent agent, parent session, orchestrator, main thread
 
 **Side quest**:
-A persistent child Pi session delegated a coherent, independently reviewable objective with a return contract to its main quest. Granular helper work and retrieval-only tasks are not side quests.
-_Avoid_: Microtask, lookup agent, background job
+A coherent, complete task delegated by the parent agent and performed by a sub-agent. It must produce an independently reviewable outcome with acceptance evidence. Research with synthesis, feature implementation, diagnosis with a verified fix, and an epic's implementation task can qualify. Granular exploration, file retrieval, file reading, or search without a complete outcome does not qualify.
+_Avoid_: Sub-agent, child session, microtask, lookup, background job
 
 **Side-quest handoff**:
-The work contract sent from a main quest to a side quest, stating purpose, context, constraints, expected outcome, and acceptance evidence.
-_Avoid_: Prompt fragment, file-search request, context dump
+The work contract the parent agent sends to a sub-agent for a side quest, stating purpose, context, constraints, expected outcome, and acceptance evidence.
+_Avoid_: Sub-agent, prompt fragment, file-search request, context dump
 
 **Side-quest review loop**:
-Evaluation of a returned side-quest result by its main quest, followed when needed by resuming the same child session with corrections or follow-up work.
-_Avoid_: Blind result acceptance, unrelated retry, new child session
+The parent agent's evaluation of a returned side-quest result, followed when needed by resuming the same sub-agent session with corrections or follow-up work.
+_Avoid_: Sub-agent lifecycle, blind result acceptance, unrelated retry, new child session

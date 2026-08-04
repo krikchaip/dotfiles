@@ -1,11 +1,13 @@
-# Side-Quest Session Storage
+# Sub-Agent Session Storage
 
 Type: decision
 Status: resolved
 
+Domain terms follow the [specification](../spec.md#domain-model): parent agent and sub-agent name actors; main quest and side quest name tasks.
+
 ## Question
 
-What folder structure, ownership rules, and retention policy keep side-quest sessions resumable without adding them to Pi's normal `/resume` list?
+What folder structure, ownership rules, and retention policy keep sub-agent sessions resumable without adding them to Pi's normal `/resume` list?
 
 ## Answer
 
@@ -32,4 +34,4 @@ Only accept resume paths that resolve to regular `session.jsonl` files under thi
 
 Keep session files, manifests, and unanswered mailbox requests until explicit user deletion. Do not add automatic age deletion in the MVP. Remove a response after the child acknowledges it. Runtime snapshots are replaceable state: remove them after terminal handling, and remove stale runtime trees only after their recorded owner process identity and lease are both dead. Never delete retained session data during parent shutdown, pane closure, cancellation, reload, or stale-runtime cleanup.
 
-This root remains outside Pi's normal session tree, so side quests do not appear in `/resume`. Resuming is only through `Agent.resume` with the canonical path returned in the parent conversation.
+This root remains outside Pi's normal session tree, so sub-agent sessions do not appear in `/resume`. Resuming is only through `Agent.resume` with the canonical path returned in the parent conversation.

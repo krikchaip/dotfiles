@@ -3,6 +3,8 @@
 Type: decision
 Status: resolved
 
+Domain terms follow the [specification](../spec.md#domain-model): parent agent and sub-agent name actors; main quest and side quest name tasks.
+
 ## Question
 
 What evidence is required before the `side-quests` specification or implementation can be accepted?
@@ -17,12 +19,12 @@ Acceptance requires all automated checks plus real Pi-in-tmux E2E coverage. Unit
 - `Agent` exposes only the resolved schema and rejects unknown fields, names, resume paths, models, tools, and skills.
 - Project definitions override global definitions; malformed or disabled project definitions fail closed.
 - Child policy always enables `ask_parent`, always denies every spawning tool, and never broadens after takeover or resume.
-- Side-quest files stay outside Pi's normal session tree and do not appear in `/resume`.
+- Sub-agent session files stay outside Pi's normal session tree and do not appear in `/resume`.
 
 ### Real TUI and tmux checks
 
 - Launch one child, then enough children to exercise binary and ternary rows, leftovers, landscape/portrait transposition, narrow windows, resize, completion, cancellation, manual pane closure, and resume.
-- Assert exact pane rectangles from `tmux list-panes`, stable canonical pane IDs, deterministic reflow, and unchanged main-quest focus.
+- Assert exact pane rectangles from `tmux list-panes`, stable canonical pane IDs, deterministic reflow, and unchanged parent-pane focus.
 - Inspect screenshots for the restrained parent widget, bordered child identity box, `HH:MM:SS` elapsed time, parent `reply needed` and child `reply pending` states alongside active and idle activity, exact two-cell outer padding and inter-column gaps, vertically aligned parent column starts, selected-row state, key hints from Pi's effective bindings, clipping, wrapping, and stale rows.
 - Verify `/side-quests` navigation, pane jump, confirmed close, and no broadcast keypresses. Verify child interruption only from that child's pane through Pi's effective `app.interrupt` action.
 

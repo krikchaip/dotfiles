@@ -3,6 +3,8 @@
 Type: grilling
 Status: resolved
 
+Domain terms follow the [specification](../spec.md#domain-model): parent agent and sub-agent name actors; main quest and side quest name tasks.
+
 ## Question
 
 What exact public `Agent` tool request and response contract must `side-quests` guarantee for Claude Code-style compatibility with `tintinweb/pi-subagents`, using an asynchronous side-quest model where the parent session continues immediately?
@@ -12,16 +14,16 @@ What exact public `Agent` tool request and response contract must `side-quests` 
 - Tool name: `Agent`.
 - Include required `prompt` for task instructions and required `description` for a short task label.
 - Include optional `subagent_type`, `resume`, `inherit_context`, and `interactive`.
-- Child session file path is the canonical side-quest identifier. Launch acknowledgment returns it; `resume` accepts it, adapting `pi-interactive-subagents` session-path mechanics into the tintinweb-style `Agent` interface. No separate opaque agent ID.
+- Child session file path is the canonical sub-agent session identifier. Launch acknowledgment returns it; `resume` accepts it, adapting `pi-interactive-subagents` session-path mechanics into the tintinweb-style `Agent` interface. No separate opaque agent ID.
 - Tool permissions, skill selection, and skill preloading belong only in agent-definition frontmatter; the `Agent` request has no `tools` or `skills` parameter.
 - `interactive` behavior remains open.
 - Exclude per-call `model`, `thinking`, `max_turns`, and `run_in_background`; model and thinking belong in agent frontmatter, pane users can cancel agents directly, and MVP `Agent` is always asynchronous.
 - Exclude `isolated`, `isolation`, worktree support, `systemPrompt`, and `cwd` from the MVP tool contract.
-- Domain model: the parent session is the **main quest**; each persistent child session is a **side quest** exploring related or unrelated work.
+- Domain model: the **parent agent** performs the **main quest**. Each **sub-agent** performs a coherent **side quest** in a persistent child session.
 - Runtime mechanics come from `pi-interactive-subagents`; the public interface and selected features come from `tintinweb/pi-subagents`.
-- MVP `Agent` launches side quests asynchronously so the main quest never waits. Synchronous child-process waiting and communication are feasible but deferred to the backlog.
-- Side-quest completion returns a handoff to the main quest. Whether that handoff embeds the full transcript, the final answer, or a transcript reference remains open.
-- “Side quest” is model-facing explanatory language only. Runtime status, errors, results, and user-facing handoffs use `Agent`, `subagent`, or the configured agent name.
+- MVP `Agent` launches sub-agents asynchronously so the parent agent can continue the main quest without waiting. Synchronous child-process waiting and communication are feasible but deferred to the backlog.
+- A sub-agent returns its completed side-quest handoff to the parent agent. Whether that handoff embeds the full transcript, the final answer, or a transcript reference remains open.
+- “Parent agent” and “sub-agent” name actors. “Main quest” and “side quest” name tasks and must not be used as agent or session synonyms. Runtime status, errors, results, and user-facing handoffs use `Agent`, `subagent`, or the configured agent name.
 
 ## Answer
 
@@ -40,7 +42,7 @@ Request schema:
 }
 ```
 
-`prompt` and `description` are always required and non-empty, including when resuming. `description` is a short, descriptive task label supplied by the parent agent, preferably two to six words; it labels the pane and parent status UI. Every other field is optional. `resume` accepts the canonical child session-file path returned by an earlier invocation; there is no separate agent ID. `DynamicAgentType` is a registration-time enum containing every resolved discovered agent name. `subagent_type` selects one of those names; omission selects the general-purpose parent-cloned agent. There is no explicit `"default"` enum value. Its parameter description must tell the model to omit it for general-purpose use. Agent-definition changes become visible to the schema after extension reload. `inherit_context` copies the parent conversation and defaults to `true`; its parameter description must explain that `false` provides a fresh, parent-unbiased context for independent or adversarial work. `interactive` exposes the initial pane-mode choice whose merge and lifecycle rules belong to its dedicated specification ticket.
+`prompt` and `description` are always required and non-empty, including when resuming. `description` is a short, descriptive task label supplied by the parent agent, preferably two to six words; it labels the pane and parent status UI. Every other field is optional. `resume` accepts the canonical child session-file path returned by an earlier invocation; there is no separate agent ID. `DynamicAgentType` is a registration-time enum containing the reserved `general-purpose` value plus every valid resolved non-general-purpose agent name. Omitted `subagent_type` and explicit `general-purpose` select the same standard parent clone, including any resolved `general-purpose.md` customization. There is no `"default"` enum value. Its parameter description must tell the model that omission is the normal general-purpose form. Agent-definition changes become visible to the schema after extension reload. `inherit_context` copies the parent conversation and defaults to `true`; its parameter description must explain that `false` provides a fresh, parent-unbiased context for independent or adversarial work. `interactive` exposes the initial pane-mode choice whose merge and lifecycle rules belong to its dedicated specification ticket.
 
 For a new launch, `prompt` is appended as a normal user-role message after any parent conversation copied by `inherit_context`. With fresh context, it is the child's first conversation message. The launch prompt is not a custom message.
 
@@ -50,6 +52,6 @@ Every invocation is asynchronous. A new launch returns only after the child Pi p
 
 Completion arrives later as a parent-session notification and wakes the parent model. A successful handoff contains the child’s final assistant response and canonical session path. It does not inject the full child transcript. An exhausted provider or agent-loop error terminates an autonomous child and sends the underlying error plus retry/resume guidance to the parent. The same turn-scoped error stays local when an interactive child process remains healthy: keep its pane open, return it to waiting, and do not wake the parent. A fatal or nonzero process exit is terminal in either lifecycle and includes the child's current-run final assistant response when available, otherwise a fallback diagnostic; never present an earlier response as the failed run's usable result. Add a distinct `closed` terminal outcome when a tracked tmux pane disappears without a trusted completion, cancellation, terminal error, or expected-parent-shutdown marker. It reports that the pane closed before completion, includes the final assistant response when available plus the session path, explicitly states when an unanswered `ask_parent` request remains saved, and never claims completion or user intent. A parent-widget close action writes a trusted user-cancellation marker before removing the selected pane, so it reports cancellation rather than `closed`. Every terminal handoff includes the same session path when one exists. Exact lifecycle transitions and presentation wording remain delegated to the lifecycle/status ticket.
 
-“Main quest” and “side quest” may appear in the model-facing `Agent` description or minimal system guidelines to explain delegation. They must not appear in runtime statuses, errors, results, or user-facing handoffs.
+Model-facing `Agent` guidance must distinguish actors from tasks: the parent agent performs the main quest, and each sub-agent performs a side quest. It must not use “main quest” or “side quest” as an agent or session synonym. Runtime statuses, errors, results, and user-facing handoffs use `Agent`, `subagent`, or the configured agent name.
 
 MVP deliberately omits per-call `tools`, `skills`, `model`, `thinking`, `max_turns`, `run_in_background`, `isolated`, `isolation`, `systemPrompt`, and `cwd`. Synchronous execution and non-Pi runtimes remain outside the contract.

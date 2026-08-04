@@ -6,53 +6,61 @@ Status: ready-for-agent
 
 Pi users need a safe way to delegate coherent, independently reviewable work without blocking the main Pi session or hiding work in headless background processes. Existing interactive-subagent behavior provides the right tmux-first runtime and restrained UI, but its public tools, broad multiplexer support, and package surface do not match this workflow. Claude Code-style subagent packages provide useful `Agent` and frontmatter names, but their runtime, UI, polling tools, queueing, and orchestration model are not the desired product.
 
-Users need one maintainable Pi package that keeps the interactive tmux experience, exposes a narrow `Agent` naming surface, preserves every child as a resumable Pi session, prevents nested delegation and permission growth, and reports child state without stealing focus from the main quest.
+Users need one maintainable Pi package that keeps the interactive tmux experience, exposes a narrow `Agent` naming surface, preserves every child as a resumable Pi session, prevents nested delegation and permission growth, and reports child state without stealing focus from the parent agent.
 
 ## Solution
 
-Build a private local Pi package named `side-quests`. It launches Pi child sessions in one dedicated tmux window owned by the current main quest. Each side quest receives a coherent handoff, runs asynchronously in its own pane, writes activity snapshots, and returns its final assistant response to the main quest. The user can inspect or take over any pane directly.
+Build a private local Pi package named `side-quests`. The parent agent performs the main quest and uses `Agent` to spawn a sub-agent for each delegated side quest. Each sub-agent receives a coherent side-quest handoff, runs asynchronously in its own pane and persistent child session, writes activity snapshots, and returns its final assistant response to the parent agent. The user can inspect or take over any pane directly.
 
 Use `hazat/pi-interactive-subagents` as the runtime and restrained-UX baseline. Use `tintinweb/pi-subagents` only for the `Agent` name, selected request fields, and selected shared frontmatter names. Do not copy Tintinweb runtime or UI behavior.
 
 Keep the package entrypoint small. Follow the image-attachments package's useful composition-root pattern, but improve locality: group behavior into deep modules that own cohesive state and policy instead of creating one shallow module per Pi event. Keep parent orchestration, child runtime, definition resolution, persistence, tmux control/layout, event delivery, and TUI rendering separate behind small interfaces.
 
+## Domain Model
+
+- **Parent agent** and **sub-agent** name actors. The parent agent spawns sub-agents through `Agent`.
+- **Main quest** and **side quest** name tasks. The parent agent performs the main quest. Each sub-agent performs a side quest.
+- A side quest is a meaningful, self-contained task with an independently reviewable outcome and acceptance evidence. It can be research with synthesis, feature implementation, a verified bug fix, an architectural audit, or one complete implementation task from a larger epic.
+- File fetching, file reading, basic lookup, retrieval-only work, and search without a complete outcome are not side quests. The parent agent does this granular work as part of the main quest.
+- Never use “main quest” as a synonym for the parent agent. Never use “side quest” as a synonym for a sub-agent, child session, process, or pane.
+
 ## User Stories
 
-1. As a Pi user, I want the main quest to delegate a coherent objective, so that it can continue other work while a side quest runs.
-2. As a Pi user, I want delegation to remain optional, so that simple work stays in the main quest.
-3. As a Pi user, I want retrieval-only work to stay in the main quest, so that side quests remain useful and independently reviewable.
-4. As a main quest, I want each side-quest handoff to include purpose, context, constraints, expected outcome, and acceptance evidence, so that the child can work independently.
-5. As a main quest, I want to launch several side quests concurrently, so that independent outcomes can progress in parallel.
-6. As a main quest, I want `Agent` to acknowledge launch immediately after the pane and session exist, so that I can continue without waiting for completion.
-7. As a main quest, I want one stable session path for each side quest, so that I can resume the same context later.
-8. As a main quest, I want a child result to contain its final assistant response and session path, so that I can review evidence without importing the full transcript.
-9. As a main quest, I want failures to retain useful final output when available, so that partial evidence is not lost.
-10. As a main quest, I want provider and agent-loop errors reported as errors, so that stale assistant text is not mistaken for success.
-11. As a main quest, I want unmarked pane disappearance reported as `closed`, so that the extension never invents completion or user intent.
-12. As a main quest, I want returned work to remain subject to my review, so that delegation never becomes blind acceptance.
+1. As a Pi user, I want the parent agent to delegate a coherent objective, so that it can continue the main quest while a sub-agent performs a side quest.
+2. As a Pi user, I want delegation to remain optional, so that simple work stays with the parent agent as part of the main quest.
+3. As a Pi user, I want retrieval-only work to stay with the parent agent, so that side quests remain complete and independently reviewable.
+4. As a parent agent, I want each side-quest handoff to include purpose, context, constraints, expected outcome, and acceptance evidence, so that the sub-agent can work independently.
+5. As a parent agent, I want to launch several sub-agents for side quests concurrently, so that independent outcomes can progress in parallel.
+6. As a parent agent, I want `Agent` to acknowledge launch immediately after the pane and session exist, so that I can continue without waiting for completion.
+7. As a parent agent, I want one stable session path for each sub-agent, so that I can resume the same context later.
+8. As a parent agent, I want a sub-agent result to contain its final assistant response and session path, so that I can review evidence without importing the full transcript.
+9. As a parent agent, I want failures to retain useful final output when available, so that partial evidence is not lost.
+10. As a parent agent, I want provider and agent-loop errors reported as errors, so that stale assistant text is not mistaken for success.
+11. As a parent agent, I want unmarked pane disappearance reported as `closed`, so that the extension never invents completion or user intent.
+12. As a parent agent, I want returned work to remain subject to my review, so that delegation never becomes blind acceptance.
 13. As a Pi user, I want named agents discovered from project and global definitions, so that projects can specialize global roles.
 14. As a Pi user, I want project definitions to shadow same-name global definitions, so that local policy is authoritative.
 15. As a Pi user, I want a malformed project definition to fail closed, so that a global definition cannot bypass local intent.
 16. As a Pi user, I want a project tombstone to disable a global agent, so that unwanted roles can be removed locally.
 17. As a Pi user, I want agent names to be case-sensitive filename stems, so that lookup and shadowing are deterministic.
-18. As a main quest, I want the full normalized description of every valid agent in my system prompt, so that I can select roles accurately.
-19. As a main quest, I want to omit `subagent_type` for general-purpose work, so that the child clones my current runtime configuration.
-20. As a main quest, I want unknown agent names to fail before launch, so that work never starts under an unintended fallback.
-21. As a main quest, I want context inheritance enabled by default, so that continuation tasks receive relevant conversation.
-22. As a main quest, I want to disable context inheritance, so that independent or adversarial review starts unbiased.
+18. As a parent agent, I want the full normalized description of every valid non-general-purpose agent in the system prompt's `Guidelines` section, so that I can select roles accurately.
+19. As a parent agent, I want omitted `subagent_type` and explicit `general-purpose` to select the same standard parent clone, with optional Markdown configuration, so that general delegation is simple but configurable.
+20. As a parent agent, I want unknown agent names and malformed winning definitions to fail before launch, so that work never starts under an unintended fallback.
+21. As a parent agent, I want context inheritance enabled by default, so that continuation tasks receive relevant conversation.
+22. As a parent agent, I want to disable context inheritance, so that independent or adversarial review starts unbiased.
 23. As an agent-definition author, I want exact model and thinking settings, so that named roles run with predictable capabilities.
 24. As an agent-definition author, I want exact tool allowlists and denylists, so that child permissions are explicit.
 25. As an agent-definition author, I want lazy and preloaded skill controls, so that children receive only intended guidance.
 26. As a Pi user, I want unsupported shared frontmatter ignored, so that one agent file can coexist with other extensions.
 27. As a Pi user, I want child tool permissions to remain fixed after takeover and resume, so that interaction cannot escalate capability.
-28. As a Pi user, I want every spawning tool denied inside children, so that side quests cannot create nested agents.
-29. As a side quest, I want `ask_parent` always available, so that restrictive tool policy cannot remove my control channel.
-30. As a side quest, I want one pending parent question at a time, so that responses cannot become ambiguous.
-31. As a side quest, I want `ask_parent` to send my question without ending my turn, so that I can continue independent work instead of waiting.
-32. As a main quest, I want an `ask_parent` request to wake me, so that the unanswered question receives attention.
-33. As a main quest, I want `Agent.resume` to answer a pending question, so that one interface owns all continuation.
-34. As a main quest, I want guidance sent to a live active child after its current tool batch without aborting it, so that work changes direction safely.
-35. As a main quest, I want a stopped child reopened from its session when resumed, so that closed panes do not destroy continuity.
+28. As a Pi user, I want every spawning tool denied inside children, so that sub-agents cannot create nested sub-agents.
+29. As a sub-agent, I want `ask_parent` always available, so that restrictive tool policy cannot remove my control channel.
+30. As a sub-agent, I want one pending parent question at a time, so that responses cannot become ambiguous.
+31. As a sub-agent, I want `ask_parent` to send my question without ending my turn, so that I can continue independent work instead of waiting.
+32. As a parent agent, I want an `ask_parent` request to wake me, so that the unanswered question receives attention.
+33. As a parent agent, I want `Agent.resume` to answer a pending question, so that one interface owns all continuation.
+34. As a parent agent, I want guidance sent to a live active child after its current tool batch without aborting it, so that work changes direction safely.
+35. As a parent agent, I want a stopped child reopened from its session when resumed, so that closed panes do not destroy continuity.
 36. As a Pi user, I want every child pane to accept terminal input, so that I can inspect and take over work directly.
 37. As a Pi user, I want autonomous panes to close after normal completion, so that finished work does not leave clutter.
 38. As a Pi user, I want initially interactive panes to remain open, so that continuing terminal work stays available.
@@ -61,9 +69,9 @@ Keep the package entrypoint small. Follow the image-attachments package's useful
 41. As a Pi user, I want `/subagent-done` registered only for initially or permanently promoted interactive children, so that autonomous panes do not advertise an inapplicable completion command.
 42. As a Pi user, I want `/subagent-done` to close an idle interactive child cleanly and refuse during an active turn, so that completion is explicit and streaming work is not misclassified.
 43. As a Pi user, I want child interruption to use Pi's normal action inside that child pane, so that interruption stays local.
-44. As a Pi user, I want main-quest interruption to affect only the main quest, so that child work is not broadcast-cancelled.
-45. As a Pi user, I want launches and resumes not to steal tmux focus, so that my main-quest workflow stays stable.
-46. As a Pi user, I want one side-quest window per main quest, so that related child panes remain easy to find.
+44. As a Pi user, I want parent-agent interruption to affect only the parent agent, so that child work is not broadcast-cancelled.
+45. As a Pi user, I want launches and resumes not to steal tmux focus, so that I can continue the main quest in the parent pane.
+46. As a Pi user, I want one shared sub-agent window per parent session, so that related child panes remain easy to find.
 47. As a Pi user, I want the window name to show the short main-session UUID, so that it is recognizable without becoming an ownership key.
 48. As a Pi user, I want deterministic binary and ternary layouts, so that pane placement does not depend on tmux's incidental history.
 49. As a Pi user, I want portrait layouts to be geometric transposes of landscape layouts, so that ordering remains predictable.
@@ -78,16 +86,16 @@ Keep the package entrypoint small. Follow the image-attachments package's useful
 58. As a Pi user, I want selected-row identity stable across status changes, so that duplicate labels or row reorder do not move selection.
 59. As a Pi user, I want each child to show a compact bordered identity box, so that its role, elapsed time, task, lifecycle, and pending-reply state are clear.
 60. As a Pi user, I want narrow-terminal truncation to preserve agent identity and lifecycle state, so that important status remains visible.
-61. As a main quest, I want starting, active, waiting, and stalled status, so that I can distinguish lifecycle and liveness.
-62. As a main quest, I want heartbeat staleness detected without a task-duration timeout, so that frozen children are reported without penalizing long work.
-63. As a main quest, I want autonomous stall, recovery, and exhausted turn-failure events to wake me, so that unhealthy delegated work receives review.
+61. As a parent agent, I want starting, active, waiting, and stalled status, so that I can distinguish lifecycle and liveness.
+62. As a parent agent, I want heartbeat staleness detected without a task-duration timeout, so that frozen children are reported without penalizing long work.
+63. As a parent agent, I want autonomous stall, recovery, and exhausted turn-failure events to wake me, so that unhealthy delegated work receives review.
 64. As a Pi user, I want interactive child stalls and recoverable turn failures to remain local, so that my manual session does not inject model turns.
-65. As a Pi user, I want `/reload` to preserve active side quests, so that extension reload does not discard work.
+65. As a Pi user, I want `/reload` to preserve active sub-agents and their side quests, so that extension reload does not discard work.
 66. As a Pi user, I want events written during reload delivered once, so that completion is neither lost nor duplicated.
 67. As a Pi user, I want parent quit, session replacement, or process loss to terminate owned children, so that agents cannot become orphans.
 68. As a Pi user, I want broken reload to expire an owner lease, so that children stop even if the parent process remains alive without the extension.
 69. As a Pi user, I want child sessions retained after closure, cancellation, failure, shutdown, and reload, so that work remains resumable.
-70. As a Pi user, I want side-quest sessions absent from normal `/resume`, so that regular session selection stays clean.
+70. As a Pi user, I want sub-agent sessions absent from normal `/resume`, so that regular session selection stays clean.
 71. As a Pi user, I want resume paths validated inside the managed storage root, so that `Agent` cannot open arbitrary files.
 72. As a Pi user outside tmux, I want one clear warning and no active extension surface, so that unsupported environments remain safe and quiet.
 73. As a maintainer, I want the extension packaged as a normal local Pi package, so that installation and reload follow existing repository conventions.
@@ -106,20 +114,21 @@ Keep the package entrypoint small. Follow the image-attachments package's useful
 - Outside tmux, emit one startup warning and return before registering tools, commands, hooks, timers, widgets, or child resources.
 
 - Register exactly one public model tool named `Agent` with this request contract: required non-empty `prompt` and `description`; optional `subagent_type`, `resume`, `inherit_context`, and `interactive`; no additional properties. `description` is preferably two to six words and labels the pane and status row.
-- Build `subagent_type` as a registration-time enum of valid resolved named agents. Omission means general-purpose parent clone. There is no `default` enum value. Agent-definition changes reach the enum after `/reload`.
+- Build `subagent_type` as a registration-time enum containing the reserved `general-purpose` value plus every valid resolved non-general-purpose agent. Omission and explicit `general-purpose` are identical. There is no `default` enum value. Agent-definition changes reach the enum after `/reload`.
 - `resume` is an absolute managed child session path. When it is present, `prompt` is continuation text and `description` is the new task label. Reject `subagent_type` and `inherit_context` on resume. Omitted `interactive` preserves prior lifecycle; explicit `true` promotes permanently; `false` cannot demote.
 - For a new launch, append `prompt` as a normal user-role message after any one-time inherited conversation. It is the first conversation message when `inherit_context` is false. Do not represent the launch prompt as a custom message.
 - Keep `Agent` always asynchronous. Launch returns after the pane has started and the child session file exists. Return structured details and model-visible text that distinguish new launch, live continuation, and reopened resume and always include the canonical session path.
 - Do not expose result-polling or steering tools. A successful child terminal event persists one custom parent message containing the final assistant response, canonical session path, stable event ID, and collapsed/expanded presentation. It wakes the parent model. Do not inject the full child transcript.
 - Use Pi's `app.tools.expand` action and `keyHint(...)` for expandable result hints. Do not register or display a hard-coded shortcut.
-- Keep parent system-prompt additions small: define optional side-quest delegation, require coherent independently reviewable outcomes and a return contract, require main-quest review, and include the full valid agent catalog. Normalize description whitespace only. Do not duplicate the catalog in the short tool description.
-- Keep “main quest,” “side quest,” “side-quest handoff,” and “side-quest review loop” as model-facing domain terms. Runtime statuses and user-facing result/error text use `Agent`, `subagent`, or the configured agent label.
+- Keep parent system-prompt additions small and place them in Pi's `Guidelines` section: define the parent-agent and sub-agent actors; define the main-quest and side-quest tasks; make side-quest delegation optional; require coherent independently reviewable outcomes and a return contract; require parent-agent review; and include the full valid non-general-purpose agent catalog. Include each canonical name and its full description after whitespace normalization only. Do not duplicate the catalog in the short tool description.
+- Keep “parent agent,” “sub-agent,” “main quest,” “side quest,” “side-quest handoff,” and “side-quest review loop” as model-facing domain terms. Parent agent and sub-agent name actors. Main quest and side quest name tasks; never use either task term as an agent or session synonym. Runtime statuses and user-facing result/error text use `Agent`, `subagent`, or the configured agent label.
 
-- Discover named definitions from project `.pi/agents/*.md` and global `$PI_CODING_AGENT_DIR/agents/*.md`. Use exact case-sensitive filename stems. Project definitions shadow global definitions before validation. Do not scan `.agents/agents` and do not bundle agents.
-- Parse definitions at parent extension registration. Valid enabled definitions require non-empty `description`; `enabled: false` is a tombstone and requires no body. A malformed winning definition stays shadowing, is removed from the catalog and enum, and emits one path-specific warning at startup or reload. Unknown fields are silently ignored.
+- Discover agent definitions from project `.pi/agents/*.md` and global `$PI_CODING_AGENT_DIR/agents/*.md`. Use exact case-sensitive filename stems. Project definitions shadow global definitions before validation. Do not scan `.agents/agents` and do not bundle agents.
+- Reserve `general-purpose` as the standard agent identity. Omitted `subagent_type` and explicit `general-purpose` resolve identically. Without a winning `general-purpose.md`, clone the current parent runtime. A valid winning file applies the same supported overrides and Markdown-body instructions as a named agent, but its `description` is optional. A malformed winning file stays shadowing, emits one path-specific warning, and rejects both omitted and explicit general-purpose launches without global or parent-clone fallback. `enabled: false` in either project or global `general-purpose.md` removes that customization and restores the standard parent clone; a project tombstone also shadows any global customization. The standard agent itself is never disabled.
+- Parse non-general-purpose definitions at parent extension registration. Valid enabled definitions require non-empty `description`; `enabled: false` is a tombstone and requires no body. A malformed winning definition stays shadowing, is removed from the Guidelines catalog and enum, and emits one path-specific warning at startup or reload. Unknown fields are silently ignored.
 - Consume only `description`, `display_name`, `enabled`, `model`, `thinking`, `tools`, `disallowed_tools`, `available_skills`, `preload_skills`, `inherit_context`, and `interactive`. The Markdown body contains optional agent instructions.
 - Treat `display_name` as presentation only. Canonical identity, enum value, storage, shadowing, and resume continue to use the filename stem.
-- Resolve named agents from the current parent runtime baseline. Omitted fields inherit current parent model, thinking, native system-prompt inputs, enabled tools, loaded extensions, and skills. Append preloaded skill bodies after native Pi prompt sections, then append the agent body.
+- Resolve general-purpose and named agents from the current parent runtime baseline. Omitted fields inherit current parent model, thinking, native system-prompt inputs, enabled tools, loaded extensions, and skills. Append preloaded skill bodies after native Pi prompt sections, then append the agent body.
 - Require explicit models to match an exact `provider/model-id` in Pi's registry. Require thinking values from `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`; use Pi's native clamp when a valid level exceeds model support. Invalid explicit values abort launch without fallback.
 - Omitted `tools` inherits the parent's enabled set. Present `tools` replaces it with `all`, `none`, or exact registered names. Apply `disallowed_tools` next. Unknown names abort launch. Hard-deny `Agent`, package spawning tools, and known subagent-spawning names after all user policy, then force-register and force-enable `ask_parent`.
 - Keep resolved tool policy permanent in the child manifest. Interactive takeover, live continuation, reopened resume, changed parent settings, and changed agent files never broaden it. Missing required registered tools on reopen cause a clear resume error instead of fallback.
@@ -127,8 +136,8 @@ Keep the package entrypoint small. Follow the image-attachments package's useful
 - `inherit_context` copies the parent active conversation once at launch. Per-call value overrides frontmatter; total omission defaults true. Later parent conversation is never synchronized.
 - `interactive` controls lifecycle only. On new launch, the per-call value overrides frontmatter and total omission defaults false. On resume, explicit `true` permanently promotes an autonomous session, omission preserves lifecycle, and `false` cannot demote. Every pane remains terminal-interactive. An accepted non-command input with Pi source `interactive` also promotes permanently. Ordinary programmatic parent continuation, other extension-injected messages, commands, typing without submission, editing, pasting, and navigation do not promote.
 
-- Launch only Pi. Start each child directly as the tmux pane command in the main quest's current CWD. Do not start an intermediate shell, send terminal keystrokes, or use a shell-ready delay.
-- Give each main quest one shared side-quest tmux window. Create it detached on first launch and retain its canonical tmux window ID. Use the first hyphen-delimited parent session UUID segment only as the visible window name; use the full UUID and unique owner identity for all ownership checks.
+- Launch only Pi. Start each child directly as the tmux pane command in the parent agent's current CWD. Do not start an intermediate shell, send terminal keystrokes, or use a shell-ready delay.
+- Give each parent agent session one shared sub-agent tmux window. Create it detached on first launch and retain its canonical tmux window ID. Use the first hyphen-delimited parent session UUID segment only as the visible window name; use the full UUID and unique owner identity for all ownership checks.
 - Create and resume panes detached. Never change the invoking client's current window or active pane. Pane jump is allowed only after explicit user confirmation in `/side-quests` navigation and targets the selected canonical pane ID for the invoking client.
 - Preserve all unmanaged panes. Remove the shared window after the final managed pane closes only when no unmanaged panes remain. Never kill or replace an unmanaged pane process.
 - Support package layout policy values `binary` and `ternary`, defaulting to `binary`. Load the choice at startup/reload. An invalid choice warns and uses `binary`.
@@ -143,7 +152,7 @@ Keep the package entrypoint small. Follow the image-attachments package's useful
 - Store canonical agent identity, display/task labels, CWD, model, thinking, exact tools, skill/system-prompt snapshot, context choice, lifecycle mode, parent lineage, and schema version in the manifest. Resolved capability and prompt-policy fields are immutable. Update task label and promoted lifecycle state atomically on continuation. Definition and parent-setting changes affect new children only.
 - Create private directories and files with owner-only access. Write manifests, mailboxes, snapshots, owner records, and terminal sidecars atomically with temporary-file rename. Validate schema versions, owner IDs, child IDs, request IDs, and event IDs before use.
 - Retain session data, manifests, and unanswered requests until explicit user deletion. Do not implement age-based deletion. Remove accepted responses and handled replaceable runtime state. Clean stale runtime state only after both owner process identity and owner lease are dead.
-- Keep this storage root outside Pi's normal session hierarchy so side quests never appear in `/resume`.
+- Keep this storage root outside Pi's normal session hierarchy so sub-agent sessions never appear in `/resume`.
 
 - Use a private mailbox for `ask_parent`. Allow one outstanding request. The first call writes the request atomically. Sibling tool calls in the same batch remain valid and execute normally. Reject every later `ask_parent` call while that request is unanswered.
 - A successful `ask_parent` returns an ordinary successful tool result without `terminate: true` and without calling `ctx.abort()`. The child continues its current turn and does not wait for a response. Autonomous completion remains allowed while the request is pending; preserve the unanswered request after completion or closure.
@@ -173,15 +182,15 @@ Keep the package entrypoint small. Follow the image-attachments package's useful
 - Supplement the primary seam with pure tests for definition/policy resolution, managed-path validation, event deduplication, lifecycle transitions, mailbox correlation, and canonical layout geometry. Test returned values and external state transitions, not private function calls or event-hook wiring.
 - Treat the executable pane-layout prototype as the geometry oracle. Cover binary and ternary counts across completed and partial levels, landscape/portrait transposition, remainder placement, growth/shrink symmetry, stable pane assignment, tiny dimensions, and resize recovery.
 - Test package startup outside tmux: exactly one warning and no tool, command, timer, hook-driven UI, or process surface.
-- Test the exact `Agent` schema, dynamic enum refresh, required values, forbidden mixed resume fields, unknown properties, new launch, live idle continuation, live active steering, stopped reopen, duplicate-process prevention, startup failure cleanup, and canonical acknowledgements.
-- Test project/global discovery, exact case, reserved default handling, tombstones, malformed project shadowing, one-warning behavior, full description catalog, unsupported-field ignoring, and reload refresh.
+- Test the exact `Agent` schema, reserved `general-purpose` enum value, omission equivalence, dynamic enum refresh, required values, forbidden mixed resume fields, unknown properties, new launch, live idle continuation, live active steering, stopped reopen, duplicate-process prevention, startup failure cleanup, and canonical acknowledgements.
+- Test unconfigured, project-configured, and global-configured general-purpose behavior; project shadowing; optional description; malformed winning-file rejection; project and global `enabled: false` customization removal; named project/global discovery; exact case; tombstones; malformed project shadowing; one-warning behavior; the full `Guidelines` catalog; unsupported-field ignoring; and reload refresh.
 - Test model/thinking validation, parent inheritance, exact tool replacement/subtraction, unknown-tool failure, hard spawning denial, forced `ask_parent`, immutable resume policy, lazy skill selection, explicit hidden-skill selection, preloading, duplicate omission, unknown skills, and missing-read warning.
 - In real tmux, launch enough panes to cover both layout modes, leftovers, portrait/landscape windows, manual panes, managed start/stop, pane close, whole-window close, resize, impossible-size fallback, and final-window cleanup. Assert exact rectangles from tmux, stable canonical IDs, preserved processes, no unmanaged-pane deletion, and unchanged main focus.
 - E2E-test autonomous completion; initial and promoted interactive completion; `/subagent-done` absence and guarded input while autonomous; immediate dynamic registration after explicit resume promotion or terminal takeover; registration continuity across reload and reopen; argument rejection; active-turn refusal; idle success with and without a pending parent request; autonomous provider/agent-loop terminal failure; interactive provider/agent-loop local failure followed by retry; fatal process failure in both lifecycle modes; current-run response extraction; stale-response exclusion; local child interrupt; parent interrupt isolation; trusted cancellation; unmarked closure; stall; recovery; and resume.
 - E2E-test `ask_parent` with and without sibling tool calls, continued child work after the successful result, duplicate-request rejection, autonomous completion with a pending request, idle response delivery, active custom-message steering, stopped response reopen, `reply needed` and `reply pending` indicators, matching-ID acceptance, reload survival, and one parent wake.
 - E2E-test normal reload adoption and result delivery during the handoff. Test quit, new, resume, fork, abrupt parent death, expired owner lease after broken reload, and tmux-window deletion. No child process may leak; retained sessions must remain resumable where specified.
 - Inspect real screenshots at normal and narrow widths for parent passive/navigation widgets, selected rows, effective key hints, the bordered child identity box, `HH:MM:SS` elapsed time, `reply needed` and `reply pending` states, two-cell outer padding and inter-column gaps, vertically aligned parent column starts, result collapsed/expanded rendering, clipping, wrapping, stale rows, and pixel-level frame defects.
-- Verify side-quest sessions remain absent from normal `/resume`, foreign and symlink-escaped paths are rejected, permissions are private, atomic files remain parseable under races, and persistent data survives every required terminal state.
+- Verify sub-agent sessions remain absent from normal `/resume`, foreign and symlink-escaped paths are rejected, permissions are private, atomic files remain parseable under races, and persistent data survives every required terminal state.
 - Follow existing local package composition as maintainability prior art and HazAT's Pi activity/result behavior as product prior art. Use the repository's Pi-extension E2E procedure for TUI verification.
 - Run formatting, typecheck, lint, unit tests, integration tests, prototype checks, and real E2E tests with no failures or flakes. Any focus theft, duplicate delivery, leaked process, stale widget, malformed layout, unrelated pane mutation, or visible UI defect blocks acceptance.
 
@@ -198,7 +207,7 @@ Keep the package entrypoint small. Follow the image-attachments package's useful
 - HazAT `/plan`, `/iterate`, `/subagent`, child tool dashboards, status-toggle configuration, alternate runtimes, and bundled roles.
 - Tintinweb Fleet UI, built-in agents, queue/group controls, nested delegation, worktrees, scheduler, memory, result polling, and tolerant model resolution.
 - Automatic persistent-session expiry, an MVP cleanup command/UI, and automatic age-based deletion.
-- General tmux session management or mutation of panes outside the main quest's owned side-quest window.
+- General tmux session management or mutation of panes outside the parent session's owned sub-agent window.
 
 ## Further Notes
 

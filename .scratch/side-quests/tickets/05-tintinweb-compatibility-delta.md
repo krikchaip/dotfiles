@@ -3,6 +3,8 @@
 Type: grilling
 Status: resolved
 
+Domain terms follow the [specification](../spec.md#domain-model): parent agent and sub-agent name actors; main quest and side quest name tasks.
+
 ## Question
 
 After the HazAT baseline is fully audited, which targeted Claude Code-style names, tool parameters, and agent-definition conventions from `tintinweb/pi-subagents` should alter that baseline?

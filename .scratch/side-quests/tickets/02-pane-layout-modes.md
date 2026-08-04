@@ -3,14 +3,16 @@
 Type: grilling
 Status: resolved
 
+Domain terms follow the [specification](../spec.md#domain-model): parent agent and sub-agent name actors; main quest and side quest name tasks.
+
 ## Question
 
 What exact named pane-layout modes and deterministic geometry/reflow rules must `side-quests` apply for every active pane count, including split orientation, pane ordering, agent start/stop behavior, and terminal-size edge cases?
 
 ## Comments
 
-- Layout applies only inside the parent session's shared subagent window.
-- Reapply the selected layout whenever a subagent pane starts or stops.
+- Layout applies only inside the parent session's shared sub-agent window.
+- Reapply the selected layout whenever a sub-agent pane starts or stops.
 - Name recursive split mode `binary`; `dual` incorrectly suggests a two-pane limit.
 - Named modes are `binary` recursive splitting and `ternary` thirds.
 - Preserve deterministic pane placement rather than relying on tmux's incidental reflow.
@@ -27,6 +29,6 @@ What exact named pane-layout modes and deterministic geometry/reflow rules must 
 - Portrait is the geometric transpose: number completed base slots column-major, visit targets by bottom row first and right-to-left, then move upward.
 - Avoid ambiguous “horizontal split” terminology in the specification. Say `stacked` for a horizontal divider and `side-by-side` for a vertical divider.
 - Users may manually split panes. Do not immediately undo or reflow manual splits.
-- Recompute and reapply the configured layout after either plugin lifecycle event: a subagent pane starts or a managed subagent finishes.
+- Recompute and reapply the configured layout after either plugin lifecycle event: a sub-agent pane starts or a managed sub-agent finishes.
 - During reflow, count every pane in the shared window, including manually created panes, as an ordinary layout leaf. Preserve each pane process but replace any manual geometry.
 - Shrinking recomputes the canonical geometry for `N - 1` panes; it is the exact reverse of canonical growth without depending on prior tmux geometry.
