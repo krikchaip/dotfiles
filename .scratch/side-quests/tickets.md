@@ -26,27 +26,27 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 ## 2. Deliver the complete day-to-day MVP
 
-**Status:** ready-for-agent
+**Status:** done
 
 **What to build:** Make Side Quests usable in daily work through one complete general-purpose delegation slice. The parent agent can launch concurrent Pi sub-agents asynchronously, monitor and control them through the complete parent and child UI, exchange correlated questions and continuations, use autonomous or interactive lifecycles, and receive truthful terminal results. Each sub-agent performs a complete side quest. Persist each child as a resumable managed Pi session and preserve parent-pane focus throughout.
 
 **Blocked by:** 1. Establish package architecture and verification loop.
 
-- [ ] Register exactly one public `Agent` tool with the specified strict request schema, reserved `general-purpose` choice, asynchronous acknowledgements, and canonical session paths.
-- [ ] Launch only Pi, directly in detached panes of one shared sub-agent window, from the parent agent's invocation-time working directory without an intermediate shell or focus change.
-- [ ] Support concurrent new launches, live-idle continuation, live-active steering after the current tool batch, stopped-session reopen, and duplicate-process prevention.
-- [ ] Clone the parent runtime for the standard general-purpose child, copy context once by default, preserve a fresh-context option, hard-deny every spawning tool, and force-enable `ask_parent`.
-- [ ] Persist the session, resolved manifest, owner state, activity state, terminal state, and request/response mailboxes under the managed Side Quests storage root.
-- [ ] Support autonomous and initially interactive lifecycles, permanent promotion through explicit resume or accepted direct terminal input, and no promotion from incidental or programmatic input.
-- [ ] Register child-only `/subagent-done` exactly when persisted interactive lifecycle permits it; reject arguments, refuse active-turn completion, and complete idle interactive work without deleting its session or pending request.
-- [ ] Make `ask_parent` accept one correlated request, return without terminating the child turn, preserve sibling tool execution, reject a second pending request, wake the parent, and accept its matching answer only through `Agent.resume`.
-- [ ] Render the complete restrained parent widget and child identity widget with elapsed time, identity, task, lifecycle/activity, reply state, exact padding and column alignment, and task-first narrow-width truncation.
-- [ ] Implement `/side-quests` navigation with effective Pi selection bindings, stable child identity, explicit pane jump, scoped delete key hint, named confirmation, cancellation semantics, and no parent interrupt action.
-- [ ] Render collapsed and expanded parent results with effective `app.tools.expand` hints and clear completed, failed, cancelled, and closed outcomes.
-- [ ] Include the final assistant response only from the current run when valid, the canonical session path, pending-request state where relevant, and no full transcript or stale-response substitution.
-- [ ] Keep interactive provider or agent-loop turn failures local while treating autonomous exhausted failures and fatal process exits as terminal according to the README.
-- [ ] Preserve unmanaged panes and use a safe basic tmux arrangement until the deterministic layout ticket replaces geometry policy.
-- [ ] E2E-demo autonomous completion, interactive completion, terminal takeover, parent questions, active and idle continuation, stopped reopen, navigation, confirmed cancellation, unmarked closure, failure display, narrow widgets, result expansion, focus preservation, and retained sessions.
+- [x] Register exactly one public `Agent` tool with the specified strict request schema, reserved `general-purpose` choice, asynchronous acknowledgements, and canonical session paths.
+- [x] Launch only Pi, directly in detached panes of one shared sub-agent window, from the parent agent's invocation-time working directory without an intermediate shell or focus change.
+- [x] Support concurrent new launches, live-idle continuation, live-active steering after the current tool batch, stopped-session reopen, and duplicate-process prevention.
+- [x] Clone the parent runtime for the standard general-purpose child, copy context once by default, preserve a fresh-context option, hard-deny every spawning tool, and force-enable `ask_parent`.
+- [x] Persist the session, resolved manifest, owner state, activity state, terminal state, and request/response mailboxes under the managed Side Quests storage root.
+- [x] Support autonomous and initially interactive lifecycles, permanent promotion through explicit resume or accepted direct terminal input, and no promotion from incidental or programmatic input.
+- [x] Register child-only `/subagent-done` exactly when persisted interactive lifecycle permits it; reject arguments, refuse active-turn completion, and complete idle interactive work without deleting its session or pending request.
+- [x] Make `ask_parent` accept one correlated request, return without terminating the child turn, preserve sibling tool execution, reject a second pending request, wake the parent, and accept its matching answer only through `Agent.resume`.
+- [x] Render the complete restrained parent widget and child identity widget with elapsed time, identity, task, lifecycle/activity, reply state, exact padding and column alignment, and task-first narrow-width truncation.
+- [x] Implement `/side-quests` navigation with effective Pi selection bindings, stable child identity, explicit pane jump, scoped delete key hint, named confirmation, cancellation semantics, and no parent interrupt action.
+- [x] Render collapsed and expanded parent results with effective `app.tools.expand` hints and clear completed, failed, cancelled, and closed outcomes.
+- [x] Include the final assistant response only from the current run when valid, the canonical session path, pending-request state where relevant, and no full transcript or stale-response substitution.
+- [x] Keep interactive provider or agent-loop turn failures local while treating autonomous exhausted failures and fatal process exits as terminal according to the README.
+- [x] Preserve unmanaged panes and use a safe basic tmux arrangement until the deterministic layout ticket replaces geometry policy.
+- [x] E2E-demo autonomous completion, interactive completion, terminal takeover, parent questions, active and idle continuation, stopped reopen, navigation, confirmed cancellation, unmarked closure, failure display, narrow widgets, result expansion, focus preservation, and retained sessions.
 
 ## 3. Configure general-purpose and named agents
 
@@ -149,6 +149,14 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [ ] Run formatter, typecheck, lint, unit tests, integration tests, prototype checks, package application checks, and isolated real Pi-in-tmux E2E tests with no failure or flake.
 - [ ] Prove there is no focus theft, duplicate delivery, stale response, stale widget, leaked process, malformed geometry, unsafe resume, session-list pollution, or mutation of unrelated panes.
 - [ ] Leave the specification, map amendments, resolved design tickets, README, package behavior, and test evidence consistent with each other.
+
+## Backlog
+
+### Human-friendly sub-agent references
+
+**Status:** deferred
+
+**What to discuss later:** Let a human refer to a live sub-agent without copying a `session.jsonl` path or repeating its task description. Decide whether Side Quests should expose a stable short identifier, a current widget row number, or both. Define what stays valid after launch, completion, removal, sorting, reload, and reopen; how the parent model receives the reference; and how ambiguity is prevented when display names contain numbers. Do not make row position an implicit persistent identity.
 
 ## Comments
 
