@@ -103,7 +103,7 @@ alias dj = pipenv run ./manage.py
 alias agb = agent-browser
 
 # pi agent
-alias p = env SHELL=/opt/homebrew/bin/bash NPM_CONFIG_LEGACY_PEER_DEPS=true NVIM_APPNAME=nvchad EDITOR=nvim pi
+alias p = pi
 alias pc = p -c
 alias pr = p -r
 alias pu = mise upgrade npm:@earendil-works/pi-coding-agent
