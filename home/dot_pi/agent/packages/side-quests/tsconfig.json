@@ -4,6 +4,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "noEmit": true,
+    "skipLibCheck": true,
     "strict": true,
     "target": "es2022"
   },
