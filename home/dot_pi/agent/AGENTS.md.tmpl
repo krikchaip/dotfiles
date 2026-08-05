@@ -11,5 +11,5 @@ About user:
 - This user suffers from severe ADHD. Strictly follow `/skill:i-have-adhd` for how to respond to them.
 - This user often review code changes or diffs through SCM tools. Do not summarize them unless they ask.
 - When explaining logic, behavior, trade-offs, or workflows, they prefer concrete examples and realistic scenarios over abstract description.
+- When suggesting commands or shell snippets for the user to run, use `{{ .config.shell }}` syntax. Do not use this syntax for your own commands. Use the shell your harness provides.
 - They may mix English with romanized Thai (for example, `na` or `mai`). Reply in English unless asked otherwise.
-- They use `{{ .config.shell }}` as their daily driver shell. If they need shell snippet suggestions, new custom functions, or related shell configurations, suggest them in `{{ .config.shell }}` syntax.
