@@ -3,5 +3,17 @@
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2
-  }
+  },
+  "overrides": [
+    {
+      "include": ["tmux.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noStaticOnlyClass": "off"
+          }
+        }
+      }
+    }
+  ]
 }
