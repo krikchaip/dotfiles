@@ -6,7 +6,7 @@
   },
   "overrides": [
     {
-      "include": ["tmux.ts"],
+      "include": ["tmux.ts", "store/runtime.ts"],
       "linter": {
         "rules": {
           "complexity": {

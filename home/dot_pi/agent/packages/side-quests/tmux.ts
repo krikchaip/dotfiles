@@ -264,25 +264,6 @@ export class Tmux {
   }
 
   /**
-   * Reports whether a window contains panes that Side Quests does not own.
-   */
-  public static hasUnmanagedPanes(windowId: string): boolean {
-    const result = Tmux.run([
-      "list-panes",
-      "-t",
-      windowId,
-      "-F",
-      "#{@side_quests_child_id}",
-    ]);
-
-    if (result.status !== 0) return false;
-
-    return Tmux.output(result.stdout)
-      .split("\n")
-      .some((childId) => !childId.trim());
-  }
-
-  /**
    * Closes a managed pane, while tolerating a concurrent pane exit.
    */
   public static closePane(paneId: string): void {
