@@ -32,13 +32,19 @@ export class ParentTools {
     this.pi.registerTool({
       name: toolName,
       label: toolName,
-      description: "Launch or resume one asynchronous side-quest subagent.",
+      description:
+        "Launch or resume a sub-agent in a separate session to perform one asynchronous side quest.",
 
-      promptSnippet: "Delegate or resume one asynchronous side quest.",
+      promptSnippet:
+        "Delegate a coherent, non-overlapping branch of the user's goal to a sub-agent, or resume that sub-agent.",
       promptGuidelines: [
-        "The parent agent performs the main quest. A sub-agent performs one optional side quest.",
-        "Delegate only a coherent, independently reviewable outcome with purpose, context, constraints, expected result, and acceptance evidence.",
-        "Keep file reads, basic lookup, and retrieval-only work in the main quest. Review every returned side-quest result before acceptance.",
+        `The user's current goal is the main quest. The parent agent owns and performs it. A side quest is a coherent branch with an independently reviewable outcome, assigned through ${toolName} to one sub-agent.`,
+        `Call ${toolName} on your own initiative when a branch advances, unblocks, validates, or reduces risk for the main quest, has stable assumptions, and can receive exclusive non-overlapping ownership.`,
+        `Before calling ${toolName}, define exclusive ownership across files, decisions, and the outcome. The parent agent and sibling sub-agents stay outside that boundary until the result returns.`,
+        `Keep a branch in the main quest when it overlaps the parent agent's active ownership or its only outcome is reading, lookup, retrieval, or a simple helper edit. A side quest assigned through ${toolName} may use these actions to deliver research with synthesis, a design-question prototype, an independent implementation, a verified fix, an adversarial review, or another complete result. Record unrelated findings and ask the user whether to handle, delegate, or defer them.`,
+        `When calling ${toolName}, give the sub-agent a self-contained handoff with purpose, context, ownership boundary, stable assumptions, dependencies, constraints, expected outcome, acceptance evidence, and return contract. Require clear blockers and uncertainty instead of guesses.`,
+        `After ${toolName} launches, continue any main-quest work outside the ownership boundary, regardless of size. If the main quest is blocked, let the turn settle and await the result without polling. Use resume for the same side quest; launch a new sub-agent only for a distinct branch or a fresh pass after the previous owner finishes.`,
+        `Review work returned by ${toolName} proportionately without repeating the side quest. Check key evidence and integration points, run relevant code checks, inspect research sources quickly, and deepen review only as risk warrants. For a prototype, confirm that it runs and addresses the question, then ask the user to make the design judgment.`,
       ],
 
       parameters: Type.Object(
@@ -46,34 +52,35 @@ export class ParentTools {
           prompt: Type.String({
             minLength: 1,
             description:
-              "Complete side-quest objective, context, constraints, and return contract.",
+              "New launch: self-contained side-quest handoff. Resume: continuation instructions or an answer to the sub-agent.",
           }),
           description: Type.String({
             minLength: 1,
             description:
-              "Short task label for the subagent pane and status row.",
+              "Side-quest label, preferably two to six words, shown in the pane and status row. On resume, describe the current continuation.",
           }),
           subagent_type: Type.Optional(
             StringEnum(["general-purpose"] as const, {
-              description: `${toolName} identity. Omit for general-purpose.`,
+              description:
+                "Sub-agent role for a new side quest. Omit to use general-purpose.",
             }),
           ),
           resume: Type.Optional(
             Type.String({
               description:
-                "Absolute canonical path to a managed child session.jsonl file.",
+                "Canonical session.jsonl path returned for an existing sub-agent. Set it to continue the same side quest; omit it to launch a new sub-agent.",
             }),
           ),
           inherit_context: Type.Optional(
             Type.Boolean({
               description:
-                "Copy the current parent conversation once for a new child.",
+                "For a new sub-agent, copy the parent conversation once at launch. Defaults to true. Set false for fresh or unbiased work such as an adversarial review.",
             }),
           ),
           interactive: Type.Optional(
             Type.Boolean({
               description:
-                "Keep the child pane open after its current work ends.",
+                "Lifecycle only. On launch, true keeps the pane open after completion; omission uses autonomous lifecycle. On resume, true permanently promotes the session, while omission preserves its lifecycle.",
             }),
           ),
         },
