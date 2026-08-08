@@ -1,10 +1,15 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { createParentRuntime } from "./runtime.ts";
+import { ParentRuntime } from "./runtime.ts";
+import { ParentTools } from "./tool.ts";
 import { installParentUi } from "./ui.ts";
 
-/** Compose the parent-only runtime and UI surfaces. */
+/** Compose the parent runtime, tool, and UI surfaces. */
 export function installParent(pi: ExtensionAPI): void {
-  const runtime = createParentRuntime(pi);
-  installParentUi(runtime);
+  const runtime = new ParentRuntime(pi);
+
+  runtime.installEventListeners();
+
+  ParentTools.register(pi, runtime);
+  installParentUi(pi, runtime);
 }

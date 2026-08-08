@@ -297,9 +297,9 @@ export class SessionStore {
   }
 
   /**
-   * Validates a canonical managed session file for safe child resumption.
+   * Reads a manifest only when its path is safe for child resumption.
    */
-  public static validateResume(path: string): ChildManifest | undefined {
+  public static readResumableManifest(path: string): ChildManifest | undefined {
     if (!isAbsolute(path)) return undefined;
 
     try {
