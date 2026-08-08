@@ -122,8 +122,8 @@ export class RuntimeStore {
    */
   public static writeOwner(state: Omit<OwnerState, "version">): void {
     JsonStore.write(RuntimeStore.ownerPath(state.parentId), {
-      version: STORE_VERSION,
       ...state,
+      version: STORE_VERSION,
     });
   }
 
@@ -138,8 +138,8 @@ export class RuntimeStore {
     JsonStore.write(
       RuntimeStore.childRuntimePath(state.parentId, state.childId),
       {
-        version: STORE_VERSION,
         ...state,
+        version: STORE_VERSION,
         startedAt: state.startedAt ?? Date.now(),
       },
     );
@@ -153,8 +153,8 @@ export class RuntimeStore {
     state: Omit<ActivitySnapshot, "version">,
   ): void {
     JsonStore.write(RuntimeStore.activityPath(parentId, state.childId), {
-      version: STORE_VERSION,
       ...state,
+      version: STORE_VERSION,
     });
   }
 
@@ -199,8 +199,8 @@ export class RuntimeStore {
     state: Omit<TerminalState, "version">,
   ): void {
     JsonStore.write(RuntimeStore.terminalPath(parentId, state.childId), {
-      version: STORE_VERSION,
       ...state,
+      version: STORE_VERSION,
     });
   }
 

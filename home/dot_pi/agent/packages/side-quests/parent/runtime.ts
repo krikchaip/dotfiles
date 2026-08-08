@@ -80,6 +80,157 @@ export class ParentRuntime {
   }
 
   /**
+   * Starts a new child process and retains it for parent coordination.
+   */
+  launch(manifest: ChildManifest, initialPrompt?: string): void {
+    const child = this.open(manifest, initialPrompt);
+    this.childrenById.set(child.manifest.childId, child);
+  }
+
+  /**
+   * Sends a prompt to a managed child and reopens its process when it stopped.
+   */
+  async continue(
+    manifest: ChildManifest,
+    prompt: string,
+  ): Promise<"continued" | "reopened"> {
+    const previous = this.childrenById.get(manifest.childId);
+    const located = previous
+      ? undefined
+      : Tmux.findManagedPane(manifest.childId);
+
+    if (located) this.windowId = located.windowId;
+
+    const child: ParentChild = previous
+      ? { ...previous, manifest }
+      : located
+        ? {
+            manifest,
+            paneId: located.paneId,
+            windowId: located.windowId,
+          }
+        : { manifest, paneId: "", windowId: this.windowId ?? "" };
+
+    this.childrenById.set(manifest.childId, child);
+
+    const request = SessionStore.readRequest(
+      manifest.parentId,
+      manifest.childId,
+    );
+
+    SessionStore.writeResponse(manifest.parentId, {
+      responseId: randomUUID(),
+      requestId: request?.requestId,
+      childId: manifest.childId,
+      prompt,
+      createdAt: Date.now(),
+    });
+
+    const stopped = !!RuntimeStore.readTerminal(
+      manifest.parentId,
+      manifest.childId,
+    );
+
+    if (!stopped && Tmux.paneExists(child.paneId)) return "continued";
+
+    if (stopped && Tmux.paneExists(child.paneId)) {
+      const deadline = Date.now() + 10_000;
+
+      while (Tmux.paneExists(child.paneId) && Date.now() < deadline)
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+      if (Tmux.paneExists(child.paneId))
+        throw new Error("The stopped Side Quests child pane did not exit.");
+
+      // tmux removes the pane before the child process has fully released its
+      // session resources. Do not race the replacement Pi process against it.
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    RuntimeStore.clearTerminal(manifest.parentId, manifest.childId);
+
+    this.launch(manifest);
+
+    return "reopened";
+  }
+
+  /**
+   * Lists live children whose tmux panes still exist.
+   */
+  children(): readonly ParentChild[] {
+    return [...this.childrenById.values()].filter((child) =>
+      Tmux.paneExists(child.paneId),
+    );
+  }
+
+  /**
+   * Stops a child, reports its cancellation, and updates its window layout.
+   */
+  close(childId: string): void {
+    const child = this.childrenById.get(childId);
+    if (!child) return;
+
+    const terminal = {
+      eventId: randomUUID(),
+      childId: child.manifest.childId,
+      kind: "cancelled" as const,
+      createdAt: Date.now(),
+    };
+
+    RuntimeStore.writeTerminal(child.manifest.parentId, terminal);
+
+    this.deliver(
+      terminal.eventId,
+      `Subagent cancelled: ${child.manifest.displayName} — ${child.manifest.description}\nResume: ${child.manifest.sessionPath}`,
+      {
+        kind: terminal.kind,
+        childId,
+        sessionPath: child.manifest.sessionPath,
+      },
+    );
+
+    Tmux.closePane(child.paneId);
+
+    if (child.windowId && Tmux.runningPanes(child.windowId).length)
+      Tmux.applyWindowLayout(child.windowId);
+
+    this.childrenById.delete(childId);
+  }
+
+  /**
+   * Focuses a child's live tmux pane.
+   */
+  focus(childId: string): void {
+    const child = this.childrenById.get(childId);
+    if (child && Tmux.paneExists(child.paneId)) Tmux.focusPane(child.paneId);
+  }
+
+  /**
+   * Gets the current activity state for a child.
+   */
+  status(child: ParentChild): "starting" | "active" | "waiting" | "stalled" {
+    const snapshot = RuntimeStore.readActivity(
+      child.manifest.parentId,
+      child.manifest.childId,
+    );
+
+    if (!snapshot) return "starting";
+    if (Date.now() - snapshot.heartbeatAt >= 60_000) return "stalled";
+
+    return snapshot.phase;
+  }
+
+  /**
+   * Reports whether a child has an unanswered parent request.
+   */
+  replyPending(child: ParentChild): boolean {
+    return !!SessionStore.readRequest(
+      child.manifest.parentId,
+      child.manifest.childId,
+    );
+  }
+
+  /**
    * Writes the current parent process lease to runtime storage.
    */
   private writeOwner(context: ExtensionContext): void {
@@ -216,5 +367,111 @@ export class ParentRuntime {
 
       this.childrenById.delete(child.manifest.childId);
     }
+  }
+
+  /**
+   * Starts one child process in the shared managed tmux window.
+   */
+  private open(manifest: ChildManifest, initialPrompt?: string): ParentChild {
+    const environment = {
+      [CHILD_ID_ENV]: manifest.childId,
+      PI_SIDE_QUESTS_PARENT_ID: manifest.parentId,
+      PI_SIDE_QUESTS_OWNER_ID: manifest.ownerId,
+      PI_SIDE_QUESTS_SESSION: manifest.sessionPath,
+      ...(initialPrompt
+        ? { PI_SIDE_QUESTS_INITIAL_PROMPT: initialPrompt }
+        : {}),
+      ...(process.env.PI_CODING_AGENT_DIR
+        ? { PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR }
+        : {}),
+    };
+
+    const command = this.childCommand(manifest, initialPrompt);
+
+    if (this.windowId && Tmux.runningPanes(this.windowId).length === 0)
+      this.windowId = undefined;
+
+    if (!this.windowId) {
+      const created = Tmux.createWindow({
+        name: `side-quests-${manifest.parentId.split("-")[0]}`,
+        cwd: manifest.cwd,
+        command,
+        environment,
+      });
+
+      this.windowId = created.windowId;
+
+      try {
+        Tmux.markManagedPane(created.paneId, manifest.childId);
+        RuntimeStore.writeChildRuntime({
+          parentId: manifest.parentId,
+          childId: manifest.childId,
+          paneId: created.paneId,
+          windowId: this.windowId,
+        });
+
+        return {
+          manifest,
+          paneId: created.paneId,
+          windowId: this.windowId,
+        };
+      } catch (cause) {
+        Tmux.closePane(created.paneId);
+        throw cause;
+      }
+    }
+
+    const paneId = Tmux.startPiPane({
+      windowId: this.windowId,
+      cwd: manifest.cwd,
+      command,
+      environment,
+    });
+
+    try {
+      Tmux.markManagedPane(paneId, manifest.childId);
+      Tmux.applyWindowLayout(this.windowId);
+
+      RuntimeStore.writeChildRuntime({
+        parentId: manifest.parentId,
+        childId: manifest.childId,
+        paneId,
+        windowId: this.windowId,
+      });
+
+      return { manifest, paneId, windowId: this.windowId };
+    } catch (cause) {
+      Tmux.closePane(paneId);
+      throw cause;
+    }
+  }
+
+  /**
+   * Builds the Pi command that starts a managed child process.
+   */
+  private childCommand(
+    manifest: ChildManifest,
+    initialPrompt?: string,
+  ): string[] {
+    const entry = process.argv[1];
+    if (!entry) throw new Error("Could not identify the Pi executable.");
+
+    const command = [
+      process.execPath,
+      entry,
+      "--session",
+      manifest.sessionPath,
+      "--extension",
+      new URL("../child/index.ts", import.meta.url).pathname,
+    ];
+
+    if (manifest.model) command.push("--model", manifest.model);
+    if (manifest.thinking) command.push("--thinking", manifest.thinking);
+
+    command.push("--tools", [...manifest.tools, "ask_parent"].join(","));
+
+    if (initialPrompt) command.push(initialPrompt);
+
+    return command;
   }
 }
