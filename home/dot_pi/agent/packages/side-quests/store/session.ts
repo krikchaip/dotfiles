@@ -1,6 +1,13 @@
 import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from "node:path";
 
 import { JsonStore, STORE_VERSION } from "./json.ts";
 
@@ -166,6 +173,169 @@ export class SessionStore {
   }
 
   /**
+   * Reads and validates the manifest beside a child session file.
+   */
+  public static readManifest(sessionPath: string): ChildManifest | undefined {
+    return SessionStore.readManifestFile(
+      join(dirname(sessionPath), "manifest.json"),
+    );
+  }
+
+  /**
+   * Updates the mutable description and lifecycle of a child manifest.
+   */
+  public static updateManifest(
+    manifest: ChildManifest,
+    update: Pick<ChildManifest, "description" | "lifecycle">,
+  ): ChildManifest {
+    const next: ChildManifest = { ...manifest, ...update };
+
+    JsonStore.write(
+      SessionStore.manifestPath(next.parentId, next.childId),
+      next,
+    );
+
+    return next;
+  }
+
+  /**
+   * Writes a child question to its private request mailbox.
+   */
+  public static writeRequest(
+    parentId: string,
+    request: Omit<MailboxRequest, "version">,
+  ): void {
+    JsonStore.write(
+      SessionStore.mailboxPath(parentId, request.childId, "request"),
+      { version: STORE_VERSION, ...request },
+    );
+  }
+
+  /**
+   * Reads and validates a child question from its request mailbox.
+   */
+  public static readRequest(
+    parentId: string,
+    childId: string,
+  ): MailboxRequest | undefined {
+    const value = JsonStore.readRecord(
+      SessionStore.mailboxPath(parentId, childId, "request"),
+    );
+
+    if (!value || value.version !== STORE_VERSION) return undefined;
+
+    if (
+      typeof value.requestId !== "string" ||
+      typeof value.childId !== "string" ||
+      typeof value.prompt !== "string" ||
+      !Number.isFinite(value.createdAt)
+    )
+      return undefined;
+
+    return value as unknown as MailboxRequest;
+  }
+
+  /**
+   * Reports whether a request mailbox file exists for a child.
+   */
+  public static hasRequest(parentId: string, childId: string): boolean {
+    return JsonStore.exists(
+      SessionStore.mailboxPath(parentId, childId, "request"),
+    );
+  }
+
+  /**
+   * Removes a child question from its private request mailbox.
+   */
+  public static clearRequest(parentId: string, childId: string): void {
+    JsonStore.remove(SessionStore.mailboxPath(parentId, childId, "request"));
+  }
+
+  /**
+   * Writes a parent continuation or answer to a child response mailbox.
+   */
+  public static writeResponse(
+    parentId: string,
+    response: Omit<MailboxResponse, "version">,
+  ): void {
+    JsonStore.write(
+      SessionStore.mailboxPath(parentId, response.childId, "response"),
+      { version: STORE_VERSION, ...response },
+    );
+  }
+
+  /**
+   * Reads and validates a parent response from a child response mailbox.
+   */
+  public static readResponse(
+    parentId: string,
+    childId: string,
+  ): MailboxResponse | undefined {
+    const value = JsonStore.readRecord(
+      SessionStore.mailboxPath(parentId, childId, "response"),
+    );
+
+    if (!value || value.version !== STORE_VERSION) return undefined;
+
+    if (
+      typeof value.responseId !== "string" ||
+      (value.requestId !== undefined && typeof value.requestId !== "string") ||
+      typeof value.childId !== "string" ||
+      typeof value.prompt !== "string" ||
+      !Number.isFinite(value.createdAt)
+    )
+      return undefined;
+
+    return value as unknown as MailboxResponse;
+  }
+
+  /**
+   * Removes a parent response from a child's private response mailbox.
+   */
+  public static clearResponse(parentId: string, childId: string): void {
+    JsonStore.remove(SessionStore.mailboxPath(parentId, childId, "response"));
+  }
+
+  /**
+   * Validates a canonical managed session file for safe child resumption.
+   */
+  public static validateResume(path: string): ChildManifest | undefined {
+    if (!isAbsolute(path)) return undefined;
+
+    try {
+      const actual = realpathSync(path);
+      const root = realpathSync(SessionStore.baseDirectory());
+
+      if (
+        relative(root, actual).startsWith("..") ||
+        relative(root, actual) === "" ||
+        !statSync(actual).isFile() ||
+        lstatSync(path).isSymbolicLink()
+      )
+        return undefined;
+
+      const manifest = SessionStore.readManifestFile(
+        join(dirname(actual), "manifest.json"),
+      );
+
+      if (
+        !manifest ||
+        resolve(manifest.sessionPath) !== actual ||
+        basename(actual) !== "session.jsonl"
+      )
+        return undefined;
+
+      const expected = realpathSync(
+        SessionStore.sessionPath(manifest.parentId, manifest.childId),
+      );
+
+      return expected === actual ? manifest : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Returns the directory where all Side Quests state is stored.
    */
   private static baseDirectory(): string {
@@ -218,18 +388,69 @@ export class SessionStore {
   }
 
   /**
+   * Reads and validates a manifest from its private file path.
+   */
+  private static readManifestFile(path: string): ChildManifest | undefined {
+    const value = JsonStore.readRecord(path);
+
+    if (
+      !value ||
+      value.version !== STORE_VERSION ||
+      value.agentName !== "general-purpose"
+    )
+      return undefined;
+
+    const strings = [
+      "childId",
+      "parentId",
+      "ownerId",
+      "sessionPath",
+      "cwd",
+      "displayName",
+      "description",
+    ];
+
+    if (
+      (value.model !== undefined && typeof value.model !== "string") ||
+      (value.thinking !== undefined && typeof value.thinking !== "string") ||
+      !Array.isArray(value.tools) ||
+      value.tools.some((tool) => typeof tool !== "string")
+    )
+      return undefined;
+
+    if (strings.some((key) => typeof value[key] !== "string" || !value[key]))
+      return undefined;
+
+    if (value.lifecycle !== "autonomous" && value.lifecycle !== "interactive")
+      return undefined;
+
+    if (
+      typeof value.inheritContext !== "boolean" ||
+      !Number.isFinite(value.createdAt)
+    )
+      return undefined;
+
+    return value as unknown as ChildManifest;
+  }
+
+  /**
    * Returns inherited parent-session entries without its session header.
    */
-  private static inheritedEntries(parentPath: string): string[] {
+  private static inheritedEntries(parentPath: string): unknown[] {
     try {
       return readFileSync(parentPath, "utf8")
         .split("\n")
         .filter(Boolean)
-        .filter((line) => {
+        .flatMap((line) => {
           try {
-            return JSON.parse(line).type !== "session";
+            const entry = JSON.parse(line) as unknown;
+            const isSessionHeader =
+              typeof entry === "object" &&
+              (entry as { type?: unknown }).type === "session";
+
+            return entry === null || isSessionHeader ? [] : [entry];
           } catch {
-            return false;
+            return [];
           }
         });
     } catch {
