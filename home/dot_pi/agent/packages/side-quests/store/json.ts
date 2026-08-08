@@ -18,24 +18,20 @@ export const STORE_VERSION = 1;
  */
 export class JsonStore {
   /**
-   * Writes JSON through a private temporary file and atomic rename.
+   * Writes one JSON value through a private temporary file and atomic rename.
    */
   public static write(path: string, value: unknown): void {
-    const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
+    JsonStore.writeText(path, `${JSON.stringify(value)}\n`);
+  }
 
-    mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-    chmodSync(dirname(path), 0o700);
-
-    try {
-      writeFileSync(temporary, `${JSON.stringify(value)}\n`, {
-        encoding: "utf8",
-        mode: 0o600,
-      });
-      renameSync(temporary, path);
-      chmodSync(path, 0o600);
-    } finally {
-      if (existsSync(temporary)) unlinkSync(temporary);
-    }
+  /**
+   * Writes JSON Lines through a private temporary file and atomic rename.
+   */
+  public static writeLines(path: string, values: readonly unknown[]): void {
+    JsonStore.writeText(
+      path,
+      `${values.map((value) => JSON.stringify(value)).join("\n")}\n`,
+    );
   }
 
   /**
@@ -64,5 +60,23 @@ export class JsonStore {
    */
   public static remove(path: string): void {
     if (existsSync(path)) unlinkSync(path);
+  }
+
+  /**
+   * Writes private text through a temporary file and atomic rename.
+   */
+  private static writeText(path: string, content: string): void {
+    const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
+
+    mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+    chmodSync(dirname(path), 0o700);
+
+    try {
+      writeFileSync(temporary, content, { encoding: "utf8", mode: 0o600 });
+      renameSync(temporary, path);
+      chmodSync(path, 0o600);
+    } finally {
+      if (existsSync(temporary)) unlinkSync(temporary);
+    }
   }
 }
