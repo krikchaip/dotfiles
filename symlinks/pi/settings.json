@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.83.0",
+  "lastChangelogVersion": "0.84.1",
   "quietStartup": false,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -10,6 +10,8 @@
   "autocompleteMaxVisible": 10,
   "outputPad": 1,
   "theme": "everforest-dark-hard",
+  "tuiMode": "fullscreen",
+  "fullscreenExitOutput": "resume-hint",
   "externalEditor": "env NVIM_APPNAME=nvchad nvim",
   "shellPath": "/opt/homebrew/bin/bash",
   "defaultProvider": "openai-codex",
