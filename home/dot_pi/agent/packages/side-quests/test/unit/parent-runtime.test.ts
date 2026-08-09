@@ -1,0 +1,100 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { afterEach, expect, test, vi } from "vitest";
+
+import { type ParentChild, ParentRuntime } from "../../parent/runtime.ts";
+import { RuntimeStore } from "../../store/runtime.ts";
+import { SessionStore } from "../../store/session.ts";
+
+const originalRoot = process.env.PI_CODING_AGENT_DIR;
+const temporaryRoots: string[] = [];
+
+const child = {
+  manifest: {
+    version: 1 as const,
+    childId: "child-id",
+    parentId: "parent-id",
+    ownerId: "owner-id",
+    sessionPath: "/tmp/session.jsonl",
+    cwd: "/tmp",
+    agentName: "general-purpose" as const,
+    displayName: "general-purpose",
+    description: "classify runtime state",
+    lifecycle: "autonomous" as const,
+    inheritContext: false,
+    tools: ["read"],
+    createdAt: 1,
+  },
+  paneId: "%1",
+  windowId: "@1",
+} satisfies ParentChild;
+
+afterEach(() => {
+  vi.useRealTimers();
+  process.env.PI_CODING_AGENT_DIR = originalRoot;
+  for (const root of temporaryRoots.splice(0))
+    rmSync(root, { force: true, recursive: true });
+});
+
+function runtime(): ParentRuntime {
+  const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));
+  temporaryRoots.push(root);
+  process.env.PI_CODING_AGENT_DIR = root;
+  return ParentRuntime.register({ on() {} } as unknown as ExtensionAPI);
+}
+
+function writeActivity(
+  phase: "starting" | "active" | "waiting",
+  heartbeatAt: number,
+): void {
+  RuntimeStore.writeActivity(child.manifest.parentId, {
+    childId: child.manifest.childId,
+    sequence: 1,
+    eventAt: heartbeatAt,
+    heartbeatAt,
+    phase,
+    lifecycle: child.manifest.lifecycle,
+    pendingRequest: false,
+  });
+}
+
+test("reports starting when no activity snapshot exists", () => {
+  expect(runtime().status(child)).toBe("starting");
+});
+
+test.each(["starting", "active", "waiting"] as const)(
+  "reports a fresh %s activity phase",
+  (phase) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(100_000);
+    const parent = runtime();
+    writeActivity(phase, Date.now() - 59_999);
+
+    expect(parent.status(child)).toBe(phase);
+  },
+);
+
+test("reports stalled at the heartbeat deadline", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(100_000);
+  const parent = runtime();
+  writeActivity("active", Date.now() - 60_000);
+
+  expect(parent.status(child)).toBe("stalled");
+});
+
+test("reports and clears an unanswered parent request", () => {
+  const parent = runtime();
+  SessionStore.writeRequest(child.manifest.parentId, {
+    requestId: "request-id",
+    childId: child.manifest.childId,
+    prompt: "Which value should I use?",
+    createdAt: Date.now(),
+  });
+
+  expect(parent.replyPending(child)).toBe(true);
+  SessionStore.clearRequest(child.manifest.parentId, child.manifest.childId);
+  expect(parent.replyPending(child)).toBe(false);
+});

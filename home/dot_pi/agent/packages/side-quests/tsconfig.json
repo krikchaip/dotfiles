@@ -8,5 +8,5 @@
     "strict": true,
     "target": "es2022"
   },
-  "include": ["*.ts", "parent/**/*.ts", "child/**/*.ts"]
+  "include": ["*.ts", "parent/**/*.ts", "child/**/*.ts", "test/unit/**/*.ts"]
 }

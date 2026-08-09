@@ -316,7 +316,7 @@ export class ParentUI {
   /**
    * Renders the responsive live-child widget.
    */
-  private static renderWidget(
+  public static renderWidget(
     runtime: ParentRuntime,
     width: number,
     selectedChildId?: string,
