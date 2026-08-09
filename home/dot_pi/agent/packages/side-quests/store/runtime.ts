@@ -184,7 +184,10 @@ export class RuntimeStore {
 
     if (
       !["autonomous", "interactive"].includes(String(value.lifecycle)) ||
-      typeof value.pendingRequest !== "boolean"
+      typeof value.pendingRequest !== "boolean" ||
+      (value.scope !== undefined &&
+        !["agent", "tool", "provider"].includes(String(value.scope))) ||
+      (value.toolName !== undefined && typeof value.toolName !== "string")
     )
       return undefined;
 

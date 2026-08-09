@@ -41,7 +41,8 @@ export class ChildUI {
 
     const { manifest, lifecycle, replyPending } = runtime.status();
     const innerWidth = width - 2;
-    const contentWidth = Math.max(0, innerWidth - 4);
+    const sidePadding = Math.min(2, Math.floor(innerWidth / 2));
+    const contentWidth = innerWidth - sidePadding * 2;
     const elapsed = ChildUI.elapsed(manifest.createdAt);
     const lifecycleState = `${lifecycle}${replyPending ? " · reply pending" : ""}`;
     const taskWidth =
@@ -61,9 +62,11 @@ export class ChildUI {
       "…",
     );
 
+    const padding = " ".repeat(sidePadding);
+
     return [
       `╭${title}╮`,
-      `│  ${ChildUI.pad(content, contentWidth)}  │`,
+      `│${padding}${ChildUI.pad(content, contentWidth)}${padding}│`,
       `╰${"─".repeat(innerWidth)}╯`,
     ];
   }

@@ -325,16 +325,25 @@ export class ParentUI {
     const children = runtime.children();
     if (!children.length || width < 4) return [];
 
-    const rows = children.map((child): WidgetRow => ({
-      childId: child.manifest.childId,
-      elapsed: ParentUI.elapsed(child.manifest.createdAt),
-      agent: child.manifest.displayName,
-      task: child.manifest.description,
-      state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
-    }));
+    const rows = children.map(
+      (child): WidgetRow => ({
+        childId: child.manifest.childId,
+        elapsed: ParentUI.elapsed(child.manifest.createdAt),
+        agent: child.manifest.displayName,
+        task: child.manifest.description,
+        state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
+      }),
+    );
 
     const innerWidth = width - 2;
-    const contentWidth = Math.max(0, innerWidth - 4);
+    const markerWidth = Math.min(1, innerWidth);
+    const markerGapWidth = Math.min(1, innerWidth - markerWidth);
+    const trailingWidth = Math.min(
+      2,
+      innerWidth - markerWidth - markerGapWidth,
+    );
+    const contentWidth =
+      innerWidth - markerWidth - markerGapWidth - trailingWidth;
     const elapsedWidth = Math.max(
       ...rows.map((row) => visibleWidth(row.elapsed)),
     );
@@ -371,7 +380,7 @@ export class ParentUI {
               ].join("  ");
         const marker = row.childId === selectedChildId ? accent("›") : " ";
 
-        return `│${marker} ${ParentUI.pad(text, contentWidth)}  │`;
+        return `│${ParentUI.pad(marker, markerWidth)}${" ".repeat(markerGapWidth)}${ParentUI.pad(text, contentWidth)}${" ".repeat(trailingWidth)}│`;
       }),
       `╰${"─".repeat(innerWidth)}╯`,
     ];

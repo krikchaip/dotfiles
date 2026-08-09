@@ -226,7 +226,7 @@ export class SessionStore {
 
     if (
       typeof value.requestId !== "string" ||
-      typeof value.childId !== "string" ||
+      value.childId !== childId ||
       typeof value.prompt !== "string" ||
       !Number.isFinite(value.createdAt)
     )
@@ -280,7 +280,7 @@ export class SessionStore {
     if (
       typeof value.responseId !== "string" ||
       (value.requestId !== undefined && typeof value.requestId !== "string") ||
-      typeof value.childId !== "string" ||
+      value.childId !== childId ||
       typeof value.prompt !== "string" ||
       !Number.isFinite(value.createdAt)
     )
