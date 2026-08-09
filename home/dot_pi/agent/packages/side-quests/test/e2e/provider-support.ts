@@ -19,13 +19,14 @@ export function configureBasicDelegation(
   const { faux, role } = context;
 
   if (role === "child") {
-    return faux.setResponses([
+    faux.setResponses([
       fauxAssistantMessage(
         fauxText(
           options.childResponse ?? "Child completed its delegated E2E task.",
         ),
       ),
     ]);
+    return;
   }
 
   const launch = fauxAssistantMessage(
@@ -70,7 +71,7 @@ export function configureContinuation(
   const { faux, role } = context;
 
   if (role === "child") {
-    return faux.setResponses([
+    faux.setResponses([
       async () => {
         if (options.childFirstResponseDelayMs)
           await delay(options.childFirstResponseDelayMs);
@@ -78,6 +79,7 @@ export function configureContinuation(
       },
       fauxAssistantMessage(fauxText(options.childSecondResponse)),
     ]);
+    return;
   }
 
   faux.setResponses([
@@ -129,7 +131,7 @@ export function configureReopen(
   const { faux, initialPrompt, role } = context;
 
   if (role === "child") {
-    return faux.setResponses([
+    faux.setResponses([
       initialPrompt
         ? fauxAssistantMessage(fauxText("First run completed before reopen."))
         : options.resumedFailure
@@ -139,6 +141,7 @@ export function configureReopen(
             })
           : fauxAssistantMessage(fauxText("Reopened run completed.")),
     ]);
+    return;
   }
 
   const responses = [
