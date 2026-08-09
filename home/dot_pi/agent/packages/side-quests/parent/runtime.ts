@@ -28,6 +28,15 @@ export type ParentChild = Readonly<{
  * Coordinates parent-owned child processes and their persisted runtime state.
  */
 export class ParentRuntime {
+  /**
+   * Creates the parent runtime and registers its lifecycle handlers.
+   */
+  public static register(pi: ExtensionAPI): ParentRuntime {
+    const runtime = new ParentRuntime(pi);
+    runtime.installEventListeners();
+    return runtime;
+  }
+
   /** Identifies this runtime as the parent role. */
   readonly role = "parent" as const;
 
@@ -49,35 +58,7 @@ export class ParentRuntime {
   /** Records the timer that polls managed children. */
   private poller: ReturnType<typeof setInterval> | undefined;
 
-  constructor(private readonly pi: ExtensionAPI) {}
-
-  /**
-   * Registers all Pi session event handlers for this runtime.
-   */
-  installEventListeners(): void {
-    this.pi.on("session_start", (_event, context) => {
-      if (this.poller) clearInterval(this.poller);
-
-      this.writeOwner(context);
-
-      this.poller = setInterval(() => {
-        this.writeOwner(context);
-        this.poll();
-      }, 1_000);
-    });
-
-    this.pi.on("session_shutdown", (event) => {
-      if (this.poller) clearInterval(this.poller);
-      this.poller = undefined;
-
-      if (event.reason === "reload") return;
-
-      for (const child of this.childrenById.values())
-        Tmux.closePane(child.paneId);
-
-      this.childrenById.clear();
-    });
-  }
+  private constructor(private readonly pi: ExtensionAPI) {}
 
   /**
    * Starts a new child process and retains it for parent coordination.
@@ -228,6 +209,34 @@ export class ParentRuntime {
       child.manifest.parentId,
       child.manifest.childId,
     );
+  }
+
+  /**
+   * Registers all Pi session event handlers for this runtime.
+   */
+  private installEventListeners(): void {
+    this.pi.on("session_start", (_event, context) => {
+      if (this.poller) clearInterval(this.poller);
+
+      this.writeOwner(context);
+
+      this.poller = setInterval(() => {
+        this.writeOwner(context);
+        this.poll();
+      }, 1_000);
+    });
+
+    this.pi.on("session_shutdown", (event) => {
+      if (this.poller) clearInterval(this.poller);
+      this.poller = undefined;
+
+      if (event.reason === "reload") return;
+
+      for (const child of this.childrenById.values())
+        Tmux.closePane(child.paneId);
+
+      this.childrenById.clear();
+    });
   }
 
   /**

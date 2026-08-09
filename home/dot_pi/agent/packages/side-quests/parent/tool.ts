@@ -17,8 +17,11 @@ export class ParentTools {
   /**
    * Registers parent-only tools and coordinates them with the parent runtime.
    */
-  public static register(pi: ExtensionAPI, runtime: ParentRuntime): void {
-    new ParentTools(pi, runtime).registerAgent();
+  public static register(
+    pi: ExtensionAPI,
+    runtime: ParentRuntime,
+  ): ParentTools {
+    return new ParentTools(pi, runtime).registerAgent();
   }
 
   private constructor(
