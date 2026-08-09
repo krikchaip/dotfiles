@@ -5,8 +5,7 @@ import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 import { E2EHarness, cleanupHarnessRun } from "./harness.ts";
-import { scenarioByName, scenarios } from "./scenario/index.ts";
-import type { Scenario } from "./scenario/types.ts";
+import { scenarioByName, scenarios } from "./scenarios.ts";
 
 async function applyRuntime(runtimeDirectory: string): Promise<void> {
   const process = Bun.spawn(["chezmoi", "apply", runtimeDirectory], {
