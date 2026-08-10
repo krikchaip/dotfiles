@@ -77,6 +77,10 @@
   ],
   "powerline": {
     "placement": "below",
+    "model": {
+      "color": "muted",
+      "bold": false
+    },
     "sessionTitle": {
       "enabled": true,
       "alignment": "right"
