@@ -1,0 +1,18 @@
+{
+  "name": "oh-my-pi-themes",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "sync": "bun run ./scripts/sync.ts",
+    "check": "bun run check:structural && bun run check:native && bun run check:upstream",
+    "check:structural": "bun run ./scripts/check.ts",
+    "check:native": "bun run ./scripts/check-native.ts",
+    "check:upstream": "bun run ./scripts/check-upstream.ts"
+  },
+  "pi": {
+    "themes": [
+      "./themes"
+    ]
+  }
+}
