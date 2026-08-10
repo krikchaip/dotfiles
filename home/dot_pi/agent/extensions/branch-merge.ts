@@ -56,9 +56,9 @@
  *     with Unicode ellipsis "…" if too long. Falls back to source UUID fragment.
  *
  * User Interface & Interaction:
- *   - Above-Editor Spinner: Shows active phase, target/model info, and allows
- *     cancellation through the `app.interrupt` keybinding (typically Esc). An
- *     active overlay or another focused component receives the interrupt first.
+ *   - Editor-Replacement Loader: Shows active phase and target/model info in
+ *     place of the editor and its session name. The `app.interrupt` keybinding
+ *     (typically Esc) cancels the active generation.
  *   - Footer Modal: Choice screen with theme-colored accent borders, target (warning)
  *     and source (success) session IDs. Rows are positional and context-aware:
  *     outside tmux [switch, switch-remove, stay] with the cursor defaulting to
@@ -73,6 +73,7 @@
  */
 
 import {
+  DynamicBorder,
   generateBranchSummary,
   SessionManager,
   type ExtensionAPI,
@@ -83,9 +84,12 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { completeSimple } from "@earendil-works/pi-ai/compat";
 import {
+  Container,
   getKeybindings,
   Key,
   matchesKey,
+  Spacer,
+  Text,
   truncateToWidth,
   visibleWidth,
   type Component,
@@ -108,8 +112,6 @@ type PostMergeItem = {
 const EXTENSION_NAME = "branch-merge";
 const ACTIVE_LEAF_MARKER = "branch-merge:active-leaf";
 const MERGE_WATERMARK_FIELD = "branchMergeSourceEntryIds";
-const MERGE_SPINNER_WIDGET_KEY = `${EXTENSION_NAME}:summary-spinner`;
-const MERGE_WIDGET_PLACEMENT = "aboveEditor";
 const MERGE_SPINNER_FRAMES = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
 const MERGE_SPINNER_INTERVAL_MS = 250;
 const INTERNAL_MERGED_SESSION_REFRESH_COMMAND = "__branch-merge-refresh";
@@ -319,8 +321,8 @@ function withoutDeletedHeaders(
 ): Record<string, string> | undefined {
   return headers
     ? Object.fromEntries(
-        Object.entries(headers).filter((entry): entry is [string, string] =>
-          entry[1] !== null,
+        Object.entries(headers).filter(
+          (entry): entry is [string, string] => entry[1] !== null,
         ),
       )
     : undefined;
@@ -1235,6 +1237,32 @@ function createMergeSpinner(
   };
 }
 
+function createMergeProgressLoader(
+  tui: TUI,
+  theme: Theme,
+  renderLine: (frame: string) => string,
+  cancel: () => void,
+): Component & { dispose(): void } {
+  const container = new Container();
+  const border = (line: string) => theme.fg("border", line);
+  const spinner = createMergeSpinner(tui, renderLine);
+
+  container.addChild(new DynamicBorder(border));
+  container.addChild(spinner);
+  container.addChild(new Spacer(1));
+  container.addChild(new Text(theme.fg("dim", "<esc> to cancel"), 1, 0));
+  container.addChild(new DynamicBorder(border));
+
+  return {
+    render: (width) => container.render(width),
+    handleInput: (data) => {
+      if (getKeybindings().matches(data, "app.interrupt")) cancel();
+    },
+    invalidate: () => container.invalidate(),
+    dispose: () => spinner.dispose(),
+  };
+}
+
 async function generateMergeArtifacts(
   ctx: ExtensionCommandContext,
   params: {
@@ -1310,18 +1338,10 @@ async function generateMergeArtifactsWithSpinner(
   };
 
   let activeTui: TUI | undefined;
-  let baseFocus: unknown;
   let phase: "summary" | "label" = "summary";
   let model = "resolving model";
-
-  const otherUiHasInterrupt = () => {
-    const tui = activeTui as unknown as {
-      focusedComponent?: unknown;
-      hasOverlay?: () => boolean;
-    };
-    if (tui?.hasOverlay?.()) return true;
-    return baseFocus !== undefined && tui?.focusedComponent !== baseFocus;
-  };
+  let generation: Promise<MergeArtifacts> | undefined;
+  let loader: (Component & { dispose(): void }) | undefined;
 
   const setPhase = (nextPhase: "summary" | "label", nextModel: PiModel) => {
     phase = nextPhase;
@@ -1329,53 +1349,50 @@ async function generateMergeArtifactsWithSpinner(
     activeTui?.requestRender();
   };
 
-  const unsubscribe = ctx.ui.onTerminalInput((data) => {
-    if (!getKeybindings().matches(data, "app.interrupt")) return;
-    if (otherUiHasInterrupt()) return;
-    controller.abort();
-    return { consume: true };
-  });
-
-  ctx.ui.setWidget(
-    MERGE_SPINNER_WIDGET_KEY,
-    (tui, theme) => {
-      activeTui = tui;
-      baseFocus ??= (tui as unknown as { focusedComponent?: unknown })
-        .focusedComponent;
-      return createMergeSpinner(tui, (frame) =>
-        [
-          theme.fg("accent", frame),
-          theme.fg(
-            "muted",
-            phase === "summary" ? text.summaryPhase : text.labelPhase,
-          ),
-          theme.fg("accent", text.sessionPrefix),
-          theme.fg("dim", " · "),
-          theme.fg("warning", model),
-          theme.fg("dim", " (<esc> to cancel)"),
-        ].join(""),
-      );
-    },
-    { placement: MERGE_WIDGET_PLACEMENT },
-  );
-
   try {
-    return await generateMergeArtifacts(
-      ctx,
-      params,
-      controller.signal,
-      {
-        onModelStart: (nextModel) => setPhase("summary", nextModel),
-        onLabelModelStart: (nextModel) => setPhase("label", nextModel),
+    const generated = await ctx.ui.custom<MergeArtifacts | undefined>(
+      (tui, theme, _keys, done) => {
+        activeTui = tui;
+        loader = createMergeProgressLoader(
+          tui,
+          theme,
+          (frame) =>
+            [
+              theme.fg("accent", frame),
+              theme.fg(
+                "muted",
+                phase === "summary" ? text.summaryPhase : text.labelPhase,
+              ),
+              theme.fg("accent", text.sessionPrefix),
+              theme.fg("dim", " · "),
+              theme.fg("warning", model),
+            ].join(""),
+          () => {
+            controller.abort();
+            done(undefined);
+          },
+        );
+
+        generation = generateMergeArtifacts(
+          ctx,
+          params,
+          controller.signal,
+          {
+            onModelStart: (nextModel) => setPhase("summary", nextModel),
+            onLabelModelStart: (nextModel) => setPhase("label", nextModel),
+          },
+          sourceSessionManager,
+          targetSessionManager,
+        );
+        void generation.then(done, () => done(undefined));
+        return loader;
       },
-      sourceSessionManager,
-      targetSessionManager,
     );
+
+    if (generated) return generated;
+    return await generation!;
   } finally {
-    unsubscribe();
-    ctx.ui.setWidget(MERGE_SPINNER_WIDGET_KEY, undefined, {
-      placement: MERGE_WIDGET_PLACEMENT,
-    });
+    loader?.dispose();
   }
 }
 
