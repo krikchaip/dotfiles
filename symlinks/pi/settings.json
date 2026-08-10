@@ -9,7 +9,7 @@
   "followUpMode": "all",
   "autocompleteMaxVisible": 10,
   "outputPad": 1,
-  "theme": "everforest-dark-hard",
+  "theme": "dark-cavern",
   "tuiMode": "fullscreen",
   "fullscreenExitOutput": "resume-hint",
   "externalEditor": "env NVIM_APPNAME=nvchad nvim",
@@ -69,12 +69,7 @@
     "npm:@gotgenes/pi-permission-system",
     "npm:pi-mcp-adapter@2.17.0",
     "npm:pi-web-access",
-    {
-      "source": "npm:@victor-software-house/pi-curated-themes",
-      "skills": [
-        "-skills/adapt-ghostty-theme-to-pi/SKILL.md"
-      ]
-    },
+    "packages/oh-my-pi-themes",
     "packages/image-attachments",
     "packages/provider-payload-debug",
     "packages/resume",
