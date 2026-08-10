@@ -339,7 +339,7 @@ function installTuiPatch(): void {
 
       const safeLine = sanitizeTerminalLine(line);
       return visibleWidth(safeLine) > width
-        ? truncateToWidth(safeLine, width)
+        ? truncateToWidth(safeLine, width, "")
         : safeLine;
     });
     return state.originalApplyLineResets.call(this, safeLines);
