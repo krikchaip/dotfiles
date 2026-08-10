@@ -417,8 +417,11 @@ async function generateNameFromParts(
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
   if (!auth.ok) throw new Error((auth as any).error);
 
+  const requestModel = auth.baseUrl
+    ? { ...model, baseUrl: auth.baseUrl }
+    : model;
   const response = await complete(
-    model,
+    requestModel,
     {
       systemPrompt: SYSTEM_PROMPT,
       messages: [
@@ -434,6 +437,7 @@ async function generateNameFromParts(
     {
       apiKey: auth.apiKey ?? "",
       headers: auth.headers,
+      env: auth.env,
       maxTokens: OUTPUT_TOKENS,
       signal: ctx.signal,
     },

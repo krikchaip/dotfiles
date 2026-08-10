@@ -92,7 +92,7 @@ interface TuiInstance {
 
 interface PiTuiModule {
   Image: ImageCtor;
-  TUI: { prototype: TuiInstance };
+  TuiMainScreen: { prototype: object };
   getCapabilities(): Capabilities;
   setCapabilities(caps: Capabilities): void;
   getCellDimensions(): CellSize;
@@ -353,8 +353,15 @@ function sliceAnsiColumns(
 }
 
 function installU1OverlayComposition(mod: PiTuiModule): void {
-  const proto = mod.TUI.prototype;
+  // v0.84 split the concrete TUI into regular and fullscreen renderers. Their
+  // overlay compositor remains on the shared base prototype.
+  const proto = Object.getPrototypeOf(
+    mod.TuiMainScreen.prototype,
+  ) as TuiInstance;
   const original = proto.compositeLineAt;
+  if (typeof original !== "function") {
+    throw new Error("TUI.compositeLineAt unavailable");
+  }
 
   proto.compositeLineAt = function (
     baseLine,

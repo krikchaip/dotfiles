@@ -325,6 +325,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function withoutDeletedHeaders(
+  headers: Record<string, string | null> | undefined,
+): Record<string, string> | undefined {
+  return headers
+    ? Object.fromEntries(
+        Object.entries(headers).filter((entry): entry is [string, string] =>
+          entry[1] !== null,
+        ),
+      )
+    : undefined;
+}
+
 function notify(
   ctx: ExtensionContext,
   message: string,
@@ -810,15 +822,20 @@ export default function (pi: ExtensionAPI) {
     }
 
     try {
+      const requestModel = auth.baseUrl
+        ? { ...targetModel, baseUrl: auth.baseUrl }
+        : targetModel;
       return {
         compaction: await compact(
           event.preparation,
-          targetModel,
+          requestModel,
           auth.apiKey,
-          auth.headers,
+          withoutDeletedHeaders(auth.headers),
           event.customInstructions,
           event.signal,
           pi.getThinkingLevel(),
+          undefined,
+          auth.env,
         ),
       };
     } catch (error) {

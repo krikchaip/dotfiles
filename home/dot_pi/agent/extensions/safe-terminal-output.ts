@@ -14,7 +14,7 @@ import {
   Markdown,
   Text,
   truncateToWidth,
-  TUI,
+  TuiMainScreen,
   visibleWidth,
 } from "@earendil-works/pi-tui";
 
@@ -316,7 +316,11 @@ function installToolResultPatch(): void {
 }
 
 function installTuiPatch(): void {
-  const prototype = TUI.prototype as unknown as TuiPrototype;
+  // v0.84 split the concrete TUI into regular and fullscreen renderers. Their
+  // shared implementation is the prototype above TuiMainScreen.
+  const prototype = Object.getPrototypeOf(
+    TuiMainScreen.prototype,
+  ) as TuiPrototype;
   if (prototype[TUI_PATCH_STATE]) return;
 
   const originalApplyLineResets = prototype.applyLineResets;

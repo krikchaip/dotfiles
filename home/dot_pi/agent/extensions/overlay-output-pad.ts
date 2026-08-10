@@ -11,7 +11,7 @@ import {
   type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
 import {
-  TUI,
+  TuiMainScreen,
   truncateToWidth,
   type Component,
   type OverlayHandle,
@@ -134,7 +134,11 @@ function patchTuiInstance(
 }
 
 function installPrototypePatch(outputPad: number): void {
-  const prototype = TUI.prototype as unknown as TuiPrototype;
+  // v0.84 split the concrete TUI into regular and fullscreen renderers. Patch
+  // their shared base so overlays behave the same in both modes.
+  const prototype = Object.getPrototypeOf(
+    TuiMainScreen.prototype,
+  ) as TuiPrototype;
   const current = prototype[PROTOTYPE_PATCH];
   if (current) {
     current.generation += 1;

@@ -6,7 +6,16 @@
  */
 
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  MarkdownTransformer,
+} from "@earendil-works/pi-coding-agent";
+import {
+  Markdown,
+  type MarkdownTheme,
+  Spacer,
+  Text,
+} from "@earendil-works/pi-tui";
 import { existsSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -27,27 +36,17 @@ type ContentContainer = {
   addChild(child: unknown): void;
 };
 
-type TuiModule = {
-  Markdown: new (
-    text: string,
-    paddingX?: number,
-    paddingY?: number,
-    markdownTheme?: unknown,
-    options?: { color?: (text: string) => string; italic?: boolean },
-  ) => unknown;
-  Spacer: new (height: number) => unknown;
-  Text: new (text: string, paddingX?: number, paddingY?: number) => unknown;
-};
-
 type AssistantMessageComponentInstance = {
   contentContainer: ContentContainer;
   hasToolCalls: boolean;
   hideThinkingBlock: boolean;
   hiddenThinkingLabel: string;
+  isStreaming: boolean;
   lastMessage?: AssistantMessage;
-  markdownTheme: unknown;
+  markdownTheme: MarkdownTheme;
+  markdownTransformers: readonly MarkdownTransformer[];
   outputPad: number;
-  updateContent(message: AssistantMessage): void;
+  updateContent(message: AssistantMessage, isStreaming?: boolean): void;
 };
 
 type AssistantMessageComponentConstructor = {
@@ -60,6 +59,14 @@ type AssistantMessageModule = {
 
 type ThemeModule = {
   theme: ThemeLike;
+};
+
+type MarkdownTransformModule = {
+  createMarkdownTransform(
+    messageType: "assistant" | "assistant-thinking",
+    isStreaming: boolean,
+    transformers: readonly MarkdownTransformer[],
+  ): (markdown: string, availableWidth: number) => string;
 };
 
 let patched = false;
@@ -148,15 +155,16 @@ async function patchAssistantMessageComponent(): Promise<void> {
   const themeUrl = pathToFileURL(
     join(distDir, "modes/interactive/theme/theme.js"),
   ).href;
-  const tuiUrl = pathToFileURL(
-    join(distDir, "../node_modules/@earendil-works/pi-tui/dist/index.js"),
+  const markdownTransformUrl = pathToFileURL(
+    join(distDir, "modes/interactive/components/markdown-transform.js"),
   ).href;
 
-  const [componentModule, themeModule, tuiModule] = await Promise.all([
-    import(componentUrl) as Promise<AssistantMessageModule>,
-    import(themeUrl) as Promise<ThemeModule>,
-    import(tuiUrl) as Promise<TuiModule>,
-  ]);
+  const [componentModule, themeModule, markdownTransformModule] =
+    await Promise.all([
+      import(componentUrl) as Promise<AssistantMessageModule>,
+      import(themeUrl) as Promise<ThemeModule>,
+      import(markdownTransformUrl) as Promise<MarkdownTransformModule>,
+    ]);
 
   const proto = componentModule.AssistantMessageComponent?.prototype;
   if (!proto?.updateContent) {
@@ -168,13 +176,15 @@ async function patchAssistantMessageComponent(): Promise<void> {
   proto.updateContent = function patchedUpdateContent(
     this: AssistantMessageComponentInstance,
     message: AssistantMessage,
+    isStreaming = this.isStreaming,
   ): void {
     if (!this.hideThinkingBlock) {
-      return originalUpdateContent.call(this, message);
+      return originalUpdateContent.call(this, message, isStreaming);
     }
 
-    // Preserve cache invalidation and other side effects from earlier patches.
-    originalUpdateContent.call(this, message);
+    // Preserve streaming state, cache invalidation, and side effects from
+    // earlier patches before replacing only the hidden-thinking layout.
+    originalUpdateContent.call(this, message, isStreaming);
 
     this.lastMessage = message;
     this.contentContainer.clear();
@@ -185,18 +195,26 @@ async function patchAssistantMessageComponent(): Promise<void> {
         (content.type === "thinking" && content.thinking.trim()),
     );
     if (hasVisibleContent) {
-      this.contentContainer.addChild(new tuiModule.Spacer(1));
+      this.contentContainer.addChild(new Spacer(1));
     }
 
     for (let i = 0; i < message.content.length; i++) {
       const content = message.content[i];
       if (content.type === "text" && content.text.trim()) {
         this.contentContainer.addChild(
-          new tuiModule.Markdown(
+          new Markdown(
             content.text.trim(),
             this.outputPad,
             0,
             this.markdownTheme,
+            undefined,
+            {
+              transform: markdownTransformModule.createMarkdownTransform(
+                "assistant",
+                this.isStreaming,
+                this.markdownTransformers,
+              ),
+            },
           ),
         );
         continue;
@@ -212,7 +230,7 @@ async function patchAssistantMessageComponent(): Promise<void> {
             (previous.type === "thinking" && previous.thinking.trim()),
         );
       if (previousVisibleContent?.type === "text") {
-        this.contentContainer.addChild(new tuiModule.Spacer(1));
+        this.contentContainer.addChild(new Spacer(1));
       }
 
       const hasVisibleContentAfter = message.content
@@ -227,14 +245,14 @@ async function patchAssistantMessageComponent(): Promise<void> {
         ? formatThinkingSummary(themeModule.theme, summary)
         : this.hiddenThinkingLabel;
       this.contentContainer.addChild(
-        new tuiModule.Text(
+        new Text(
           themeModule.theme.italic(themeModule.theme.fg("thinkingText", label)),
           this.outputPad,
           0,
         ),
       );
       if (hasVisibleContentAfter) {
-        this.contentContainer.addChild(new tuiModule.Spacer(1));
+        this.contentContainer.addChild(new Spacer(1));
       }
     }
 
@@ -243,12 +261,12 @@ async function patchAssistantMessageComponent(): Promise<void> {
     );
     this.hasToolCalls = hasToolCalls;
     if (message.stopReason === "length") {
-      this.contentContainer.addChild(new tuiModule.Spacer(1));
+      this.contentContainer.addChild(new Spacer(1));
       this.contentContainer.addChild(
-        new tuiModule.Text(
+        new Text(
           themeModule.theme.fg(
             "error",
-            "Error: Model stopped because it reached the maximum output token limit. The response may be incomplete.",
+            "Response was truncated before completion.",
           ),
           this.outputPad,
           0,
@@ -259,18 +277,18 @@ async function patchAssistantMessageComponent(): Promise<void> {
         message.errorMessage && message.errorMessage !== "Request was aborted"
           ? message.errorMessage
           : "Operation aborted";
-      this.contentContainer.addChild(new tuiModule.Spacer(1));
+      this.contentContainer.addChild(new Spacer(1));
       this.contentContainer.addChild(
-        new tuiModule.Text(
+        new Text(
           themeModule.theme.fg("error", abortMessage),
           this.outputPad,
           0,
         ),
       );
     } else if (!hasToolCalls && message.stopReason === "error") {
-      this.contentContainer.addChild(new tuiModule.Spacer(1));
+      this.contentContainer.addChild(new Spacer(1));
       this.contentContainer.addChild(
-        new tuiModule.Text(
+        new Text(
           themeModule.theme.fg(
             "error",
             `Error: ${message.errorMessage || "Unknown error"}`,

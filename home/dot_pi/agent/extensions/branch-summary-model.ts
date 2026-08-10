@@ -39,6 +39,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function withoutDeletedHeaders(
+  headers: Record<string, string | null> | undefined,
+): Record<string, string> | undefined {
+  return headers
+    ? Object.fromEntries(
+        Object.entries(headers).filter((entry): entry is [string, string] =>
+          entry[1] !== null,
+        ),
+      )
+    : undefined;
+}
+
 function notify(
   ctx: ExtensionContext,
   message: string,
@@ -208,12 +220,16 @@ export default function (pi: ExtensionAPI) {
     );
 
     try {
+      const requestModel = target.auth.baseUrl
+        ? { ...target.model, baseUrl: target.auth.baseUrl }
+        : target.model;
       const result = await generateBranchSummary(
         event.preparation.entriesToSummarize,
         {
-          model: target.model,
+          model: requestModel,
           apiKey: target.auth.apiKey ?? "",
-          headers: target.auth.headers,
+          headers: withoutDeletedHeaders(target.auth.headers),
+          env: target.auth.env,
           signal: event.signal,
           customInstructions: event.preparation.customInstructions,
           replaceInstructions: event.preparation.replaceInstructions,

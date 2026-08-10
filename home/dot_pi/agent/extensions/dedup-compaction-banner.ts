@@ -58,7 +58,7 @@ const renderedCompactions = new WeakMap<
   RenderedCompaction
 >();
 
-function withoutCompactions(entries: SessionEntry[]) {
+function withoutCompactions(entries: SessionEntry[]): SessionEntry[] {
   return entries.filter((entry) => entry.type !== "compaction");
 }
 

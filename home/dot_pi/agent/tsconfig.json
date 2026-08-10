@@ -8,22 +8,20 @@
     "noEmit": true,
     "paths": {
       "@earendil-works/pi-ai": [
-        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai"
+        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/node_modules/.mise/node_modules/@earendil-works/pi-ai"
       ],
       "@earendil-works/pi-ai/compat": [
-        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/compat.d.ts"
+        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/node_modules/.mise/node_modules/@earendil-works/pi-ai/dist/compat.d.ts"
       ],
       "@earendil-works/pi-coding-agent": [
-        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent"
+        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/node_modules/@earendil-works/pi-coding-agent"
       ],
       "@earendil-works/pi-tui": [
-        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui"
+        "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/node_modules/.mise/node_modules/@earendil-works/pi-tui"
       ]
     },
     "skipLibCheck": true,
-    "typeRoots": [
-      "../../../../mise/installs/npm-earendil-works-pi-coding-agent/latest/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@types"
-    ],
-    "types": ["node"]
+    "typeRoots": ["packages/side-quests/node_modules/@types"],
+    "types": ["node", "bun"]
   }
 }

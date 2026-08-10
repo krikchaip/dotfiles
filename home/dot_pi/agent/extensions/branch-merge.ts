@@ -314,6 +314,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function withoutDeletedHeaders(
+  headers: Record<string, string | null> | undefined,
+): Record<string, string> | undefined {
+  return headers
+    ? Object.fromEntries(
+        Object.entries(headers).filter((entry): entry is [string, string] =>
+          entry[1] !== null,
+        ),
+      )
+    : undefined;
+}
+
 function getMarkerLeafId(
   entry: ReturnType<CommandSessionManager["getLeafEntry"]>,
 ) {
@@ -378,7 +390,9 @@ function isTargetMergeEcho(
 
   const watermarks = getEntryMergeWatermarks(entry);
   return (
-    Boolean(watermarks?.length) && watermarks.every((id) => knownIds.has(id))
+    watermarks !== null &&
+    watermarks.length > 0 &&
+    watermarks.every((id) => knownIds.has(id))
   );
 }
 
@@ -436,7 +450,9 @@ function isKnownSourceSummary(
 
   const watermarks = getEntryMergeWatermarks(entry);
   return (
-    Boolean(watermarks?.length) && watermarks.every((id) => knownIds.has(id))
+    watermarks !== null &&
+    watermarks.length > 0 &&
+    watermarks.every((id) => knownIds.has(id))
   );
 }
 
@@ -1046,12 +1062,17 @@ Keep each section concise, but never omit the compaction baseline in favor of re
   ) => {
     if (signal.aborted) throw new UserVisibleWarning("Merge cancelled");
     events?.onModelStart?.(target.model);
+    const requestModel = target.auth.baseUrl
+      ? { ...target.model, baseUrl: target.auth.baseUrl }
+      : target.model;
     const options: GenerateBranchSummaryOptions = {
-      model: target.model,
+      model: requestModel,
       apiKey: target.auth.apiKey ?? "",
+      env: target.auth.env,
       signal,
     };
-    if (target.auth.headers) options.headers = target.auth.headers;
+    const headers = withoutDeletedHeaders(target.auth.headers);
+    if (headers) options.headers = headers;
     options.customInstructions = mergeInstructions;
     options.replaceInstructions = true;
     if (reserveTokens !== undefined) options.reserveTokens = reserveTokens;
@@ -1137,8 +1158,12 @@ async function generateSummaryLabel(
 
   events?.onLabelModelStart?.(target.model);
   try {
+    const requestModel = target.auth.baseUrl
+      ? { ...target.model, baseUrl: target.auth.baseUrl }
+      : target.model;
     const options: NonNullable<Parameters<typeof completeSimple>[2]> = {
       apiKey: target.auth.apiKey ?? "",
+      env: target.auth.env,
       signal,
       maxTokens: SUMMARY_LABEL_MAX_TOKENS,
       temperature: 0,
@@ -1146,7 +1171,7 @@ async function generateSummaryLabel(
     if (target.auth.headers) options.headers = target.auth.headers;
 
     const response = await completeSimple(
-      target.model,
+      requestModel,
       {
         systemPrompt: SUMMARY_LABEL_SYSTEM_PROMPT,
         messages: [
