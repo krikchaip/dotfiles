@@ -22,8 +22,11 @@ import type {
   ExtensionCommandContext,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
-import type { Component, TUI } from "@earendil-works/pi-tui";
+import {
+  InteractiveMode,
+  SessionManager,
+} from "@earendil-works/pi-coding-agent";
+import { Loader, type TUI } from "@earendil-works/pi-tui";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -50,8 +53,7 @@ type DialoguePart = {
 };
 
 type RenameScope =
-  | { type: "session" }
-  | { type: "recent"; messageCount: number };
+  { type: "session" } | { type: "recent"; messageCount: number };
 
 type AutoRenamePlan =
   | {
@@ -69,21 +71,11 @@ type SessionNameEntry = {
 };
 
 const EXTENSION_NAME = "auto-rename";
-const RENAME_SPINNER_WIDGET_KEY = `${EXTENSION_NAME}:spinner`;
-const RENAME_WIDGET_PLACEMENT = "aboveEditor";
-const RENAME_SPINNER_FRAMES = [
-  "·",
-  "✢",
-  "✳",
-  "✶",
-  "✻",
-  "✽",
-  "✻",
-  "✶",
-  "✳",
-  "✢",
-];
-const RENAME_SPINNER_INTERVAL_MS = 250;
+const RENAME_STATUS_KEY = `${EXTENSION_NAME}:activity`;
+const RENAME_STATUS_KIND = `${EXTENSION_NAME}:activity`;
+const RENAME_STATUS_INDICATOR_PATCH = Symbol.for(
+  "pi-auto-rename.status-indicator-patch",
+);
 const OUTPUT_TOKENS = 1024;
 const MAX_SESSION_NAME_CHARACTERS = 100;
 const MAX_CONVERSATION_TOKENS = 32_000;
@@ -170,8 +162,7 @@ async function resolveNamingModel(ctx: ExtensionContext): Promise<PiModel> {
   if (!ref) throw new Error("invalid autoRename.model");
 
   const model = ctx.modelRegistry.find(ref.provider, ref.id) as
-    | PiModel
-    | undefined;
+    PiModel | undefined;
   if (!model) throw new Error(`model not found: ${ref.provider}/${ref.id}`);
 
   return model;
@@ -329,53 +320,122 @@ function buildConversationBlock(parts: DialoguePart[], model: PiModel): string {
     .join("\n");
 }
 
-function createRenameSpinner(
-  tui: TUI,
-  renderLine: (frame: string) => string,
-): Component & { dispose(): void } {
-  let frameIndex = 0;
-  const timer = setInterval(() => {
-    frameIndex = (frameIndex + 1) % RENAME_SPINNER_FRAMES.length;
-    tui.requestRender();
-  }, RENAME_SPINNER_INTERVAL_MS);
-  (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
+type RenameStatusIndicator = Loader & {
+  kind: typeof RENAME_STATUS_KIND;
+  dispose(): void;
+};
 
-  return {
-    render: () => [renderLine(RENAME_SPINNER_FRAMES[frameIndex]!)],
-    invalidate: () => {},
-    dispose: () => clearInterval(timer),
+type RenameStatusIndicatorFactory = (tui: TUI) => RenameStatusIndicator;
+
+type RenameStatusIndicatorPatchState = {
+  createIndicator: RenameStatusIndicatorFactory | undefined;
+  originalSetExtensionStatus: (
+    this: unknown,
+    key: string,
+    text: string | undefined,
+  ) => void;
+};
+
+type RenameStatusIndicatorOwner = {
+  ui: TUI;
+  showStatusIndicator(indicator: RenameStatusIndicator): void;
+  clearStatusIndicator(kind?: string): void;
+};
+
+type RenameStatusIndicatorPrototype = {
+  setExtensionStatus?: RenameStatusIndicatorPatchState["originalSetExtensionStatus"];
+} & Record<symbol, RenameStatusIndicatorPatchState | undefined>;
+
+/**
+ * Pi exposes its activity row only for its own agent work. Session naming runs
+ * after `agent_settled`, so it needs this small bridge to occupy that same row.
+ */
+function installRenameStatusIndicatorPatch():
+  RenameStatusIndicatorPatchState | undefined {
+  const prototype = InteractiveMode.prototype as RenameStatusIndicatorPrototype;
+  const existing = prototype[RENAME_STATUS_INDICATOR_PATCH];
+  if (existing) return existing;
+
+  const originalSetExtensionStatus = prototype.setExtensionStatus;
+  if (typeof originalSetExtensionStatus !== "function") return undefined;
+
+  const state: RenameStatusIndicatorPatchState = {
+    createIndicator: undefined,
+    originalSetExtensionStatus,
   };
+  prototype[RENAME_STATUS_INDICATOR_PATCH] = state;
+  prototype.setExtensionStatus = function patchedSetExtensionStatus(
+    this: RenameStatusIndicatorOwner,
+    key: string,
+    text: string | undefined,
+  ): void {
+    if (key !== RENAME_STATUS_KEY) {
+      state.originalSetExtensionStatus.call(this, key, text);
+      return;
+    }
+
+    if (
+      typeof this.showStatusIndicator !== "function" ||
+      typeof this.clearStatusIndicator !== "function"
+    ) {
+      state.originalSetExtensionStatus.call(this, key, text);
+      return;
+    }
+
+    if (text === undefined) {
+      this.clearStatusIndicator(RENAME_STATUS_KIND);
+      return;
+    }
+
+    const indicator = state.createIndicator?.(this.ui);
+    if (indicator) this.showStatusIndicator(indicator);
+  };
+
+  return state;
 }
 
-async function withRenameSpinner<T>(
+function createRenameStatusIndicator(
+  tui: TUI,
+  modelLabel: string,
+  theme: ExtensionContext["ui"]["theme"],
+): RenameStatusIndicator {
+  const indicator = new Loader(
+    tui,
+    (frame) => theme.fg("accent", frame),
+    (message) =>
+      [
+        theme.fg("thinkingText", message),
+        theme.fg("dim", " · "),
+        theme.fg("warning", modelLabel),
+      ].join(""),
+    "Generating session name",
+  );
+
+  return Object.assign(indicator, {
+    kind: RENAME_STATUS_KIND,
+    dispose: () => indicator.stop(),
+  });
+}
+
+async function withRenameStatusIndicator<T>(
   ctx: ExtensionContext,
   modelLabel: string,
   run: () => Promise<T>,
 ): Promise<T> {
   if (ctx.mode !== "tui") return run();
 
-  ctx.ui.setWidget(
-    RENAME_SPINNER_WIDGET_KEY,
-    (tui, theme) => {
-      return createRenameSpinner(tui, (frame) =>
-        [
-          " ",
-          theme.fg("accent", frame),
-          theme.fg("muted", " Generating session name"),
-          theme.fg("dim", " · "),
-          theme.fg("warning", modelLabel),
-        ].join(""),
-      );
-    },
-    { placement: RENAME_WIDGET_PLACEMENT },
-  );
+  const patch = installRenameStatusIndicatorPatch();
+  if (!patch) return run();
+
+  patch.createIndicator = (tui) =>
+    createRenameStatusIndicator(tui, modelLabel, ctx.ui.theme);
+  ctx.ui.setStatus(RENAME_STATUS_KEY, modelLabel);
 
   try {
     return await run();
   } finally {
-    ctx.ui.setWidget(RENAME_SPINNER_WIDGET_KEY, undefined, {
-      placement: RENAME_WIDGET_PLACEMENT,
-    });
+    ctx.ui.setStatus(RENAME_STATUS_KEY, undefined);
+    patch.createIndicator = undefined;
   }
 }
 
@@ -469,7 +529,7 @@ async function renameSession(
 ): Promise<string> {
   const model = await resolveNamingModel(ctx);
 
-  return withRenameSpinner(ctx, modelName(model), async () => {
+  return withRenameStatusIndicator(ctx, modelName(model), async () => {
     const name = await generateName(ctx, model, scope);
     pi.setSessionName(name);
     return name;
@@ -567,7 +627,7 @@ async function runAutoRename(
   if (!nameChoiceUnchanged(ctx, plan)) return;
 
   const model = await resolveNamingModel(ctx);
-  await withRenameSpinner(ctx, modelName(model), async () => {
+  await withRenameStatusIndicator(ctx, modelName(model), async () => {
     const name = await generateNameFromParts(
       ctx,
       model,
