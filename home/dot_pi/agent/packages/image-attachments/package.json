@@ -2,6 +2,9 @@
   "name": "image-attachments",
   "private": true,
   "version": "0.0.0",
+  "scripts": {
+    "test:e2e": "expect test/e2e/slash-command-image-path.expect"
+  },
   "pi": {
     "extensions": [
       "./index.ts"

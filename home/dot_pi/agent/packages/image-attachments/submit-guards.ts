@@ -17,6 +17,7 @@ let builtinCommandNamesPromise: Promise<Set<string>> | undefined;
 
 type SubmitGuardPatchState = {
   originalSetupEditorSubmitHandler: (...args: any[]) => any;
+  drafts: ImageAttachmentsDrafts;
 };
 
 function slashCommandName(text: string): string | undefined {
@@ -50,14 +51,28 @@ async function loadBuiltinCommandNames(): Promise<Set<string>> {
   return builtinCommandNamesPromise;
 }
 
-async function isKnownBuiltinOrExtensionCommand(
-  mode: any,
-  text: string,
-): Promise<boolean> {
+async function isKnownCommand(mode: any, text: string): Promise<boolean> {
   const commandName = slashCommandName(text);
   if (!commandName) return false;
   if ((await loadBuiltinCommandNames()).has(commandName)) return true;
-  return !!mode?.session?.extensionRunner?.getCommand?.(commandName);
+
+  const session = mode?.session;
+  if (session?.extensionRunner?.getCommand?.(commandName)) return true;
+  if (
+    session?.promptTemplates?.some(
+      (template: any) => template?.name === commandName,
+    )
+  ) {
+    return true;
+  }
+
+  if (!commandName.startsWith("skill:")) return false;
+  const skillName = commandName.slice("skill:".length);
+  return Boolean(
+    session?.resourceLoader
+      ?.getSkills?.()
+      ?.skills?.some((skill: any) => skill?.name === skillName),
+  );
 }
 
 function unresolvedImageWarning(ids: number[]): string {
@@ -123,6 +138,7 @@ export function installSubmitGuards(drafts: ImageAttachmentsDrafts) {
   const state = (prototype[SUBMIT_GUARD_PATCH_STATE] ??= {
     originalSetupEditorSubmitHandler: prototype.setupEditorSubmitHandler,
   }) as SubmitGuardPatchState;
+  state.drafts = drafts;
 
   prototype.setupEditorSubmitHandler = function patchedSetupEditorSubmitHandler(
     ...args: any[]
@@ -132,12 +148,9 @@ export function installSubmitGuards(drafts: ImageAttachmentsDrafts) {
     if (typeof originalOnSubmit !== "function") return result;
 
     this.defaultEditor.onSubmit = async (text: string) => {
-      const isCommand = await isKnownBuiltinOrExtensionCommand(
-        this,
-        text.trim(),
-      );
+      const isCommand = await isKnownCommand(this, text.trim());
       const commandPathResult = isCommand
-        ? drafts.imagePathTextForCommand(text)
+        ? state.drafts.imagePathTextForCommand(text)
         : undefined;
       if (commandPathResult?.unresolvedIds.length) {
         this.showWarning?.(
@@ -147,7 +160,7 @@ export function installSubmitGuards(drafts: ImageAttachmentsDrafts) {
 
       const reason = isCommand
         ? undefined
-        : imageSubmitBlockReason(drafts, this, text);
+        : imageSubmitBlockReason(state.drafts, this, text);
       if (reason) {
         this.showWarning?.(reason);
         this.editor?.setText?.(text);

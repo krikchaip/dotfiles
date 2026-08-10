@@ -1,0 +1,119 @@
+#!/usr/bin/expect -f
+
+set timeout 1
+set root "/tmp/pi-image-attachments-slash-command-e2e"
+set config_dir "$root/config"
+set work_dir "$root/cwd"
+set image_path "$root/image.png"
+set log_path "$root/tui.ansi"
+set image_extension "$env(HOME)/.pi/agent/packages/image-attachments/index.ts"
+set capture_extension "$root/capture-template-input.ts"
+set prompt_template "$root/some-command.md"
+set columns 90
+set rows 32
+
+file delete -force $root
+file mkdir $config_dir $work_dir
+
+set capture_file [open $capture_extension w]
+puts $capture_file {
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+
+export default function (pi: ExtensionAPI) {
+  pi.on("session_start", (_event, ctx) => {
+    ctx.ui.notify("E2E_READY", "info");
+  });
+  pi.on("input", (event, ctx) => {
+    if (!event.text.startsWith("/some-command")) return;
+    ctx.ui.notify(
+      "E2E_INPUT:" + event.text + "|IMAGES:" + (event.images?.length ?? 0),
+      "info",
+    );
+    return { action: "handled" };
+  });
+}
+}
+close $capture_file
+
+set template_file [open $prompt_template w]
+puts $template_file {Inspect the image at {{args}}.}
+close $template_file
+
+set image_base64 {
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=
+}
+exec python3 -c {
+import base64
+import sys
+
+with open(sys.argv[1], "wb") as image:
+    image.write(base64.b64decode(sys.argv[2]))
+} $image_path $image_base64
+
+proc wait_for_exact {seconds pattern} {
+  set deadline [expr {[clock milliseconds] + ($seconds * 1000)}]
+  while {[clock milliseconds] < $deadline} {
+    expect {
+      "\033\[c" { send "\033\[?1;2c"; exp_continue -continue_timer }
+      "\033\[?u" { send "\033\[?0u"; exp_continue -continue_timer }
+      -exact $pattern { return 1 }
+      timeout {}
+      eof { return 0 }
+    }
+  }
+  return 0
+}
+
+proc fail {message} {
+  global log_path root
+  puts stderr "FAIL: $message"
+  catch { send "\003\003" }
+  catch { close }
+  if {[file exists $log_path]} {
+    set log_file_handle [open $log_path r]
+    set output [read $log_file_handle]
+    close $log_file_handle
+    puts stderr [string range $output end-3000 end]
+  }
+  file delete -force $root
+  exit 1
+}
+
+cd $work_dir
+log_user 0
+log_file -noappend $log_path
+spawn env TERM=xterm-256color COLORTERM=truecolor COLUMNS=$columns LINES=$rows \
+  PI_OFFLINE=1 PI_CODING_AGENT_DIR=$config_dir \
+  pi --no-session --no-context-files --no-prompt-templates --no-themes \
+  --no-extensions --no-skills -e $image_extension -e $capture_extension \
+  --prompt-template $prompt_template
+stty columns $columns rows $rows
+
+if {![wait_for_exact 10 "E2E_READY"]} {
+  fail "Pi TUI did not become ready"
+}
+
+send -- "/new\r"
+if {![wait_for_exact 10 "New session started"]} {
+  fail "Pi did not replace the session"
+}
+
+send -- "\033\[200~${image_path}\033\[201~"
+if {![wait_for_exact 5 "\[#image 1\]"]} {
+  fail "pasted image did not become a placeholder"
+}
+
+send "\001"
+send -- "/some-command "
+send -- "\r"
+
+set expected "E2E_INPUT:/some-command ${image_path}|IMAGES:0"
+if {![wait_for_exact 5 $expected]} {
+  fail "prompt-template command did not receive the expanded image path"
+}
+
+send "\003\003"
+catch { close }
+file delete -force $root
+puts "PASS: prompt-template command received the expanded image path after session replacement"
+exit 0
