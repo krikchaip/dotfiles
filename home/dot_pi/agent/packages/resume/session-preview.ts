@@ -68,6 +68,7 @@ function compactSelectorLines(lines: string[]) {
   const result = [...lines];
 
   if (result[2] === "") result.splice(2, 1);
+  if (result[0] === "") result.shift();
   if (result.length >= 2 && result[result.length - 2] === "") {
     result.splice(result.length - 2, 1);
   }
