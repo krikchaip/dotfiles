@@ -50,7 +50,9 @@
     "model": "antigravity/gemini-3.6-flash-high"
   },
   "skills": [],
-  "extensions": [],
+  "extensions": [
+    "-extensions/post-compaction-context.ts"
+  ],
   "npmCommand": [
     "mise",
     "exec",
