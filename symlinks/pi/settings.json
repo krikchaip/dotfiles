@@ -101,14 +101,8 @@
     "cutEditor": "alt+x",
     "editorEnd": "ctrl+shift+e",
     "editorStart": "ctrl+shift+a",
-    "jumpChatBottom": "ctrl+shift+down",
-    "jumpChatTop": "ctrl+shift+up",
-    "jumpNextLlmMessage": "ctrl+alt+.",
-    "jumpNextUserMessage": "ctrl+shift+i",
-    "jumpPreviousLlmMessage": "ctrl+alt+,",
-    "jumpPreviousUserMessage": "ctrl+shift+u",
-    "scrollChatDown": "ctrl+down",
-    "scrollChatUp": "ctrl+up",
-    "stashHistory": "ctrl+alt+h"
+    "ideaCapture": null,
+    "queueOpen": null,
+    "stashHistory": null
   }
 }
