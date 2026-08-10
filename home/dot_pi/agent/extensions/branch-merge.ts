@@ -109,7 +109,6 @@ type PostMergeItem = {
   label: string;
 };
 
-const EXTENSION_NAME = "branch-merge";
 const ACTIVE_LEAF_MARKER = "branch-merge:active-leaf";
 const MERGE_WATERMARK_FIELD = "branchMergeSourceEntryIds";
 const MERGE_SPINNER_FRAMES = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
