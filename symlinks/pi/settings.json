@@ -101,7 +101,13 @@
       "right": [
         "extension_statuses"
       ]
-    }
+    },
+    "customItems": [
+      {
+        "id": "mcp",
+        "excludeFromExtensionStatuses": true
+      }
+    ]
   },
   "powerlineShortcuts": {
     "copyEditor": "alt+c",

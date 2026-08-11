@@ -1,6 +1,8 @@
 {
   "settings": {
-    "scriptMode": false
+    "scriptMode": false,
+    "showStatusIcon": true,
+    "mcpFooterStatus": "compact"
   },
   "mcpServers": {
     "github": {
