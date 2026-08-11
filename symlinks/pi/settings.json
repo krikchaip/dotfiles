@@ -109,7 +109,6 @@
     "editorEnd": "ctrl+shift+e",
     "editorStart": "ctrl+shift+a",
     "ideaCapture": null,
-    "queueOpen": null,
-    "stashHistory": null
+    "queueOpen": null
   }
 }
