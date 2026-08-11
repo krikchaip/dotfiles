@@ -1,6 +1,6 @@
 {
   "lastChangelogVersion": "0.84.1",
-  "quietStartup": false,
+  "quietStartup": true,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
   "treeFilterMode": "no-tools",
