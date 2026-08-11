@@ -61,6 +61,7 @@
     "npm"
   ],
   "packages": [
+    "git:github.com/ayghri/i-have-adhd",
     "git:github.com/krikchaip/pi-background-tasks@personal",
     "git:github.com/krikchaip/pi-cc-tools@personal",
     "git:github.com/krikchaip/pi-powerline-footer@personal",
@@ -69,8 +70,8 @@
     "npm:@gotgenes/pi-permission-system",
     "npm:pi-mcp-adapter@2.17.0",
     "npm:pi-web-access",
-    "packages/oh-my-pi-themes",
     "packages/image-attachments",
+    "packages/oh-my-pi-themes",
     "packages/provider-payload-debug",
     "packages/resume",
     "packages/side-quests"
