@@ -1,13 +1,14 @@
 /**
  * Extend Pi's built-in /new command.
  *
- * /new \[--sp|--vsp\] \[child\]
+ * /new \[--sp|--vsp|--win\] \[child\]
  *   - Bare /new keeps Pi's native behavior while idle.
  *   - Bare /new does nothing and warns the user while agent is streaming.
  *   - child creates a blank session linked to the current persisted session.
  *   - Alt+Shift+N creates a child session and preserves the editor draft.
  *   - --vsp opens a side-by-side tmux pane; --sp opens a top/bottom pane.
- *   - Split forms leave the source session untouched and may run while streaming.
+ *   - --win opens a new tmux window.
+ *   - Tmux forms leave the source session untouched and may run while streaming.
  *   - Same-pane forms are blocked while streaming.
  */
 
@@ -29,12 +30,12 @@ import { dirname, join } from "node:path";
 
 const PATCH_STATE = Symbol.for("pi.extended-new.patch-state");
 const NEW_CHILD_ACTION = "app.session.newChild";
-const ARGUMENT_HINT = "[--sp|--vsp] [child]";
+const ARGUMENT_HINT = "[--sp|--vsp|--win] [child]";
 const USAGE = `Usage: /new ${ARGUMENT_HINT}`;
 
-type Split = "h" | "v";
+type TmuxTarget = "h" | "v" | "window";
 
-type ParsedArgs = { split?: Split; child: boolean } | { error: string };
+type ParsedArgs = { target?: TmuxTarget; child: boolean } | { error: string };
 
 type AutocompleteItem = {
   value: string;
@@ -96,10 +97,13 @@ function parseArgs(text: string): ParsedArgs | undefined {
 
   const tokens = trimmed.slice(5).trim().split(/\s+/);
   let index = 0;
-  let split: Split | undefined;
+  let target: TmuxTarget | undefined;
 
   if (tokens[index] === "--sp" || tokens[index] === "--vsp") {
-    split = tokens[index] === "--vsp" ? "h" : "v";
+    target = tokens[index] === "--vsp" ? "h" : "v";
+    index++;
+  } else if (tokens[index] === "--win") {
+    target = "window";
     index++;
   }
 
@@ -110,7 +114,7 @@ function parseArgs(text: string): ParsedArgs | undefined {
   }
 
   if (index !== tokens.length) return { error: USAGE };
-  return split ? { split, child } : { child };
+  return target ? { target, child } : { child };
 }
 
 function validSessionFile(path: string | undefined): path is string {
@@ -153,6 +157,11 @@ function completionItems(prefix: string): AutocompleteItem[] | null {
       description: "Open a side-by-side tmux pane",
     },
     {
+      value: "--win",
+      label: "--win",
+      description: "Open a new tmux window",
+    },
+    {
       value: "child",
       label: "child",
       description: "Create a blank child session",
@@ -161,15 +170,15 @@ function completionItems(prefix: string): AutocompleteItem[] | null {
 
   if (!prefix) return options;
 
-  const splitMatch = prefix.match(/^(--sp|--vsp)\s+(.*)$/);
-  if (splitMatch) {
-    const rest = splitMatch[2] ?? "";
+  const targetMatch = prefix.match(/^(--sp|--vsp|--win)\s+(.*)$/);
+  if (targetMatch) {
+    const rest = targetMatch[2] ?? "";
     if (!"child".startsWith(rest)) return null;
     return [
       {
-        value: `${splitMatch[1]} child`,
+        value: `${targetMatch[1]} child`,
         label: "child",
-        description: "Create a blank child session in the new pane",
+        description: "Create a blank child session in the new tmux target",
       },
     ];
   }
@@ -261,9 +270,9 @@ function tmuxEnvironmentArgs() {
   return args;
 }
 
-async function spawnTmuxPane(
+async function spawnTmuxTarget(
   mode: PatchedInteractiveMode,
-  split: Split,
+  target: TmuxTarget,
   child: boolean,
   parentSession: string | undefined,
 ) {
@@ -322,8 +331,8 @@ async function spawnTmuxPane(
 
   const command = piCommand(piArgs);
   const tmuxArgs = [
-    "split-window",
-    split === "h" ? "-h" : "-v",
+    target === "window" ? "new-window" : "split-window",
+    ...(target === "h" ? ["-h"] : target === "v" ? ["-v"] : []),
     "-c",
     cwd,
     ...tmuxEnvironmentArgs(),
@@ -361,7 +370,7 @@ async function spawnTmuxPane(
   const failure = result.error
     ? String(result.error)
     : `tmux exited with code ${String(result.code)}`;
-  mode.showError?.(`tmux split failed: ${failure}`);
+  mode.showError?.(`tmux target failed: ${failure}`);
   if (cleanupError) {
     mode.showWarning?.(
       `Failed to remove unused child session: ${String(cleanupError)}`,
@@ -374,7 +383,7 @@ async function handleExtendedNew(
   parsed: Exclude<ParsedArgs, { error: string }>,
 ) {
   const streaming = Boolean(mode.session?.isStreaming);
-  if (!parsed.split && streaming) {
+  if (!parsed.target && streaming) {
     mode.showWarning?.("Cannot run same-pane /new while agent is streaming");
     return;
   }
@@ -389,8 +398,8 @@ async function handleExtendedNew(
     return;
   }
 
-  if (parsed.split) {
-    await spawnTmuxPane(mode, parsed.split, parsed.child, parentSession);
+  if (parsed.target) {
+    await spawnTmuxTarget(mode, parsed.target, parsed.child, parentSession);
     return;
   }
 
@@ -482,7 +491,7 @@ function installPatch(InteractiveMode: { prototype: PatchedInteractiveMode }) {
         return;
       }
 
-      if (!parsed.split && !parsed.child && !this.session?.isStreaming) {
+      if (!parsed.target && !parsed.child && !this.session?.isStreaming) {
         return nativeOnSubmit(text);
       }
 
