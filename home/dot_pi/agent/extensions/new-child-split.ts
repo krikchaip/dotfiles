@@ -30,6 +30,12 @@ import { dirname, join } from "node:path";
 
 const PATCH_STATE = Symbol.for("pi.extended-new.patch-state");
 const NEW_CHILD_ACTION = "app.session.newChild";
+const NEW_TMUX_SP_ACTION = "app.session.newTmuxSp";
+const NEW_CHILD_TMUX_SP_ACTION = "app.session.newChildTmuxSp";
+const NEW_TMUX_VSP_ACTION = "app.session.newTmuxVsp";
+const NEW_CHILD_TMUX_VSP_ACTION = "app.session.newChildTmuxVsp";
+const NEW_TMUX_WIN_ACTION = "app.session.newTmuxWin";
+const NEW_CHILD_TMUX_WIN_ACTION = "app.session.newChildTmuxWin";
 const ARGUMENT_HINT = "[--sp|--vsp|--win] [child]";
 const USAGE = `Usage: /new ${ARGUMENT_HINT}`;
 
@@ -42,6 +48,59 @@ type AutocompleteItem = {
   label: string;
   description: string;
 };
+
+type TmuxKeybinding = {
+  action: string;
+  target: TmuxTarget;
+  child: boolean;
+  defaultKeys: string[];
+  description: string;
+};
+
+const TMUX_KEYBINDINGS: TmuxKeybinding[] = [
+  {
+    action: NEW_TMUX_SP_ACTION,
+    target: "v",
+    child: false,
+    defaultKeys: ["alt+s"],
+    description: "Start a session in a top/bottom tmux pane",
+  },
+  {
+    action: NEW_CHILD_TMUX_SP_ACTION,
+    target: "v",
+    child: true,
+    defaultKeys: ["alt+shift+s"],
+    description: "Start a child session in a top/bottom tmux pane",
+  },
+  {
+    action: NEW_TMUX_VSP_ACTION,
+    target: "h",
+    child: false,
+    defaultKeys: ["alt+v"],
+    description: "Start a session in a side-by-side tmux pane",
+  },
+  {
+    action: NEW_CHILD_TMUX_VSP_ACTION,
+    target: "h",
+    child: true,
+    defaultKeys: ["alt+shift+v"],
+    description: "Start a child session in a side-by-side tmux pane",
+  },
+  {
+    action: NEW_TMUX_WIN_ACTION,
+    target: "window",
+    child: false,
+    defaultKeys: ["alt+w"],
+    description: "Start a session in a new tmux window",
+  },
+  {
+    action: NEW_CHILD_TMUX_WIN_ACTION,
+    target: "window",
+    child: true,
+    defaultKeys: ["alt+shift+w"],
+    description: "Start a child session in a new tmux window",
+  },
+];
 
 type PatchedInteractiveMode = {
   setupEditorSubmitHandler(...args: unknown[]): unknown;
@@ -212,18 +271,27 @@ function patchNewAutocomplete(provider: unknown) {
   command.getArgumentCompletions = completionItems;
 }
 
-function installNewChildKeybinding(mode: PatchedInteractiveMode) {
+function installNewKeybindings(mode: PatchedInteractiveMode) {
   const keybindings = mode.keybindings;
   if (!keybindings?.definitions) {
     throw new Error("Interactive keybindings unavailable");
   }
-  if (keybindings.definitions[NEW_CHILD_ACTION]) return;
 
-  keybindings.definitions[NEW_CHILD_ACTION] = {
-    defaultKeys: ["alt+shift+n"],
-    description: "Start a child session",
-  };
-  keybindings.rebuild?.();
+  const definitions = [
+    {
+      action: NEW_CHILD_ACTION,
+      defaultKeys: ["alt+shift+n"],
+      description: "Start a child session",
+    },
+    ...TMUX_KEYBINDINGS,
+  ];
+  let changed = false;
+  for (const { action, defaultKeys, description } of definitions) {
+    if (keybindings.definitions[action]) continue;
+    keybindings.definitions[action] = { defaultKeys, description };
+    changed = true;
+  }
+  if (changed) keybindings.rebuild?.();
 }
 
 function showNewChildStarted(mode: PatchedInteractiveMode) {
@@ -315,7 +383,7 @@ async function spawnTmuxTarget(
         throw new Error("Pi cannot persist a blank child session");
       }
       rewriteFile.call(childSession);
-      piArgs.push("--session", childSession.getSessionId());
+      piArgs.push("--session", createdChildFile);
     } catch (error) {
       if (createdChildFile) {
         try {
@@ -464,7 +532,7 @@ function installPatch(InteractiveMode: { prototype: PatchedInteractiveMode }) {
       throw new Error("Interactive editor submit handler unavailable");
     }
 
-    installNewChildKeybinding(this);
+    installNewKeybindings(this);
 
     const onAction = this.defaultEditor?.onAction;
     if (typeof onAction !== "function") {
@@ -473,6 +541,11 @@ function installPatch(InteractiveMode: { prototype: PatchedInteractiveMode }) {
     onAction.call(this.defaultEditor, NEW_CHILD_ACTION, () => {
       void handleExtendedNew(this, { child: true });
     });
+    for (const { action, target, child } of TMUX_KEYBINDINGS) {
+      onAction.call(this.defaultEditor, action, () => {
+        void handleExtendedNew(this, { target, child });
+      });
+    }
     onAction.call(this.defaultEditor, "app.session.new", () => {
       if (this.session?.isStreaming) {
         this.showWarning?.("Cannot run same-pane /new while agent is streaming");
