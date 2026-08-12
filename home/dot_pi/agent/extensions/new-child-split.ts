@@ -3,6 +3,7 @@
  *
  * /new \[--sp|--vsp\] \[child\]
  *   - Bare /new keeps Pi's native behavior while idle.
+ *   - Bare /new does nothing and warns the user while agent is streaming.
  *   - child creates a blank session linked to the current persisted session.
  *   - Alt+Shift+N creates a child session and preserves the editor draft.
  *   - --vsp opens a side-by-side tmux pane; --sp opens a top/bottom pane.
@@ -44,6 +45,7 @@ type AutocompleteItem = {
 type PatchedInteractiveMode = {
   setupEditorSubmitHandler(...args: unknown[]): unknown;
   createBaseAutocompleteProvider(...args: unknown[]): unknown;
+  handleClearCommand(): void;
   defaultEditor?: {
     onAction?(action: string, handler: () => void): void;
     onSubmit?: (text: string) => Promise<unknown> | unknown;
@@ -392,10 +394,6 @@ async function handleExtendedNew(
     return;
   }
 
-  if (!parsed.child) {
-    throw new Error("Bare idle /new must use Pi's native handler");
-  }
-
   if (!mode.runtimeHost) {
     mode.showError?.("Pi session runtime unavailable");
     return;
@@ -465,6 +463,13 @@ function installPatch(InteractiveMode: { prototype: PatchedInteractiveMode }) {
     }
     onAction.call(this.defaultEditor, NEW_CHILD_ACTION, () => {
       void handleExtendedNew(this, { child: true });
+    });
+    onAction.call(this.defaultEditor, "app.session.new", () => {
+      if (this.session?.isStreaming) {
+        this.showWarning?.("Cannot run same-pane /new while agent is streaming");
+        return;
+      }
+      this.handleClearCommand();
     });
 
     this.defaultEditor!.onSubmit = async (text: string) => {
