@@ -94,8 +94,7 @@
     "showLastPrompt": false,
     "layout": {
       "left": [
-        "model",
-        "thinking",
+        "model_thinking",
         "context_pct_plain"
       ],
       "right": [
