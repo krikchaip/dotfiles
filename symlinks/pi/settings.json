@@ -87,6 +87,9 @@
       "color": "muted",
       "bold": false
     },
+    "modelThinking": {
+      "wrapper": "none"
+    },
     "sessionTitle": {
       "enabled": true,
       "alignment": "right"
