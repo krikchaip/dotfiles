@@ -49,7 +49,12 @@ desc = "Jump to file/directory via fzf"
 [[mgr.prepend_keymap]]
 on = [ "g", "r" ]
 run = 'shell -- ya emit cd "$(git rev-parse --show-toplevel)"'
-desc = "Go to git root"
+desc = "Go to Git root"
+
+[[mgr.prepend_keymap]]
+on = [ "g", "R" ]
+run = 'cd /'
+desc = "Go to Root"
 
 [[mgr.prepend_keymap]]
 on = [ "g", "d" ]
@@ -64,12 +69,22 @@ desc = "Go to Downloads"
 [[mgr.prepend_keymap]]
 on = [ "g", "c" ]
 run = "cd ~/.local/share/chezmoi"
-desc = "Go to chezmoi dir"
+desc = "Go to Chezmoi dir"
 
 [[mgr.prepend_keymap]]
 on = [ "g", "C" ]
 run = "cd ~/.config"
 desc = "Go to ~/.config"
+
+[[mgr.prepend_keymap]]
+on = [ "g", "p" ]
+run = "cd ~/.local/share/chezmoi/home/dot_pi/agent"
+desc = "Go to Pi agent config (Chezmoi)"
+
+[[mgr.prepend_keymap]]
+on = [ "g", "P" ]
+run = "cd ~/.pi/agent"
+desc = "Go to Pi agent config"
 
 [[mgr.prepend_keymap]]
 on = [ "g", "?" ]
