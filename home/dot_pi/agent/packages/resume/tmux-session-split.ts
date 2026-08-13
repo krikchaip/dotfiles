@@ -251,8 +251,12 @@ function showStatus(
   interactiveMode.ui?.requestRender?.();
 }
 
-function appendTmuxHints(line: string, width: number) {
-  const sep = " · ";
+function appendTmuxHints(
+  line: string,
+  width: number,
+  theme: { fg(color: string, text: string): string },
+) {
+  const sep = theme.fg("muted", " · ");
   const hints = `${rawKeyHint(SPLIT_DOWN_KEY, "sp")}${sep}${rawKeyHint(SPLIT_RIGHT_KEY, "vsp")}${sep}${rawKeyHint(NEW_WINDOW_KEY, "win")}`;
 
   return truncateToWidth(`${line}${sep}${hints}`, width, "…");
@@ -262,6 +266,7 @@ export function patchTmuxSessionSplit(
   selector: any,
   interactiveMode: any,
   closePicker: () => void,
+  theme: { fg(color: string, text: string): string },
 ) {
   if (!isTmuxResumeSplitAvailable()) return;
 
@@ -277,7 +282,7 @@ export function patchTmuxSessionSplit(
         // Native rendering has already truncated line 2 at `width`. Render it
         // once at a safe maximum to combine every group before truncating.
         const fullHintLine = originalHeaderRender.call(this, 10_000)[2] ?? "";
-        lines[2] = appendTmuxHints(fullHintLine, width);
+        lines[2] = appendTmuxHints(fullHintLine, width, theme);
       }
       return lines;
     };
