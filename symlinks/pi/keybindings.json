@@ -7,6 +7,8 @@
   "app.session.branchTmuxSp": ["ctrl+alt+s"],
   "app.session.branchTmuxVsp": ["ctrl+alt+v"],
   "app.session.branchTmuxWin": ["ctrl+alt+w"],
+  "app.session.drop": ["alt+q"],
+  "app.session.dropTmuxQuit": ["alt+shift+q"],
   "app.session.new": ["alt+n"],
   "app.session.newChild": ["alt+shift+n"],
   "app.session.newChildTmuxSp": ["alt+shift+s"],

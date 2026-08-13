@@ -8,7 +8,10 @@
  */
 
 import { spawn } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { unlink } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
@@ -16,6 +19,98 @@ import type {
 
 /** Confirm before dropping sessions with this many entries or more. */
 const CONFIRM_THRESHOLD = 100;
+const STREAMING_WARNING = "Cannot drop session while agent is streaming";
+const PATCH_STATE = Symbol.for("pi.drop-session.patch-state");
+
+const DROP_SHORTCUTS: ReadonlyArray<{
+  action: string;
+  args: string;
+  defaultKeys: string[];
+  description: string;
+}> = [
+  {
+    action: "app.session.drop",
+    args: "",
+    defaultKeys: ["alt+q"],
+    description: "Drop the current session",
+  },
+  {
+    action: "app.session.dropTmuxQuit",
+    args: " -q",
+    defaultKeys: ["alt+shift+q"],
+    description: "Drop the current session and close the tmux pane",
+  },
+];
+
+type DropInteractiveMode = {
+  setupEditorSubmitHandler(...args: unknown[]): unknown;
+  defaultEditor?: {
+    onAction?(action: string, handler: () => void): void;
+    onSubmit?: (text: string) => Promise<unknown> | unknown;
+  };
+  keybindings?: {
+    definitions?: Record<
+      string,
+      { defaultKeys: string[]; description: string }
+    >;
+    rebuild?(): void;
+  };
+};
+
+type DropPatchState = {
+  originalSetupEditorSubmitHandler: (...args: unknown[]) => unknown;
+};
+
+function installDropKeybindings(mode: DropInteractiveMode) {
+  const keybindings = mode.keybindings;
+  if (!keybindings?.definitions) {
+    throw new Error("Interactive keybindings unavailable");
+  }
+
+  let changed = false;
+  for (const { action, defaultKeys, description } of DROP_SHORTCUTS) {
+    if (keybindings.definitions[action]) continue;
+    keybindings.definitions[action] = { defaultKeys, description };
+    changed = true;
+  }
+  if (changed) keybindings.rebuild?.();
+}
+
+function installDropShortcutAdapter(
+  InteractiveMode: { prototype: DropInteractiveMode },
+) {
+  const prototype = InteractiveMode.prototype as DropInteractiveMode & {
+    [PATCH_STATE]?: DropPatchState;
+  };
+  if (prototype[PATCH_STATE]) return;
+  if (typeof prototype.setupEditorSubmitHandler !== "function") {
+    throw new Error("InteractiveMode.setupEditorSubmitHandler unavailable");
+  }
+
+  const state: DropPatchState = {
+    originalSetupEditorSubmitHandler: prototype.setupEditorSubmitHandler,
+  };
+  prototype[PATCH_STATE] = state;
+  prototype.setupEditorSubmitHandler = function (
+    this: DropInteractiveMode,
+    ...args: unknown[]
+  ) {
+    const result = state.originalSetupEditorSubmitHandler.apply(this, args);
+    const onSubmit = this.defaultEditor?.onSubmit;
+    const onAction = this.defaultEditor?.onAction;
+    if (typeof onSubmit !== "function" || typeof onAction !== "function") {
+      throw new Error("Interactive editor actions unavailable");
+    }
+
+    installDropKeybindings(this);
+    for (const shortcut of DROP_SHORTCUTS) {
+      onAction.call(this.defaultEditor, shortcut.action, () => {
+        void onSubmit(`/drop${shortcut.args}`);
+      });
+    }
+    return result;
+  };
+}
 
 function isInTmux(): boolean {
   return Boolean(process.env.TMUX);
@@ -38,6 +133,17 @@ function parseArgs(args: string): { quit: boolean } | undefined {
 }
 
 export default function (pi: ExtensionAPI) {
+  const cliEntry = process.argv[1];
+  if (!cliEntry) throw new Error("Cannot locate Pi CLI entry");
+
+  const req = createRequire(__filename);
+  const distPath = dirname(realpathSync(cliEntry));
+  const { InteractiveMode } = req(
+    join(distPath, "modes", "interactive", "interactive-mode.js"),
+  ) as { InteractiveMode?: { prototype: DropInteractiveMode } };
+  if (!InteractiveMode) throw new Error("Cannot load Pi InteractiveMode");
+  installDropShortcutAdapter(InteractiveMode);
+
   pi.registerCommand("drop", {
     description:
       "Drop current session and start a new one; -q closes tmux pane",
@@ -60,6 +166,11 @@ export default function (pi: ExtensionAPI) {
       return items.length > 0 ? items : null;
     },
     handler: async (args, ctx) => {
+      if (!ctx.isIdle()) {
+        ctx.ui.notify(STREAMING_WARNING, "warning");
+        return;
+      }
+
       const options = parseArgs(args);
       if (!options) {
         ctx.ui.notify("Usage: /drop [-q|--quit]", "warning");
@@ -83,6 +194,11 @@ export default function (pi: ExtensionAPI) {
           `Session has ${entries.length} entries. Drop anyway?`,
         );
         if (!ok) return;
+      }
+
+      if (!ctx.isIdle()) {
+        ctx.ui.notify(STREAMING_WARNING, "warning");
+        return;
       }
 
       const fileToDelete = sessionFile;
