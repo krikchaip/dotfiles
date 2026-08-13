@@ -64,7 +64,7 @@
     "git:github.com/ayghri/i-have-adhd",
     "git:github.com/krikchaip/pi-background-tasks@personal-cleanup",
     "git:github.com/krikchaip/pi-cc-tools@personal",
-    "git:github.com/krikchaip/pi-powerline-footer@personal",
+    "git:github.com/krikchaip/pi-powerline-footer@personal-140826",
     "git:github.com/krikchaip/pi-token-burden@personal",
     "git:github.com/krikchaip/pi-treex@personal",
     "npm:@gotgenes/pi-permission-system",
@@ -116,7 +116,6 @@
     "cutEditor": "alt+x",
     "editorEnd": "ctrl+shift+e",
     "editorStart": "ctrl+shift+a",
-    "ideaCapture": null,
     "queueOpen": null
   }
 }
