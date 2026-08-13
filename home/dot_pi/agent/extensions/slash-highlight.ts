@@ -1,5 +1,8 @@
 /**
  * Highlight slash commands and inline skill references in the editor/history.
+ *
+ * Load this extension last when another extension modifies the editor. Such an
+ * extension can replace the editor render method and bypass this highlight.
  */
 
 import {
@@ -86,7 +89,7 @@ function escapeEnd(text: string, start: number) {
 function visibleText(text: string) {
   let visible = "";
 
-  for (let i = 0; i < text.length; ) {
+  for (let i = 0; i < text.length;) {
     if (text[i] === "\x1b") {
       i = escapeEnd(text, i);
       continue;
@@ -192,7 +195,7 @@ function highlightVisibleRanges(
   let inverse = false;
   let foreground = "";
 
-  for (let i = 0; i < text.length; ) {
+  for (let i = 0; i < text.length;) {
     if (text[i] === "\x1b") {
       const end = escapeEnd(text, i);
       const sequence = text.slice(i, end);
@@ -322,14 +325,12 @@ function highlightEditorLine(
 }
 
 function patchEditorRender(
+  target: any,
   getCommandNames: () => Set<string>,
   getSkillNames: () => Set<string>,
   color: (text: string) => string,
 ) {
-  const prototype = CustomEditor.prototype as any;
-  const state = prototype[EDITOR_PATCH_STATE] as
-    | EditorHighlightState
-    | undefined;
+  const state = target[EDITOR_PATCH_STATE] as EditorHighlightState | undefined;
 
   if (state) {
     state.getCommandNames = getCommandNames;
@@ -338,9 +339,9 @@ function patchEditorRender(
     return;
   }
 
-  const originalRender = prototype.render;
+  const originalRender = target.render;
   if (typeof originalRender !== "function") {
-    throw new Error("CustomEditor.render not found");
+    throw new Error("editor.render not found");
   }
 
   const nextState: EditorHighlightState = {
@@ -349,9 +350,9 @@ function patchEditorRender(
     getSkillNames,
     color,
   };
-  prototype[EDITOR_PATCH_STATE] = nextState;
+  target[EDITOR_PATCH_STATE] = nextState;
 
-  prototype.render = function patchedRender(width: number) {
+  target.render = function patchedRender(width: number) {
     const lines = nextState.originalRender.call(this, width) as string[];
     const text = typeof this.getText === "function" ? this.getText() : "";
     const commandToken = editorCommandToken(text, nextState.getCommandNames());
@@ -378,8 +379,7 @@ function patchUserMessageRender(
 ) {
   const prototype = UserMessageComponent.prototype as any;
   const state = prototype[USER_MESSAGE_PATCH_STATE] as
-    | UserMessageHighlightState
-    | undefined;
+    UserMessageHighlightState | undefined;
 
   if (state) {
     state.getSkillNames = getSkillNames;
@@ -431,10 +431,27 @@ export default function (pi: ExtensionAPI) {
 
     try {
       patchEditorRender(
+        CustomEditor.prototype,
         () => cachedCommandNames,
         () => cachedSkillNames,
         color,
       );
+
+      // pi-powerline-footer replaces `editor.render` per instance. Wrap its
+      // configured factory so the highlight runs after that replacement.
+      const previousEditorFactory = ctx.ui.getEditorComponent();
+      if (previousEditorFactory) {
+        ctx.ui.setEditorComponent((tui, theme, keybindings) => {
+          const editor = previousEditorFactory(tui, theme, keybindings);
+          patchEditorRender(
+            editor,
+            () => cachedCommandNames,
+            () => cachedSkillNames,
+            color,
+          );
+          return editor;
+        });
+      }
     } catch (error) {
       console.error("slash-highlight: failed to patch editor", error);
     }
