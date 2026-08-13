@@ -1,5 +1,5 @@
 /**
- * Opens the selected /resume session in a tmux pane.
+ * Opens the selected /resume session in a tmux pane or window.
  *
  * Active sessions advertise their pane through a tmux pane option. Selecting a
  * session already active elsewhere requires a second press, then jumps to that
@@ -15,8 +15,9 @@ const PANE_SESSION_OPTION = "@pi_resume_session";
 const JUMP_CONFIRM_MS = 1_500;
 const SPLIT_DOWN_KEY = "alt+s";
 const SPLIT_RIGHT_KEY = "alt+v";
+const NEW_WINDOW_KEY = "alt+w";
 
-type SplitDirection = "down" | "right";
+type TmuxTarget = "down" | "right" | "window";
 
 type PaneSession = {
   paneId: string;
@@ -201,10 +202,10 @@ function tmuxEnvironmentArgs() {
   return args;
 }
 
-function splitSession(
+function openSession(
   session: any,
   interactiveMode: any,
-  direction: SplitDirection,
+  target: TmuxTarget,
 ) {
   const cwd = session.cwd || interactiveMode.sessionManager?.getCwd?.();
   if (!cwd) {
@@ -216,8 +217,8 @@ function splitSession(
     interactiveMode.sessionManager?.getSessionDir?.(),
   );
   const result = runTmux([
-    "split-window",
-    direction === "right" ? "-h" : "-v",
+    target === "window" ? "new-window" : "split-window",
+    ...(target === "right" ? ["-h"] : target === "down" ? ["-v"] : []),
     "-c",
     cwd,
     ...tmuxEnvironmentArgs(),
@@ -250,9 +251,9 @@ function showStatus(
   interactiveMode.ui?.requestRender?.();
 }
 
-function appendSplitHints(line: string, width: number) {
+function appendTmuxHints(line: string, width: number) {
   const sep = " · ";
-  const hints = `${rawKeyHint(SPLIT_DOWN_KEY, "sp")}${sep}${rawKeyHint(SPLIT_RIGHT_KEY, "vsp")}`;
+  const hints = `${rawKeyHint(SPLIT_DOWN_KEY, "sp")}${sep}${rawKeyHint(SPLIT_RIGHT_KEY, "vsp")}${sep}${rawKeyHint(NEW_WINDOW_KEY, "win")}`;
 
   return truncateToWidth(`${line}${sep}${hints}`, width, "…");
 }
@@ -276,7 +277,7 @@ export function patchTmuxSessionSplit(
         // Native rendering has already truncated line 2 at `width`. Render it
         // once at a safe maximum to combine every group before truncating.
         const fullHintLine = originalHeaderRender.call(this, 10_000)[2] ?? "";
-        lines[2] = appendSplitHints(fullHintLine, width);
+        lines[2] = appendTmuxHints(fullHintLine, width);
       }
       return lines;
     };
@@ -305,17 +306,16 @@ export function patchTmuxSessionSplit(
       return originalHandleInput.call(this, data);
     }
 
-    const direction: SplitDirection | undefined = matchesKey(
-      data,
-      SPLIT_DOWN_KEY,
-    )
+    const target: TmuxTarget | undefined = matchesKey(data, SPLIT_DOWN_KEY)
       ? "down"
       : matchesKey(data, SPLIT_RIGHT_KEY)
         ? "right"
-        : undefined;
+        : matchesKey(data, NEW_WINDOW_KEY)
+          ? "window"
+          : undefined;
     const isConfirm = matchesKey(data, "enter");
 
-    if ((!direction && !isConfirm) || this.mode !== "list") {
+    if ((!target && !isConfirm) || this.mode !== "list") {
       clearPendingJump();
       return originalHandleInput.call(this, data);
     }
@@ -332,9 +332,11 @@ export function patchTmuxSessionSplit(
     const existingPane = paneRunningSession(session.path, openSessionPanes);
     const key = isConfirm
       ? "tui.select.confirm"
-      : direction === "down"
+      : target === "down"
         ? SPLIT_DOWN_KEY
-        : SPLIT_RIGHT_KEY;
+        : target === "right"
+          ? SPLIT_RIGHT_KEY
+          : NEW_WINDOW_KEY;
     const now = Date.now();
 
     if (existingPane) {
@@ -374,12 +376,12 @@ export function patchTmuxSessionSplit(
     clearPendingJump();
     if (isConfirm) return originalHandleInput.call(this, data);
 
-    const result = splitSession(session, interactiveMode, direction!);
+    const result = openSession(session, interactiveMode, target!);
     if (!result.ok) {
       showStatus(
         this,
         interactiveMode,
-        `tmux split failed: ${result.error}`,
+        `tmux open failed: ${result.error}`,
         true,
       );
       return;
