@@ -270,8 +270,10 @@ export default function (pi: ExtensionAPI) {
         factory: (done: () => void) => any,
       ) {
         return originalShowSelector.call(this, (done: any) => {
+          let restoreResumeLayout: (() => void) | undefined;
           const doneWithSync = () => {
             try {
+              restoreResumeLayout?.();
               done();
             } finally {
               this[RESUME_INPUT_ACTIVE] = false;
@@ -302,6 +304,7 @@ export default function (pi: ExtensionAPI) {
               doneWithSync,
               previewDeps,
             );
+            restoreResumeLayout = () => wrapper.restoreLayout();
             return { ...result, component: wrapper, focus: wrapper };
           } catch (error) {
             this[RESUME_INPUT_ACTIVE] = false;

@@ -28,6 +28,8 @@ const EXPAND_KEY = "ctrl+r";
 /** Display label for the expand key hint shown in collapsed preview. */
 const EXPAND_KEY_HINT = "Ctrl+R";
 
+const LAYOUT_NODE = Symbol.for("@earendil-works/pi-tui/layout-node");
+
 export interface SessionPreviewDeps {
   loadEntriesFromFile(path: string): any[];
   getMarkdownTheme(): any;
@@ -74,6 +76,142 @@ function compactSelectorLines(lines: string[]) {
   }
 
   return result;
+}
+
+function normalizeLayoutSize(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : fallback;
+}
+
+function layoutNode(component: any) {
+  const getNode = component?.[LAYOUT_NODE];
+  return typeof getNode === "function" ? getNode.call(component) : undefined;
+}
+
+function containsLayoutComponent(component: any, target: any): boolean {
+  if (component === target) return true;
+
+  const node = layoutNode(component);
+  return Boolean(
+    node?.entries?.some((entry: any) =>
+      containsLayoutComponent(entry.component, target),
+    ),
+  );
+}
+
+function findLayoutEntry(component: any, target: any): any | undefined {
+  const node = layoutNode(component);
+  if (!Array.isArray(node?.entries)) return undefined;
+
+  for (const entry of node.entries) {
+    if (entry.component === target) return entry;
+    const nested = findLayoutEntry(entry.component, target);
+    if (nested) return nested;
+  }
+
+  return undefined;
+}
+
+function renderedHeight(component: any, width: number) {
+  try {
+    const lines = component?.render?.(width);
+    return Array.isArray(lines) ? lines.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function stackEntryHeight(entry: any, width: number) {
+  const intrinsic =
+    typeof entry.basis === "number"
+      ? entry.basis
+      : renderedHeight(entry.component, width);
+  const minimum = normalizeLayoutSize(entry.minSize, 0);
+  const maximum = Math.max(
+    minimum,
+    normalizeLayoutSize(entry.maxSize, Number.MAX_SAFE_INTEGER),
+  );
+  return Math.max(minimum, Math.min(maximum, Math.floor(intrinsic)));
+}
+
+function allocatedLayoutHeight(
+  component: any,
+  target: any,
+  width: number,
+  height: number,
+): number | undefined {
+  if (component === target) return Math.max(0, Math.floor(height));
+
+  const node = layoutNode(component);
+  if (node?.type !== "vstack" || !Array.isArray(node.entries)) {
+    return undefined;
+  }
+
+  const viewport = { width, height };
+  const entries = node.entries.filter((entry: any) => {
+    try {
+      return entry.visible?.(viewport) ?? true;
+    } catch {
+      return true;
+    }
+  });
+  const targetEntry = entries.find((entry: any) =>
+    containsLayoutComponent(entry.component, target),
+  );
+  if (!targetEntry) return undefined;
+
+  const gap = normalizeLayoutSize(node.gap, 0);
+  const reservedHeight =
+    Math.max(0, entries.length - 1) * gap +
+    entries
+      .filter((entry: any) => entry !== targetEntry)
+      .reduce(
+        (total: number, entry: any) => total + stackEntryHeight(entry, width),
+        0,
+      );
+  const minimum = normalizeLayoutSize(targetEntry.minSize, 0);
+  const maximum = Math.max(
+    minimum,
+    normalizeLayoutSize(targetEntry.maxSize, Number.MAX_SAFE_INTEGER),
+  );
+  const targetHeight = Math.max(
+    minimum,
+    Math.min(maximum, Math.max(0, height - reservedHeight)),
+  );
+
+  return allocatedLayoutHeight(
+    targetEntry.component,
+    target,
+    width,
+    targetHeight,
+  );
+}
+
+function availablePickerRows(interactiveMode: any, width: number) {
+  const terminalRows = interactiveMode.ui?.terminal?.rows;
+  if (!Number.isFinite(terminalRows)) return undefined;
+
+  const fromLayout = allocatedLayoutHeight(
+    interactiveMode.fullscreenLayoutRoot,
+    interactiveMode.editorContainer,
+    width,
+    terminalRows,
+  );
+  if (fromLayout !== undefined) return fromLayout;
+
+  const uiChildren = interactiveMode.ui?.children;
+  const editorIndex = uiChildren?.indexOf?.(interactiveMode.editorContainer);
+  if (!Array.isArray(uiChildren) || editorIndex < 0) return terminalRows;
+
+  const rowsBelow = uiChildren
+    .slice(editorIndex + 1)
+    .reduce(
+      (total: number, component: any) =>
+        total + renderedHeight(component, width),
+      0,
+    );
+  return Math.max(0, terminalRows - rowsBelow);
 }
 
 function selectedSession(selector: any) {
@@ -279,13 +417,16 @@ class ResumePreviewPane {
   >();
 
   constructor(
-    private readonly getTerminalRows: () => number,
     private readonly theme: any,
     private readonly renderExpandedLines: (
       session: any,
       width: number,
     ) => string[],
   ) {}
+
+  get isExpanded() {
+    return this.expanded;
+  }
 
   handleInput(data: string) {
     if (matchesKey(data, EXPAND_KEY)) {
@@ -362,7 +503,12 @@ class ResumePreviewPane {
     return fitLine(parts.join(this.theme.fg("muted", " · ")), width);
   }
 
-  render(session: any, width: number, selectorHeight: number) {
+  render(
+    session: any,
+    width: number,
+    selectorHeight: number,
+    availableRows: number | undefined,
+  ) {
     if (!session) return [];
 
     if (session.path !== this.lastPath) {
@@ -372,8 +518,21 @@ class ResumePreviewPane {
 
     const contentWidth = Math.max(1, width);
     const allBodyLines = this.bodyLines(session, contentWidth);
+    const metadata = this.metadata(session, width);
+    const border = fitLine(borderLine(this.theme, width), width);
+    const expandedHeader = [metadata, border];
+    const expandedFooter = (help: string) => [
+      border,
+      fitLine(this.theme.fg("dim", help), width),
+    ];
+    const expandedChromeHeight =
+      expandedHeader.length + expandedFooter("").length;
+    const previewCapacity =
+      availableRows === undefined
+        ? expandedChromeHeight + allBodyLines.length
+        : Math.max(0, availableRows - selectorHeight);
     const bodyHeight = this.expanded
-      ? Math.max(1, this.getTerminalRows() - selectorHeight - 4)
+      ? Math.max(0, previewCapacity - expandedChromeHeight)
       : COLLAPSED_PREVIEW_LINES;
 
     const maxOffset = Math.max(0, allBodyLines.length - bodyHeight);
@@ -396,15 +555,12 @@ class ResumePreviewPane {
         );
       }
 
-      return [
-        this.metadata(session, width),
-        ...visible.map((line) => fitLine(line, width)),
-        fitLine(borderLine(this.theme, width), width),
-      ];
+      return [metadata, ...visible.map((line) => fitLine(line, width)), border];
     }
 
+    const visibleRange = end > start ? `${start + 1}-${end}` : "0-0";
     const help = [
-      `${start + 1}-${end}/${allBodyLines.length}`,
+      `${visibleRange}/${allBodyLines.length}`,
       "Shift+↑/↓ scroll",
       "Shift+PgUp/PgDn page",
       "Home/End",
@@ -412,17 +568,25 @@ class ResumePreviewPane {
     ].join(" · ");
 
     return [
-      this.metadata(session, width),
-      fitLine(borderLine(this.theme, width), width),
+      ...expandedHeader,
       ...visible.map((line) => fitLine(line, width)),
-      fitLine(this.theme.fg("dim", help), width),
-      fitLine(borderLine(this.theme, width), width),
+      ...expandedFooter(help),
     ];
   }
 }
 
 class ResumeSelectorWithPreview {
   private readonly preview: ResumePreviewPane;
+  private hiddenBottomEntries: Array<{
+    entry: any;
+    hadVisible: boolean;
+    visible: any;
+  }> = [];
+  private hiddenBottomComponents: Array<{
+    component: any;
+    hadRender: boolean;
+    render: any;
+  }> = [];
 
   constructor(
     private readonly selector: any,
@@ -432,10 +596,8 @@ class ResumeSelectorWithPreview {
   ) {
     const renderer = new SessionEntryRenderer(this.interactiveMode, deps);
 
-    this.preview = new ResumePreviewPane(
-      () => this.interactiveMode.ui?.terminal?.rows ?? 40,
-      deps.theme,
-      (session, width) => renderer.render(session, width),
+    this.preview = new ResumePreviewPane(deps.theme, (session, width) =>
+      renderer.render(session, width),
     );
   }
 
@@ -447,12 +609,55 @@ class ResumeSelectorWithPreview {
     this.selector.focused = value;
   }
 
+  private setExpandedLayout(expanded: boolean) {
+    if (!expanded) {
+      this.restoreLayout();
+      return;
+    }
+    if (this.hiddenBottomComponents.length > 0) return;
+
+    const root = this.interactiveMode.fullscreenLayoutRoot;
+    for (const component of [
+      this.interactiveMode.widgetContainerBelow,
+      this.interactiveMode.footerContainer,
+    ]) {
+      if (!component) continue;
+
+      this.hiddenBottomComponents.push({
+        component,
+        hadRender: Object.prototype.hasOwnProperty.call(component, "render"),
+        render: component.render,
+      });
+      component.render = () => [];
+
+      const entry = findLayoutEntry(root, component);
+      if (!entry) continue;
+      this.hiddenBottomEntries.push({
+        entry,
+        hadVisible: Object.prototype.hasOwnProperty.call(entry, "visible"),
+        visible: entry.visible,
+      });
+      entry.visible = () => false;
+    }
+  }
+
+  restoreLayout() {
+    for (const snapshot of this.hiddenBottomEntries) {
+      if (snapshot.hadVisible) snapshot.entry.visible = snapshot.visible;
+      else delete snapshot.entry.visible;
+    }
+    this.hiddenBottomEntries = [];
+
+    for (const snapshot of this.hiddenBottomComponents) {
+      if (snapshot.hadRender) snapshot.component.render = snapshot.render;
+      else delete snapshot.component.render;
+    }
+    this.hiddenBottomComponents = [];
+  }
+
   handleInput(data: string) {
     if (
-      this.interactiveMode.keybindings?.matches?.(
-        data,
-        "app.session.resume",
-      )
+      this.interactiveMode.keybindings?.matches?.(data, "app.session.resume")
     ) {
       this.closePicker();
       this.interactiveMode.ui?.requestRender?.();
@@ -460,6 +665,7 @@ class ResumeSelectorWithPreview {
     }
 
     if (this.preview.handleInput(data)) {
+      this.setExpandedLayout(this.preview.isExpanded);
       this.interactiveMode.ui?.requestRender?.();
       return;
     }
@@ -470,23 +676,28 @@ class ResumeSelectorWithPreview {
   render(width: number) {
     const selectorLines = compactSelectorLines(this.selector.render(width));
     const session = selectedSession(this.selector);
+    const availableRows = availablePickerRows(this.interactiveMode, width);
     const previewLines = this.preview.render(
       session,
       width,
       selectorLines.length,
+      availableRows,
     );
 
-    // Pi clips overflowing custom components from the top. Preserve the
-    // selector header (including warnings) and give the preview only the rows
-    // left above Pi's two-line footer.
-    const terminalRows = this.interactiveMode.ui?.terminal?.rows;
-    if (!terminalRows) return [...selectorLines, ...previewLines];
+    // Pi clips overflowing custom components from the bottom. Preserve the
+    // selector header (including warnings), then use its live layout allocation
+    // for the preview.
+    if (availableRows === undefined) {
+      return [...selectorLines, ...previewLines];
+    }
 
-    const availableRows = Math.max(3, terminalRows - 2);
     const visibleSelector = selectorLines.slice(0, availableRows);
     return [
       ...visibleSelector,
-      ...previewLines.slice(0, availableRows - visibleSelector.length),
+      ...previewLines.slice(
+        0,
+        Math.max(0, availableRows - visibleSelector.length),
+      ),
     ];
   }
 
@@ -495,6 +706,7 @@ class ResumeSelectorWithPreview {
   }
 
   dispose() {
+    this.restoreLayout();
     this.selector.dispose?.();
   }
 }
