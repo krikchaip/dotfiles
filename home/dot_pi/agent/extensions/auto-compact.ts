@@ -32,9 +32,13 @@
 import {
   AgentSession,
   compact,
+  DEFAULT_COMPACTION_SETTINGS,
+  findCutPoint,
   getLatestCompactionEntry,
+  sessionEntryToContextMessages,
   type ExtensionAPI,
   type ExtensionContext,
+  type SessionEntry,
 } from "@earendil-works/pi-coding-agent";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -62,6 +66,7 @@ type AutoTriggerConfig = {
 type CompactionConfig = {
   enabled?: unknown;
   model?: unknown;
+  keepRecentTokens?: unknown;
   autoTrigger?: AutoTriggerConfig;
 };
 
@@ -551,6 +556,60 @@ function branchLastEntry(ctx: ExtensionContext) {
   return branch[branch.length - 1];
 }
 
+function hasCompactionCutPoint(
+  branch: SessionEntry[],
+  keepRecentTokens: number,
+): boolean {
+  if (branch.length === 0 || branch[branch.length - 1]?.type === "compaction")
+    return false;
+
+  let previousCompactionIndex = -1;
+  for (let index = branch.length - 1; index >= 0; index--) {
+    if (branch[index]?.type === "compaction") {
+      previousCompactionIndex = index;
+      break;
+    }
+  }
+
+  let boundaryStart = 0;
+  if (previousCompactionIndex >= 0) {
+    const previousCompaction = branch[previousCompactionIndex];
+    if (previousCompaction?.type !== "compaction") return false;
+    const firstKeptEntryIndex = branch.findIndex(
+      (entry) => entry.id === previousCompaction.firstKeptEntryId,
+    );
+    boundaryStart =
+      firstKeptEntryIndex >= 0
+        ? firstKeptEntryIndex
+        : previousCompactionIndex + 1;
+  }
+
+  const cutPoint = findCutPoint(
+    branch,
+    boundaryStart,
+    branch.length,
+    keepRecentTokens,
+  );
+  const firstKeptEntry = branch[cutPoint.firstKeptEntryIndex];
+  if (!firstKeptEntry?.id) return false;
+
+  const historyEnd = cutPoint.isSplitTurn
+    ? cutPoint.turnStartIndex
+    : cutPoint.firstKeptEntryIndex;
+  const hasContextMessage = (entry: SessionEntry) =>
+    entry.type !== "compaction" &&
+    sessionEntryToContextMessages(entry).length > 0;
+
+  if (branch.slice(boundaryStart, historyEnd).some(hasContextMessage))
+    return true;
+  return (
+    cutPoint.isSplitTurn &&
+    branch
+      .slice(cutPoint.turnStartIndex, cutPoint.firstKeptEntryIndex)
+      .some(hasContextMessage)
+  );
+}
+
 function resetEarlyBackoff() {
   earlyFailureCount = 0;
   earlyBackoffTurnsRemaining = 0;
@@ -594,6 +653,19 @@ async function maybeTriggerEarlyAuto(
   if (ctx.hasPendingMessages()) return;
   if (earlyBackoffTurnsRemaining > 0) {
     earlyBackoffTurnsRemaining--;
+    return;
+  }
+
+  const keepRecentTokens =
+    typeof config.keepRecentTokens === "number" &&
+    Number.isFinite(config.keepRecentTokens) &&
+    config.keepRecentTokens > 0
+      ? Math.floor(config.keepRecentTokens)
+      : DEFAULT_COMPACTION_SETTINGS.keepRecentTokens;
+  if (
+    !hasCompactionCutPoint(ctx.sessionManager.getBranch(), keepRecentTokens)
+  ) {
+    resetEarlyBackoff();
     return;
   }
 
