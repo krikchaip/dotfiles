@@ -15,18 +15,15 @@ import {
 // ─── User-configurable constants ────────────────────────────────────────────
 // TODO: Make these configurable via a config file.
 
-/** Number of body lines shown in the collapsed preview pane (below metadata). */
-const COLLAPSED_PREVIEW_LINES = 3;
-
-/** Max session entries (from tail) rendered in the expanded/collapsed preview.
+/** Max session entries (from tail) rendered in the expanded preview.
  *  Higher = more context visible but slower initial render for large sessions. */
 const EXPANDED_PREVIEW_ENTRIES = 20;
 
 /** Key binding to toggle expanded preview. */
 const EXPAND_KEY = "ctrl+r";
 
-/** Display label for the expand key hint shown in collapsed preview. */
-const EXPAND_KEY_HINT = "Ctrl+R";
+/** Display label for the expand key hint shown in collapsed mode. */
+const EXPAND_KEY_HINT = "Ctrl+R expand";
 
 const LAYOUT_NODE = Symbol.for("@earendil-works/pi-tui/layout-node");
 
@@ -516,10 +513,17 @@ class ResumePreviewPane {
       this.scrollFromBottom = 0;
     }
 
-    const contentWidth = Math.max(1, width);
-    const allBodyLines = this.bodyLines(session, contentWidth);
     const metadata = this.metadata(session, width);
     const border = fitLine(borderLine(this.theme, width), width);
+    if (!this.expanded) {
+      return [
+        appendRightHint(metadata, width, this.theme, `… ${EXPAND_KEY_HINT}`),
+        border,
+      ];
+    }
+
+    const contentWidth = Math.max(1, width);
+    const allBodyLines = this.bodyLines(session, contentWidth);
     const expandedHeader = [metadata, border];
     const expandedFooter = (help: string) => [
       border,
@@ -531,9 +535,7 @@ class ResumePreviewPane {
       availableRows === undefined
         ? expandedChromeHeight + allBodyLines.length
         : Math.max(0, availableRows - selectorHeight);
-    const bodyHeight = this.expanded
-      ? Math.max(0, previewCapacity - expandedChromeHeight)
-      : COLLAPSED_PREVIEW_LINES;
+    const bodyHeight = Math.max(0, previewCapacity - expandedChromeHeight);
 
     const maxOffset = Math.max(0, allBodyLines.length - bodyHeight);
     this.scrollFromBottom = Math.max(
@@ -544,19 +546,6 @@ class ResumePreviewPane {
     const end = Math.min(allBodyLines.length, start + bodyHeight);
     const visible = allBodyLines.slice(start, end);
     while (visible.length < bodyHeight) visible.push("");
-
-    if (!this.expanded) {
-      if (allBodyLines.length > bodyHeight) {
-        visible[visible.length - 1] = appendRightHint(
-          visible[visible.length - 1] ?? "",
-          width,
-          this.theme,
-          `… ${EXPAND_KEY_HINT} full`,
-        );
-      }
-
-      return [metadata, ...visible.map((line) => fitLine(line, width)), border];
-    }
 
     const visibleRange = end > start ? `${start + 1}-${end}` : "0-0";
     const help = [
