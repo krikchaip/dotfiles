@@ -18,6 +18,7 @@
   "app.session.newTmuxVsp": ["alt+v"],
   "app.session.newTmuxWin": ["alt+w"],
   "app.session.redo": ["alt+shift+u"],
+  "app.session.rename": ["alt+l"],
   "app.session.resume": ["alt+r"],
   "app.session.toggleNamedFilter": ["alt+n"],
   "app.session.togglePath": ["alt+p"],

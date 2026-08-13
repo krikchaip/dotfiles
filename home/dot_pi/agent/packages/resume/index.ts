@@ -296,7 +296,12 @@ export default function (pi: ExtensionAPI) {
                 previewDeps.theme,
               );
             }
-            const wrapper = wrapWithSessionPreview(selector, this, previewDeps);
+            const wrapper = wrapWithSessionPreview(
+              selector,
+              this,
+              doneWithSync,
+              previewDeps,
+            );
             return { ...result, component: wrapper, focus: wrapper };
           } catch (error) {
             this[RESUME_INPUT_ACTIVE] = false;

@@ -23,10 +23,10 @@ const COLLAPSED_PREVIEW_LINES = 3;
 const EXPANDED_PREVIEW_ENTRIES = 20;
 
 /** Key binding to toggle expanded preview. */
-const EXPAND_KEY = "ctrl+shift+r";
+const EXPAND_KEY = "ctrl+r";
 
 /** Display label for the expand key hint shown in collapsed preview. */
-const EXPAND_KEY_HINT = "Ctrl+Shift+R";
+const EXPAND_KEY_HINT = "Ctrl+R";
 
 export interface SessionPreviewDeps {
   loadEntriesFromFile(path: string): any[];
@@ -408,7 +408,7 @@ class ResumePreviewPane {
       "Shift+↑/↓ scroll",
       "Shift+PgUp/PgDn page",
       "Home/End",
-      "Esc/Ctrl+Shift+R collapse",
+      "Esc/Ctrl+R collapse",
     ].join(" · ");
 
     return [
@@ -427,6 +427,7 @@ class ResumeSelectorWithPreview {
   constructor(
     private readonly selector: any,
     private readonly interactiveMode: any,
+    private readonly closePicker: () => void,
     deps: SessionPreviewDeps,
   ) {
     const renderer = new SessionEntryRenderer(this.interactiveMode, deps);
@@ -447,6 +448,17 @@ class ResumeSelectorWithPreview {
   }
 
   handleInput(data: string) {
+    if (
+      this.interactiveMode.keybindings?.matches?.(
+        data,
+        "app.session.resume",
+      )
+    ) {
+      this.closePicker();
+      this.interactiveMode.ui?.requestRender?.();
+      return;
+    }
+
     if (this.preview.handleInput(data)) {
       this.interactiveMode.ui?.requestRender?.();
       return;
@@ -490,7 +502,13 @@ class ResumeSelectorWithPreview {
 export function wrapWithSessionPreview(
   selector: any,
   interactiveMode: any,
+  closePicker: () => void,
   deps: SessionPreviewDeps,
 ) {
-  return new ResumeSelectorWithPreview(selector, interactiveMode, deps);
+  return new ResumeSelectorWithPreview(
+    selector,
+    interactiveMode,
+    closePicker,
+    deps,
+  );
 }
