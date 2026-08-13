@@ -1,14 +1,15 @@
 /**
  * Branch and merge session workflows.
  *
- * /branch \[--vsp|--sp\] \[prompt?\]
+ * /branch \[--vsp|--sp|--win\] \[prompt?\]
  *   With no flag and no prompt, clone the current active branch like /clone.
  *   With a prompt (no flag), switch to the clone and submit that prompt as its
  *   first message.
  *   - Async Execution: Fork submits the prompt asynchronously to prevent the TUI
  *     core editor text clear from wiping typed characters during switch.
  *   - Tmux Pane Split: --vsp splits a side-by-side pane (tmux split-window -h);
- *     --sp splits a top/bottom pane (tmux split-window -v). Split requires a
+ *     --sp splits a top/bottom pane (tmux split-window -v); --win opens a new
+ *     tmux window (tmux new-window). A tmux target requires a
  *     file-backed source session; in-memory sessions warn and abort. While the
  *     agent streams, split is the only supported branch form: it forks state
  *     immediately before the active branch's latest real user message, leaving
@@ -93,11 +94,13 @@ import {
   truncateToWidth,
   visibleWidth,
   type Component,
+  type KeyId,
   type TUI,
 } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
-import { watch } from "node:fs";
+import { realpathSync, watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
@@ -123,6 +126,65 @@ const SUMMARY_LABEL_MAX_TOKENS = 4096;
 const UUID_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const UUID_FIRST_SEGMENT_RE = /^[0-9a-fA-F]{8}$/;
+const BRANCH_SHORTCUT_ADAPTER = Symbol.for("pi.branch-merge.shortcut-adapter");
+
+const BRANCH_SHORTCUTS: ReadonlyArray<{
+  action: string;
+  defaultKeys: KeyId[];
+  args: string;
+  description: string;
+}> = [
+  {
+    action: "app.session.branch",
+    defaultKeys: ["ctrl+alt+b"],
+    args: "",
+    description: "Clone the current branch",
+  },
+  {
+    action: "app.session.branchTmuxSp",
+    defaultKeys: ["ctrl+alt+s"],
+    args: "--sp",
+    description: "Clone the current branch in a top/bottom tmux pane",
+  },
+  {
+    action: "app.session.branchTmuxVsp",
+    defaultKeys: ["ctrl+alt+v"],
+    args: "--vsp",
+    description: "Clone the current branch in a side-by-side tmux pane",
+  },
+  {
+    action: "app.session.branchTmuxWin",
+    defaultKeys: ["ctrl+alt+w"],
+    args: "--win",
+    description: "Clone the current branch in a new tmux window",
+  },
+];
+
+type BranchFork = ExtensionCommandContext["fork"];
+
+type BranchInteractiveMode = {
+  setupExtensionShortcuts(...args: unknown[]): unknown;
+  editor?: { setText?(text: string): void };
+  runtimeHost?: {
+    fork(
+      entryId: string,
+      options?: Parameters<BranchFork>[1],
+    ): Promise<{ cancelled: boolean }>;
+  };
+  clearStatusIndicator?(): void;
+  showStatus?(message: string): void;
+};
+
+type BranchShortcutAdapter = {
+  mode?: BranchInteractiveMode;
+};
+
+function branchShortcutAdapter(): BranchShortcutAdapter {
+  const global = globalThis as typeof globalThis & {
+    [BRANCH_SHORTCUT_ADAPTER]?: BranchShortcutAdapter;
+  };
+  return (global[BRANCH_SHORTCUT_ADAPTER] ??= {});
+}
 
 /** Session-ID argument completion state, kept local to this extension. */
 type SessionAutocompleteContext = Pick<
@@ -607,6 +669,13 @@ async function readJson(path: string): Promise<unknown> {
   }
 }
 
+function configuredShortcuts(action: string, defaults: KeyId[]): KeyId[] {
+  const value = getKeybindings().getUserBindings()[action];
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value;
+  return defaults;
+}
+
 async function loadSettings(ctx: ExtensionContext): Promise<Settings> {
   const globalPath = join(homedir(), ".pi", "agent", "settings.json");
   const projectPath = join(ctx.cwd, ".pi", "settings.json");
@@ -824,23 +893,27 @@ function flushSessionFile(sessionManager: CommandSessionManager): void {
   rewriteFile.call(sessionManager);
 }
 
+type TmuxTarget = "h" | "v" | "window";
+
 function parseBranchArgs(
   args: string,
-): { split?: "h" | "v"; prompt: string } | { error: string } {
+): { target?: TmuxTarget; prompt: string } | { error: string } {
   let rest = args.trim();
-  let split: "h" | "v" | undefined;
+  let target: TmuxTarget | undefined;
 
-  const match = rest.match(/^(--vsp|--sp)(?:\s+|$)/);
+  const match = rest.match(/^(--vsp|--sp|--win)(?:\s+|$)/);
   if (match) {
-    split = match[1] === "--vsp" ? "h" : "v";
+    target = match[1] === "--vsp" ? "h" : match[1] === "--sp" ? "v" : "window";
     rest = rest.slice(match[0].length).trim();
   }
 
-  if (/^--(?:vsp|sp)\b/.test(rest)) {
-    return { error: "Use only one of --vsp or --sp, before the prompt" };
+  if (/^--(?:vsp|sp|win)\b/.test(rest)) {
+    return {
+      error: "Use only one of --vsp, --sp, or --win, before the prompt",
+    };
   }
 
-  return split ? { split, prompt: rest } : { prompt: rest };
+  return target ? { target, prompt: rest } : { prompt: rest };
 }
 
 function isSupportedMergeSessionId(value: string) {
@@ -1567,13 +1640,13 @@ function closeTmuxPane(ctx: ExtensionContext) {
 }
 
 async function branchIntoPane(
-  ctx: ExtensionCommandContext,
-  orientation: "h" | "v",
+  ctx: ExtensionContext,
+  target: TmuxTarget,
   prompt: string,
   whileStreaming = false,
 ) {
   if (!isInTmux()) {
-    notify(ctx, "Not inside tmux; cannot split a pane", "warning");
+    notify(ctx, "Not inside tmux; cannot open a tmux target", "warning");
     return;
   }
 
@@ -1584,15 +1657,15 @@ async function branchIntoPane(
   }
 
   const sessionDir = ctx.sessionManager.getSessionDir();
-  let branchId: string | undefined;
+  let branchFile: string | undefined;
   try {
     if (!whileStreaming) {
-      branchId = SessionManager.forkFrom(
+      branchFile = SessionManager.forkFrom(
         sourceFile,
         ctx.cwd,
         sessionDir,
         {},
-      ).getSessionId();
+      ).getSessionFile();
     } else {
       const userEntry = latestRealUserEntry(ctx.sessionManager);
       if (!userEntry) {
@@ -1605,11 +1678,11 @@ async function branchIntoPane(
         if (!branch.createBranchedSession(userEntry.parentId)) {
           throw new Error("Unable to create branch session");
         }
-        branchId = branch.getSessionId();
+        branchFile = branch.getSessionFile();
       } else {
         // Pi does not persist empty sessions. Let child Pi create its own fresh
         // session instead of launching it with an unresolvable session ID.
-        branchId = undefined;
+        branchFile = undefined;
       }
     }
   } catch (error) {
@@ -1618,7 +1691,9 @@ async function branchIntoPane(
   }
 
   const piArgs = ["--session-dir", sessionDir];
-  if (branchId) piArgs.push("--session", branchId);
+  // A session ID makes Pi scan the full session directory. The created file is
+  // already known, so pass its path directly and start the branch immediately.
+  if (branchFile) piArgs.push("--session", branchFile);
   if (prompt) piArgs.push(prompt);
 
   const envArgs: string[] = [];
@@ -1638,8 +1713,8 @@ async function branchIntoPane(
   const child = spawn(
     "tmux",
     [
-      "split-window",
-      orientation === "h" ? "-h" : "-v",
+      target === "window" ? "new-window" : "split-window",
+      ...(target === "h" ? ["-h"] : target === "v" ? ["-v"] : []),
       "-c",
       ctx.cwd,
       ...envArgs,
@@ -2054,7 +2129,130 @@ function watchForExternalMerge(
   };
 }
 
+type BranchShortcutPatchState = {
+  originalSetupExtensionShortcuts: (...args: unknown[]) => unknown;
+};
+
+function installBranchShortcutAdapter() {
+  const cliEntry = process.argv[1];
+  if (!cliEntry) throw new Error("Cannot locate Pi CLI entry");
+
+  const req = createRequire(__filename);
+  const distPath = dirname(realpathSync(cliEntry));
+  const { InteractiveMode } = req(
+    join(distPath, "modes", "interactive", "interactive-mode.js"),
+  ) as {
+    InteractiveMode?: { prototype: BranchInteractiveMode };
+  };
+  if (!InteractiveMode) throw new Error("Cannot load Pi InteractiveMode");
+
+  const prototype = InteractiveMode.prototype as BranchInteractiveMode & {
+    [BRANCH_SHORTCUT_ADAPTER]?: BranchShortcutPatchState;
+  };
+  if (prototype[BRANCH_SHORTCUT_ADAPTER]) return;
+  if (typeof prototype.setupExtensionShortcuts !== "function") {
+    throw new Error("InteractiveMode.setupExtensionShortcuts unavailable");
+  }
+
+  const state: BranchShortcutPatchState = {
+    originalSetupExtensionShortcuts: prototype.setupExtensionShortcuts,
+  };
+  prototype[BRANCH_SHORTCUT_ADAPTER] = state;
+  prototype.setupExtensionShortcuts = function (
+    this: BranchInteractiveMode,
+    ...args: unknown[]
+  ) {
+    branchShortcutAdapter().mode = this;
+    return state.originalSetupExtensionShortcuts.apply(this, args);
+  };
+}
+
+function interactiveBranchFork(): BranchFork {
+  return async (entryId, options) => {
+    const mode = branchShortcutAdapter().mode;
+    if (!mode?.runtimeHost) {
+      throw new Error("Interactive session runtime unavailable");
+    }
+
+    mode.clearStatusIndicator?.();
+    const result = await mode.runtimeHost.fork(entryId, options);
+    if (!result.cancelled) {
+      mode.editor?.setText?.("");
+      mode.showStatus?.("Cloned to new session");
+    }
+    return result;
+  };
+}
+
+async function runBranch(
+  args: string,
+  ctx: ExtensionContext,
+  fork?: BranchFork,
+) {
+  try {
+    const parsed = parseBranchArgs(args);
+    if ("error" in parsed) {
+      notify(ctx, parsed.error, "warning");
+      return;
+    }
+
+    const whileStreaming = !ctx.isIdle();
+    if (whileStreaming && !parsed.target) {
+      notify(
+        ctx,
+        "Branch while streaming requires --sp, --vsp, or --win",
+        "warning",
+      );
+      return;
+    }
+    if (!whileStreaming) assertCommandIdle(ctx, "/branch");
+
+    if (parsed.target && whileStreaming) {
+      await branchIntoPane(ctx, parsed.target, parsed.prompt, true);
+      return;
+    }
+
+    const leafId = getBranchableLeafId(ctx.sessionManager);
+    if (!leafId) {
+      notify(ctx, "Nothing to clone yet", "warning");
+      return;
+    }
+
+    if (parsed.target) {
+      await branchIntoPane(ctx, parsed.target, parsed.prompt);
+      return;
+    }
+
+    if (!fork) throw new Error("Same-pane branch runtime unavailable");
+
+    const prompt = parsed.prompt;
+    const options: Parameters<BranchFork>[1] = { position: "at" };
+    if (prompt) {
+      options.withSession = async (newCtx) => {
+        void newCtx.sendUserMessage(prompt).catch((error: unknown) => {
+          notify(
+            newCtx,
+            error instanceof Error ? error.message : String(error),
+            "error",
+          );
+        });
+      };
+    }
+
+    const result = await fork(leafId, options);
+    if (result.cancelled) notify(ctx, "Branch cancelled", "warning");
+  } catch (error) {
+    notify(
+      ctx,
+      error instanceof Error ? error.message : String(error),
+      error instanceof UserVisibleWarning ? "warning" : "error",
+    );
+  }
+}
+
 export default function (pi: ExtensionAPI) {
+  installBranchShortcutAdapter();
+
   let autocompleteContext: SessionAutocompleteContext | undefined;
   let sessionGeneration = 0;
   let externalMergeWatcher = {
@@ -2066,6 +2264,23 @@ export default function (pi: ExtensionAPI) {
   );
 
   pi.on("session_start", (_event, ctx) => {
+    for (const shortcut of BRANCH_SHORTCUTS) {
+      for (const key of configuredShortcuts(
+        shortcut.action,
+        shortcut.defaultKeys,
+      )) {
+        pi.registerShortcut(key, {
+          description: shortcut.description,
+          handler: (shortcutCtx) =>
+            runBranch(
+              shortcut.args,
+              shortcutCtx,
+              shortcut.args ? undefined : interactiveBranchFork(),
+            ),
+        });
+      }
+    }
+
     const generation = ++sessionGeneration;
     autocompleteContext = {
       cwd: ctx.cwd,
@@ -2121,7 +2336,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.registerCommand("branch", {
     description:
-      "Clone current branch ([--vsp|--sp] splits a tmux pane); optional prompt",
+      "Clone current branch ([--vsp|--sp|--win] opens a tmux target); optional prompt",
     getArgumentCompletions: (prefix) => {
       const value = prefix.trim();
       if (/\s/.test(value)) return null;
@@ -2137,69 +2352,15 @@ export default function (pi: ExtensionAPI) {
           label: "--vsp",
           description: "Split tmux pane side-by-side",
         },
+        {
+          value: "--win",
+          label: "--win",
+          description: "Open a new tmux window",
+        },
       ].filter((item) => item.value.startsWith(value));
       return items.length > 0 ? items : null;
     },
-    handler: async (args, ctx) => {
-      try {
-        const parsed = parseBranchArgs(args);
-        if ("error" in parsed) {
-          notify(ctx, parsed.error, "warning");
-          return;
-        }
-
-        const whileStreaming = !ctx.isIdle();
-        if (whileStreaming && !parsed.split) {
-          notify(
-            ctx,
-            "Branch while streaming requires --sp or --vsp",
-            "warning",
-          );
-          return;
-        }
-        if (!whileStreaming) assertCommandIdle(ctx, "/branch");
-
-        if (parsed.split && whileStreaming) {
-          await branchIntoPane(ctx, parsed.split, parsed.prompt, true);
-          return;
-        }
-
-        const leafId = getBranchableLeafId(ctx.sessionManager);
-        if (!leafId) {
-          notify(ctx, "Nothing to clone yet", "warning");
-          return;
-        }
-
-        if (parsed.split) {
-          await branchIntoPane(ctx, parsed.split, parsed.prompt);
-          return;
-        }
-
-        const prompt = parsed.prompt;
-        const options: Parameters<typeof ctx.fork>[1] = { position: "at" };
-        if (prompt) {
-          options.withSession = async (newCtx) => {
-            void newCtx.sendUserMessage(prompt).catch((error: unknown) => {
-              notify(
-                newCtx,
-                error instanceof Error ? error.message : String(error),
-                "error",
-              );
-            });
-          };
-        }
-
-        const result = await ctx.fork(leafId, options);
-
-        if (result.cancelled) notify(ctx, "Branch cancelled", "warning");
-      } catch (error) {
-        notify(
-          ctx,
-          error instanceof Error ? error.message : String(error),
-          error instanceof UserVisibleWarning ? "warning" : "error",
-        );
-      }
-    },
+    handler: (args, ctx) => runBranch(args, ctx, ctx.fork.bind(ctx)),
   });
 
   pi.registerCommand("merge", {
