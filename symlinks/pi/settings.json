@@ -62,7 +62,7 @@
   ],
   "packages": [
     "git:github.com/ayghri/i-have-adhd",
-    "git:github.com/krikchaip/pi-background-tasks@personal-cleanup",
+    "git:github.com/krikchaip/pi-background-tasks@personal",
     "git:github.com/krikchaip/pi-cc-tools@personal",
     "git:github.com/krikchaip/pi-powerline-footer@personal-140826",
     "git:github.com/krikchaip/pi-token-burden@personal",
