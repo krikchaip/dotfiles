@@ -18,6 +18,8 @@ import {
 } from "@earendil-works/pi-tui";
 
 const TREE_DELETE_PATCHED = "__treeDeletePatched";
+const TREE_HELP_HINTS_KEY = Symbol.for("pi:tree-help-hints");
+const TREE_HELP_HINTS_CONSUMED_KEY = Symbol.for("pi:tree-help-hints-consumed");
 
 type Entry = {
   id: string;
@@ -514,6 +516,23 @@ function patchTreeSelector(
   const state: DeleteState = { mode: false, preview: null };
   patchTreeList(treeList, state, interactiveMode, theme, keyHint);
 
+  const deleteLabel = "delete";
+  const deleteHintText = stripAnsi(rawKeyHint("alt+d", deleteLabel));
+  const deleteKey = deleteHintText.endsWith(` ${deleteLabel}`)
+    ? deleteHintText.slice(0, -deleteLabel.length - 1)
+    : "alt+d";
+  const sharedHints = Array.isArray(selector[TREE_HELP_HINTS_KEY])
+    ? selector[TREE_HELP_HINTS_KEY]
+    : [];
+  if (
+    !sharedHints.some(
+      (hint: any) => hint?.key === deleteKey && hint?.label === deleteLabel,
+    )
+  ) {
+    sharedHints.push({ key: deleteKey, label: deleteLabel });
+  }
+  selector[TREE_HELP_HINTS_KEY] = sharedHints;
+
   const originalRender = selector.render.bind(selector);
   selector.render = function (width: number) {
     const lines = originalRender(width);
@@ -555,7 +574,7 @@ function patchTreeSelector(
         searchIndex - headingIndex - 1,
         ...hints.map((hint) => truncateToWidth(hint, width)),
       );
-    } else {
+    } else if (!selector[TREE_HELP_HINTS_CONSUMED_KEY]) {
       let hintIndex = lines.findIndex((line: string) =>
         stripAnsi(line).includes("filters"),
       );
