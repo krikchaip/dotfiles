@@ -107,8 +107,11 @@ alias p = pi
 alias pc = p -c
 alias pr = p -r
 alias pu = mise upgrade npm:@earendil-works/pi-coding-agent
-alias par = pi-antigravity-rotator
 alias pns = p --no-session
 
 # claude code
 alias cc = claude
+
+# account rotator
+alias txr = tuxevil-rotator
+alias txm = tuxevil-rotator-manager

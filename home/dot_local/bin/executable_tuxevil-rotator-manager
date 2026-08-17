@@ -3,9 +3,10 @@
 set -euo pipefail
 
 export PATH="$HOME/.local/share/mise/installs/node/latest/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
-export PI_ROTATOR_ADMIN_TOKEN="local"
+export TUXEVIL_ROTATOR_ADMIN_TOKEN="local"
+export TUXEVIL_ROTATOR_BIND_HOST="127.0.0.1"
 
-LABEL="com.r3nniw.pi-antigravity-rotator"
+LABEL="com.r3nniw.tuxevil-rotator"
 
 PLIST_PATH="$HOME/Library/LaunchAgents/${LABEL}.plist"
 SERVICE_TARGET="gui/$(id -u)/${LABEL}"
@@ -13,72 +14,80 @@ OUT_LOG="/tmp/${LABEL}.out.log"
 ERR_LOG="/tmp/${LABEL}.err.log"
 
 SLEEPWATCHER_BIN="${SLEEPWATCHER_BIN:-/opt/homebrew/sbin/sleepwatcher}"
-PAR_BIN="${PAR_BIN:-$(command -v pi-antigravity-rotator 2>/dev/null || echo "$HOME/.local/share/mise/installs/npm-pi-antigravity-rotator/latest/bin/pi-antigravity-rotator")}"
-PAR_PIDFILE="/tmp/${LABEL}.pid"
-PAR_LOG="/tmp/${LABEL}.par.log"
+ROTATOR_BIN="${ROTATOR_BIN:-$(command -v tuxevil-rotator 2>/dev/null || true)}"
+ROTATOR_PIDFILE="/tmp/${LABEL}.pid"
+ROTATOR_LOG="/tmp/${LABEL}.rotator.log"
+
+require_rotator_bin() {
+  if [ -z "$ROTATOR_BIN" ]; then
+    echo "Error: tuxevil-rotator is not installed or not on PATH." >&2
+    exit 1
+  fi
+}
 
 usage() {
   cat <<'EOF'
-par-manager - manage pi-antigravity-rotator LaunchAgent
+tuxevil-rotator-manager - manage tuxevil-rotator LaunchAgent
 
 Usage:
-  par-manager                 Show this help
-  par-manager -h|--help       Show this help
-  par-manager start           Start/enable service
-  par-manager kill            Stop/disable service
-  par-manager restart         Restart service and flush logs
-  par-manager logs [--err]    Follow stdout log (default) or stderr log
-  par-manager status          Show service status
-  par-manager login           Interactive login helper
+  tuxevil-rotator-manager                 Show this help
+  tuxevil-rotator-manager -h|--help       Show this help
+  tuxevil-rotator-manager start           Start/enable service
+  tuxevil-rotator-manager kill            Stop/disable service
+  tuxevil-rotator-manager restart         Restart service and flush logs
+  tuxevil-rotator-manager logs [--err]    Follow stdout log (default) or stderr log
+  tuxevil-rotator-manager status          Show service status
+  tuxevil-rotator-manager login           Interactive login helper
 EOF
 }
 
 log_event() {
-  echo "$(date '+%Y-%m-%d %H:%M:%S') [par-manager] $*" >> "$OUT_LOG"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [tuxevil-rotator-manager] $*" >> "$OUT_LOG"
 }
 
-# ---------- PAR process management (direct, not via launchd) ----------
+# ---------- Rotator process management (direct, not via launchd) ----------
 
-par_pid() {
-  if [ -f "$PAR_PIDFILE" ]; then
+rotator_pid() {
+  if [ -f "$ROTATOR_PIDFILE" ]; then
     local pid
-    pid=$(cat "$PAR_PIDFILE")
+    pid=$(cat "$ROTATOR_PIDFILE")
 
     if kill -0 "$pid" 2>/dev/null; then
       echo "$pid"
       return 0
     fi
 
-    rm -f "$PAR_PIDFILE"
+    rm -f "$ROTATOR_PIDFILE"
   fi
 
   return 1
 }
 
-PAR_STATE_CHANGED=""
+ROTATOR_STATE_CHANGED=""
 
-par_start() {
-  PAR_STATE_CHANGED=""
+rotator_start() {
+  ROTATOR_STATE_CHANGED=""
+  require_rotator_bin
 
-  if pid=$(par_pid); then
-    log_event "PAR already running (pid $pid)"
+  if pid=$(rotator_pid); then
+    log_event "Rotator already running (pid $pid)"
     return 0
   fi
 
-  nohup "$PAR_BIN" start >> "$PAR_LOG" 2>&1 &
+  nohup "$ROTATOR_BIN" start >> "$ROTATOR_LOG" 2>&1 &
 
   local new_pid=$!
 
-  echo "$new_pid" > "$PAR_PIDFILE"
-  log_event "PAR started (pid $new_pid)"
+  echo "$new_pid" > "$ROTATOR_PIDFILE"
+  log_event "Rotator started (pid $new_pid)"
 
-  PAR_STATE_CHANGED="1"
+  ROTATOR_STATE_CHANGED="1"
 }
 
-par_kill() {
-  PAR_STATE_CHANGED=""
+rotator_kill() {
+  ROTATOR_STATE_CHANGED=""
 
-  if pid=$(par_pid); then
+  if pid=$(rotator_pid); then
     kill "$pid" 2>/dev/null || true
 
     local i=0
@@ -88,39 +97,39 @@ par_kill() {
     done
 
     kill -9 "$pid" 2>/dev/null || true
-    rm -f "$PAR_PIDFILE"
-    log_event "PAR killed (pid $pid)"
+    rm -f "$ROTATOR_PIDFILE"
+    log_event "Rotator killed (pid $pid)"
 
-    PAR_STATE_CHANGED="1"
+    ROTATOR_STATE_CHANGED="1"
   else
-    log_event "PAR not running, nothing to kill"
+    log_event "Rotator not running, nothing to kill"
   fi
 }
 
 notify() {
   local msg="$1"
-  osascript -e "display notification \"$msg\" with title \"PAR Manager\"" 2>/dev/null || true
+  osascript -e "display notification \"$msg\" with title \"Tuxevil Rotator Manager\"" 2>/dev/null || true
 }
 
 # ---------- sleepwatcher hooks (internal, called by launchd plist) ----------
 
 run_sleepwatcher() {
-  par_start
+  rotator_start
   exec "$SLEEPWATCHER_BIN" "$@"
 }
 
 on_sleep() {
   log_event "Event: sleep/display-sleep"
-  par_kill
+  rotator_kill
 
-  # [ -n "$PAR_STATE_CHANGED" ] && notify "System sleeping — PAR process stopped."
+  # [ -n "$ROTATOR_STATE_CHANGED" ] && notify "System sleeping — Rotator process stopped."
 }
 
 on_wake() {
   log_event "Event: wake/display-wake"
-  par_start
+  rotator_start
 
-  # [ -n "$PAR_STATE_CHANGED" ] && notify "Resuming — PAR process started."
+  # [ -n "$ROTATOR_STATE_CHANGED" ] && notify "Resuming — Rotator process started."
 }
 
 # ---------- public commands ----------
@@ -145,13 +154,13 @@ start_service() {
   if launchctl print "$SERVICE_TARGET" >/dev/null 2>&1; then
     state="$(service_state || true)"
     if [ "$state" = "running" ]; then
-      par_start
+      rotator_start
       echo "Already running: $SERVICE_TARGET"
       return 0
     fi
   fi
 
-  # Re-enable first. If service was disabled (e.g. via `par-manager kill`),
+  # Re-enable first. If service was disabled (e.g. via `tuxevil-rotator-manager kill`),
   # bootstrap can fail with opaque I/O errors until re-enabled.
   launchctl enable "$SERVICE_TARGET" >/dev/null 2>&1 || true
 
@@ -162,8 +171,8 @@ start_service() {
     launchctl kickstart -k "$SERVICE_TARGET" >/dev/null 2>&1 || true
   fi
 
-  # Also start PAR immediately since user is active
-  par_start
+  # Also start rotator immediately since user is active
+  rotator_start
 
   state="$(service_state || true)"
   if [ "$state" = "running" ]; then
@@ -174,7 +183,7 @@ start_service() {
 }
 
 kill_service() {
-  par_kill
+  rotator_kill
 
   launchctl disable "$SERVICE_TARGET" >/dev/null 2>&1 || true
   launchctl bootout "gui/$(id -u)" "$PLIST_PATH" >/dev/null 2>&1 || true
@@ -184,7 +193,7 @@ kill_service() {
 
 restart_service() {
   kill_service
-  rm -f "$OUT_LOG" "$ERR_LOG" "$PAR_LOG"
+  rm -f "$OUT_LOG" "$ERR_LOG" "$ROTATOR_LOG"
   start_service
 
   echo "Logs flushed: $OUT_LOG, $ERR_LOG"
@@ -209,7 +218,7 @@ status_service() {
   echo "Plist:        $PLIST_PATH"
   echo "Stdout log:   $OUT_LOG"
   echo "Stderr log:   $ERR_LOG"
-  echo "PAR log:      $PAR_LOG"
+  echo "Rotator log:  $ROTATOR_LOG"
 
   if [ -f "$PLIST_PATH" ]; then
     echo "Plist exists: yes"
@@ -229,8 +238,8 @@ status_service() {
   fi
 
   echo
-  echo "=== PAR Process ==="
-  if pid=$(par_pid); then
+  echo "=== Rotator Process ==="
+  if pid=$(rotator_pid); then
     echo "Running (pid $pid)"
   else
     echo "Not running"
@@ -238,19 +247,19 @@ status_service() {
 }
 
 login_service() {
-  local accounts_file="$HOME/.pi-antigravity-rotator/accounts.json"
+  require_rotator_bin
+
+  local accounts_file="$HOME/.tuxevil-rotator/accounts.json"
   local port=51200
   if [ -f "$accounts_file" ]; then
     port=$(jq -r '.proxyPort // 51200' "$accounts_file")
   fi
 
-  local rotator_bin
-  rotator_bin="$(command -v pi-antigravity-rotator || echo "$HOME/.local/share/mise/installs/npm-pi-antigravity-rotator/latest/bin/pi-antigravity-rotator")"
 
   while true; do
     local api_json
     api_json=$(curl -s --max-time 2 \
-      -H "Authorization: Bearer $PI_ROTATOR_ADMIN_TOKEN" \
+      -H "X-Rotator-Admin-Token: $TUXEVIL_ROTATOR_ADMIN_TOKEN" \
       "http://localhost:${port}/api/status" || true)
 
     echo ""
@@ -280,16 +289,16 @@ login_service() {
         echo ""
         echo "Starting rotator login helper..."
 
-        PAR_LOGIN_LOG_FILE="/tmp/par-login-run.log"
-        rm -f "$PAR_LOGIN_LOG_FILE"
-        touch "$PAR_LOGIN_LOG_FILE"
+        ROTATOR_LOGIN_LOG_FILE="/tmp/tuxevil-rotator-login-run.log"
+        rm -f "$ROTATOR_LOGIN_LOG_FILE"
+        touch "$ROTATOR_LOGIN_LOG_FILE"
 
         # Background monitor
         (
-          while [ -f "$PAR_LOGIN_LOG_FILE" ]; do
-            if [ -s "$PAR_LOGIN_LOG_FILE" ]; then
+          while [ -f "$ROTATOR_LOGIN_LOG_FILE" ]; do
+            if [ -s "$ROTATOR_LOGIN_LOG_FILE" ]; then
               local url
-              url=$(grep -o -E 'https://accounts\.google\.com\S+' "$PAR_LOGIN_LOG_FILE" | head -n 1)
+              url=$(grep -o -E 'https://accounts\.google\.com\S+' "$ROTATOR_LOGIN_LOG_FILE" | head -n 1)
               if [ -n "$url" ]; then
                 open "$url"
                 break
@@ -298,22 +307,22 @@ login_service() {
             sleep 0.5
           done
         ) &
-        PAR_LOGIN_MONITOR_PID=$!
+        ROTATOR_LOGIN_MONITOR_PID=$!
 
         cleanup_login() {
-          rm -f "${PAR_LOGIN_LOG_FILE:-}"
-          if [ -n "${PAR_LOGIN_MONITOR_PID:-}" ]; then
-            kill "$PAR_LOGIN_MONITOR_PID" 2>/dev/null || true
+          rm -f "${ROTATOR_LOGIN_LOG_FILE:-}"
+          if [ -n "${ROTATOR_LOGIN_MONITOR_PID:-}" ]; then
+            kill "$ROTATOR_LOGIN_MONITOR_PID" 2>/dev/null || true
           fi
         }
         trap cleanup_login EXIT INT TERM
 
         # Run the command with stdin/stdout connected
-        "$rotator_bin" login 2>&1 | tee "$PAR_LOGIN_LOG_FILE"
+        "$ROTATOR_BIN" login 2>&1 | tee "$ROTATOR_LOGIN_LOG_FILE"
 
         trap - EXIT INT TERM
         cleanup_login
-        wait "${PAR_LOGIN_MONITOR_PID:-}" 2>/dev/null || true
+        wait "${ROTATOR_LOGIN_MONITOR_PID:-}" 2>/dev/null || true
 
         local current_count=0
         if [ -f "$accounts_file" ]; then

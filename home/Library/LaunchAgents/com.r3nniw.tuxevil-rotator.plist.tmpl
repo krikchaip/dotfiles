@@ -3,29 +3,29 @@
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.r3nniw.pi-antigravity-rotator</string>
+    <string>com.r3nniw.tuxevil-rotator</string>
 
     <key>ProgramArguments</key>
     <array>
-      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/tuxevil-rotator-manager</string>
       <string>_run-sleepwatcher</string>
       <string>--verbose</string>
 
-      <!-- system sleep → kill PAR -->
+      <!-- system sleep → kill rotator -->
       <string>--sleep</string>
-      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-sleep</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/tuxevil-rotator-manager _on-sleep</string>
 
-      <!-- system wake → start PAR -->
+      <!-- system wake → start rotator -->
       <string>--wakeup</string>
-      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-wake</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/tuxevil-rotator-manager _on-wake</string>
 
-      <!-- display sleep → kill PAR -->
+      <!-- display sleep → kill rotator -->
       <string>--displaysleep</string>
-      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-sleep</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/tuxevil-rotator-manager _on-sleep</string>
 
-      <!-- display wake → start PAR -->
+      <!-- display wake → start rotator -->
       <string>--displaywakeup</string>
-      <string>{{ .chezmoi.homeDir }}/.local/bin/par-manager _on-wake</string>
+      <string>{{ .chezmoi.homeDir }}/.local/bin/tuxevil-rotator-manager _on-wake</string>
 
     </array>
 
@@ -42,9 +42,9 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/tmp/com.r3nniw.pi-antigravity-rotator.out.log</string>
+    <string>/tmp/com.r3nniw.tuxevil-rotator.out.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/tmp/com.r3nniw.pi-antigravity-rotator.err.log</string>
+    <string>/tmp/com.r3nniw.tuxevil-rotator.err.log</string>
   </dict>
 </plist>

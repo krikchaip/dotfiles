@@ -13,7 +13,7 @@ package:
 
   npm:
     - "@earendil-works/pi-coding-agent"
-    - pi-antigravity-rotator
+    - tuxevil-rotator[allow_low_downloads=true]
     - skills
     - tree-sitter-cli
     - typescript

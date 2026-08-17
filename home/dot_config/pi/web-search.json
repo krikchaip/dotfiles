@@ -1,6 +1,6 @@
 {
   "workflow": "none",
   "provider": "tavily",
-  "summaryModel": "antigravity/gemini-3.5-flash-high",
+  "summaryModel": "antigravity/gemini-3.7-flash-high",
   "allowBrowserCookies": true
 }

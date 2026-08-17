@@ -60,7 +60,7 @@ fi
 {{- range .package.npm }}
 if command -v mise &>/dev/null; then
   echo "Installing npm package {{ . }} with mise..."
-  mise use --global npm:{{ . }}
+  mise use --global --yes npm:{{ . }}
 fi
 {{- end }}
 
