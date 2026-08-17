@@ -12,8 +12,8 @@ Input: one `https://pi.dev/news/releases/<version>` URL. Update Pi first, then a
 
 - **Approval:** ask before the mise update, each repair set, and rollback. When custom intent stays unclear, read and follow the available `/skill:grilling` skill.
 - **Behavior:** preserve current custom behavior unless the user approves a change. Read each file again before editing; never overwrite newer user work.
-- **Source class:** record each file as a chezmoi source with a verified target, or an in-place project source. The class—not its path—decides whether to run targeted `chezmoi apply`.
-- **Boundary:** audit custom extensions, local packages, settings, keybindings, themes, prompts, skills, agents, models, MCP, and Pi TypeScript setup. Exclude third-party packages, caches, dependencies, generated files, and build output. Pi core is read-only evidence.
+- **Source class:** record each file as a chezmoi source with a verified target, or a repository-local source used directly. The class—not its path—decides whether to run targeted `chezmoi apply`.
+- **Boundary:** treat all source under `home/dot_pi/agent/extensions/` and `home/dot_pi/agent/packages/` as customizations. Also audit custom settings, keybindings, themes, prompts, skills, agents, models, MCP, and Pi TypeScript setup. Exclude third-party packages outside those roots, caches, dependencies, generated files, and build output. Pi core is read-only evidence.
 - **No-write checks:** before repair approval, run proven read-only checks in place. Run checks that can write in a temporary copy. Compare Git status before and after; stop on an unexpected source change and leave it untouched.
 
 A **repair card** states the release item or failure, changed behavior, each planned code or configuration modification with its file and reason, behavior to preserve, and proof of the fix. Present every release assessment, unexpected regression, and repair card in chat; write a file only when asked.
@@ -24,11 +24,11 @@ A **full-stack startup** follows the available `/skill:pi-extension-e2e` skill w
 
 1. Validate the Pi release page and GitHub tag. Read the current version from `pi --version`; require a newer target.
 2. Build the stable release range from the first version newer than current through the target, inclusive. Exclude the current release. Confirm every page and tag, but defer content review.
-3. Confirm that `pi` resolves through mise. Record the exact current version, tool key, config file, and global or local scope.
-4. Inventory both chezmoi-managed and in-place project sources within the policy boundary. Record Git status, Pi dependency pins and locks, and available lint, type-check, format-check, and test commands.
+3. Confirm that `pi` resolves through mise. Record the exact current version, tool key, and global config file.
+4. Inventory both source classes within the policy boundary. Record Git status, Pi dependency pins and locks, and available lint, type-check, format-check, and test commands.
 5. Run the full-stack startup on the current version. Record pre-existing failures separately.
 
-Completion: the range, mise scope, rollback version, source classes, checks, and working baseline are proven.
+Completion: the range, global mise config, rollback version, source classes, checks, and working baseline are proven.
 
 ## 2. Update through mise
 
@@ -44,29 +44,29 @@ Run full-stack startup on the target.
 
 For a custom compatibility failure, reproduce it through the user path, find the smallest cause, present a repair card from the startup evidence, and wait for approval. Apply approved work with section 5's reread, edit, chezmoi, and focused-proof rules; repeat until Pi starts. During the release audit, link each startup repair to its release item or classify it as unexpected.
 
-If an excluded third-party package blocks startup, identify it without auditing or editing its source; report it and ask whether custom configuration should change so Pi can start. For a proven Pi defect with no valid custom repair, ask whether to diagnose further or roll back. An approved rollback must use a dry-run exact mise command against the same config and scope, restore the recorded version, and pass full-stack startup. Continue the release audit after rollback.
+If an excluded third-party package blocks startup, identify it without auditing or editing its source; report it and ask whether custom configuration should change so Pi can start. For a proven Pi defect with no valid custom repair, ask whether to diagnose further or roll back. An approved rollback must use a dry-run exact mise command against the same global config, restore the recorded version, and pass full-stack startup. Continue the release audit after rollback.
 
 Completion: either the target starts, or an approved rollback restores a working previous version with upstream-blocker evidence.
 
 ## 4. Audit the release range
 
-Review releases oldest to newest. Within each page, preserve section and bullet order. Account for every summary, added, changed, fixed, documentation, provider, dependency, and performance bullet.
+Review releases oldest to newest. Preserve each page's section and bullet order. Screen every bullet against the customization inventory from section 1.
 
 For each bullet:
 
-1. Read its release text and linked PR or issue. Use tagged source and history when no link explains the implementation.
-2. Search the custom inventory for affected APIs, events, imports, schemas, settings, keybindings, rendering, startup behavior, and assumptions.
-3. Use a focused no-write check when static evidence is insufficient.
-4. Report `Applies`, concrete `Impact`, `Action`, and linked `Evidence`. Give repeated summary bullets their own short entry that points to the detailed assessment.
+1. Read the release text and search for affected custom APIs, events, imports, schemas, settings, keybindings, rendering, startup behavior, or assumptions. Follow its PR, issue, tagged source, or history when needed to classify it.
+2. Give a detailed review when it is a new feature or relates to anything in that customization inventory. This includes related breaking, fixed, documentation, provider, dependency, and performance changes.
+3. For a detailed item, report `Applies`, concrete `Impact`, `Action`, and linked `Evidence`; use a focused no-write check when static evidence is insufficient.
+4. For any unrelated item, give only one short line naming it and `Skipped: no custom match`. An unrelated breaking change is also safe to mention briefly. Point repeated summary bullets to the detailed item.
 
 Then run applicable no-write static and behavior checks across custom source roots. Put write-capable checks in temporary copies. Report new failures under `Unexpected regressions`; keep baseline failures separate.
 
-Completion: every included bullet has one evidence-based assessment, the previous current release stays excluded, and all repair candidates are known. After rollback, mark target-runtime checks blocked by the proven defect and use release, PR, tagged-source, and startup evidence.
+Completion: every included bullet is either reviewed in detail or mentioned briefly, the baseline release stays excluded, and all repair candidates are known. After rollback, mark target-runtime checks blocked by the proven defect and use release, PR, tagged-source, and startup evidence.
 
 ## 5. Repair and verify
 
 1. Present one numbered set of repair cards after the audit; startup blockers are the only earlier cards. Include target-version updates for applicable Pi development dependencies and lockfiles. Keep broad peer ranges unless evidence requires a narrower one. Wait for approval of specific numbers.
-2. For each approved card, reread affected files, make only approved edits, and regenerate approved locks with their package manager. Apply managed sources only to verified targets; use in-place project sources directly.
+2. For each approved card, reread affected files, make only approved edits, and regenerate approved locks with their package manager. Apply chezmoi sources only to verified targets; edit repository-local sources directly.
 3. Verify source-to-target matches, then run each card's focused proof. New evidence that changes the repair requires a revised card and approval.
 4. Run full-stack global and project startup, applicable source-root checks, focused regressions, and real-TUI E2E for every affected user-visible resource. Include negative checks for behavior that must stay absent or unchanged.
 5. Report final version, reviewed range, startup, approved repairs and evidence, deferred work, baseline failures, blockers, and rollback evidence.
