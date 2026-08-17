@@ -330,7 +330,7 @@ type RenameStatusIndicatorFactory = (tui: TUI) => RenameStatusIndicator;
 type RenameStatusIndicatorPatchState = {
   createIndicator: RenameStatusIndicatorFactory | undefined;
   originalSetExtensionStatus: (
-    this: unknown,
+    this: RenameStatusIndicatorOwner,
     key: string,
     text: string | undefined,
   ) => void;
@@ -352,7 +352,8 @@ type RenameStatusIndicatorPrototype = {
  */
 function installRenameStatusIndicatorPatch():
   RenameStatusIndicatorPatchState | undefined {
-  const prototype = InteractiveMode.prototype as RenameStatusIndicatorPrototype;
+  const prototype =
+    InteractiveMode.prototype as unknown as RenameStatusIndicatorPrototype;
   const existing = prototype[RENAME_STATUS_INDICATOR_PATCH];
   if (existing) return existing;
 
@@ -412,7 +413,7 @@ function createRenameStatusIndicator(
   );
 
   return Object.assign(indicator, {
-    kind: RENAME_STATUS_KIND,
+    kind: RENAME_STATUS_KIND as typeof RENAME_STATUS_KIND,
     dispose: () => indicator.stop(),
   });
 }

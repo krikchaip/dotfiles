@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.84.1",
+  "lastChangelogVersion": "0.84.2",
   "quietStartup": true,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -9,6 +9,15 @@
   "followUpMode": "all",
   "autocompleteMaxVisible": 10,
   "outputPad": 1,
+  "defaultTools": [
+    "read",
+    "bash",
+    "edit",
+    "write",
+    "grep",
+    "find",
+    "ls"
+  ],
   "theme": "dark-cavern",
   "tuiMode": "fullscreen",
   "fullscreenExitOutput": "resume-hint",

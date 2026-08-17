@@ -5,16 +5,22 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
-  // Maps Ctrl+Alt+R to the interactive /reload command.
-  // It uses the raw input stream to clear the prompt box (Ctrl+C)
-  // and submit the /reload command, bypassing the standard
-  // sendUserMessage API which doesn't expand slash commands.
+  const description =
+    "Reload keybindings, extensions, skills, prompts, and themes";
+
+  // sendUserMessage dispatches extension commands, but not Pi's built-in
+  // /reload command. This command exposes the supported ctx.reload() API to
+  // the shortcut without injecting bytes into the terminal input stream.
+  pi.registerCommand("__reload-shortcut", {
+    handler: async (_args, ctx) => {
+      await ctx.reload();
+    },
+  });
+
   pi.registerShortcut("ctrl+alt+r", {
-    description: "Reload keybindings, extensions, skills, prompts, and themes",
-    handler: async () => {
-      // \x03 (Ctrl+C) clears the editor box
-      // Then type /reload and press Enter (\r)
-      process.stdin.emit("data", Buffer.from("\x03/reload\r"));
+    description,
+    handler: () => {
+      pi.sendUserMessage("/__reload-shortcut", { expandPromptTemplates: true });
     },
   });
 }

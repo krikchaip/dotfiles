@@ -1,9 +1,9 @@
 /**
- * Clears Pi fullscreen text selection as soon as its native copy succeeds.
+ * Clears Pi fullscreen text selection after its native copy attempt finishes.
  *
  * Pi uses reverse video for selected text. The upstream selection handler copies
  * on mouse release but deliberately retains its selection range. This patch
- * clears that range after the existing clipboard write and its "Copied!" flash.
+ * clears that range after the asynchronous clipboard attempt and status flash.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -11,7 +11,7 @@ import { TuiAltScreen } from "@earendil-works/pi-tui";
 
 const PATCH_STATE = Symbol.for("clear-copied-selection.patch");
 
-type CopySelection = () => void;
+type CopySelection = () => Promise<void>;
 
 type PatchableTui = {
   copySelectionToClipboard: CopySelection;
@@ -34,10 +34,10 @@ function installPatch(): void {
   }
 
   prototype[PATCH_STATE] = { originalCopySelection };
-  prototype.copySelectionToClipboard = function patchedCopySelection(
+  prototype.copySelectionToClipboard = async function patchedCopySelection(
     this: PatchableTui,
-  ): void {
-    originalCopySelection.call(this);
+  ): Promise<void> {
+    await originalCopySelection.call(this);
     this.selectionAnchor = undefined;
     this.selectionFocus = undefined;
     this.selectionInitialRange = undefined;
