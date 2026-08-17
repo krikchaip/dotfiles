@@ -13,22 +13,24 @@
  */
 
 import {
+  getAgentDir,
   SessionManager,
   type ExtensionAPI,
+  type ExtensionCommandContext,
+  type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import type { AutocompleteProvider, KeyId } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
 import {
   closeSync,
   openSync,
+  readFileSync,
   readSync,
-  realpathSync,
   statSync,
   unlinkSync,
 } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-const PATCH_STATE = Symbol.for("pi.extended-new.patch-state");
 const NEW_CHILD_ACTION = "app.session.newChild";
 const NEW_TMUX_SP_ACTION = "app.session.newTmuxSp";
 const NEW_CHILD_TMUX_SP_ACTION = "app.session.newChildTmuxSp";
@@ -49,15 +51,15 @@ type AutocompleteItem = {
   description: string;
 };
 
-type TmuxKeybinding = {
+type ShortcutBinding = {
   action: string;
-  target: TmuxTarget;
+  target?: TmuxTarget;
   child: boolean;
-  defaultKeys: string[];
+  defaultKeys: KeyId[];
   description: string;
 };
 
-const TMUX_KEYBINDINGS: TmuxKeybinding[] = [
+const TMUX_KEYBINDINGS: ShortcutBinding[] = [
   {
     action: NEW_TMUX_SP_ACTION,
     target: "v",
@@ -101,53 +103,6 @@ const TMUX_KEYBINDINGS: TmuxKeybinding[] = [
     description: "Start a child session in a new tmux window",
   },
 ];
-
-type PatchedInteractiveMode = {
-  setupEditorSubmitHandler(...args: unknown[]): unknown;
-  createBaseAutocompleteProvider(...args: unknown[]): unknown;
-  handleClearCommand(): void;
-  defaultEditor?: {
-    onAction?(action: string, handler: () => void): void;
-    onSubmit?: (text: string) => Promise<unknown> | unknown;
-  };
-  editor?: { setText?(text: string): void };
-  keybindings?: {
-    definitions?: Record<
-      string,
-      { defaultKeys: string[]; description: string }
-    >;
-    rebuild?(): void;
-  };
-  chatContainer?: { addChild(child: unknown): void };
-  ui?: { requestRender(): void };
-  runtimeHost?: {
-    newSession(options?: { parentSession?: string }): Promise<{
-      cancelled: boolean;
-    }>;
-  };
-  session?: {
-    isStreaming?: boolean;
-    sessionManager?: {
-      getCwd(): string;
-      getSessionFile(): string | undefined;
-      getSessionDir(): string;
-    };
-  };
-  sessionManager?: {
-    getCwd(): string;
-    getSessionFile(): string | undefined;
-    getSessionDir(): string;
-  };
-  clearStatusIndicator?(): void;
-  showError?(message: string): void;
-  showStatus?(message: string): void;
-  showWarning?(message: string): void;
-};
-
-type PatchState = {
-  originalSetupEditorSubmitHandler: (...args: unknown[]) => unknown;
-  originalCreateBaseAutocompleteProvider: (...args: unknown[]) => unknown;
-};
 
 function parseArgs(text: string): ParsedArgs | undefined {
   const trimmed = text.trim();
@@ -247,80 +202,62 @@ function completionItems(prefix: string): AutocompleteItem[] | null {
   return matches.length > 0 ? matches : null;
 }
 
-function patchNewAutocomplete(provider: unknown) {
-  const commands = (provider as { commands?: unknown[] })?.commands;
-  if (!Array.isArray(commands)) {
-    throw new Error(
-      "Combined autocomplete provider no longer exposes commands",
-    );
-  }
-
-  const command = commands.find((item) => {
-    if (!item || typeof item !== "object") return false;
-    const candidate = item as { name?: unknown; value?: unknown };
-    return candidate.name === "new" || candidate.value === "new";
-  }) as
-    | {
-        argumentHint?: string;
-        getArgumentCompletions?: (prefix: string) => AutocompleteItem[] | null;
+function extendNewAutocomplete(
+  current: AutocompleteProvider,
+): AutocompleteProvider {
+  return {
+    triggerCharacters: current.triggerCharacters,
+    async getSuggestions(lines, cursorLine, cursorCol, options) {
+      const beforeCursor = (lines[cursorLine] ?? "").slice(0, cursorCol);
+      const match = beforeCursor.match(/^\/new\s+(.*)$/);
+      if (!match) {
+        return current.getSuggestions(lines, cursorLine, cursorCol, options);
       }
-    | undefined;
 
-  if (!command) throw new Error("Built-in /new autocomplete entry not found");
-  command.argumentHint = ARGUMENT_HINT;
-  command.getArgumentCompletions = completionItems;
-}
-
-function installNewKeybindings(mode: PatchedInteractiveMode) {
-  const keybindings = mode.keybindings;
-  if (!keybindings?.definitions) {
-    throw new Error("Interactive keybindings unavailable");
-  }
-
-  const definitions = [
-    {
-      action: NEW_CHILD_ACTION,
-      defaultKeys: ["alt+shift+n"],
-      description: "Start a child session",
+      const prefix = match[1] ?? "";
+      const items = completionItems(prefix);
+      return items ? { prefix, items } : null;
     },
-    ...TMUX_KEYBINDINGS,
-  ];
-  let changed = false;
-  for (const { action, defaultKeys, description } of definitions) {
-    if (keybindings.definitions[action]) continue;
-    keybindings.definitions[action] = { defaultKeys, description };
-    changed = true;
-  }
-  if (changed) keybindings.rebuild?.();
+    applyCompletion(lines, cursorLine, cursorCol, item, prefix) {
+      return current.applyCompletion(
+        lines,
+        cursorLine,
+        cursorCol,
+        item,
+        prefix,
+      );
+    },
+    shouldTriggerFileCompletion(lines, cursorLine, cursorCol) {
+      return (
+        current.shouldTriggerFileCompletion?.(lines, cursorLine, cursorCol) ??
+        true
+      );
+    },
+  };
 }
 
-function showNewChildStarted(mode: PatchedInteractiveMode) {
-  const cliEntry = process.argv[1];
-  if (!mode.chatContainer || !mode.ui || !cliEntry) {
-    mode.showStatus?.("New child session started");
-    return;
-  }
+const SHORTCUT_BINDINGS: ShortcutBinding[] = [
+  {
+    action: NEW_CHILD_ACTION,
+    child: true,
+    defaultKeys: ["alt+shift+n"],
+    description: "Start a child session",
+  },
+  ...TMUX_KEYBINDINGS,
+];
 
+function configuredKeys(binding: ShortcutBinding): KeyId[] {
   try {
-    const req = createRequire(__filename);
-    const distPath = dirname(realpathSync(cliEntry));
-    const { Spacer, Text } = req(
-      join(distPath, "..", "node_modules", "@earendil-works", "pi-tui"),
-    ) as {
-      Spacer: new (height: number) => unknown;
-      Text: new (text: string, paddingX: number, paddingY: number) => unknown;
-    };
-    const { theme } = req(
-      join(distPath, "modes", "interactive", "theme", "theme.js"),
-    ) as { theme: { fg(color: string, text: string): string } };
+    const config = JSON.parse(
+      readFileSync(join(getAgentDir(), "keybindings.json"), "utf8"),
+    ) as Record<string, unknown>;
+    const configured = config[binding.action];
+    if (configured === undefined) return binding.defaultKeys;
 
-    mode.chatContainer.addChild(new Spacer(1));
-    mode.chatContainer.addChild(
-      new Text(`${theme.fg("accent", "✓ New child session started")}`, 1, 1),
-    );
-    mode.ui.requestRender();
+    const keys = Array.isArray(configured) ? configured : [configured];
+    return keys.filter((key): key is KeyId => typeof key === "string");
   } catch {
-    mode.showStatus?.("New child session started");
+    return binding.defaultKeys;
   }
 }
 
@@ -339,31 +276,26 @@ function tmuxEnvironmentArgs() {
 }
 
 async function spawnTmuxTarget(
-  mode: PatchedInteractiveMode,
+  ctx: ExtensionContext,
   target: TmuxTarget,
   child: boolean,
   parentSession: string | undefined,
 ) {
   if (!process.env.TMUX) {
-    mode.showWarning?.("Not inside tmux; cannot split a pane");
-    return;
-  }
-
-  const sessionManager = mode.sessionManager ?? mode.session?.sessionManager;
-  if (!sessionManager) {
-    mode.showError?.("Current session manager unavailable");
+    ctx.ui.notify("Not inside tmux; cannot split a pane", "warning");
     return;
   }
 
   if (child && !validSessionFile(parentSession)) {
-    mode.showWarning?.(
+    ctx.ui.notify(
       "Current session has no valid session file; cannot create a child session",
+      "warning",
     );
     return;
   }
 
-  const cwd = sessionManager.getCwd();
-  const sessionDir = sessionManager.getSessionDir();
+  const cwd = ctx.sessionManager.getCwd();
+  const sessionDir = ctx.sessionManager.getSessionDir();
   const piArgs: string[] = [];
   if (sessionDir) piArgs.push("--session-dir", sessionDir);
 
@@ -390,8 +322,9 @@ async function spawnTmuxTarget(
           unlinkSync(createdChildFile);
         } catch {}
       }
-      mode.showError?.(
+      ctx.ui.notify(
         `Failed to create child session: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
       );
       return;
     }
@@ -438,153 +371,129 @@ async function spawnTmuxTarget(
   const failure = result.error
     ? String(result.error)
     : `tmux exited with code ${String(result.code)}`;
-  mode.showError?.(`tmux target failed: ${failure}`);
+  ctx.ui.notify(`tmux target failed: ${failure}`, "error");
   if (cleanupError) {
-    mode.showWarning?.(
+    ctx.ui.notify(
       `Failed to remove unused child session: ${String(cleanupError)}`,
+      "warning",
     );
   }
 }
 
 async function handleExtendedNew(
-  mode: PatchedInteractiveMode,
+  ctx: ExtensionCommandContext,
   parsed: Exclude<ParsedArgs, { error: string }>,
 ) {
-  const streaming = Boolean(mode.session?.isStreaming);
-  if (!parsed.target && streaming) {
-    mode.showWarning?.("Cannot run same-pane /new while agent is streaming");
+  if (!parsed.target && !ctx.isIdle()) {
+    ctx.ui.notify(
+      "Cannot run same-pane /new while agent is streaming",
+      "warning",
+    );
     return;
   }
 
-  const sessionManager = mode.sessionManager ?? mode.session?.sessionManager;
-  const parentSession = sessionManager?.getSessionFile();
-
+  const parentSession = ctx.sessionManager.getSessionFile();
   if (parsed.child && !validSessionFile(parentSession)) {
-    mode.showWarning?.(
+    ctx.ui.notify(
       "Current session has no valid session file; cannot create a child session",
+      "warning",
     );
     return;
   }
 
   if (parsed.target) {
-    await spawnTmuxTarget(mode, parsed.target, parsed.child, parentSession);
+    await spawnTmuxTarget(ctx, parsed.target, parsed.child, parentSession);
     return;
   }
 
-  if (!mode.runtimeHost) {
-    mode.showError?.("Pi session runtime unavailable");
-    return;
-  }
-
-  mode.clearStatusIndicator?.();
   try {
-    const result = await mode.runtimeHost.newSession({ parentSession });
-    if (result.cancelled) return;
-    showNewChildStarted(mode);
+    await ctx.newSession({
+      parentSession: parsed.child ? parentSession : undefined,
+      withSession: async (newCtx) => {
+        newCtx.ui.notify(
+          parsed.child ? "New child session started" : "New session started",
+          "info",
+        );
+      },
+    });
   } catch (error) {
-    mode.showError?.(
-      `Failed to create child session: ${error instanceof Error ? error.message : String(error)}`,
+    ctx.ui.notify(
+      `Failed to create ${parsed.child ? "child " : ""}session: ${error instanceof Error ? error.message : String(error)}`,
+      "error",
     );
   }
 }
 
-function installPatch(InteractiveMode: { prototype: PatchedInteractiveMode }) {
-  const prototype = InteractiveMode.prototype as PatchedInteractiveMode & {
-    [PATCH_STATE]?: PatchState;
-  };
-  if (prototype[PATCH_STATE]) return;
+function registerExtendedNewCommand(pi: ExtensionAPI) {
+  pi.registerCommand("new", {
+    description: "Start a new or child session in this pane or a tmux target",
+    getArgumentCompletions: completionItems,
+    handler: async (args, ctx) => {
+      const trimmedArgs = args.trim();
+      const parsed = parseArgs(`/new${trimmedArgs ? ` ${trimmedArgs}` : ""}`);
+      if (!parsed) return;
+      if ("error" in parsed) {
+        ctx.ui.notify(parsed.error, "warning");
+        return;
+      }
+      await handleExtendedNew(ctx, parsed);
+    },
+  });
+}
 
-  if (typeof prototype.setupEditorSubmitHandler !== "function") {
-    throw new Error("InteractiveMode.setupEditorSubmitHandler unavailable");
-  }
-  if (typeof prototype.createBaseAutocompleteProvider !== "function") {
-    throw new Error(
-      "InteractiveMode.createBaseAutocompleteProvider unavailable",
-    );
-  }
-
-  const state: PatchState = {
-    originalSetupEditorSubmitHandler: prototype.setupEditorSubmitHandler,
-    originalCreateBaseAutocompleteProvider:
-      prototype.createBaseAutocompleteProvider,
-  };
-  prototype[PATCH_STATE] = state;
-
-  prototype.createBaseAutocompleteProvider = function (
-    this: PatchedInteractiveMode,
-    ...args: unknown[]
-  ) {
-    const provider = state.originalCreateBaseAutocompleteProvider.apply(
-      this,
-      args,
-    );
-    patchNewAutocomplete(provider);
-    return provider;
+export default function (pi: ExtensionAPI) {
+  let commandRegistered = false;
+  const ensureCommandRegistered = () => {
+    if (commandRegistered) return;
+    registerExtendedNewCommand(pi);
+    commandRegistered = true;
   };
 
-  prototype.setupEditorSubmitHandler = function (
-    this: PatchedInteractiveMode,
-    ...args: unknown[]
-  ) {
-    const result = state.originalSetupEditorSubmitHandler.apply(this, args);
-    const nativeOnSubmit = this.defaultEditor?.onSubmit;
-    if (typeof nativeOnSubmit !== "function") {
-      throw new Error("Interactive editor submit handler unavailable");
-    }
+  for (const binding of SHORTCUT_BINDINGS) {
+    for (const key of configuredKeys(binding)) {
+      pi.registerShortcut(key, {
+        description: binding.description,
+        handler: async (ctx) => {
+          if (binding.target) {
+            await spawnTmuxTarget(
+              ctx,
+              binding.target,
+              binding.child,
+              ctx.sessionManager.getSessionFile(),
+            );
+            return;
+          }
 
-    installNewKeybindings(this);
-
-    const onAction = this.defaultEditor?.onAction;
-    if (typeof onAction !== "function") {
-      throw new Error("Interactive editor action handler unavailable");
-    }
-    onAction.call(this.defaultEditor, NEW_CHILD_ACTION, () => {
-      void handleExtendedNew(this, { child: true });
-    });
-    for (const { action, target, child } of TMUX_KEYBINDINGS) {
-      onAction.call(this.defaultEditor, action, () => {
-        void handleExtendedNew(this, { target, child });
+          // Shortcut contexts cannot replace the current session directly.
+          ensureCommandRegistered();
+          pi.sendUserMessage("/new child", {
+            expandPromptTemplates: true,
+          });
+        },
       });
     }
-    onAction.call(this.defaultEditor, "app.session.new", () => {
-      if (this.session?.isStreaming) {
-        this.showWarning?.("Cannot run same-pane /new while agent is streaming");
-        return;
+  }
+
+  pi.on("input", (event, ctx) => {
+    const text = event.text.trim();
+    if (ctx.mode !== "tui" || !text.startsWith("/new ")) return;
+
+    ensureCommandRegistered();
+    queueMicrotask(() => {
+      if (event.streamingBehavior) {
+        pi.sendUserMessage(text, {
+          deliverAs: event.streamingBehavior,
+          expandPromptTemplates: true,
+        });
+      } else {
+        pi.sendUserMessage(text, { expandPromptTemplates: true });
       }
-      this.handleClearCommand();
     });
+    return { action: "handled" };
+  });
 
-    this.defaultEditor!.onSubmit = async (text: string) => {
-      const parsed = parseArgs(text);
-      if (!parsed) return nativeOnSubmit(text);
-
-      this.editor?.setText?.("");
-      if ("error" in parsed) {
-        this.showWarning?.(parsed.error);
-        return;
-      }
-
-      if (!parsed.target && !parsed.child && !this.session?.isStreaming) {
-        return nativeOnSubmit(text);
-      }
-
-      await handleExtendedNew(this, parsed);
-    };
-
-    return result;
-  };
-}
-
-export default function (_pi: ExtensionAPI) {
-  const req = createRequire(__filename);
-  const cliEntry = process.argv[1];
-  if (!cliEntry) throw new Error("Cannot locate Pi CLI entry");
-
-  const distPath = dirname(realpathSync(cliEntry));
-  const { InteractiveMode } = req(
-    join(distPath, "modes", "interactive", "interactive-mode.js"),
-  ) as { InteractiveMode?: { prototype: PatchedInteractiveMode } };
-
-  if (!InteractiveMode) throw new Error("Cannot load Pi InteractiveMode");
-  installPatch(InteractiveMode);
+  pi.on("session_start", (_event, ctx) => {
+    if (ctx.mode !== "tui") return;
+    ctx.ui.addAutocompleteProvider(extendNewAutocomplete);
+  });
 }
