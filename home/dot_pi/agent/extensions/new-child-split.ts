@@ -492,6 +492,15 @@ export default function (pi: ExtensionAPI) {
     return { action: "handled" };
   });
 
+  pi.on("session_before_switch", (event, ctx) => {
+    if (event.reason !== "new" || ctx.isIdle()) return;
+    ctx.ui.notify(
+      "Cannot run same-pane /new while agent is streaming",
+      "warning",
+    );
+    return { cancel: true };
+  });
+
   pi.on("session_start", (_event, ctx) => {
     if (ctx.mode !== "tui") return;
     ctx.ui.addAutocompleteProvider(extendNewAutocomplete);
