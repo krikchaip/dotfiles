@@ -240,8 +240,17 @@ function textContent(content: any) {
 }
 
 function normalizeAssistantMessage(message: any) {
-  if (typeof message?.content !== "string") return message;
-  return { ...message, content: [{ type: "text", text: message.content }] };
+  const normalized =
+    typeof message?.content === "string"
+      ? { ...message, content: [{ type: "text", text: message.content }] }
+      : message;
+  if (!Array.isArray(normalized?.content)) return normalized;
+  return {
+    ...normalized,
+    content: normalized.content.filter(
+      (block: any) => block?.type !== "thinking",
+    ),
+  };
 }
 
 function isBlankLine(line: string) {
