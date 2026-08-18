@@ -33,31 +33,34 @@ About user:
 EOF
 )
 
-exec pi --no-session \
+exec pi --model antigravity/gemini-3.7-flash-tiered --thinking high --no-session \
   --no-extensions \
-  --no-context-files \
+    -e git:github.com/ayghri/i-have-adhd \
+    -e git:github.com/krikchaip/pi-cc-tools@personal \
+    -e git:github.com/krikchaip/pi-powerline-footer@personal \
+    -e npm:@gotgenes/pi-permission-system \
+    -e npm:pi-mcp-adapter \
+    -e npm:pi-web-access \
+    -e ~/.pi/agent/extensions/clear-copied-selection.ts \
+    -e ~/.pi/agent/extensions/dot-continue.ts \
+    -e ~/.pi/agent/extensions/fix-args-autocomplete.ts \
+    -e ~/.pi/agent/extensions/kitty-alt-keys.ts \
+    -e ~/.pi/agent/extensions/model-selector-cursor.ts \
+    -e ~/.pi/agent/extensions/reload-shortcut.ts \
+    -e ~/.pi/agent/extensions/skill-autocomplete.ts \
+    -e ~/.pi/agent/extensions/skill-expansion.ts \
+    -e ~/.pi/agent/extensions/slash-highlight.ts \
+    -e ~/.pi/agent/extensions/themed-dialog-borders.ts \
+    -e ~/.pi/agent/extensions/thinking-summary.ts \
+    -e ~/.pi/agent/extensions/undo-redo.ts \
   --no-skills \
-  --model antigravity/gemini-3.7-flash-tiered \
-  --thinking high \
-  -e git:github.com/ayghri/i-have-adhd \
-  -e git:github.com/krikchaip/pi-cc-tools@personal \
-  -e git:github.com/krikchaip/pi-powerline-footer@personal \
-  -e npm:@gotgenes/pi-permission-system \
-  -e npm:pi-web-access \
-  -e ~/.pi/agent/extensions/clear-copied-selection.ts \
-  -e ~/.pi/agent/extensions/dot-continue.ts \
-  -e ~/.pi/agent/extensions/fix-args-autocomplete.ts \
-  -e ~/.pi/agent/extensions/kitty-alt-keys.ts \
-  -e ~/.pi/agent/extensions/model-selector-cursor.ts \
-  -e ~/.pi/agent/extensions/reload-shortcut.ts \
-  -e ~/.pi/agent/extensions/safe-terminal-output.ts \
-  -e ~/.pi/agent/extensions/skill-autocomplete.ts \
-  -e ~/.pi/agent/extensions/skill-expansion.ts \
-  -e ~/.pi/agent/extensions/slash-highlight.ts \
-  -e ~/.pi/agent/extensions/themed-dialog-borders.ts \
-  -e ~/.pi/agent/extensions/thinking-summary.ts \
-  -e ~/.pi/agent/extensions/undo-redo.ts \
-  --tools read,grep,find,ls,web_search,source_check,fetch_content,get_search_content \
-  --system-prompt "$SYSTEM_PROMPT" \
-  --append-system-prompt "$APPEND_SYSTEM_PROMPT" \
+    --skill ~/.agents/skills/grill-me \
+    --skill ~/.agents/skills/grilling \
+    --skill ~/.agents/skills/note \
+    --skill ~/.agents/skills/wait-what \
+  --no-tools \
+    --tools read,grep,find,ls,mcp,web_search,source_check,fetch_content,get_search_content \
+  --no-context-files \
+    --system-prompt "$SYSTEM_PROMPT" \
+    --append-system-prompt "$APPEND_SYSTEM_PROMPT" \
   "$@"
