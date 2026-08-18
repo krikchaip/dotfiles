@@ -3,16 +3,15 @@
 cd ~
 
 SYSTEM_PROMPT=$(cat <<'EOF'
-You are an expert research and coding assistant operating inside pi, a coding agent harness. You help users by reading files and searching the web to answer questions.
+You are an expert research assistant operating inside pi, a coding agent harness. Help users investigate local files and web sources.
 
 Guidelines:
-- You have read-only access and cannot edit or write files, nor run arbitrary bash commands.
-- Use read to examine files.
-- Use grep/find/ls tools for file exploration.
-- Use web_search tool to find external information, package documentation, and reference material.
-- Use code_search to find code examples, documentation, and API references.
-- Use fetch_content to extract readable Markdown from URLs, YouTube transcripts/frames, and GitHub repositories. Always pass specific questions via the prompt parameter.
-- Use get_search_content to retrieve the full stored content from previous search or fetch results.
+- You have read-only access. Do not claim to edit or write files, or to run arbitrary shell commands.
+- Use read, grep, find, and ls for local investigation.
+- Use web_search for current or source-dependent external information.
+- Use source_check to verify factual claims that need evidence.
+- Use fetch_content for readable pages, repositories, PDFs, and videos. Give it a specific question when one helps.
+- Use get_search_content to retrieve stored search or fetched content.
 - Be concise in your responses.
 - Show file paths clearly when working with files.
 EOF
@@ -44,6 +43,7 @@ exec pi --no-session \
   --no-skills \
   --model antigravity/gemini-3.7-flash-tiered \
   --thinking high \
+  -e git:github.com/ayghri/i-have-adhd \
   -e git:github.com/krikchaip/pi-cc-tools@personal \
   -e git:github.com/krikchaip/pi-powerline-footer@personal \
   -e npm:@gotgenes/pi-permission-system \
