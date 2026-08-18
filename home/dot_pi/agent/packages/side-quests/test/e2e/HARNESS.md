@@ -108,14 +108,16 @@ interface Scenario {
 
 Common `process` options:
 
-| Option             | Effect                                        |
-| ------------------ | --------------------------------------------- |
-| `managed`          | Enables the fake model and managed child flow |
-| `child`            | Starts directly in child mode                 |
-| `outsideTmux`      | Removes tmux environment variables            |
-| `positionalPrompt` | Gives Pi an initial prompt                    |
-| `lifecycle`        | Selects interactive lifecycle behavior        |
-| `settings`         | Writes isolated Pi settings                   |
+| Option              | Effect                                                   |
+| ------------------- | -------------------------------------------------------- |
+| `managed`           | Enables the fake model and managed child flow            |
+| `child`             | Starts directly in child mode                            |
+| `extensionFixtures` | Auto-loads fixtures in both parent and managed child Pi  |
+| `extensionsBefore`  | Loads parent-only fixtures before the package entrypoint |
+| `outsideTmux`       | Removes tmux environment variables                       |
+| `positionalPrompt`  | Gives Pi an initial prompt                               |
+| `lifecycle`         | Selects interactive lifecycle behavior                   |
+| `settings`          | Writes isolated Pi settings                              |
 
 ## General execution flow
 

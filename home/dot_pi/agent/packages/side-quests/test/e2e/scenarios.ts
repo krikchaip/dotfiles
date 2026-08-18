@@ -1,4 +1,5 @@
 import { activeContinuation } from "./scenario/active-continuation.ts";
+import { activeParentEvent } from "./scenario/active-parent-event.ts";
 import { askParent } from "./scenario/ask-parent.ts";
 import { child } from "./scenario/child.ts";
 import { exhaustedProvider } from "./scenario/exhausted-provider.ts";
@@ -38,6 +39,7 @@ export const scenarios: readonly Scenario[] = [
   persistentState,
   pendingRequestClosure,
   activeContinuation,
+  activeParentEvent,
   idleContinuation,
   stoppedReopen,
   resumePromotion,

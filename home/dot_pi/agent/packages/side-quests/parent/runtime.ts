@@ -254,7 +254,7 @@ export class ParentRuntime {
   }
 
   /**
-   * Delivers a child event once as a parent follow-up message.
+   * Delivers a child event once at the parent's next model-call boundary.
    */
   private deliver(
     eventId: string,
@@ -271,7 +271,7 @@ export class ParentRuntime {
         display: true,
         details,
       },
-      { triggerTurn: true, deliverAs: "followUp" },
+      { triggerTurn: true, deliverAs: "steer" },
     );
   }
 

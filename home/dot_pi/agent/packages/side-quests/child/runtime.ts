@@ -250,10 +250,7 @@ export class ChildRuntime {
               requestId: response.requestId,
             },
           },
-          {
-            triggerTurn: true,
-            ...(this.active ? { deliverAs: "steer" as const } : {}),
-          },
+          { triggerTurn: true, deliverAs: "steer" },
         );
 
         SessionStore.clearResponse(this.parentId, this.childId);

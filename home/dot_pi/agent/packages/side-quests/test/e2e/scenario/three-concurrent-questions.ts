@@ -52,18 +52,17 @@ export const threeConcurrentQuestions: Scenario = {
     }
 
     const answered = new Set<string>();
-    const answerNextQuestion = async (context: { messages: unknown }) => {
+    const answerVisibleQuestions = async (context: { messages: unknown }) => {
       const transcript = JSON.stringify(context.messages);
 
       if (answered.size === 0) await delay(1_500);
 
-      for (const label of labels) {
-        if (answered.has(label)) continue;
+      const answers = labels.flatMap((label) => {
+        if (answered.has(label)) return [];
 
         const questionOffset = transcript.lastIndexOf(
           `Which token should ${label} use?`,
         );
-
         const resume =
           questionOffset < 0
             ? undefined
@@ -71,24 +70,21 @@ export const threeConcurrentQuestions: Scenario = {
                 .slice(questionOffset)
                 .match(/\/[^"\\]+session\.jsonl/)?.[0];
 
-        if (!resume) continue;
-
+        if (!resume) return [];
         answered.add(label);
 
-        return fauxAssistantMessage(
+        return [
           fauxToolCall("Agent", {
             description: `Answer E2E question ${label}`,
             prompt: `Answer for child ${label}.`,
             resume,
           }),
-          { stopReason: "toolUse" },
-        );
-      }
-
-      return fauxAssistantMessage("Missing an unhandled child question.", {
-        stopReason: "error",
-        errorMessage: "Missing an unhandled child question.",
+        ];
       });
+
+      return answers.length > 0
+        ? fauxAssistantMessage(answers, { stopReason: "toolUse" })
+        : fauxAssistantMessage(fauxText("No new child question is visible."));
     };
 
     faux.setResponses([
@@ -102,13 +98,7 @@ export const threeConcurrentQuestions: Scenario = {
         ),
         { stopReason: "toolUse" },
       ),
-      fauxAssistantMessage(fauxText("The delegated work is in progress.")),
-      answerNextQuestion,
-      fauxAssistantMessage(fauxText("The alpha answer was sent.")),
-      answerNextQuestion,
-      fauxAssistantMessage(fauxText("The beta answer was sent.")),
-      answerNextQuestion,
-      fauxAssistantMessage(fauxText("The gamma answer was sent.")),
+      ...Array.from({ length: 10 }, () => answerVisibleQuestions),
     ]);
   },
   async run(harness: E2EHarness) {
