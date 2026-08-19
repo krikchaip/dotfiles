@@ -1,7 +1,7 @@
 import { configureReopen } from "../provider-support.ts";
 
-export const resumePromotion: Scenario = {
-  name: "resume-promotion",
+export const resumePromotionRejection: Scenario = {
+  name: "resume-promotion-rejection",
   process: { managed: true, positionalPrompt: "Delegate this E2E task now." },
   configureProvider(context) {
     configureReopen(context, {
@@ -11,29 +11,26 @@ export const resumePromotion: Scenario = {
     });
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("Subagent reopened. Session:");
+    await harness.waitFor(
+      "Agent.resume cannot include subagent_type, inherit_context, or interactive.",
+    );
 
-    const childPane = await harness.childPane();
     const manifest = harness.filesNamed("manifest.json")[0];
+    const session = harness.filesNamed("session.jsonl")[0];
 
-    harness.assert(manifest, "The resumed child manifest is missing.");
+    harness.assert(manifest, "The stopped child manifest is missing.");
+    harness.assert(session, "The stopped child session is missing.");
     harness.assert(
-      harness.read(manifest).includes('"lifecycle":"interactive"'),
-      "Explicit Agent.resume did not permanently promote the stopped child.",
+      harness.read(manifest).includes('"lifecycle":"autonomous"'),
+      "A rejected stopped resume changed the child lifecycle.",
     );
-
-    await Bun.sleep(1_000);
-
-    const live = (
-      await harness.tmux("display-message", "-p", "-t", childPane, "#{pane_id}")
-    ).trim();
-
     harness.assert(
-      live === childPane,
-      "Explicit Agent.resume promotion did not keep the child pane open.",
+      !harness.read(session).includes("Run the reopened E2E task."),
+      "A rejected stopped resume delivered its continuation.",
     );
-
-    await harness.sendLiteral(childPane, "/subagent-done", true);
-    await harness.waitFor("Subagent completed:");
+    harness.assert(
+      (await harness.childPanes()).length === 0,
+      "A rejected stopped resume reopened the child pane.",
+    );
   },
 };

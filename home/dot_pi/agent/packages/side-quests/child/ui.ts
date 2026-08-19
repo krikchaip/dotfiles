@@ -4,8 +4,8 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
 
-import type { ChildRuntime } from "./runtime.ts";
 import { CHILD_WIDGET_ID, WidgetStackSpacing } from "../widget-spacing.ts";
+import type { ChildRuntime } from "./runtime.ts";
 
 const REFRESH_INTERVAL_MS = 1_000;
 

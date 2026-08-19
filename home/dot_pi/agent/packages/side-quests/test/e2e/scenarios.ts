@@ -1,5 +1,6 @@
 import { activeContinuation } from "./scenario/active-continuation.ts";
 import { activeParentEvent } from "./scenario/active-parent-event.ts";
+import { activePromotionRejection } from "./scenario/active-promotion.ts";
 import { askParent } from "./scenario/ask-parent.ts";
 import { child } from "./scenario/child.ts";
 import { exhaustedProvider } from "./scenario/exhausted-provider.ts";
@@ -18,7 +19,7 @@ import { pendingRequestClosure } from "./scenario/pending-request-closure.ts";
 import { persistentState } from "./scenario/persistent-state.ts";
 import { programmaticContinuation } from "./scenario/programmatic-continuation.ts";
 import { resultExpansion } from "./scenario/result-expansion.ts";
-import { resumePromotion } from "./scenario/resume-promotion.ts";
+import { resumePromotionRejection } from "./scenario/resume-promotion.ts";
 import { staleResponse } from "./scenario/stale-response.ts";
 import { staleTerminalResponse } from "./scenario/stale-terminal-response.ts";
 import { stoppedReopen } from "./scenario/stopped-reopen.ts";
@@ -41,9 +42,10 @@ export const scenarios: readonly Scenario[] = [
   pendingRequestClosure,
   activeContinuation,
   activeParentEvent,
+  activePromotionRejection,
   idleContinuation,
   stoppedReopen,
-  resumePromotion,
+  resumePromotionRejection,
   programmaticContinuation,
   failure,
   exhaustedProvider,

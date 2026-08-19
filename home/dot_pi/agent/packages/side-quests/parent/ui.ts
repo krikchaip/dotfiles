@@ -12,8 +12,8 @@ import {
   visibleWidth,
 } from "@earendil-works/pi-tui";
 
-import type { ParentRuntime } from "./runtime.ts";
 import { PARENT_WIDGET_ID, WidgetStackSpacing } from "../widget-spacing.ts";
+import type { ParentRuntime } from "./runtime.ts";
 
 /** Identifies parent messages that report sub-agent events. */
 export const RESULT_MESSAGE_TYPE = "side-quest-result";

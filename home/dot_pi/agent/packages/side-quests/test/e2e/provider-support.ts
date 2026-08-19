@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import {
   fauxAssistantMessage,
   fauxText,
@@ -40,15 +42,26 @@ export function configureBasicDelegation(
 
   faux.setResponses([
     options.verifyAgentTool
-      ? (providerContext: { systemPrompt?: string }) =>
-          providerContext.systemPrompt?.includes(
+      ? (providerContext: { systemPrompt?: string }) => {
+          const systemPrompt = providerContext.systemPrompt ?? "";
+          const agentListed = systemPrompt.includes(
             "- Agent: Delegate a coherent, non-overlapping branch of the user's goal to a sub-agent, or resume that sub-agent.",
-          )
+          );
+          const lifecycleGuard = systemPrompt.includes(
+            "On resume, omit subagent_type, inherit_context, and interactive. These fields configure only a new sub-agent and Agent.resume rejects them.",
+          );
+
+          return agentListed && lifecycleGuard
             ? launch
-            : fauxAssistantMessage("Agent is missing from Available tools.", {
-                stopReason: "error",
-                errorMessage: "Agent is missing from Available tools.",
-              })
+            : fauxAssistantMessage(
+                "Agent lifecycle guidance is missing from the system prompt.",
+                {
+                  stopReason: "error",
+                  errorMessage:
+                    "Agent lifecycle guidance is missing from the system prompt.",
+                },
+              );
+        }
       : launch,
     fauxAssistantMessage(fauxText("The delegated work is in progress.")),
   ]);
@@ -62,6 +75,8 @@ export interface ContinuationDelegation {
   readonly continuationPrompt: string;
   readonly interactive?: boolean;
   readonly launchPrompt: string;
+  readonly promoteOnContinuation?: boolean;
+  readonly waitForActiveBeforeContinuation?: boolean;
 }
 
 export function configureContinuation(
@@ -99,12 +114,16 @@ export function configureContinuation(
         /Subagent launched\. Session: ([^"\n]+session\.jsonl)/,
       );
 
+      if (path && options.waitForActiveBeforeContinuation)
+        await waitForActiveChild(path);
+
       return path
         ? fauxAssistantMessage(
             fauxToolCall("Agent", {
               description: "Continue the E2E delegated task",
               prompt: options.continuationPrompt,
               resume: path,
+              ...(options.promoteOnContinuation ? { interactive: true } : {}),
             }),
             { stopReason: "toolUse" },
           )
@@ -185,6 +204,38 @@ export function configureReopen(
 
 export async function delay(milliseconds: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function waitForActiveChild(sessionPath: string): Promise<void> {
+  const root = process.env.PI_CODING_AGENT_DIR;
+  if (!root) throw new Error("The E2E provider has no Pi state directory.");
+
+  const manifest = JSON.parse(
+    await readFile(join(dirname(sessionPath), "manifest.json"), "utf8"),
+  ) as { childId?: string; parentId?: string };
+  const activityPath = join(
+    root,
+    "side-quests/runtime",
+    manifest.parentId ?? "",
+    "children",
+    manifest.childId ?? "",
+    "activity.json",
+  );
+  const deadline = Date.now() + 10_000;
+
+  while (Date.now() < deadline) {
+    try {
+      const snapshot = JSON.parse(await readFile(activityPath, "utf8")) as {
+        phase?: string;
+      };
+      if (snapshot.phase === "active") return;
+    } catch {
+      // The child can still be creating its first atomic activity snapshot.
+    }
+    await delay(50);
+  }
+
+  throw new Error("The E2E child did not become active before continuation.");
 }
 
 export function sessionPath(

@@ -13,7 +13,12 @@ type AgentRequestSchema = Readonly<{
   required: string[];
   properties: Record<
     string,
-    { type: string; enum?: string[]; minLength?: number }
+    {
+      type: string;
+      description?: string;
+      enum?: string[];
+      minLength?: number;
+    }
   >;
 }>;
 
@@ -37,6 +42,14 @@ test("registers only the public Agent tool", () => {
 
   expect(tools).toHaveLength(1);
   expect(tools[0]?.name).toBe("Agent");
+});
+
+test("tells the model that child configuration is launch-only", () => {
+  const tool = registerParentTools()[0];
+
+  expect(tool?.promptGuidelines).toContain(
+    "On resume, omit subagent_type, inherit_context, and interactive. These fields configure only a new sub-agent and Agent.resume rejects them.",
+  );
 });
 
 test("defines the strict Agent request contract", () => {
@@ -67,8 +80,18 @@ test("defines the strict Agent request contract", () => {
   expect(schema.properties.subagent_type).toMatchObject({
     type: "string",
     enum: ["general-purpose"],
+    description:
+      "Sub-agent role for a new side quest. Omit to use general-purpose. Use only for a new launch; omit on resume.",
   });
   expect(schema.properties.resume).toMatchObject({ type: "string" });
-  expect(schema.properties.inherit_context).toMatchObject({ type: "boolean" });
-  expect(schema.properties.interactive).toMatchObject({ type: "boolean" });
+  expect(schema.properties.inherit_context).toMatchObject({
+    type: "boolean",
+    description:
+      "For a new sub-agent, copy the parent conversation once at launch. Defaults to true. Set false for fresh or unbiased work such as an adversarial review. Omit on resume.",
+  });
+  expect(schema.properties.interactive).toMatchObject({
+    type: "boolean",
+    description:
+      "Lifecycle only. On launch, true keeps the pane open after completion; omission uses autonomous lifecycle. Use only for a new launch; omit on resume.",
+  });
 });

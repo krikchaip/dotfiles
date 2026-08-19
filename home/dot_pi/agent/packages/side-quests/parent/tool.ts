@@ -47,6 +47,7 @@ export class ParentTools {
         `Keep a branch in the main quest when it overlaps the parent agent's active ownership or its only outcome is reading, lookup, retrieval, or a simple helper edit. A side quest assigned through ${toolName} may use these actions to deliver research with synthesis, a design-question prototype, an independent implementation, a verified fix, an adversarial review, or another complete result. Record unrelated findings and ask the user whether to handle, delegate, or defer them.`,
         `When calling ${toolName}, give the sub-agent a self-contained handoff with purpose, context, ownership boundary, stable assumptions, dependencies, constraints, expected outcome, acceptance evidence, and return contract. Require clear blockers and uncertainty instead of guesses.`,
         `After ${toolName} launches, continue any main-quest work outside the ownership boundary, regardless of size. If the main quest is blocked, let the turn settle and await the result without polling. Use resume for the same side quest; launch a new sub-agent only for a distinct branch or a fresh pass after the previous owner finishes.`,
+        "On resume, omit subagent_type, inherit_context, and interactive. These fields configure only a new sub-agent and Agent.resume rejects them.",
         `Review work returned by ${toolName} proportionately without repeating the side quest. Check key evidence and integration points, run relevant code checks, inspect research sources quickly, and deepen review only as risk warrants. For a prototype, confirm that it runs and addresses the question, then ask the user to make the design judgment.`,
       ],
 
@@ -65,7 +66,7 @@ export class ParentTools {
           subagent_type: Type.Optional(
             StringEnum(["general-purpose"] as const, {
               description:
-                "Sub-agent role for a new side quest. Omit to use general-purpose.",
+                "Sub-agent role for a new side quest. Omit to use general-purpose. Use only for a new launch; omit on resume.",
             }),
           ),
           resume: Type.Optional(
@@ -77,13 +78,13 @@ export class ParentTools {
           inherit_context: Type.Optional(
             Type.Boolean({
               description:
-                "For a new sub-agent, copy the parent conversation once at launch. Defaults to true. Set false for fresh or unbiased work such as an adversarial review.",
+                "For a new sub-agent, copy the parent conversation once at launch. Defaults to true. Set false for fresh or unbiased work such as an adversarial review. Omit on resume.",
             }),
           ),
           interactive: Type.Optional(
             Type.Boolean({
               description:
-                "Lifecycle only. On launch, true keeps the pane open after completion; omission uses autonomous lifecycle. On resume, true permanently promotes the session, while omission preserves its lifecycle.",
+                "Lifecycle only. On launch, true keeps the pane open after completion; omission uses autonomous lifecycle. Use only for a new launch; omit on resume.",
             }),
           ),
         },
@@ -102,10 +103,12 @@ export class ParentTools {
 
         if (
           request.resume &&
-          (request.subagent_type || request.inherit_context !== undefined)
+          (request.subagent_type !== undefined ||
+            request.inherit_context !== undefined ||
+            request.interactive !== undefined)
         ) {
           throw new Error(
-            `${toolName}.resume cannot include subagent_type or inherit_context.`,
+            `${toolName}.resume cannot include subagent_type, inherit_context, or interactive.`,
           );
         }
 
@@ -122,31 +125,17 @@ export class ParentTools {
               `${toolName}.resume cannot open a child from another parent session.`,
             );
 
-          if (
-            request.interactive === false &&
-            manifest.lifecycle === "interactive"
-          ) {
-            throw new Error(
-              `${toolName}.resume cannot demote an interactive subagent.`,
-            );
-          }
-
-          const promoted = request.interactive
-            ? SessionStore.updateManifest(manifest, {
-                description: request.description.trim(),
-                lifecycle: "interactive",
-              })
-            : SessionStore.updateManifest(manifest, {
-                description: request.description.trim(),
-                lifecycle: manifest.lifecycle,
-              });
+          const continued = SessionStore.updateManifest(manifest, {
+            description: request.description.trim(),
+            lifecycle: manifest.lifecycle,
+          });
 
           const operation = await this.runtime.continue(
-            promoted,
+            continued,
             request.prompt,
           );
 
-          return this.acknowledgement(operation, promoted.sessionPath);
+          return this.acknowledgement(operation, continued.sessionPath);
         }
 
         const parentId = context.sessionManager.getSessionId();
