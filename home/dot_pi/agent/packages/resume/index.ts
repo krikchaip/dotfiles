@@ -14,6 +14,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { patchDeleteActiveSession } from "./delete-active-session";
 import { patchHighlightCurrentSession } from "./highlight-current-session";
+import { patchSessionTreeFirstIndent } from "./session-tree-indent";
 import {
   installOptimizeStartup,
   scheduleResumeSessionSync,
@@ -249,10 +250,8 @@ export default function (pi: ExtensionAPI) {
         this: PatchedInteractiveMode,
         handler: (data: string) => unknown,
       ) {
-        return originalAddTerminalInputListener.call(
-          this,
-          (data: string) =>
-            this[RESUME_INPUT_ACTIVE] ? undefined : handler(data),
+        return originalAddTerminalInputListener.call(this, (data: string) =>
+          this[RESUME_INPUT_ACTIVE] ? undefined : handler(data),
         );
       };
     }
@@ -288,6 +287,7 @@ export default function (pi: ExtensionAPI) {
           this[RESUME_INPUT_ACTIVE] = true;
           try {
             patchHighlightCurrentSession(selector, this, doneWithSync);
+            patchSessionTreeFirstIndent(selector);
             patchRenameSelection(selector, this);
             patchDeleteActiveSession(selector, this);
             if (tmuxSplitAvailable) {
