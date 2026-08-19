@@ -14,6 +14,8 @@ declare global {
 
   interface ScenarioProcess {
     readonly child?: boolean;
+    readonly extensionFixtures?: readonly string[];
+    readonly extensionsBefore?: readonly string[];
     readonly lifecycle?: "interactive";
     readonly managed?: boolean;
     readonly outsideTmux?: boolean;

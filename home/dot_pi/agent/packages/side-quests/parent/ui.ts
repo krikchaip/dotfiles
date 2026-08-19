@@ -13,11 +13,11 @@ import {
 } from "@earendil-works/pi-tui";
 
 import type { ParentRuntime } from "./runtime.ts";
+import { PARENT_WIDGET_ID, WidgetStackSpacing } from "../widget-spacing.ts";
 
 /** Identifies parent messages that report sub-agent events. */
 export const RESULT_MESSAGE_TYPE = "side-quest-result";
 
-const WIDGET_ID = "side-quests";
 const REFRESH_INTERVAL_MS = 1_000;
 
 /**
@@ -78,6 +78,8 @@ export class ParentUI {
    * Registers the complete parent UI surface.
    */
   public static register(pi: ExtensionAPI, runtime: ParentRuntime): ParentUI {
+    WidgetStackSpacing.install();
+
     const ui = new ParentUI(pi, runtime);
 
     ui.installEventListeners();
@@ -278,7 +280,7 @@ export class ParentUI {
     if (context.mode !== "tui") return;
 
     context.ui.setWidget(
-      WIDGET_ID,
+      PARENT_WIDGET_ID,
       (tui, theme) => {
         this.requestWidgetRender = () => tui.requestRender();
 
@@ -310,7 +312,7 @@ export class ParentUI {
     this.requestWidgetRender = undefined;
     this.selectedChildId = undefined;
 
-    context.ui.setWidget(WIDGET_ID, undefined);
+    context.ui.setWidget(PARENT_WIDGET_ID, undefined);
   }
 
   /**
@@ -325,15 +327,13 @@ export class ParentUI {
     const children = runtime.children();
     if (!children.length || width < 4) return [];
 
-    const rows = children.map(
-      (child): WidgetRow => ({
-        childId: child.manifest.childId,
-        elapsed: ParentUI.elapsed(child.manifest.createdAt),
-        agent: child.manifest.displayName,
-        task: child.manifest.description,
-        state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
-      }),
-    );
+    const rows = children.map((child): WidgetRow => ({
+      childId: child.manifest.childId,
+      elapsed: ParentUI.elapsed(child.manifest.createdAt),
+      agent: child.manifest.displayName,
+      task: child.manifest.description,
+      state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
+    }));
 
     const innerWidth = width - 2;
     const markerWidth = Math.min(1, innerWidth);

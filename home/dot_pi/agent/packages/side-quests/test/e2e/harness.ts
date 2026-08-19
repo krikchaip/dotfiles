@@ -7,7 +7,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 const READY_TIMEOUT_MS = 8_000;
 const POLL_MS = 100;
@@ -320,6 +320,16 @@ export class E2EHarness {
         join(extensions, "e2e-provider.ts"),
         `export { default } from ${JSON.stringify(providerPath)};\n`,
       );
+
+      for (const [index, fixture] of (
+        process.extensionFixtures ?? []
+      ).entries()) {
+        const fixturePath = resolve(this.options.root, fixture);
+        writeFileSync(
+          join(extensions, `fixture-${index}.ts`),
+          `export { default } from ${JSON.stringify(fixturePath)};\n`,
+        );
+      }
     }
 
     const command = [
@@ -329,9 +339,12 @@ export class E2EHarness {
       "--no-prompt-templates",
       "--no-themes",
       "--no-skills",
-      "-e",
-      this.options.extension,
     ];
+
+    for (const extension of process.extensionsBefore ?? [])
+      command.push("-e", resolve(this.options.root, extension));
+
+    command.push("-e", this.options.extension);
 
     if (!process.managed) command.push("--no-extensions");
     else command.push("--model", "side-quests-e2e/fake");

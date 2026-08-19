@@ -5,8 +5,8 @@ import type {
 import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
 
 import type { ChildRuntime } from "./runtime.ts";
+import { CHILD_WIDGET_ID, WidgetStackSpacing } from "../widget-spacing.ts";
 
-const WIDGET_ID = "side-quests-child";
 const REFRESH_INTERVAL_MS = 1_000;
 
 /**
@@ -17,6 +17,8 @@ export class ChildUI {
    * Registers the child identity widget.
    */
   public static register(pi: ExtensionAPI, runtime: ChildRuntime): ChildUI {
+    WidgetStackSpacing.install();
+
     const ui = new ChildUI(pi, runtime);
     ui.installEventListeners();
     return ui;
@@ -92,7 +94,7 @@ export class ChildUI {
     if (context.mode !== "tui") return;
 
     context.ui.setWidget(
-      WIDGET_ID,
+      CHILD_WIDGET_ID,
       (tui) => {
         this.requestWidgetRender = () => tui.requestRender();
 
@@ -116,7 +118,7 @@ export class ChildUI {
     this.clearWidgetRefreshTimer();
     this.requestWidgetRender = undefined;
 
-    context.ui.setWidget(WIDGET_ID, undefined);
+    context.ui.setWidget(CHILD_WIDGET_ID, undefined);
   }
 
   /**

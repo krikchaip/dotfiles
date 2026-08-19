@@ -26,6 +26,7 @@ import { terminalTakeover } from "./scenario/terminal-takeover.ts";
 import { threeConcurrentQuestions } from "./scenario/three-concurrent-questions.ts";
 import { toolsListed } from "./scenario/tools-listed.ts";
 import { unmarkedClosure } from "./scenario/unmarked-closure.ts";
+import { widgetSpacing } from "./scenario/widget-spacing.ts";
 
 export const scenarios: readonly Scenario[] = [
   outside,
@@ -54,6 +55,7 @@ export const scenarios: readonly Scenario[] = [
   navigationCancellation,
   unmarkedClosure,
   narrowWidgets,
+  widgetSpacing,
   resultExpansion,
   focusPreservation,
 ];
