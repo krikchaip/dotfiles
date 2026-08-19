@@ -16,7 +16,7 @@ Acceptance requires all automated checks plus real Pi-in-tmux E2E coverage. Unit
 ### Contract checks
 
 - Outside tmux: one startup warning, no tools, commands, timers, or UI.
-- `Agent` exposes only the resolved schema and rejects unknown fields, names, resume paths, models, tools, and skills.
+- `Agent` exposes only the resolved schema. Its parameter descriptions and system-prompt guidance identify `subagent_type`, `inherit_context`, and `interactive` as new-launch-only, and runtime validation rejects any resume containing them. It also rejects unknown fields, names, resume paths, models, tools, and skills.
 - Project definitions override global definitions; malformed or disabled project definitions fail closed.
 - Child policy always enables `ask_parent`, always denies every spawning tool, and never broadens after takeover or resume.
 - Sub-agent session files stay outside Pi's normal session tree and do not appear in `/resume`.
@@ -30,8 +30,8 @@ Acceptance requires all automated checks plus real Pi-in-tmux E2E coverage. Unit
 
 ### Lifecycle and messaging checks
 
-- Normal autonomous completion closes its pane even with an unanswered parent request; the end of a normal interactive agent turn keeps its pane open until explicit `/subagent-done`. Explicit `Agent.resume` with `interactive: true` or an accepted interactive prompt permanently promotes lifecycle; ordinary continuation and programmatic messages do not.
-- `/subagent-done` is absent while autonomous, and guarded manual input cannot reach the model or promote lifecycle. It registers immediately for initially interactive, explicitly resume-promoted, or terminal-promoted children and remains registered after reload or reopen. Arguments show usage; active turns refuse completion; idle completion succeeds while retaining the session and any unanswered parent request.
+- Normal autonomous completion closes its pane even with an unanswered parent request; the end of a normal interactive agent turn keeps its pane open until explicit `/subagent-done`. After creation, only an accepted non-command prompt from the live child terminal permanently promotes lifecycle; `Agent.resume`, ordinary continuation, and programmatic messages do not. Interactive lifecycle never demotes.
+- `/subagent-done` is absent while autonomous, and guarded manual input cannot reach the model or promote lifecycle. It registers immediately for initially interactive or terminal-promoted children and remains registered after reload or reopen. Arguments show usage; active turns refuse completion; idle completion succeeds while retaining the session and any unanswered parent request.
 - A new launch stores `Agent.prompt` as a normal user-role message. Every `Agent.resume` prompt is a persisted custom message, including immediate idle delivery, active `steer` delivery after the current tool batch, and the first continuation after reopen.
 - `ask_parent` returns without terminating the child turn, permits sibling tool calls, rejects another request while one is pending, survives pane close and reload, accepts one response, and never promotes lifecycle. A `closed` handoff explicitly states when its unanswered request remains saved.
 - Autonomous exhausted provider/agent-loop errors produce one terminal failed parent event. The same errors in a healthy interactive child remain pane-local, return its row to `waiting`, permit retry, and produce no parent event. Fatal or nonzero process exits in either lifecycle produce one failed event with current-run response extraction and no stale-response substitution. Completion, cancellation, unmarked closure, stall, recovery, and child-pane interruption each produce the correct single parent event or lifecycle-specific widget-only transition.

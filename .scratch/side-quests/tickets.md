@@ -37,7 +37,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [x] Support concurrent new launches, live-idle continuation, live-active steering after the current tool batch, stopped-session reopen, and duplicate-process prevention.
 - [x] Clone the parent runtime for the standard general-purpose child, copy context once by default, preserve a fresh-context option, hard-deny every spawning tool, and force-enable `ask_parent`.
 - [x] Persist the session, resolved manifest, owner state, activity state, terminal state, and request/response mailboxes under the managed Side Quests storage root.
-- [x] Support autonomous and initially interactive lifecycles, permanent promotion through explicit resume or accepted direct terminal input, and no promotion from incidental or programmatic input.
+- [x] Support autonomous and initially interactive lifecycles, permanent promotion only through accepted direct terminal input after creation, no demotion, and no promotion from resume, incidental input, or programmatic input.
 - [x] Register child-only `/subagent-done` exactly when persisted interactive lifecycle permits it; reject arguments, refuse active-turn completion, and complete idle interactive work without deleting its session or pending request.
 - [x] Make `ask_parent` accept one correlated request, return without terminating the child turn, preserve sibling tool execution, reject a second pending request, wake the parent, and accept its matching answer only through `Agent.resume`.
 - [x] Render the complete restrained parent widget and child identity widget with elapsed time, identity, task, lifecycle/activity, reply state, exact padding and column alignment, and task-first narrow-width truncation.
@@ -71,7 +71,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [ ] Refresh the registration-time enum after reload so it always contains `general-purpose` plus every valid enabled non-general-purpose name.
 - [ ] Resolve exact model, thinking, tool allowlist and denylist, lazy skills, preloaded skills, context, lifecycle, display name, and body instructions from the parent baseline.
 - [ ] Reject unknown models, tools, and skills before pane or session creation; clamp valid thinking levels through Pi's native behavior.
-- [ ] Permanently hard-deny spawning tools, force-enable `ask_parent`, and preserve the immutable resolved policy in the child manifest.
+- [ ] Permanently hard-deny spawning tools, force-enable `ask_parent`, and preserve resolved identity, context choice, lifecycle, capabilities, and prompt policy across resume. Reject `subagent_type`, `inherit_context`, and `interactive` on resume; only accepted direct terminal input can promote lifecycle after creation.
 - [ ] Add table-driven policy tests for every supported field covering omission, YAML null, empty string, valid empty collection where applicable, valid value, and invalid type for both `general-purpose` and named definitions.
 - [ ] E2E-demo a description-only named definition and prove that omitted runtime fields inherit the parent-derived baseline while the distinct identity and catalog description remain.
 - [ ] E2E-demo a valid `general-purpose.md` with omitted optional fields and an absent or empty Markdown body; cover both omitted and explicit `general-purpose` launches.
@@ -151,6 +151,12 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [ ] Leave the specification, map amendments, resolved design tickets, README, package behavior, and test evidence consistent with each other.
 
 ## Backlog
+
+### Open closed sub-agent sessions interactively
+
+**Status:** deferred
+
+**What to discuss later:** Add a human-only surface for opening a stopped autonomous sub-agent session as interactive. Decide whether this belongs in `/side-quests`, a separate command, or another explicit user flow; how the human selects a retained session safely; and how it interacts with canonical paths, human-friendly references, pending requests, duplicate-process prevention, and focus preservation. `Agent.resume` must remain unable to change lifecycle, and closed autonomous sessions have no interactive reopen surface until this feature is specified.
 
 ### Human-friendly sub-agent references
 

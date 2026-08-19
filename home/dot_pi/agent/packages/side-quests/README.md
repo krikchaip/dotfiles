@@ -92,11 +92,11 @@ Side Quests exposes one model tool named `Agent`.
 
 ### Optional fields
 
-- `subagent_type` selects `general-purpose` or a named agent.
+- `subagent_type` selects `general-purpose` or a named agent for a new launch.
 - Omit `subagent_type` for the normal general-purpose form. Explicit `general-purpose` behaves identically.
 - `resume` continues a saved sub-agent session by its absolute `session.jsonl` path.
-- `inherit_context` controls whether a new child receives the parent conversation.
-- `interactive` controls whether the child stays open after its current work ends.
+- `inherit_context` controls whether a new child receives the parent conversation. It is valid only on a new launch.
+- `interactive` controls whether a new child stays open after its current work ends. It is valid only on a new launch.
 
 Unknown fields are rejected. An unknown or invalid `subagent_type`, or a disabled named agent, fails before Side Quests creates a pane or session. `Agent` does not accept per-call model, thinking, tools, skills, working directory, turn limit, system prompt, isolation, worktree, or background-mode settings.
 
@@ -135,10 +135,10 @@ When `resume` is present:
 - `prompt` is the continuation message.
 - `description` becomes the current task label.
 - `subagent_type` is rejected because the saved session already owns its identity.
-- `inherit_context` is rejected because the saved session already owns its conversation.
-- Omitted `interactive` keeps the current lifecycle mode.
-- `interactive: true` permanently promotes the session.
-- `interactive: false` cannot demote an interactive session.
+- `inherit_context` is rejected because the saved session already owns its conversation choice.
+- `interactive` is rejected because the saved session already owns its lifecycle.
+
+The whole call fails if any of these new-launch-only fields is present. Resume cannot change identity, context choice, lifecycle, capabilities, or prompt policy.
 
 Every `Agent.resume` prompt is stored as a custom continuation message, not as a user-authored message. Delivery depends on child state:
 
@@ -427,17 +427,16 @@ The box shows:
 - Tool permissions stay unchanged during takeover.
 - Use `/subagent-done` when the work is complete.
 
-Two explicit actions permanently promote an autonomous child to interactive:
+After creation, only one action permanently promotes an autonomous child to interactive:
 
-- Call `Agent.resume` with `interactive: true`.
-- Submit an accepted, non-command prompt directly in the child terminal.
+- Submit an accepted, non-command prompt directly in the live child terminal.
 
 These actions do not promote it:
 
 - Typing or editing without submission
 - Pasting or navigation
 - Running an extension command
-- Receiving a parent continuation with `interactive` omitted
+- Any `Agent.resume` continuation
 - Receiving any other extension-injected message
 
 ### `/subagent-done`
@@ -448,9 +447,8 @@ Command availability follows the child's current persisted lifecycle:
 
 - A child launched with `interactive: true` registers the command during startup.
 - An autonomous child does not register or show the command.
-- Calling `Agent.resume` with `interactive: true` promotes an autonomous child and registers the command immediately.
 - When an autonomous child accepts a direct non-command prompt, it becomes interactive and registers the command immediately, even though the new turn is active.
-- Interactive state and command availability survive `/reload` and session reopen. The original launch option does not override a later promotion.
+- Interactive state and command availability survive `/reload` and session reopen. Resume cannot change or demote lifecycle.
 
 The command takes no arguments:
 
@@ -683,8 +681,8 @@ Persistent data:
 
 - `session.jsonl` contains the Pi child session.
 - `manifest.json` contains identity, lineage, CWD, lifecycle, model, thinking, exact tools, skills, prompt policy, and schema version.
-- Resolved capability and prompt-policy fields stay immutable.
-- Continuation can update only the task label and permanent lifecycle promotion.
+- Resume cannot change resolved identity, context choice, lifecycle, capabilities, or prompt policy.
+- Continuation can update only the task label. Human terminal takeover can persist permanent lifecycle promotion.
 - Unanswered requests remain until they receive a matching response.
 
 Replaceable runtime data:
@@ -740,4 +738,5 @@ Side Quests does not include:
 - Bundled agents, cross-session agent memory, or fuzzy model matching
 - Alternate transcripts or ephemeral child sessions
 - Automatic age-based cleanup or a session-deletion UI
+- A human surface for reopening a stopped autonomous session as interactive
 - A dense fleet dashboard or a child tool-list widget
