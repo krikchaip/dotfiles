@@ -87,6 +87,7 @@ alias ta = tmux attach
 alias tan = tmux new -A -s
 alias tas = tmux attach -t
 alias tk = tmux kill-server
+alias tka = pkill -u $env.USER -x tmux
 alias tl = tmux ls
 alias tn = tmux new
 alias tns = tmux new -s
