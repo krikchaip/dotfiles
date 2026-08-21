@@ -9,6 +9,7 @@ import {
   type ExtensionAPI,
   type Theme,
   ToolExecutionComponent,
+  initTheme,
 } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, expect, test } from "vitest";
@@ -261,6 +262,28 @@ test("Agent results render independently while other tools stay delegated", () =
   );
   expect(styled).toContain(`\u001B[dimmsession path: ${path}\u001B[39m`);
   expect(styled).toContain("\u001B[dimmCheck both extension modes.\u001B[39m");
+
+  initTheme("dark", false);
+  const collapsedStyled = renderedText(
+    agentRenderer?.(
+      { content: [], details: { sessionPath: path } },
+      { expanded: false, isPartial: false },
+      styledTheme,
+      {
+        args: {
+          description: "standalone result",
+          inherit_context: false,
+          interactive: true,
+          prompt: "Check both extension modes.",
+        },
+        isError: false,
+      },
+    ),
+  );
+  expect(collapsedStyled).toContain("\u001B[mdHeadingm⌨ interactive\u001B[39m");
+  expect(collapsedStyled).not.toContain(
+    "\u001B[accentm⌨ interactive\u001B[39m",
+  );
 
   expect(
     rendererFor("getResultRenderer", {

@@ -330,7 +330,8 @@ export class AgentRenderer {
     context: unknown,
   ): Text {
     const renderContext = context as
-      { isError?: boolean; isPartial?: boolean } | undefined;
+      | { isError?: boolean; isPartial?: boolean }
+      | undefined;
     const statusColor = renderContext?.isError ? "error" : "success";
     const statusGlyph = "●";
 
@@ -396,7 +397,7 @@ export class AgentRenderer {
     const statuses = AgentRenderer.collapsedStatuses(args, path).map((label) =>
       label === "inherited"
         ? theme.fg("success", "⧉ inherited")
-        : theme.fg("accent", "⌨ interactive"),
+        : theme.fg("mdHeading", "⌨ interactive"),
     );
     const status = statuses.length
       ? `${statuses.join(theme.fg("dim", " · "))}${theme.fg("dim", " • ")}`
