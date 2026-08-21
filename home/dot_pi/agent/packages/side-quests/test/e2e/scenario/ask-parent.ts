@@ -36,9 +36,14 @@ export const askParent: Scenario = {
             "- Call ask_parent again only after the parent response arrives as a continuation message.",
           )
             ? fauxAssistantMessage(
-                fauxToolCall("ask_parent", {
-                  prompt: "Which color should I use?",
-                }),
+                [
+                  fauxToolCall("ask_parent", {
+                    prompt: "Which color should I use?",
+                  }),
+                  fauxToolCall("ask_parent", {
+                    prompt: "Can I ask a second question now?",
+                  }),
+                ],
                 { stopReason: "toolUse" },
               )
             : fauxAssistantMessage(
@@ -89,7 +94,30 @@ export const askParent: Scenario = {
   },
   async run(harness: E2EHarness) {
     const childPane = await harness.childPane();
+    const error = "A parent question is already pending for this subagent.";
+
     await harness.waitFor("Subagent asks: Which color should I use?");
+    await harness.waitFor(error, 5_000, childPane);
+
+    const collapsed = await harness.capture(childPane);
+    const collapsedError = collapsed
+      .split("\n")
+      .find((line) => line.includes(error));
+    harness.assert(
+      collapsedError !== undefined && !collapsedError.includes("to expand"),
+      "The collapsed ask_parent error showed a redundant expansion hint.",
+    );
+
+    await harness.sendKeys(childPane, "C-o");
+    const expanded = await harness.capture(childPane);
+    const expandedError = expanded
+      .split("\n")
+      .find((line) => line.includes(error));
+    harness.assert(
+      expandedError?.trim() === collapsedError.trim(),
+      "Expanding changed the ask_parent error message.",
+    );
+
     await harness.waitForStoredText("Parent answer applied: blue.");
     await harness.sendLiteral(childPane, "/subagent-done", true);
     await harness.waitFor("Subagent completed:");

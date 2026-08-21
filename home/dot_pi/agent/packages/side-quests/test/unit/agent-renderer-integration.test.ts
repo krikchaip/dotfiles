@@ -46,8 +46,9 @@ const styledTheme = {
   fg: (color: string, text: string) => `\u001B[${color}m${text}\u001B[39m`,
 } as Theme;
 
-function baseCallGetter(this: RendererOwner): Renderer {
+function baseCallGetter(this: RendererOwner): Renderer | undefined {
   const toolName = this.toolName;
+  if (toolName === "Agent") return undefined;
   return (args: unknown) => ({ args, source: "base", toolName });
 }
 
@@ -99,7 +100,8 @@ afterEach(() => {
 
 test("register installs independently", () => {
   let sessionStart:
-    ((event: unknown, context: { mode: string }) => void) | undefined;
+    | ((event: unknown, context: { mode: string }) => void)
+    | undefined;
   const pi = {
     on(event: string, handler: typeof sessionStart) {
       if (event === "session_start") sessionStart = handler;
@@ -178,6 +180,40 @@ test("Agent calls expose canonical text to transcript composers", () => {
   );
 });
 
+test("Agent calls delegate status chrome to the active renderer", () => {
+  prototype.getCallRenderer = function hostCallGetter() {
+    return (args: unknown, theme: unknown, context: unknown) => {
+      const display = args as { description?: string };
+      const renderTheme = theme as Theme;
+      const renderContext = context as { isPartial?: boolean };
+      const color = renderContext.isPartial ? "dim" : "success";
+
+      return new Text(
+        `${renderTheme.fg(color, "●")} Agent ${display.description}`,
+        0,
+        0,
+      );
+    };
+  };
+
+  expect(AgentRenderer.install()).toBe(true);
+
+  const renderer = rendererFor("getCallRenderer", { toolName: "Agent" });
+  const rendered = renderer?.(
+    {
+      description: "host renderer",
+      prompt: "Render it.",
+      subagent_type: "general-purpose",
+    },
+    styledTheme,
+    { isPartial: true },
+  );
+
+  expect(renderedText(rendered)).toContain(
+    "\u001B[dimm●\u001B[39m Agent general-purpose :: host renderer",
+  );
+});
+
 test("Agent results render independently while other tools stay delegated", () => {
   expect(AgentRenderer.install()).toBe(true);
   const path = "/tmp/standalone/session.jsonl";
@@ -234,15 +270,26 @@ test("Agent results render independently while other tools stay delegated", () =
   ).toEqual({ result: { content: [] }, source: "base", toolName: "read" });
 });
 
-test("Agent errors stay delegated to the active renderer stack", () => {
+test("Side Quests tool errors omit the redundant expansion hint", () => {
   expect(AgentRenderer.install()).toBe(true);
   const error = { content: [{ type: "text", text: "Synthetic failure." }] };
-  expect(
-    rendererFor("getResultRenderer", {
+
+  for (const toolName of ["Agent", "ask_parent"]) {
+    const renderer = rendererFor("getResultRenderer", {
       result: { isError: true },
-      toolName: "Agent",
-    })?.(error),
-  ).toEqual({ result: error, source: "base", toolName: "Agent" });
+      toolName,
+    });
+    const collapsed = renderedText(
+      renderer?.(error, { expanded: false }, theme, {}),
+    ).trimEnd();
+    const expanded = renderedText(
+      renderer?.(error, { expanded: true }, theme, {}),
+    ).trimEnd();
+
+    expect(collapsed).toBe("└ Synthetic failure.");
+    expect(expanded).toBe(collapsed);
+    expect(collapsed).not.toContain("to expand");
+  }
 });
 
 test("installation is idempotent and recovers after another renderer loads", () => {
@@ -272,7 +319,7 @@ test("installation is idempotent and recovers after another renderer loads", () 
   expect(
     rendererFor("getResultRenderer", {
       result: { isError: true },
-      toolName: "Agent",
+      toolName: "read",
     })?.({}),
   ).toEqual({ source: "external" });
 });

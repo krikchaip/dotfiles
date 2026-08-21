@@ -143,8 +143,13 @@ export class AgentRenderer {
     const getCallRenderer = function getAgentCallRenderer(
       this: RendererOwner,
     ): unknown {
-      if (this.toolName === "Agent") return AgentRenderer.renderCall;
-      return rendererState.originalGetCallRenderer?.call(this);
+      const original = rendererState.originalGetCallRenderer?.call(this);
+
+      if (this.toolName !== "Agent") return original;
+      if (typeof original !== "function") return AgentRenderer.renderCall;
+
+      return (args: unknown, theme: unknown, context: unknown) =>
+        original(AgentRenderer.hostArgs(args), theme, context);
     };
 
     const getResultRenderer = function getAgentResultRenderer(
@@ -152,9 +157,13 @@ export class AgentRenderer {
     ): unknown {
       const original = rendererState.originalGetResultRenderer?.call(this);
 
-      if (this.toolName !== "Agent") return original;
-      if (this.isPartial === true || this.result?.isError === true)
-        return original;
+      const isSideQuestsTool =
+        this.toolName === "Agent" || this.toolName === "ask_parent";
+
+      if (!isSideQuestsTool) return original;
+      if (this.isPartial === true) return original;
+      if (this.result?.isError === true) return AgentRenderer.renderError;
+      if (this.toolName === "ask_parent") return original;
 
       return AgentRenderer.renderResult;
     };
@@ -268,6 +277,18 @@ export class AgentRenderer {
   }
 
   /**
+   * Supplies the stable Agent summary while preserving host renderer control.
+   */
+  private static hostArgs(args: unknown): unknown {
+    if (typeof args !== "object" || args === null) return args;
+
+    return {
+      ...(args as Record<string, unknown>),
+      description: AgentRenderer.summary(args),
+    };
+  }
+
+  /**
    * Resolves persisted values before passed parameters and launch defaults.
    */
   private static statuses(args: unknown, path: string): AgentStatuses {
@@ -316,6 +337,20 @@ export class AgentRenderer {
     return new ToolCallText(
       `${theme.fg(statusColor, statusGlyph)} ${theme.fg("toolTitle", theme.bold("Agent"))} ${theme.fg("accent", AgentRenderer.summary(args))}`,
     );
+  }
+
+  /**
+   * Renders the same Agent error body in collapsed and expanded modes.
+   */
+  private static renderError(
+    result: unknown,
+    _options: unknown,
+    theme: Theme,
+  ): Text {
+    const message = AgentRenderer.textContent(result).trim() || "Agent failed.";
+    const lines = message.split("\n").map((line) => theme.fg("error", line));
+
+    return new Text(AgentRenderer.branchText(lines, theme), 0, 0);
   }
 
   /**
