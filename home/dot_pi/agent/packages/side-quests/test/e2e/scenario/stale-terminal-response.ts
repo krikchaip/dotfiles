@@ -12,7 +12,9 @@ export const staleTerminalResponse: Scenario = {
     });
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("Subagent reopened. Session:");
+    await harness.waitFor(
+      "Agent general-purpose (resumed) :: Reopen the E2E delegated task",
+    );
     await harness.childPane();
     await harness.waitFor("Subagent failed:");
     await harness.sendParentKeys("C-o");

@@ -14,7 +14,9 @@ export const programmaticContinuation: Scenario = {
     });
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("Subagent continued. Session:");
+    await harness.waitFor(
+      "Agent general-purpose (resumed) :: Continue the E2E delegated task",
+    );
     await harness.childPane();
 
     const manifest = harness.filesNamed("manifest.json")[0];

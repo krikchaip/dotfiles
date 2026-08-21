@@ -4,6 +4,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
 
+import { AgentRenderer } from "../agent-renderer.ts";
 import { CHILD_WIDGET_ID, WidgetStackSpacing } from "../widget-spacing.ts";
 import type { ChildRuntime } from "./runtime.ts";
 
@@ -17,6 +18,7 @@ export class ChildUI {
    * Registers the child identity widget.
    */
   public static register(pi: ExtensionAPI, runtime: ChildRuntime): ChildUI {
+    AgentRenderer.register(pi);
     WidgetStackSpacing.install();
 
     const ui = new ChildUI(pi, runtime);

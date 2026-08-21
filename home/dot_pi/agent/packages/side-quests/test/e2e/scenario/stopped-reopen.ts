@@ -10,7 +10,9 @@ export const stoppedReopen: Scenario = {
     });
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("Subagent reopened. Session:");
+    await harness.waitFor(
+      "Agent general-purpose (resumed) :: Reopen the E2E delegated task",
+    );
     await harness.waitFor("Subagent completed:");
     await harness.sendParentKeys("C-o");
     await harness.waitFor("Result: Reopened run completed.", 5_000);
