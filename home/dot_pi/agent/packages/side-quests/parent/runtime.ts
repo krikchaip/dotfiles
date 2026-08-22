@@ -292,8 +292,10 @@ export class ParentRuntime {
           {
             kind: "parent-request",
             childId: child.manifest.childId,
+            subagentType: child.manifest.agentName,
+            description: child.manifest.description,
+            question: request.prompt,
             sessionPath: child.manifest.sessionPath,
-            response: request.prompt,
           },
         );
       }

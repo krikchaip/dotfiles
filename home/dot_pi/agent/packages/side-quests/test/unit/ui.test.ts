@@ -1,3 +1,8 @@
+import {
+  type ExtensionAPI,
+  type Theme,
+  initTheme,
+} from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -55,7 +60,68 @@ function expectExactWidth(lines: readonly string[], width: number): void {
   for (const line of lines) expect(visibleWidth(line)).toBe(width);
 }
 
+type ResultRenderer = Parameters<ExtensionAPI["registerMessageRenderer"]>[1];
+
+function resultRenderer(): ResultRenderer {
+  let renderer: ResultRenderer | undefined;
+  const pi = {
+    on() {},
+    registerMessageRenderer(_customType: string, registered: ResultRenderer) {
+      renderer = registered;
+    },
+  } as unknown as ExtensionAPI;
+
+  ParentUI.register(pi, makeRuntime([]));
+  expect(renderer).toBeDefined();
+
+  return renderer as ResultRenderer;
+}
+
+const plainTheme = {
+  bg: (_color: string, text: string) => text,
+  bold: (text: string) => text,
+  fg: (_color: string, text: string) => text,
+} as Theme;
+const markedTheme = {
+  ...plainTheme,
+  fg: (color: string, text: string) =>
+    color === "dim" || color === "muted"
+      ? `<${color}>${text}</${color}>`
+      : text,
+} as Theme;
+
+function renderParentQuestion(options: {
+  readonly description: string;
+  readonly expanded?: boolean;
+  readonly question: string;
+  readonly sessionPath?: string;
+  readonly theme?: Theme;
+}): string {
+  const sessionPath = options.sessionPath ?? "/tmp/child/session.jsonl";
+  const component = resultRenderer()(
+    {
+      role: "custom",
+      customType: "side-quest-result",
+      content: `Subagent asks: ${options.question}\nResume: ${sessionPath}`,
+      display: true,
+      details: {
+        kind: "parent-request",
+        subagentType: "general-purpose",
+        description: options.description,
+        question: options.question,
+        sessionPath,
+      },
+      timestamp: NOW,
+    },
+    { expanded: options.expanded ?? false, outputPad: 0 },
+    options.theme ?? plainTheme,
+  );
+
+  return component?.render(500).join("\n") ?? "";
+}
+
 beforeEach(() => {
+  initTheme("dark", false);
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
 });
@@ -142,4 +208,58 @@ test("parent widget formats elapsed boundaries deterministically", () => {
 
   expect(rendered).toContain("01:02:03");
   expect(rendered).toContain("00:00:00");
+});
+
+test("collapsed parent questions use the identity-first banner and truncate after 240 characters", () => {
+  const question = "Q".repeat(241);
+  const description =
+    "Investigate the renderer behavior across narrow terminals, inherited history, and several concurrent parent decisions";
+  const rendered = renderParentQuestion({ description, question });
+
+  expect(rendered).toContain("SUBAGENT ASKS  general-purpose");
+  expect(rendered).toContain(description);
+  expect(rendered).toContain(`${"Q".repeat(240)}… `);
+  expect(rendered).toContain("to expand");
+  expect(rendered).not.toMatch(/… \([^)]*to expand\)/);
+  expect(rendered).not.toContain("Q".repeat(241));
+  expect(rendered).not.toContain("/tmp/child/session.jsonl");
+});
+
+test("collapsed parent questions use one muted hint tone and reserve dim for the key", () => {
+  const rendered = renderParentQuestion({
+    description: "Inspect truncation colors",
+    question: "Q".repeat(241),
+    theme: markedTheme,
+  });
+
+  expect(rendered).toContain("<muted>… </muted>");
+  expect(rendered).toMatch(/<dim>[^<]*<\/dim><muted> to expand<\/muted>/);
+});
+
+test("collapsed parent questions keep short questions without an ellipsis", () => {
+  const question = "Which color should I use?";
+  const rendered = renderParentQuestion({
+    description: "Choose the canonical accent color",
+    question,
+  });
+
+  expect(rendered).toContain(question);
+  expect(rendered).not.toContain(`${question}…`);
+  expect(rendered).not.toContain("to expand");
+});
+
+test("expanded parent questions show the full question and canonical session path", () => {
+  const question = "Q".repeat(241);
+  const sessionPath = "/tmp/child/canonical-session.jsonl";
+  const rendered = renderParentQuestion({
+    description: "Inspect all renderer states",
+    expanded: true,
+    question,
+    sessionPath,
+  });
+
+  expect(rendered).toContain(question);
+  expect(rendered).not.toContain(`${"Q".repeat(240)}…`);
+  expect(rendered).not.toContain("to expand");
+  expect(rendered).toContain(`session path: ${sessionPath}`);
 });
