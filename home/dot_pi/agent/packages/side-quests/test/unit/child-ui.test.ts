@@ -1,4 +1,8 @@
-import { type Theme, initTheme } from "@earendil-works/pi-coding-agent";
+import {
+  type ExtensionAPI,
+  type Theme,
+  initTheme,
+} from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -97,6 +101,20 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+test("child UI registers inherited side-quest event rendering", () => {
+  const customTypes: string[] = [];
+  const pi = {
+    on() {},
+    registerMessageRenderer(customType: string) {
+      customTypes.push(customType);
+    },
+  } as unknown as ExtensionAPI;
+
+  ChildUI.register(pi, makeRuntime());
+
+  expect(customTypes).toContain("side-quest-result");
 });
 
 test("child widget stays hidden below its minimum width", () => {

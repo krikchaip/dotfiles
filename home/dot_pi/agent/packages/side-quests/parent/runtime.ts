@@ -5,10 +5,10 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 
 import { CHILD_ID_ENV } from "../role.ts";
+import { RESULT_MESSAGE_TYPE } from "../side-quest-result-renderer.ts";
 import { RuntimeStore, type TerminalState } from "../store/runtime.ts";
 import { type ChildManifest, SessionStore } from "../store/session.ts";
 import { Tmux } from "../tmux.ts";
-import { RESULT_MESSAGE_TYPE } from "./ui.ts";
 
 /**
  * Describes a managed child and its tmux location.

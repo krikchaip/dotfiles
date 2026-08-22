@@ -5,6 +5,7 @@ import type {
 import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
 
 import { AgentRenderer } from "../agent-renderer.ts";
+import { SideQuestResultRenderer } from "../side-quest-result-renderer.ts";
 import { CHILD_WIDGET_ID, WidgetStackSpacing } from "../widget-spacing.ts";
 import type { ChildRuntime } from "./runtime.ts";
 
@@ -19,6 +20,7 @@ export class ChildUI {
    */
   public static register(pi: ExtensionAPI, runtime: ChildRuntime): ChildUI {
     AgentRenderer.register(pi);
+    SideQuestResultRenderer.register(pi);
     WidgetStackSpacing.install();
 
     const ui = new ChildUI(pi, runtime);
