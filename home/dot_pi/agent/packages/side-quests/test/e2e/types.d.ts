@@ -19,6 +19,7 @@ declare global {
     readonly lifecycle?: "interactive";
     readonly managed?: boolean;
     readonly outsideTmux?: boolean;
+    readonly persistSession?: boolean;
     readonly positionalPrompt?: string;
     readonly settings?: Readonly<Record<string, unknown>>;
   }

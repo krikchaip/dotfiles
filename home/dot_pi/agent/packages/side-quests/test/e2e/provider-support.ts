@@ -9,6 +9,7 @@ import {
 export interface BasicDelegation {
   readonly childResponse?: string;
   readonly description?: string;
+  readonly inheritContext?: boolean;
   readonly interactive?: boolean;
   readonly prompt?: string;
   readonly verifyAgentTool?: boolean;
@@ -35,6 +36,9 @@ export function configureBasicDelegation(
     fauxToolCall("Agent", {
       description: options.description ?? "E2E delegated task",
       prompt: options.prompt ?? "Complete the delegated E2E task.",
+      ...(options.inheritContext === undefined
+        ? {}
+        : { inherit_context: options.inheritContext }),
       ...(options.interactive ? { interactive: true } : {}),
     }),
     { stopReason: "toolUse" },

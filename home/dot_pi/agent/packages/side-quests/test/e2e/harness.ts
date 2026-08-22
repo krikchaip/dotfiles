@@ -332,14 +332,14 @@ export class E2EHarness {
       }
     }
 
-    const command = [
-      "pi",
-      "--no-session",
+    const command = ["pi"];
+    if (!process.persistSession) command.push("--no-session");
+    command.push(
       "--no-context-files",
       "--no-prompt-templates",
       "--no-themes",
       "--no-skills",
-    ];
+    );
 
     for (const extension of process.extensionsBefore ?? [])
       command.push("-e", resolve(this.options.root, extension));

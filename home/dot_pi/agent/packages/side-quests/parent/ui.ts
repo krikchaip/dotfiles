@@ -410,13 +410,15 @@ export class ParentUI {
     const children = runtime.children();
     if (!children.length || width < 4) return [];
 
-    const rows = children.map((child): WidgetRow => ({
-      childId: child.manifest.childId,
-      elapsed: ParentUI.elapsed(child.manifest.createdAt),
-      agent: child.manifest.displayName,
-      task: child.manifest.description,
-      state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
-    }));
+    const rows = children.map(
+      (child): WidgetRow => ({
+        childId: child.manifest.childId,
+        elapsed: ParentUI.elapsed(child.manifest.createdAt),
+        agent: child.manifest.displayName,
+        task: child.manifest.description,
+        state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
+      }),
+    );
 
     const innerWidth = width - 2;
     const markerWidth = Math.min(1, innerWidth);

@@ -127,7 +127,16 @@ afterEach(() => {
 
 test("register installs independently", () => {
   let sessionStart:
-    | ((event: unknown, context: { mode: string }) => void)
+    | ((
+        event: unknown,
+        context: {
+          mode: string;
+          ui: {
+            getToolsExpanded(): boolean;
+            setToolsExpanded(expanded: boolean): void;
+          };
+        },
+      ) => void)
     | undefined;
   const pi = {
     on(event: string, handler: typeof sessionStart) {
@@ -137,6 +146,19 @@ test("register installs independently", () => {
 
   AgentRenderer.register(pi);
   expect(sessionStart).toBeTypeOf("function");
+
+  const expansionChanges: boolean[] = [];
+  sessionStart?.(
+    {},
+    {
+      mode: "tui",
+      ui: {
+        getToolsExpanded: () => false,
+        setToolsExpanded: (expanded) => expansionChanges.push(expanded),
+      },
+    },
+  );
+  expect(expansionChanges).toEqual([true, false]);
 
   const hasRenderer = prototype.hasRendererDefinition as RendererGetter;
   expect(hasRenderer.call({ toolName: "Agent" })).toBe(true);
@@ -405,6 +427,35 @@ test("ask_parent components get an invisible host-grouping boundary", () => {
   expect(parent.render(80).join("\n")).toContain("ASK PARENT");
 });
 
+test("installation replaces an adapter owned by a stale module instance", () => {
+  expect(AgentRenderer.install()).toBe(true);
+  const staleCallAdapter = prototype.getCallRenderer;
+  const state = globals[PATCH_STATE] as { owner?: object };
+
+  state.owner = {};
+
+  expect(AgentRenderer.install()).toBe(true);
+  expect(prototype.getCallRenderer).not.toBe(staleCallAdapter);
+
+  const renderer = rendererFor("getCallRenderer", { toolName: "Agent" });
+  const rendered = renderedText(
+    renderer?.(
+      {
+        description: "Live interactive agent session",
+        interactive: true,
+        prompt: "Stand by in interactive mode. Await user instructions.",
+      },
+      theme,
+      { isPartial: false },
+    ),
+  );
+
+  expect(rendered).toContain(
+    "Agent general-purpose :: Live interactive agent session",
+  );
+  expect(rendered).not.toContain("general-purpose :: general-purpose");
+});
+
 test("installation is idempotent and recovers after another renderer loads", () => {
   expect(AgentRenderer.install()).toBe(true);
   const firstCallAdapter = prototype.getCallRenderer;
@@ -449,6 +500,24 @@ test("installation is idempotent and recovers after another renderer loads", () 
   expect(rendererFor("getCallRenderer", { toolName: "read" })?.({})).toEqual({
     source: "external",
   });
+
+  const inheritedAgent = renderedText(
+    rendererFor("getCallRenderer", { toolName: "Agent" })?.(
+      {
+        description: "Live inherited agent session",
+        inherit_context: true,
+        interactive: true,
+        prompt: "Stand by in interactive mode. Await user instructions.",
+      },
+      theme,
+      { isPartial: false },
+    ),
+  );
+  expect(inheritedAgent).toContain(
+    "Agent general-purpose :: Live inherited agent session",
+  );
+  expect(inheritedAgent).not.toContain("general-purpose :: general-purpose");
+
   expect(
     rendererFor("getResultRenderer", {
       result: { isError: true },

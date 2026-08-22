@@ -9,6 +9,7 @@ import { fatalAutonomous } from "./scenario/fatal-autonomous.ts";
 import { fatalInteractive } from "./scenario/fatal-interactive.ts";
 import { focusPreservation } from "./scenario/focus-preservation.ts";
 import { idleContinuation } from "./scenario/idle-continuation.ts";
+import { inheritedAgentRenderer } from "./scenario/inherited-agent-renderer.ts";
 import { interactive } from "./scenario/interactive.ts";
 import { lifecycle } from "./scenario/lifecycle.ts";
 import { narrowWidgets } from "./scenario/narrow-widgets.ts";
@@ -59,6 +60,7 @@ export const scenarios: readonly Scenario[] = [
   narrowWidgets,
   widgetSpacing,
   resultExpansion,
+  inheritedAgentRenderer,
   focusPreservation,
 ];
 

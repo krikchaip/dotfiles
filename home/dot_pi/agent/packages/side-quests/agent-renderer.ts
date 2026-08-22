@@ -9,7 +9,9 @@ import { Container, Text } from "@earendil-works/pi-tui";
 import { AskParentRenderer } from "./ask-parent-renderer.ts";
 import { SessionStore } from "./store/session.ts";
 
+const AGENT_CALL_RENDERER = Symbol.for("side-quests:agent-call-renderer");
 const PATCH_STATE = Symbol.for("side-quests:agent-renderer-state");
+const PATCH_OWNER = {};
 
 type RendererOwner = {
   isPartial?: unknown;
@@ -17,6 +19,9 @@ type RendererOwner = {
   toolName?: unknown;
 };
 type AddChild = (this: unknown, component: unknown) => unknown;
+type AgentCallRenderer = ((...args: unknown[]) => unknown) & {
+  [AGENT_CALL_RENDERER]?: true;
+};
 type RendererGetter = (this: RendererOwner) => unknown;
 type MutablePrototype = Record<PropertyKey, unknown>;
 
@@ -42,6 +47,7 @@ type RefreshContext = Readonly<{
 
 interface RendererState {
   installed: boolean;
+  owner?: object;
   installedAddChild?: AddChild;
   installedGetCallRenderer?: RendererGetter;
   installedGetRenderShell?: RendererGetter;
@@ -116,6 +122,7 @@ export class AgentRenderer {
 
     if (
       rendererState.installed &&
+      rendererState.owner === PATCH_OWNER &&
       ownsAddChild &&
       ownsCallRenderer &&
       ownsRenderShell &&
@@ -167,6 +174,10 @@ export class AgentRenderer {
       originalGetResultRenderer as RendererGetter;
     const delegatedHasRendererDefinition =
       originalHasRendererDefinition as RendererGetter;
+    const sideQuestsCallRenderer =
+      AgentRenderer.renderCall as AgentCallRenderer;
+
+    sideQuestsCallRenderer[AGENT_CALL_RENDERER] = true;
 
     rendererState.originalAddChild = delegatedAddChild;
     rendererState.originalGetCallRenderer = delegatedGetCallRenderer;
@@ -204,7 +215,9 @@ export class AgentRenderer {
 
       if (this.toolName === "ask_parent") return AskParentRenderer.renderCall;
       if (this.toolName !== "Agent") return original;
-      if (typeof original !== "function") return AgentRenderer.renderCall;
+      if (typeof original !== "function") return sideQuestsCallRenderer;
+      if ((original as AgentCallRenderer)[AGENT_CALL_RENDERER] === true)
+        return sideQuestsCallRenderer;
 
       return (args: unknown, theme: unknown, context: unknown) =>
         original(AgentRenderer.hostArgs(args), theme, context);
@@ -237,6 +250,7 @@ export class AgentRenderer {
     prototype.getResultRenderer = getResultRenderer;
 
     rendererState.installed = true;
+    rendererState.owner = PATCH_OWNER;
     rendererState.installedAddChild = addChild;
     rendererState.installedHasRendererDefinition = hasRendererDefinition;
     rendererState.installedGetCallRenderer = getCallRenderer;
@@ -310,7 +324,10 @@ export class AgentRenderer {
    */
   private installEventListeners(): void {
     this.pi.on("session_start", (_event, context) => {
-      if (context.mode === "tui") AgentRenderer.install();
+      if (context.mode !== "tui") return;
+
+      AgentRenderer.install();
+      AgentRenderer.refresh(context);
     });
   }
 
