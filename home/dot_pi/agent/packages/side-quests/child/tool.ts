@@ -1,6 +1,7 @@
 import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
+import { AskParentRenderer } from "../ask-parent-renderer.ts";
 import type { ChildRuntime } from "./runtime.ts";
 
 /**
@@ -50,6 +51,9 @@ export class ChildTools {
       ),
 
       executionMode: "parallel",
+      renderShell: "self",
+      renderCall: AskParentRenderer.renderCall,
+      renderResult: AskParentRenderer.renderResult,
       execute: async (_callId, params) => {
         this.runtime.askParent(params.prompt);
 

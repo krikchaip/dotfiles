@@ -92,9 +92,7 @@ export const persistentState: Scenario = {
     process.kill(childPid, "SIGSTOP");
 
     try {
-      await harness.waitFor(
-        "Subagent asks: Which persistence value should I use?",
-      );
+      await harness.waitFor("Which persistence value should I use?");
       await harness.waitUntil(
         "the parent response to persist while the child is paused",
         () => harness.filesNamed("response.json").length === 1,

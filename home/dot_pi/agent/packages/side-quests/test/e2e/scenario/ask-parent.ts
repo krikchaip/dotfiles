@@ -7,6 +7,8 @@ import {
 import { sessionPath } from "../provider-support.ts";
 
 const positionalPrompt = "Delegate this E2E task now.";
+const parentQuestion =
+  "Before I update the renderer, should I preserve every explicit field label from the old transcript, or should I use the selected identity-first layout for all new questions? The choice affects narrow terminals, existing saved sessions, Unicode wrapping, continuation prompts, and how quickly the parent can find the decision that blocks the subagent. Please choose the compatibility rule that should be canonical.";
 
 export const askParent: Scenario = {
   name: "ask-parent",
@@ -38,7 +40,7 @@ export const askParent: Scenario = {
             ? fauxAssistantMessage(
                 [
                   fauxToolCall("ask_parent", {
-                    prompt: "Which color should I use?",
+                    prompt: parentQuestion,
                   }),
                   fauxToolCall("ask_parent", {
                     prompt: "Can I ask a second question now?",
@@ -96,7 +98,75 @@ export const askParent: Scenario = {
     const childPane = await harness.childPane();
     const error = "A parent question is already pending for this subagent.";
 
-    await harness.waitFor("Subagent asks: Which color should I use?");
+    await harness.waitFor("SUBAGENT ASKS");
+    await harness.waitFor("general-purpose");
+    await harness.waitFor("E2E delegated task");
+    await harness.waitFor("Before I update the renderer");
+
+    const collapsedParent = await harness.capture();
+    harness.assert(
+      !collapsedParent.includes("session path:"),
+      "The collapsed subagent question exposed its session path.",
+    );
+    harness.assert(
+      collapsedParent.includes("to expand"),
+      "The truncated subagent question omitted its expansion hint.",
+    );
+
+    const styledCollapsedParent = harness.read(harness.logPath);
+    const questionStartWithStyle = styledCollapsedParent.lastIndexOf(
+      "Before I update the renderer",
+    );
+    const hintText = styledCollapsedParent.indexOf(
+      "to expand",
+      questionStartWithStyle,
+    );
+    const ellipsis = styledCollapsedParent.lastIndexOf("…", hintText);
+    const key = collapsedParent.match(/… (\S+) to expand/)?.[1] ?? "";
+    const keyStart = styledCollapsedParent.indexOf(key, ellipsis);
+    const activeStyleAt = (index: number) => {
+      const styleStart = styledCollapsedParent.lastIndexOf("\u001B[", index);
+      const styleEnd = styledCollapsedParent.indexOf("m", styleStart);
+      return styledCollapsedParent.slice(styleStart, styleEnd + 1);
+    };
+    harness.assert(
+      questionStartWithStyle >= 0 &&
+        ellipsis >= 0 &&
+        key.length > 0 &&
+        keyStart >= 0 &&
+        hintText >= 0,
+      "The styled subagent-question hint could not be located.",
+    );
+    const hintStyle = activeStyleAt(ellipsis);
+    harness.assert(
+      activeStyleAt(hintText) === hintStyle,
+      "The ellipsis and non-key hint text did not use one muted style.",
+    );
+    harness.assert(
+      activeStyleAt(keyStart) !== hintStyle,
+      "The expansion key did not use its separate dim style.",
+    );
+
+    await harness.sendParentKeys("C-o");
+    await harness.waitFor("session path:");
+    const expandedParent = await harness.capture();
+    const questionStart = expandedParent.indexOf("SUBAGENT ASKS");
+    const nextAgentCall = expandedParent.indexOf(
+      "Answer the E2E child question",
+      questionStart,
+    );
+    const expandedQuestionBanner = expandedParent.slice(
+      Math.max(0, questionStart),
+      nextAgentCall >= 0 ? nextAgentCall : undefined,
+    );
+    harness.assert(
+      expandedQuestionBanner.includes("canonical."),
+      "The expanded subagent question omitted its complete text.",
+    );
+    harness.assert(
+      !expandedQuestionBanner.includes("to expand"),
+      "The expanded subagent question retained its expansion hint.",
+    );
     await harness.waitFor(error, 5_000, childPane);
 
     const collapsed = await harness.capture(childPane);

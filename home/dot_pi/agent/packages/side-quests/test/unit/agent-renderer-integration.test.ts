@@ -11,7 +11,7 @@ import {
   ToolExecutionComponent,
   initTheme,
 } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { Container, Text } from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, expect, test } from "vitest";
 
 import { AgentRenderer } from "../../agent-renderer.ts";
@@ -27,22 +27,27 @@ type RendererOwner = {
 type RendererGetter = (this: RendererOwner) => unknown;
 type Prototype = Record<PropertyKey, unknown>;
 
+const containerPrototype = Container.prototype as unknown as Prototype;
 const prototype = ToolExecutionComponent.prototype as unknown as Prototype;
+let originalAddChildDescriptor: PropertyDescriptor | undefined;
 const originalDescriptors = new Map<
   PropertyKey,
   PropertyDescriptor | undefined
 >();
 const trackedProperties = [
   "getCallRenderer",
+  "getRenderShell",
   "getResultRenderer",
   "hasRendererDefinition",
 ] as const;
 const globals = globalThis as typeof globalThis & Record<PropertyKey, unknown>;
 const theme = {
+  bg: (_color: string, text: string) => text,
   bold: (text: string) => text,
   fg: (_color: string, text: string) => text,
 } as Theme;
 const styledTheme = {
+  bg: (color: string, text: string) => `\u001B[${color}m${text}\u001B[49m`,
   bold: (text: string) => `\u001B[1m${text}\u001B[22m`,
   fg: (color: string, text: string) => `\u001B[${color}m${text}\u001B[39m`,
 } as Theme;
@@ -60,6 +65,9 @@ function baseResultGetter(this: RendererOwner): Renderer {
 
 function installBaseRenderers(): void {
   prototype.getCallRenderer = baseCallGetter;
+  prototype.getRenderShell = function getRenderShell() {
+    return "default";
+  };
   prototype.getResultRenderer = baseResultGetter;
   prototype.hasRendererDefinition = function hasRendererDefinition() {
     return false;
@@ -79,7 +87,16 @@ function renderedText(value: unknown): string {
   return (value as Text).render(200).join("\n");
 }
 
+function renderedComponent(value: unknown): string {
+  expect(value).toHaveProperty("render");
+  return (value as { render(width: number): string[] }).render(500).join("\n");
+}
+
 beforeEach(() => {
+  originalAddChildDescriptor = Object.getOwnPropertyDescriptor(
+    containerPrototype,
+    "addChild",
+  );
   for (const property of trackedProperties)
     originalDescriptors.set(
       property,
@@ -91,6 +108,15 @@ beforeEach(() => {
 
 afterEach(() => {
   delete globals[PATCH_STATE];
+  if (originalAddChildDescriptor)
+    Object.defineProperty(
+      containerPrototype,
+      "addChild",
+      originalAddChildDescriptor,
+    );
+  else containerPrototype.addChild = undefined;
+  originalAddChildDescriptor = undefined;
+
   for (const property of trackedProperties) {
     const descriptor = originalDescriptors.get(property);
     if (descriptor) Object.defineProperty(prototype, property, descriptor);
@@ -293,26 +319,90 @@ test("Agent results render independently while other tools stay delegated", () =
   ).toEqual({ result: { content: [] }, source: "base", toolName: "read" });
 });
 
-test("Side Quests tool errors omit the redundant expansion hint", () => {
+test("Agent errors omit the redundant expansion hint", () => {
   expect(AgentRenderer.install()).toBe(true);
   const error = { content: [{ type: "text", text: "Synthetic failure." }] };
+  const renderer = rendererFor("getResultRenderer", {
+    result: { isError: true },
+    toolName: "Agent",
+  });
+  const collapsed = renderedText(
+    renderer?.(error, { expanded: false }, theme, {}),
+  ).trimEnd();
+  const expanded = renderedText(
+    renderer?.(error, { expanded: true }, theme, {}),
+  ).trimEnd();
 
-  for (const toolName of ["Agent", "ask_parent"]) {
-    const renderer = rendererFor("getResultRenderer", {
-      result: { isError: true },
-      toolName,
-    });
-    const collapsed = renderedText(
-      renderer?.(error, { expanded: false }, theme, {}),
-    ).trimEnd();
-    const expanded = renderedText(
-      renderer?.(error, { expanded: true }, theme, {}),
-    ).trimEnd();
+  expect(collapsed).toBe("└ Synthetic failure.");
+  expect(expanded).toBe(collapsed);
+  expect(collapsed).not.toContain("to expand");
+});
 
-    expect(collapsed).toBe("└ Synthetic failure.");
-    expect(expanded).toBe(collapsed);
-    expect(collapsed).not.toContain("to expand");
-  }
+test("historical ask_parent errors use the approved renderer without a registered tool", () => {
+  expect(AgentRenderer.install()).toBe(true);
+
+  const hasRenderer = prototype.hasRendererDefinition as RendererGetter;
+  const getRenderShell = prototype.getRenderShell as RendererGetter;
+  const owner = {
+    isPartial: false,
+    result: { isError: true },
+    toolName: "ask_parent",
+  };
+  const renderer = rendererFor("getResultRenderer", owner);
+  const rendered = renderedComponent(
+    renderer?.(
+      {
+        content: [
+          {
+            type: "text",
+            text: "A parent question is already pending for this subagent.",
+          },
+        ],
+      },
+      { expanded: false },
+      theme,
+      {
+        args: {
+          prompt:
+            "Can I send another detailed question before the first reply?",
+        },
+        isError: true,
+      },
+    ),
+  );
+
+  expect(hasRenderer.call(owner)).toBe(true);
+  expect(getRenderShell.call(owner)).toBe("self");
+  expect(rendered).toContain("ASK PARENT · ERROR");
+  expect(rendered).toContain(
+    "Can I send another detailed question before the first reply?",
+  );
+  expect(rendered).toContain(
+    "A parent question is already pending for this subagent.",
+  );
+});
+
+test("ask_parent components get an invisible host-grouping boundary", () => {
+  initTheme("dark", false);
+  expect(AgentRenderer.install()).toBe(true);
+
+  const parent = new Container();
+  const tool = new ToolExecutionComponent(
+    "ask_parent",
+    "historical-ask-parent",
+    { prompt: "Which renderer should historical sessions use?" },
+    undefined,
+    undefined,
+    { requestRender() {} } as never,
+    process.cwd(),
+  );
+
+  parent.addChild(tool);
+
+  expect(parent.children).toHaveLength(2);
+  expect(parent.children[0]?.render(80)).toEqual([]);
+  expect(parent.children[1]).toBe(tool);
+  expect(parent.render(80).join("\n")).toContain("ASK PARENT");
 });
 
 test("installation is idempotent and recovers after another renderer loads", () => {
@@ -324,18 +414,38 @@ test("installation is idempotent and recovers after another renderer loads", () 
   expect(prototype.getCallRenderer).toBe(firstCallAdapter);
   expect(prototype.getResultRenderer).toBe(firstResultAdapter);
 
+  const delegatedAddChild = containerPrototype.addChild as (
+    this: Container,
+    component: Text,
+  ) => unknown;
+  const delegatedCallGetter = prototype.getCallRenderer as RendererGetter;
+  const delegatedResultGetter = prototype.getResultRenderer as RendererGetter;
+  const externalAddChild = function externalAddChild(
+    this: Container,
+    component: Text,
+  ): unknown {
+    return delegatedAddChild.call(this, component);
+  };
   const externalCallGetter: RendererGetter = function externalCallGetter() {
-    return () => ({ source: "external" });
+    if (this.toolName === "read") return () => ({ source: "external" });
+    return delegatedCallGetter.call(this);
   };
   const externalResultGetter: RendererGetter = function externalResultGetter() {
-    return () => ({ source: "external" });
+    if (this.toolName === "read") return () => ({ source: "external" });
+    return delegatedResultGetter.call(this);
   };
+  containerPrototype.addChild = externalAddChild;
   prototype.getCallRenderer = externalCallGetter;
   prototype.getResultRenderer = externalResultGetter;
 
   expect(AgentRenderer.install()).toBe(true);
+  expect(containerPrototype.addChild).not.toBe(externalAddChild);
   expect(prototype.getCallRenderer).not.toBe(externalCallGetter);
   expect(prototype.getResultRenderer).not.toBe(externalResultGetter);
+
+  const parent = new Container();
+  parent.addChild(new Text("stable", 0, 0));
+  expect(parent.render(80).map((line) => line.trimEnd())).toEqual(["stable"]);
   expect(rendererFor("getCallRenderer", { toolName: "read" })?.({})).toEqual({
     source: "external",
   });

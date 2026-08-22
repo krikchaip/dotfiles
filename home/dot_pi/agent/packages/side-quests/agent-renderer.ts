@@ -4,8 +4,9 @@ import {
   ToolExecutionComponent,
   keyHint,
 } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { Container, Text } from "@earendil-works/pi-tui";
 
+import { AskParentRenderer } from "./ask-parent-renderer.ts";
 import { SessionStore } from "./store/session.ts";
 
 const PATCH_STATE = Symbol.for("side-quests:agent-renderer-state");
@@ -15,8 +16,9 @@ type RendererOwner = {
   result?: { isError?: unknown };
   toolName?: unknown;
 };
+type AddChild = (this: unknown, component: unknown) => unknown;
 type RendererGetter = (this: RendererOwner) => unknown;
-type RendererPrototype = Record<PropertyKey, unknown>;
+type MutablePrototype = Record<PropertyKey, unknown>;
 
 type AgentDisplay = Readonly<{
   description: string;
@@ -40,10 +42,14 @@ type RefreshContext = Readonly<{
 
 interface RendererState {
   installed: boolean;
+  installedAddChild?: AddChild;
   installedGetCallRenderer?: RendererGetter;
+  installedGetRenderShell?: RendererGetter;
   installedGetResultRenderer?: RendererGetter;
   installedHasRendererDefinition?: RendererGetter;
+  originalAddChild?: AddChild;
   originalGetCallRenderer?: RendererGetter;
+  originalGetRenderShell?: RendererGetter;
   originalGetResultRenderer?: RendererGetter;
   originalHasRendererDefinition?: RendererGetter;
 }
@@ -57,8 +63,16 @@ class ToolCallText extends Text {
   }
 }
 
+/** Prevents host extensions from grouping an ask_parent banner. */
+class ToolGroupingBoundary extends Text {
+  public constructor() {
+    super("", 0, 0);
+  }
+}
+
 /**
- * Owns Agent tool rendering and composition with the active renderer stack.
+ * Owns Side Quests tool rendering and composition with the active renderer
+ * stack.
  */
 export class AgentRenderer {
   /** Caches persisted launch options by canonical child session path. */
@@ -84,10 +98,16 @@ export class AgentRenderer {
    */
   public static install(): boolean {
     const rendererState = AgentRenderer.state();
+    const containerPrototype =
+      Container.prototype as unknown as MutablePrototype;
     const prototype =
-      ToolExecutionComponent.prototype as unknown as RendererPrototype;
+      ToolExecutionComponent.prototype as unknown as MutablePrototype;
+    const ownsAddChild =
+      containerPrototype.addChild === rendererState.installedAddChild;
     const ownsCallRenderer =
       prototype.getCallRenderer === rendererState.installedGetCallRenderer;
+    const ownsRenderShell =
+      prototype.getRenderShell === rendererState.installedGetRenderShell;
     const ownsResultRenderer =
       prototype.getResultRenderer === rendererState.installedGetResultRenderer;
     const ownsRendererDefinition =
@@ -96,18 +116,30 @@ export class AgentRenderer {
 
     if (
       rendererState.installed &&
+      ownsAddChild &&
       ownsCallRenderer &&
+      ownsRenderShell &&
       ownsResultRenderer &&
       ownsRendererDefinition
     ) {
       return true;
     }
 
+    const originalAddChild = ownsAddChild
+      ? rendererState.originalAddChild
+      : rendererState.installed
+        ? containerPrototype.addChild
+        : (rendererState.originalAddChild ?? containerPrototype.addChild);
     const originalGetCallRenderer = ownsCallRenderer
       ? rendererState.originalGetCallRenderer
       : rendererState.installed
         ? prototype.getCallRenderer
         : (rendererState.originalGetCallRenderer ?? prototype.getCallRenderer);
+    const originalGetRenderShell = ownsRenderShell
+      ? rendererState.originalGetRenderShell
+      : rendererState.installed
+        ? prototype.getRenderShell
+        : (rendererState.originalGetRenderShell ?? prototype.getRenderShell);
     const originalGetResultRenderer = ownsResultRenderer
       ? rendererState.originalGetResultRenderer
       : rendererState.installed
@@ -119,32 +151,58 @@ export class AgentRenderer {
       : prototype.hasRendererDefinition;
 
     if (
+      typeof originalAddChild !== "function" ||
       typeof originalGetCallRenderer !== "function" ||
+      typeof originalGetRenderShell !== "function" ||
       typeof originalGetResultRenderer !== "function" ||
       typeof originalHasRendererDefinition !== "function"
     ) {
       return false;
     }
 
-    rendererState.originalGetCallRenderer =
-      originalGetCallRenderer as RendererGetter;
-    rendererState.originalGetResultRenderer =
+    const delegatedAddChild = originalAddChild as AddChild;
+    const delegatedGetCallRenderer = originalGetCallRenderer as RendererGetter;
+    const delegatedGetRenderShell = originalGetRenderShell as RendererGetter;
+    const delegatedGetResultRenderer =
       originalGetResultRenderer as RendererGetter;
-    rendererState.originalHasRendererDefinition =
+    const delegatedHasRendererDefinition =
       originalHasRendererDefinition as RendererGetter;
 
-    const hasRendererDefinition = function hasAgentRendererDefinition(
-      this: RendererOwner,
+    rendererState.originalAddChild = delegatedAddChild;
+    rendererState.originalGetCallRenderer = delegatedGetCallRenderer;
+    rendererState.originalGetRenderShell = delegatedGetRenderShell;
+    rendererState.originalGetResultRenderer = delegatedGetResultRenderer;
+    rendererState.originalHasRendererDefinition =
+      delegatedHasRendererDefinition;
+
+    const addChild = function addSideQuestsComponent(
+      this: unknown,
+      component: unknown,
     ): unknown {
-      if (this.toolName === "Agent") return true;
-      return rendererState.originalHasRendererDefinition?.call(this);
+      if (
+        component instanceof ToolExecutionComponent &&
+        (component as unknown as RendererOwner).toolName === "ask_parent"
+      ) {
+        delegatedAddChild.call(this, new ToolGroupingBoundary());
+      }
+
+      return delegatedAddChild.call(this, component);
     };
 
-    const getCallRenderer = function getAgentCallRenderer(
+    const hasRendererDefinition = function hasSideQuestsRendererDefinition(
       this: RendererOwner,
     ): unknown {
-      const original = rendererState.originalGetCallRenderer?.call(this);
+      if (this.toolName === "Agent" || this.toolName === "ask_parent")
+        return true;
+      return delegatedHasRendererDefinition.call(this);
+    };
 
+    const getCallRenderer = function getSideQuestsCallRenderer(
+      this: RendererOwner,
+    ): unknown {
+      const original = delegatedGetCallRenderer.call(this);
+
+      if (this.toolName === "ask_parent") return AskParentRenderer.renderCall;
       if (this.toolName !== "Agent") return original;
       if (typeof original !== "function") return AgentRenderer.renderCall;
 
@@ -152,29 +210,37 @@ export class AgentRenderer {
         original(AgentRenderer.hostArgs(args), theme, context);
     };
 
-    const getResultRenderer = function getAgentResultRenderer(
+    const getRenderShell = function getSideQuestsRenderShell(
       this: RendererOwner,
     ): unknown {
-      const original = rendererState.originalGetResultRenderer?.call(this);
+      if (this.toolName === "ask_parent") return "self";
+      return delegatedGetRenderShell.call(this);
+    };
 
-      const isSideQuestsTool =
-        this.toolName === "Agent" || this.toolName === "ask_parent";
+    const getResultRenderer = function getSideQuestsResultRenderer(
+      this: RendererOwner,
+    ): unknown {
+      const original = delegatedGetResultRenderer.call(this);
 
-      if (!isSideQuestsTool) return original;
+      if (this.toolName === "ask_parent") return AskParentRenderer.renderResult;
+      if (this.toolName !== "Agent") return original;
       if (this.isPartial === true) return original;
       if (this.result?.isError === true) return AgentRenderer.renderError;
-      if (this.toolName === "ask_parent") return original;
 
       return AgentRenderer.renderResult;
     };
 
+    containerPrototype.addChild = addChild;
     prototype.hasRendererDefinition = hasRendererDefinition;
     prototype.getCallRenderer = getCallRenderer;
+    prototype.getRenderShell = getRenderShell;
     prototype.getResultRenderer = getResultRenderer;
 
     rendererState.installed = true;
+    rendererState.installedAddChild = addChild;
     rendererState.installedHasRendererDefinition = hasRendererDefinition;
     rendererState.installedGetCallRenderer = getCallRenderer;
+    rendererState.installedGetRenderShell = getRenderShell;
     rendererState.installedGetResultRenderer = getResultRenderer;
 
     return true;

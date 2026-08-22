@@ -56,7 +56,7 @@ export const pendingRequestClosure: Scenario = {
       "The saved parent request did not contain the child question.",
     );
 
-    await harness.waitFor("Subagent asks: Which pending value should I use?");
+    await harness.waitFor("Which pending value should I use?");
     await harness.tmux("kill-pane", "-t", childPane);
     await harness.waitFor("Subagent closed:");
 
