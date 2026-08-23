@@ -14,7 +14,7 @@ import {
 import { Container, Text } from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, expect, test } from "vitest";
 
-import { AgentRenderer } from "../../agent-renderer.ts";
+import { AgentRenderer } from "../../renderer/agent-renderer.ts";
 
 const PATCH_STATE = Symbol.for("side-quests:agent-renderer-state");
 

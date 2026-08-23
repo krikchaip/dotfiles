@@ -6,8 +6,8 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
 
+import { SessionStore } from "../store/session.ts";
 import { AskParentRenderer } from "./ask-parent-renderer.ts";
-import { SessionStore } from "./store/session.ts";
 
 const AGENT_CALL_RENDERER = Symbol.for("side-quests:agent-call-renderer");
 const PATCH_STATE = Symbol.for("side-quests:agent-renderer-state");

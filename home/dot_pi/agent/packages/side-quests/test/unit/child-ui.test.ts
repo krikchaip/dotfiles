@@ -6,9 +6,9 @@ import {
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { AskParentRenderer } from "../../ask-parent-renderer.ts";
 import type { ChildRuntime } from "../../child/runtime.ts";
 import { ChildUI } from "../../child/ui.ts";
+import { AskParentRenderer } from "../../renderer/ask-parent-renderer.ts";
 import type { ChildManifest, Lifecycle } from "../../store/session.ts";
 
 const NOW = Date.UTC(2025, 0, 2, 3, 4, 5);

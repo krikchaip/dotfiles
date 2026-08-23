@@ -13,6 +13,7 @@
     "*.ts",
     "parent/**/*.ts",
     "child/**/*.ts",
+    "renderer/**/*.ts",
     "test/unit/**/*.ts",
     "test/e2e/**/*.ts"
   ]

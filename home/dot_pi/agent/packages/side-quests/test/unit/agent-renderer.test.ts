@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
 
-import { AgentRenderer } from "../../agent-renderer.ts";
+import { AgentRenderer } from "../../renderer/agent-renderer.ts";
 
 const temporaryDirectories: string[] = [];
 

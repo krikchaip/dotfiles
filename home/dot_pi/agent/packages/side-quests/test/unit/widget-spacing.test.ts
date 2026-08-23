@@ -5,7 +5,7 @@ import {
   CHILD_WIDGET_ID,
   PARENT_WIDGET_ID,
   WidgetStackSpacing,
-} from "../../widget-spacing.ts";
+} from "../../renderer/widget-spacing.ts";
 
 const HIDDEN_WIDGET_ID = "hidden-session-title";
 

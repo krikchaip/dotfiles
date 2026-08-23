@@ -4,8 +4,8 @@ import type {
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 
+import { RESULT_MESSAGE_TYPE } from "../renderer/side-quest-result-renderer.ts";
 import { CHILD_ID_ENV } from "../role.ts";
-import { RESULT_MESSAGE_TYPE } from "../side-quest-result-renderer.ts";
 import { RuntimeStore, type TerminalState } from "../store/runtime.ts";
 import { type ChildManifest, SessionStore } from "../store/session.ts";
 import { Tmux } from "../tmux.ts";

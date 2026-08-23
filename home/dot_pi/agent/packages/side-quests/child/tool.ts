@@ -1,7 +1,7 @@
 import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { AskParentRenderer } from "../ask-parent-renderer.ts";
+import { AskParentRenderer } from "../renderer/ask-parent-renderer.ts";
 import type { ChildRuntime } from "./runtime.ts";
 
 /**

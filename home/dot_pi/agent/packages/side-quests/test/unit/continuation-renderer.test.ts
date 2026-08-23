@@ -5,7 +5,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { beforeEach, expect, test } from "vitest";
 
-import { ContinuationRenderer } from "../../continuation-renderer.ts";
+import { ContinuationRenderer } from "../../renderer/continuation-renderer.ts";
 
 const plainTheme = {
   bg: (_color: string, text: string) => text,

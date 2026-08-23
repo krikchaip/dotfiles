@@ -4,10 +4,13 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
 
-import { AgentRenderer } from "../agent-renderer.ts";
-import { ContinuationRenderer } from "../continuation-renderer.ts";
-import { SideQuestResultRenderer } from "../side-quest-result-renderer.ts";
-import { CHILD_WIDGET_ID, WidgetStackSpacing } from "../widget-spacing.ts";
+import { AgentRenderer } from "../renderer/agent-renderer.ts";
+import { ContinuationRenderer } from "../renderer/continuation-renderer.ts";
+import { SideQuestResultRenderer } from "../renderer/side-quest-result-renderer.ts";
+import {
+  CHILD_WIDGET_ID,
+  WidgetStackSpacing,
+} from "../renderer/widget-spacing.ts";
 import type { ChildRuntime } from "./runtime.ts";
 
 const REFRESH_INTERVAL_MS = 1_000;
