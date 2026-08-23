@@ -130,6 +130,20 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+test("parent UI registers continuation rendering for reopened child transcripts", () => {
+  const customTypes: string[] = [];
+  const pi = {
+    on() {},
+    registerMessageRenderer(customType: string) {
+      customTypes.push(customType);
+    },
+  } as unknown as ExtensionAPI;
+
+  ParentUI.register(pi, makeRuntime([]));
+
+  expect(customTypes).toContain("side-quest-continuation");
+});
+
 test("parent widget stays hidden without children or below its minimum width", () => {
   const child = makeChild("child-1");
 

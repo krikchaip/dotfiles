@@ -103,7 +103,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test("child UI registers inherited side-quest event rendering", () => {
+test("child UI registers inherited events and parent continuations", () => {
   const customTypes: string[] = [];
   const pi = {
     on() {},
@@ -115,6 +115,7 @@ test("child UI registers inherited side-quest event rendering", () => {
   ChildUI.register(pi, makeRuntime());
 
   expect(customTypes).toContain("side-quest-result");
+  expect(customTypes).toContain("side-quest-continuation");
 });
 
 test("child widget stays hidden below its minimum width", () => {

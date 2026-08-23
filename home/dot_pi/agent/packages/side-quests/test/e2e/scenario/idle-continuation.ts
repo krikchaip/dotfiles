@@ -24,6 +24,22 @@ export const idleContinuation: Scenario = {
 
     const childPane = await harness.childPane();
 
+    const continuationView = await harness.waitFor(
+      "FROM PARENT",
+      5_000,
+      childPane,
+    );
+    const continuationStart = continuationView.lastIndexOf("FROM PARENT");
+    const continuationBanner = continuationView.slice(
+      Math.max(0, continuationStart),
+    );
+    harness.assert(
+      continuationBanner.includes("Apply the idle-continuation now.") &&
+        !continuationBanner.includes("YOUR QUESTION") &&
+        !continuationBanner.includes("IN RESPONSE TO"),
+      `The direct continuation did not render without question context.\n${continuationBanner}`,
+    );
+
     await harness.waitForStoredText("Idle continuation applied.");
     await harness.sendLiteral(childPane, "/subagent-done", true);
     await harness.waitFor("Subagent completed:");

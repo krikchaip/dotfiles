@@ -12,6 +12,7 @@ import {
 } from "@earendil-works/pi-tui";
 
 import { AgentRenderer } from "../agent-renderer.ts";
+import { ContinuationRenderer } from "../continuation-renderer.ts";
 import { SideQuestResultRenderer } from "../side-quest-result-renderer.ts";
 import { PARENT_WIDGET_ID, WidgetStackSpacing } from "../widget-spacing.ts";
 import type { ParentRuntime } from "./runtime.ts";
@@ -60,6 +61,7 @@ export class ParentUI {
    */
   public static register(pi: ExtensionAPI, runtime: ParentRuntime): ParentUI {
     AgentRenderer.register(pi);
+    ContinuationRenderer.register(pi);
     SideQuestResultRenderer.register(pi);
     WidgetStackSpacing.install();
 
@@ -272,13 +274,15 @@ export class ParentUI {
     const children = runtime.children();
     if (!children.length || width < 4) return [];
 
-    const rows = children.map((child): WidgetRow => ({
-      childId: child.manifest.childId,
-      elapsed: ParentUI.elapsed(child.manifest.createdAt),
-      agent: child.manifest.displayName,
-      task: child.manifest.description,
-      state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
-    }));
+    const rows = children.map(
+      (child): WidgetRow => ({
+        childId: child.manifest.childId,
+        elapsed: ParentUI.elapsed(child.manifest.createdAt),
+        agent: child.manifest.displayName,
+        task: child.manifest.description,
+        state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
+      }),
+    );
 
     const innerWidth = width - 2;
     const markerWidth = Math.min(1, innerWidth);

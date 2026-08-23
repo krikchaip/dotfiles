@@ -184,11 +184,47 @@ export const askParent: Scenario = {
       .split("\n")
       .find((line) => line.includes(error));
     harness.assert(
-      expandedError?.trim() === collapsedError.trim(),
-      "Expanding changed the ask_parent error message.",
+      expandedError !== undefined && !expandedError.includes("to expand"),
+      "The expanded ask_parent error changed or gained an expansion hint.",
     );
 
     await harness.waitForStoredText("Parent answer applied: blue.");
+    await harness.waitFor("FROM PARENT", 5_000, childPane);
+    await harness.tmux(
+      "resize-window",
+      "-t",
+      childPane,
+      "-x",
+      "44",
+      "-y",
+      "30",
+    );
+    await Bun.sleep(500);
+    await harness.sendKeys(childPane, "C-o");
+
+    const collapsedAnswer = await harness.capture(childPane);
+    const answerStart = collapsedAnswer.lastIndexOf("FROM PARENT");
+    const answerBanner = collapsedAnswer.slice(Math.max(0, answerStart));
+    harness.assert(
+      answerBanner.includes("Before I update the renderer") &&
+        answerBanner.includes("Use blue.") &&
+        answerBanner.includes("to expand") &&
+        !answerBanner.includes("canonical."),
+      `The collapsed parent answer did not show layout A with truncated question context.\n${answerBanner}`,
+    );
+
+    await harness.sendKeys(childPane, "C-o");
+    const expandedAnswer = await harness.capture(childPane);
+    const expandedAnswerStart = expandedAnswer.lastIndexOf("FROM PARENT");
+    const expandedAnswerBanner = expandedAnswer.slice(
+      Math.max(0, expandedAnswerStart),
+    );
+    harness.assert(
+      expandedAnswerBanner.includes("canonical.") &&
+        !expandedAnswerBanner.includes("to expand"),
+      `The expanded parent answer did not show the complete question context.\n${expandedAnswerBanner}`,
+    );
+
     await harness.sendLiteral(childPane, "/subagent-done", true);
     await harness.waitFor("Subagent completed:");
   },

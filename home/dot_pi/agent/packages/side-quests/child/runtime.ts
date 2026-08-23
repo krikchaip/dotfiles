@@ -248,6 +248,7 @@ export class ChildRuntime {
               childId: this.childId,
               responseId: response.responseId,
               requestId: response.requestId,
+              question: matchingRequest ? pendingRequest.prompt : undefined,
             },
           },
           { triggerTurn: true, deliverAs: "steer" },
