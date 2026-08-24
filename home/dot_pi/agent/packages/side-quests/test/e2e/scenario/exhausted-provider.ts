@@ -29,7 +29,7 @@ export const exhaustedProvider: Scenario = {
     );
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("Subagent failed:");
+    await harness.waitFor("SUBAGENT FAILED");
     for (const attempt of [1, 2, 3])
       harness.assert(
         harness.storedTextContains(

@@ -14,6 +14,6 @@ export const interactive: Scenario = {
     const childPane = await harness.childPane();
     await Bun.sleep(1_000);
     await harness.sendLiteral(childPane, "/subagent-done", true);
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

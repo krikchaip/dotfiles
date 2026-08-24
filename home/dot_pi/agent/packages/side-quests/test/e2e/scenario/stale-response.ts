@@ -88,7 +88,7 @@ export const staleResponse: Scenario = {
       `The interactive provider failure removed its live widget row.\n${parent}`,
     );
     harness.assert(
-      !parent.includes("Subagent failed:"),
+      !parent.includes("SUBAGENT FAILED"),
       "The interactive provider failure sent a terminal result to the parent.",
     );
     harness.assert(
@@ -98,7 +98,7 @@ export const staleResponse: Scenario = {
 
     await harness.sendParentKeys("Escape");
     await harness.sendLiteral(childPane, "/subagent-done", true);
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
 
     const terminals = harness.filesNamed("terminal.json");
     harness.assert(

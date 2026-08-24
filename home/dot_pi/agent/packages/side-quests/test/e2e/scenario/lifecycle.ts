@@ -8,6 +8,6 @@ export const lifecycle: Scenario = {
   },
   async run(harness: E2EHarness) {
     await harness.sendParent("Delegate this E2E task now.", true);
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

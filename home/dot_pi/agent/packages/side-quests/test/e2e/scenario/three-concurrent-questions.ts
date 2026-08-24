@@ -130,6 +130,6 @@ export const threeConcurrentQuestions: Scenario = {
     for (const pane of await harness.childPanes())
       await harness.sendLiteral(pane, "/subagent-done", true);
 
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

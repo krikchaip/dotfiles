@@ -37,7 +37,7 @@ export const fatalAutonomous: Scenario = {
     );
 
     await harness.tmux("respawn-pane", "-k", "-t", childPane, "exit 17");
-    await harness.waitFor("Subagent failed:");
+    await harness.waitFor("SUBAGENT FAILED");
     await harness.sendParentKeys("C-o");
     await harness.waitFor("Child process exited with status 17.", 5_000);
   },

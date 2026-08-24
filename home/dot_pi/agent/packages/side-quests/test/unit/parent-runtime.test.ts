@@ -7,6 +7,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { type ParentChild, ParentRuntime } from "../../parent/runtime.ts";
 import { RuntimeStore } from "../../store/runtime.ts";
 import { SessionStore } from "../../store/session.ts";
+import { Tmux } from "../../tmux.ts";
 
 const originalRoot = process.env.PI_CODING_AGENT_DIR;
 const temporaryRoots: string[] = [];
@@ -32,6 +33,7 @@ const child = {
 } satisfies ParentChild;
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   process.env.PI_CODING_AGENT_DIR = originalRoot;
   for (const root of temporaryRoots.splice(0))
@@ -97,4 +99,47 @@ test("reports and clears an unanswered parent request", () => {
   expect(parent.replyPending(child)).toBe(true);
   SessionStore.clearRequest(child.manifest.parentId, child.manifest.childId);
   expect(parent.replyPending(child)).toBe(false);
+});
+
+test("cancelled events retain pending question and child identity details", () => {
+  const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));
+  temporaryRoots.push(root);
+  process.env.PI_CODING_AGENT_DIR = root;
+
+  const sent: Array<{ details?: unknown }> = [];
+  const pi = {
+    on() {},
+    sendMessage(message: { details?: unknown }) {
+      sent.push(message);
+    },
+  } as unknown as ExtensionAPI;
+
+  vi.spyOn(Tmux, "createWindow").mockReturnValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+  vi.spyOn(Tmux, "closePane").mockImplementation(() => {});
+  vi.spyOn(Tmux, "runningPanes").mockReturnValue([]);
+
+  const parent = ParentRuntime.register(pi);
+  parent.launch(child.manifest);
+  SessionStore.writeRequest(child.manifest.parentId, {
+    requestId: "request-id",
+    childId: child.manifest.childId,
+    prompt: "Which value should I use?",
+    createdAt: Date.now(),
+  });
+
+  parent.close(child.manifest.childId);
+
+  expect(sent).toHaveLength(1);
+  expect(sent[0]?.details).toMatchObject({
+    kind: "cancelled",
+    subagentType: "general-purpose",
+    description: "classify runtime state",
+    pendingRequest: true,
+    question: "Which value should I use?",
+    sessionPath: "/tmp/session.jsonl",
+  });
 });

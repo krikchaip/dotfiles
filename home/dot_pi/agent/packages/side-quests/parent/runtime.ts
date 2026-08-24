@@ -160,15 +160,27 @@ export class ParentRuntime {
 
     RuntimeStore.writeTerminal(child.manifest.parentId, terminal);
 
-    this.deliver(
-      terminal.eventId,
-      `Subagent cancelled: ${child.manifest.displayName} — ${child.manifest.description}\nResume: ${child.manifest.sessionPath}`,
-      {
-        kind: terminal.kind,
-        childId,
-        sessionPath: child.manifest.sessionPath,
-      },
+    const request = SessionStore.readRequest(
+      child.manifest.parentId,
+      child.manifest.childId,
     );
+    const text = [
+      `Subagent cancelled: ${child.manifest.displayName} — ${child.manifest.description}`,
+      request ? "A parent question remains unanswered and saved." : undefined,
+      `Resume: ${child.manifest.sessionPath}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    this.deliver(terminal.eventId, text, {
+      kind: terminal.kind,
+      childId,
+      subagentType: child.manifest.agentName,
+      description: child.manifest.description,
+      question: request?.prompt,
+      sessionPath: child.manifest.sessionPath,
+      pendingRequest: !!request,
+    });
 
     Tmux.closePane(child.paneId);
 
@@ -359,9 +371,7 @@ export class ParentRuntime {
         `Subagent ${terminal.kind}: ${child.manifest.displayName} — ${child.manifest.description}`,
         terminal.response ? `Result: ${terminal.response}` : undefined,
         terminal.error ? `Error: ${terminal.error}` : undefined,
-        request && terminal.kind === "closed"
-          ? "A parent question remains unanswered and saved."
-          : undefined,
+        request ? "A parent question remains unanswered and saved." : undefined,
         `Resume: ${child.manifest.sessionPath}`,
       ]
         .filter(Boolean)
@@ -370,6 +380,9 @@ export class ParentRuntime {
       this.deliver(terminal.eventId, text, {
         kind: terminal.kind,
         childId: child.manifest.childId,
+        subagentType: child.manifest.agentName,
+        description: child.manifest.description,
+        question: request?.prompt,
         sessionPath: child.manifest.sessionPath,
         response: terminal.response,
         error: terminal.error,

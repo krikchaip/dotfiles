@@ -69,6 +69,6 @@ export const terminalTakeover: Scenario = {
     );
 
     await harness.sendKeys(childPane, "Tab", "Enter");
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

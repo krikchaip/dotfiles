@@ -42,6 +42,6 @@ export const idleContinuation: Scenario = {
 
     await harness.waitForStoredText("Idle continuation applied.");
     await harness.sendLiteral(childPane, "/subagent-done", true);
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

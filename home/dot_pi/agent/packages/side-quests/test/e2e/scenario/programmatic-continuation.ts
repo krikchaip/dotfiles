@@ -27,6 +27,6 @@ export const programmaticContinuation: Scenario = {
       "Programmatic Agent.resume promoted an autonomous child.",
     );
 
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

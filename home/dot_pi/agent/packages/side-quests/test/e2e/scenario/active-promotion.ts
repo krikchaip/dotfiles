@@ -43,7 +43,7 @@ export const activePromotionRejection: Scenario = {
       "A rejected active resume delivered its continuation.",
     );
 
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
 
     harness.assert(
       !(await harness.childPanes()).includes(childPane),

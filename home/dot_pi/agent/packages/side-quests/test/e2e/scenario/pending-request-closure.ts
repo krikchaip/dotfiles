@@ -6,6 +6,9 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
+const pendingQuestion =
+  "Should the closed outcome retain this unanswered question after the child tmux pane disappears? Confirm that the parent transcript keeps the pending-request warning, uses Unicode-safe truncation at 240 characters, restores the complete question in expanded mode, and preserves the durable request mailbox so a resumed side quest can still receive the answer. Closed pending marker.";
+
 export const pendingRequestClosure: Scenario = {
   name: "pending-request-closure",
   process: {
@@ -19,7 +22,7 @@ export const pendingRequestClosure: Scenario = {
       return faux.setResponses([
         fauxAssistantMessage(
           fauxToolCall("ask_parent", {
-            prompt: "Which pending value should I use?",
+            prompt: pendingQuestion,
           }),
           { stopReason: "toolUse" },
         ),
@@ -52,32 +55,32 @@ export const pendingRequestClosure: Scenario = {
     });
 
     harness.assert(
-      harness.read(requestFile).includes("Which pending value should I use?"),
+      harness.read(requestFile).includes(pendingQuestion),
       "The saved parent request did not contain the child question.",
     );
 
-    await harness.waitFor("Which pending value should I use?");
+    await harness.waitFor("Should the closed outcome retain");
     await harness.tmux("kill-pane", "-t", childPane);
-    await harness.waitFor("Subagent closed:");
+    await harness.waitFor("SUBAGENT CLOSED");
 
     const collapsed = await harness.capture();
 
     harness.assert(
-      collapsed.includes("to expand"),
-      `The closed result did not render its expand hint.\n${collapsed}`,
+      collapsed.includes("PENDING QUESTION"),
+      `The closed result did not label its pending question.\n${collapsed}`,
     );
-
     harness.assert(
-      !collapsed.includes("A parent question remains unanswered and saved."),
-      `The pending request detail appeared in the collapsed result.\n${collapsed}`,
+      collapsed.includes("to expand"),
+      `The closed result did not truncate its pending question.\n${collapsed}`,
+    );
+    harness.assert(
+      !collapsed.includes("pending marker."),
+      `The closed result showed the complete question while collapsed.\n${collapsed}`,
     );
 
     await harness.sendParentKeys("C-o");
-    await harness.waitFor(
-      "A parent question remains unanswered and saved.",
-      5_000,
-    );
-    await harness.waitFor("Resume:", 5_000);
+    await harness.waitFor("pending marker.", 5_000);
+    await harness.waitFor("session path:", 5_000);
 
     harness.assert(
       existsSync(requestFile),

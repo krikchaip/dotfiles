@@ -83,6 +83,6 @@ export const navigationCancellation: Scenario = {
     await harness.sendParent("d");
     await harness.waitFor("Yes", 5_000);
     await harness.sendParentKeys("Enter");
-    await harness.waitFor("Subagent cancelled:");
+    await harness.waitFor("SUBAGENT CANCELLED");
   },
 };

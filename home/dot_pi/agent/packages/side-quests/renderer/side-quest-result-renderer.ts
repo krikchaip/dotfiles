@@ -1,7 +1,6 @@
 import {
   type ExtensionAPI,
   type Theme,
-  keyHint,
   keyText,
 } from "@earendil-works/pi-coding-agent";
 import { Box, Text } from "@earendil-works/pi-tui";
@@ -9,7 +8,9 @@ import { Box, Text } from "@earendil-works/pi-tui";
 /** Identifies parent messages that report sub-agent events. */
 export const RESULT_MESSAGE_TYPE = "side-quest-result";
 
-const COLLAPSED_QUESTION_CHAR_LIMIT = 240;
+const COLLAPSED_TEXT_CHAR_LIMIT = 240;
+
+type TerminalKind = "completed" | "failed" | "cancelled" | "closed";
 
 /**
  * Describes optional details shown in an expanded sub-agent event.
@@ -55,8 +56,6 @@ export class SideQuestResultRenderer {
       (message, options, theme) => {
         const details = message.details as ResultDetails | undefined;
         const content = SideQuestResultRenderer.messageText(message.content);
-        const title = content.split("\n", 1)[0];
-        const heading = title || "Subagent event";
 
         if (details?.kind === "parent-request") {
           return SideQuestResultRenderer.renderParentRequest(
@@ -68,30 +67,86 @@ export class SideQuestResultRenderer {
           );
         }
 
-        if (!options.expanded) {
-          const hint = keyHint("app.tools.expand", "to expand");
-          return new Text(
-            `${theme.fg("accent", heading)} ${theme.fg("dim", `(${hint})`)}`,
-            options.outputPad,
-            0,
-          );
-        }
+        const kind = SideQuestResultRenderer.terminalKind(details, content);
+        if (!kind) return new Text(content, options.outputPad, 0);
 
-        const text = [
-          theme.fg("accent", heading),
-          details?.response ? `Result: ${details.response}` : undefined,
-          details?.error ? `Error: ${details.error}` : undefined,
-          details?.pendingRequest
-            ? "A parent question remains unanswered and saved."
-            : undefined,
-          details?.sessionPath ? `Resume: ${details.sessionPath}` : undefined,
-        ]
-          .filter((line): line is string => line !== undefined)
-          .join("\n");
-
-        return new Text(text, options.outputPad, 0);
+        return SideQuestResultRenderer.renderTerminal(
+          kind,
+          details,
+          content,
+          options.expanded,
+          options.outputPad,
+          theme,
+        );
       },
     );
+  }
+
+  /**
+   * Renders one status-first terminal event with the approved reference hierarchy.
+   */
+  private static renderTerminal(
+    kind: TerminalKind,
+    details: ResultDetails | undefined,
+    content: string,
+    expanded: boolean,
+    outputPad: number,
+    theme: Theme,
+  ): Box {
+    const identity = SideQuestResultRenderer.terminalIdentity(details, content);
+    const outcome = SideQuestResultRenderer.terminalOutcome(
+      kind,
+      details,
+      content,
+    );
+    const pendingQuestion = details?.pendingRequest
+      ? (details.question ?? "A parent question remains unanswered and saved.")
+      : undefined;
+    const tone =
+      kind === "completed"
+        ? "success"
+        : kind === "failed"
+          ? "error"
+          : "warning";
+    const lines = [
+      `${theme.fg(tone, theme.bold(`SUBAGENT ${kind.toUpperCase()}`))}  ${theme.fg("accent", identity.type)}`,
+      theme.fg("muted", identity.description),
+      "",
+      SideQuestResultRenderer.expandableText(
+        outcome,
+        expanded,
+        "customMessageText",
+        theme,
+      ),
+      ...(pendingQuestion
+        ? [
+            "",
+            theme.fg("warning", theme.bold("PENDING QUESTION")),
+            SideQuestResultRenderer.expandableText(
+              pendingQuestion,
+              expanded,
+              "muted",
+              theme,
+            ),
+          ]
+        : []),
+      ...(expanded
+        ? [
+            "",
+            theme.fg(
+              "muted",
+              `session path: ${details?.sessionPath ?? SideQuestResultRenderer.lineValue(content, "Resume:") ?? "Unavailable"}`,
+            ),
+          ]
+        : []),
+    ];
+    const box = new Box(Math.max(1, outputPad + 1), 1, (text) =>
+      theme.bg("customMessageBg", text),
+    );
+
+    box.addChild(new Text(lines.join("\n"), 0, 0));
+
+    return box;
   }
 
   /**
@@ -111,8 +166,7 @@ export class SideQuestResultRenderer {
       details.response ??
       content.match(/^Subagent asks:\s*([^\n]*)/)?.[1] ??
       "Subagent has a question.";
-    const collapsedQuestion =
-      SideQuestResultRenderer.truncateQuestion(question);
+    const collapsedQuestion = SideQuestResultRenderer.truncateText(question);
     const truncated = !expanded && collapsedQuestion !== question;
     const displayedQuestion = expanded ? question : collapsedQuestion;
     const truncationSuffix = truncated
@@ -136,17 +190,97 @@ export class SideQuestResultRenderer {
     return box;
   }
 
-  /**
-   * Truncates a collapsed question before its separately styled ellipsis.
-   */
-  private static truncateQuestion(question: string): string {
-    const characters = Array.from(question);
-    if (characters.length <= COLLAPSED_QUESTION_CHAR_LIMIT) return question;
+  /** Renders one collapsed or expanded event text value. */
+  private static expandableText(
+    text: string,
+    expanded: boolean,
+    color: "customMessageText" | "muted",
+    theme: Theme,
+  ): string {
+    const collapsed = SideQuestResultRenderer.truncateText(text);
+    const truncated = !expanded && collapsed !== text;
+    const displayed = expanded ? text : collapsed;
+    const suffix = truncated
+      ? `${theme.fg("muted", "… ")}${theme.fg("dim", keyText("app.tools.expand"))}${theme.fg("muted", " to expand")}`
+      : "";
 
-    return characters
-      .slice(0, COLLAPSED_QUESTION_CHAR_LIMIT)
-      .join("")
-      .trimEnd();
+    return `${theme.fg(color, displayed)}${suffix}`;
+  }
+
+  /** Gets a terminal kind from current details or historical message text. */
+  private static terminalKind(
+    details: ResultDetails | undefined,
+    content: string,
+  ): TerminalKind | undefined {
+    if (
+      details?.kind === "completed" ||
+      details?.kind === "failed" ||
+      details?.kind === "cancelled" ||
+      details?.kind === "closed"
+    )
+      return details.kind;
+
+    const kind = content.match(
+      /^Subagent (completed|failed|cancelled|closed):/,
+    )?.[1];
+
+    return kind as TerminalKind | undefined;
+  }
+
+  /** Gets sub-agent identity from current details or historical message text. */
+  private static terminalIdentity(
+    details: ResultDetails | undefined,
+    content: string,
+  ): Readonly<{ type: string; description: string }> {
+    const historical = content.match(
+      /^Subagent (?:completed|failed|cancelled|closed): ([^\n]*?)(?: — ([^\n]*))?$/m,
+    );
+
+    return {
+      type: details?.subagentType ?? historical?.[1] ?? "general-purpose",
+      description: details?.description ?? historical?.[2] ?? "Side quest",
+    };
+  }
+
+  /** Gets the result, error, or fallback text for one terminal event. */
+  private static terminalOutcome(
+    kind: TerminalKind,
+    details: ResultDetails | undefined,
+    content: string,
+  ): string {
+    if (details?.response) return details.response;
+    if (details?.error) return details.error;
+
+    const result = SideQuestResultRenderer.lineValue(content, "Result:");
+    if (result) return result;
+
+    const error = SideQuestResultRenderer.lineValue(content, "Error:");
+    if (error) return error;
+
+    if (kind === "completed")
+      return "Subagent completed without a final response.";
+    if (kind === "cancelled") return "Cancelled by the parent.";
+    if (kind === "closed")
+      return "Child tmux pane closed before reporting an outcome.";
+
+    return "Subagent failed without a stored error detail.";
+  }
+
+  /** Reads a labeled value from historical message text. */
+  private static lineValue(content: string, label: string): string | undefined {
+    const line = content
+      .split("\n")
+      .find((candidate) => candidate.startsWith(`${label} `));
+
+    return line?.slice(label.length + 1);
+  }
+
+  /** Truncates text by Unicode character before its styled suffix. */
+  private static truncateText(text: string): string {
+    const characters = Array.from(text);
+    if (characters.length <= COLLAPSED_TEXT_CHAR_LIMIT) return text;
+
+    return characters.slice(0, COLLAPSED_TEXT_CHAR_LIMIT).join("").trimEnd();
   }
 
   /**

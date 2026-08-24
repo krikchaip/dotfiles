@@ -20,6 +20,6 @@ export const failure: Scenario = {
     ]);
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("Subagent failed:");
+    await harness.waitFor("SUBAGENT FAILED");
   },
 };

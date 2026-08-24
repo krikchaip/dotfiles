@@ -16,6 +16,6 @@ export const unmarkedClosure: Scenario = {
   async run(harness: E2EHarness) {
     const childPane = await harness.childPane();
     await harness.tmux("kill-pane", "-t", childPane);
-    await harness.waitFor("Subagent closed:");
+    await harness.waitFor("SUBAGENT CLOSED");
   },
 };

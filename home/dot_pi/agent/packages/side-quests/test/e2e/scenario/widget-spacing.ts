@@ -72,6 +72,6 @@ export const widgetSpacing: Scenario = {
 
     await harness.waitForStoredText("Spacing child settled.");
     await harness.sendLiteral(childPane, "/subagent-done", true);
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

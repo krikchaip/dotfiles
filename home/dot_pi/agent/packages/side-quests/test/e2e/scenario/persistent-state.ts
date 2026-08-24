@@ -105,7 +105,7 @@ export const persistentState: Scenario = {
 
     await harness.waitForStoredText("Persistence response applied.");
     await harness.sendLiteral(childPane, "/subagent-done", true);
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
 
     assertManagedStorage("terminal", harness.stateDirectory, childPane);
   },

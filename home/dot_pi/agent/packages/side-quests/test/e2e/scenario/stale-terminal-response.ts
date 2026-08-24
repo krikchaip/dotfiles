@@ -16,12 +16,12 @@ export const staleTerminalResponse: Scenario = {
       "Agent general-purpose (resumed) :: Reopen the E2E delegated task",
     );
     await harness.childPane();
-    await harness.waitFor("Subagent failed:");
+    await harness.waitFor("SUBAGENT FAILED");
     await harness.sendParentKeys("C-o");
     await harness.waitFor("Synthetic stale terminal failure.", 5_000);
 
     const parent = await harness.capture();
-    const failureOffset = parent.lastIndexOf("Subagent failed:");
+    const failureOffset = parent.lastIndexOf("SUBAGENT FAILED");
 
     harness.assert(
       failureOffset >= 0,

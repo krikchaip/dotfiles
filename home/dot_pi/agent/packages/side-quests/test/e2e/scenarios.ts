@@ -18,6 +18,11 @@ import { navigationCancellation } from "./scenario/navigation-cancellation.ts";
 import { outside } from "./scenario/outside.ts";
 import { parent } from "./scenario/parent.ts";
 import { pendingRequestClosure } from "./scenario/pending-request-closure.ts";
+import {
+  pendingRequestCancelled,
+  pendingRequestCompleted,
+  pendingRequestFailed,
+} from "./scenario/pending-request-outcomes.ts";
 import { persistentState } from "./scenario/persistent-state.ts";
 import { programmaticContinuation } from "./scenario/programmatic-continuation.ts";
 import { resultExpansion } from "./scenario/result-expansion.ts";
@@ -42,6 +47,9 @@ export const scenarios: readonly Scenario[] = [
   threeConcurrentQuestions,
   persistentState,
   pendingRequestClosure,
+  pendingRequestCompleted,
+  pendingRequestFailed,
+  pendingRequestCancelled,
   activeContinuation,
   activeParentEvent,
   activePromotionRejection,

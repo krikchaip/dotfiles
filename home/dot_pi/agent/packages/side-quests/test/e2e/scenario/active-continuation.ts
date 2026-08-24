@@ -17,6 +17,6 @@ export const activeContinuation: Scenario = {
     await harness.waitFor(
       "Agent general-purpose (resumed) :: Continue the E2E delegated task",
     );
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

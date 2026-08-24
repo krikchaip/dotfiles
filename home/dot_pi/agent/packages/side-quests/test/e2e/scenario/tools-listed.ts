@@ -7,6 +7,6 @@ export const toolsListed: Scenario = {
     configureBasicDelegation(context, { verifyAgentTool: true });
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

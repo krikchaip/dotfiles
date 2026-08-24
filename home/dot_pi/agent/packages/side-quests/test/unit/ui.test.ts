@@ -85,7 +85,7 @@ const plainTheme = {
 const markedTheme = {
   ...plainTheme,
   fg: (color: string, text: string) =>
-    color === "dim" || color === "muted"
+    ["dim", "error", "muted", "success", "warning"].includes(color)
       ? `<${color}>${text}</${color}>`
       : text,
 } as Theme;
@@ -110,6 +110,57 @@ function renderParentQuestion(options: {
         description: options.description,
         question: options.question,
         sessionPath,
+      },
+      timestamp: NOW,
+    },
+    { expanded: options.expanded ?? false, outputPad: 0 },
+    options.theme ?? plainTheme,
+  );
+
+  return component?.render(500).join("\n") ?? "";
+}
+
+function renderTerminalEvent(options: {
+  readonly description?: string;
+  readonly error?: string;
+  readonly expanded?: boolean;
+  readonly kind: "completed" | "failed" | "cancelled" | "closed";
+  readonly pendingQuestion?: string;
+  readonly response?: string;
+  readonly sessionPath?: string;
+  readonly theme?: Theme;
+}): string {
+  const description = options.description ?? "Review terminal outcomes";
+  const sessionPath = options.sessionPath ?? "/tmp/child/session.jsonl";
+  const body = options.response
+    ? `Result: ${options.response}`
+    : options.error
+      ? `Error: ${options.error}`
+      : undefined;
+  const component = resultRenderer()(
+    {
+      role: "custom",
+      customType: "side-quest-result",
+      content: [
+        `Subagent ${options.kind}: general-purpose — ${description}`,
+        body,
+        options.pendingQuestion
+          ? "A parent question remains unanswered and saved."
+          : undefined,
+        `Resume: ${sessionPath}`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      display: true,
+      details: {
+        kind: options.kind,
+        subagentType: "general-purpose",
+        description,
+        question: options.pendingQuestion,
+        sessionPath,
+        response: options.response,
+        error: options.error,
+        pendingRequest: options.pendingQuestion !== undefined,
       },
       timestamp: NOW,
     },
@@ -274,6 +325,78 @@ test("expanded parent questions show the full question and canonical session pat
 
   expect(rendered).toContain(question);
   expect(rendered).not.toContain(`${"Q".repeat(240)}…`);
+  expect(rendered).not.toContain("to expand");
+  expect(rendered).toContain(`session path: ${sessionPath}`);
+});
+
+test.each([
+  ["completed", "success"],
+  ["failed", "error"],
+  ["cancelled", "warning"],
+  ["closed", "warning"],
+] as const)(
+  "collapsed %s events use the reference banner and %s heading tone",
+  (kind, tone) => {
+    const rendered = renderTerminalEvent({
+      description: "Inspect status-specific transcript colors",
+      error: kind === "completed" ? undefined : "The child stopped.",
+      kind,
+      response: kind === "completed" ? "The review is complete." : undefined,
+      theme: markedTheme,
+    });
+
+    expect(rendered).toContain(
+      `<${tone}>SUBAGENT ${kind.toUpperCase()}</${tone}>  general-purpose`,
+    );
+    expect(rendered).toContain("Inspect status-specific transcript colors");
+    expect(rendered).toContain(
+      kind === "completed" ? "The review is complete." : "The child stopped.",
+    );
+    expect(rendered).not.toContain("session path:");
+  },
+);
+
+test("collapsed terminal outcomes truncate after 240 Unicode characters", () => {
+  const response = "🚀".repeat(241);
+  const rendered = renderTerminalEvent({ kind: "completed", response });
+
+  expect(rendered).toContain(`${"🚀".repeat(240)}… `);
+  expect(rendered).toContain("to expand");
+  expect(rendered).not.toContain(response);
+});
+
+test.each(["completed", "failed", "cancelled", "closed"] as const)(
+  "collapsed %s events show and truncate their saved pending question",
+  (kind) => {
+    const question = "Q".repeat(241);
+    const rendered = renderTerminalEvent({
+      error: kind === "completed" ? undefined : "The child stopped.",
+      kind,
+      pendingQuestion: question,
+      response: kind === "completed" ? "The review is complete." : undefined,
+    });
+
+    expect(rendered).toContain("PENDING QUESTION");
+    expect(rendered).toContain(`${"Q".repeat(240)}… `);
+    expect(rendered).toContain("to expand");
+    expect(rendered).not.toContain(question);
+  },
+);
+
+test("expanded terminal events show full outcome, pending question, and session path", () => {
+  const response = "R".repeat(241);
+  const question = "Q".repeat(241);
+  const sessionPath = "/tmp/child/canonical-session.jsonl";
+  const rendered = renderTerminalEvent({
+    expanded: true,
+    kind: "completed",
+    pendingQuestion: question,
+    response,
+    sessionPath,
+  });
+
+  expect(rendered).toContain(response);
+  expect(rendered).toContain(question);
   expect(rendered).not.toContain("to expand");
   expect(rendered).toContain(`session path: ${sessionPath}`);
 });

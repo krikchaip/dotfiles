@@ -201,6 +201,16 @@ export const askParent: Scenario = {
     );
     await Bun.sleep(500);
     await harness.sendKeys(childPane, "C-o");
+    await harness.waitUntil(
+      "latest child tool output to be collapsed",
+      async () => {
+        const view = await harness.capture(childPane);
+        return (
+          view.lastIndexOf("Tool output: collapsed") >
+          view.lastIndexOf("Tool output: expanded")
+        );
+      },
+    );
 
     const collapsedAnswer = await harness.capture(childPane);
     const answerStart = collapsedAnswer.lastIndexOf("FROM PARENT");
@@ -214,6 +224,16 @@ export const askParent: Scenario = {
     );
 
     await harness.sendKeys(childPane, "C-o");
+    await harness.waitUntil(
+      "latest child tool output to be expanded",
+      async () => {
+        const view = await harness.capture(childPane);
+        return (
+          view.lastIndexOf("Tool output: expanded") >
+          view.lastIndexOf("Tool output: collapsed")
+        );
+      },
+    );
     const expandedAnswer = await harness.capture(childPane);
     const expandedAnswerStart = expandedAnswer.lastIndexOf("FROM PARENT");
     const expandedAnswerBanner = expandedAnswer.slice(
@@ -226,6 +246,6 @@ export const askParent: Scenario = {
     );
 
     await harness.sendLiteral(childPane, "/subagent-done", true);
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

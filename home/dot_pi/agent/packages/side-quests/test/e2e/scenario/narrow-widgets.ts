@@ -43,6 +43,6 @@ export const narrowWidgets: Scenario = {
     );
 
     await harness.sendLiteral(childPane, "/subagent-done", true);
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
   },
 };

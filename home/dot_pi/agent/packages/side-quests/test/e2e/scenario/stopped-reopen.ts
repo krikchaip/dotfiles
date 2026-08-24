@@ -13,9 +13,9 @@ export const stoppedReopen: Scenario = {
     await harness.waitFor(
       "Agent general-purpose (resumed) :: Reopen the E2E delegated task",
     );
-    await harness.waitFor("Subagent completed:");
+    await harness.waitFor("SUBAGENT COMPLETED");
     await harness.sendParentKeys("C-o");
-    await harness.waitFor("Result: Reopened run completed.", 5_000);
+    await harness.waitFor("Reopened run completed.", 5_000);
 
     const terminals = harness.filesNamed("terminal.json");
 
