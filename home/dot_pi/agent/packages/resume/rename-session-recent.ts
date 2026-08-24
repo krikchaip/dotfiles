@@ -6,7 +6,9 @@
  */
 
 import { closeSync, openSync, readSync, statSync } from "node:fs";
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { getResumeDefaultSessionDir } from "./optimize-startup";
 
 const RENAME_PATCHED = "__renameBumpPatched";
 
@@ -107,12 +109,10 @@ function latestSessionInfoTimestamp(sessionPath: string) {
 }
 
 export function applyRenameSessionRecent(
-  req: NodeRequire,
-  distPath: string,
+  SessionManager: any,
   sessionInfoCache: SessionInfoCache,
   onSessionInfoAppended?: (sessionManager: any) => void,
 ) {
-  const { SessionManager } = req(join(distPath, "core", "session-manager.js"));
   const patchState = (SessionManager.prototype as any)[RENAME_PATCHED];
 
   if (!patchState) {
@@ -145,10 +145,6 @@ export function applyRenameSessionRecent(
         .sort((a, b) => b.modified.getTime() - a.modified.getTime());
 
     const origList = SessionManager.list;
-    const { getDefaultSessionDir } = req(
-      join(distPath, "core", "session-manager.js"),
-    );
-    const { readdir } = req("node:fs/promises");
     const sessionListSnapshots = new Map<string, SessionListSnapshot>();
     const sessionListInFlight = new Map<string, Promise<any[]>>();
 
@@ -193,7 +189,7 @@ export function applyRenameSessionRecent(
       sessionDir?: string,
       onProgress?: any,
     ) {
-      const dir = sessionDir ? sessionDir : getDefaultSessionDir(cwd);
+      const dir = sessionDir ?? getResumeDefaultSessionDir(cwd);
       const cacheKey = `${cwd}\0${dir}`;
       const pending = sessionListInFlight.get(cacheKey);
       if (pending) return pending;

@@ -5,12 +5,20 @@
  * high-level /resume features around Pi's native session selector.
  */
 
-import { realpathSync, watch, type FSWatcher } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
-import type {
-  ExtensionAPI,
-  ExtensionContext,
+import { readFileSync, watch, type FSWatcher } from "node:fs";
+import {
+  AssistantMessageComponent,
+  BashExecutionComponent,
+  BranchSummaryMessageComponent,
+  CompactionSummaryMessageComponent,
+  CustomMessageComponent,
+  getMarkdownTheme,
+  InteractiveMode,
+  SessionManager,
+  SessionSelectorComponent,
+  UserMessageComponent,
+  type ExtensionAPI,
+  type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { patchDeleteActiveSession } from "./delete-active-session";
 import { patchHighlightCurrentSession } from "./highlight-current-session";
@@ -89,54 +97,42 @@ function watchSessionDir(sessionManager: any) {
   return () => watcher?.close();
 }
 
-function loadPreviewDeps(req: NodeRequire, distPath: string) {
-  const { loadEntriesFromFile } = req(
-    join(distPath, "core", "session-manager.js"),
-  );
-  const { getMarkdownTheme, theme } = req(
-    join(distPath, "modes", "interactive", "theme", "theme.js"),
-  );
-  const { AssistantMessageComponent } = req(
-    join(
-      distPath,
-      "modes",
-      "interactive",
-      "components",
-      "assistant-message.js",
-    ),
-  );
-  const { BashExecutionComponent } = req(
-    join(distPath, "modes", "interactive", "components", "bash-execution.js"),
-  );
-  const { BranchSummaryMessageComponent } = req(
-    join(
-      distPath,
-      "modes",
-      "interactive",
-      "components",
-      "branch-summary-message.js",
-    ),
-  );
-  const { CompactionSummaryMessageComponent } = req(
-    join(
-      distPath,
-      "modes",
-      "interactive",
-      "components",
-      "compaction-summary-message.js",
-    ),
-  );
-  const { CustomMessageComponent } = req(
-    join(distPath, "modes", "interactive", "components", "custom-message.js"),
-  );
-  const { UserMessageComponent } = req(
-    join(distPath, "modes", "interactive", "components", "user-message.js"),
-  );
+const THEME_KEY = Symbol.for("@earendil-works/pi-coding-agent:theme");
 
+const activeTheme = new Proxy({} as any, {
+  get(_target, prop) {
+    const theme = (globalThis as any)[THEME_KEY];
+    if (!theme) throw new Error("Theme not initialized");
+    return theme[prop];
+  },
+});
+
+function loadEntriesFromFile(path: string) {
+  try {
+    const entries = readFileSync(path, "utf8")
+      .split("\n")
+      .flatMap((line) => {
+        if (!line.trim()) return [];
+        try {
+          return [JSON.parse(line)];
+        } catch {
+          return [];
+        }
+      });
+    const header = entries[0];
+    return header?.type === "session" && typeof header.id === "string"
+      ? entries
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadPreviewDeps() {
   return {
     loadEntriesFromFile,
     getMarkdownTheme,
-    theme,
+    theme: activeTheme,
     components: {
       AssistantMessageComponent,
       BashExecutionComponent,
@@ -149,19 +145,18 @@ function loadPreviewDeps(req: NodeRequire, distPath: string) {
 }
 
 export default function (pi: ExtensionAPI) {
-  const req = createRequire(__filename);
-  const cliPath = realpathSync(process.argv[1]);
-  const distPath = dirname(cliPath);
-
   applyRenameSessionRecent(
-    req,
-    distPath,
+    SessionManager,
     sessionInfoCache,
     (sessionManager) => {
       scheduleResumeWarm(sessionManager, false);
     },
   );
-  installOptimizeStartup(req, distPath, sessionInfoCache);
+  installOptimizeStartup(
+    SessionSelectorComponent,
+    SessionManager,
+    sessionInfoCache,
+  );
 
   const tmuxSplitAvailable = isTmuxResumeSplitAvailable();
   let stopWatchingSessionDir: (() => void) | undefined;
@@ -234,11 +229,8 @@ export default function (pi: ExtensionAPI) {
     activeSessionManager = undefined;
   });
 
-  const previewDeps = loadPreviewDeps(req, distPath);
-  const { InteractiveMode } = req(
-    join(distPath, "modes", "interactive", "interactive-mode.js"),
-  );
-  const proto = InteractiveMode.prototype as PatchedInteractiveMode;
+  const previewDeps = loadPreviewDeps();
+  const proto = InteractiveMode.prototype as unknown as PatchedInteractiveMode;
 
   if (!proto[RESUME_PATCHED]) {
     const originalShow = proto.showSessionSelector;

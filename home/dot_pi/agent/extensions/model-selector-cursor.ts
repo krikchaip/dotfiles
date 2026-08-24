@@ -3,7 +3,11 @@
  * selectedIndex to 0 whenever search input text changes.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import {
+  InteractiveMode,
+  ModelSelectorComponent,
+  type ExtensionAPI,
+} from "@earendil-works/pi-coding-agent";
 
 interface SearchInput {
   getValue(): string;
@@ -26,56 +30,59 @@ interface PatchedPrototype {
   handleInput(data: unknown): void;
 }
 
-export default function (pi: ExtensionAPI) {
-  pi.on("session_start", async () => {
-    // Normal import for exported component
-    const { ModelSelectorComponent } =
-      await import("@earendil-works/pi-coding-agent");
+function patchModelPrototype(proto: PatchedPrototype) {
+  if (proto._cursorPatched) return;
+  proto._cursorPatched = true;
 
-    // Bypass exports map for unexported component using absolute URL
-    const pkgUrl = import.meta.resolve("@earendil-works/pi-coding-agent");
-    const scopedUrl = new URL(
-      "./modes/interactive/components/scoped-models-selector.js",
-      pkgUrl,
-    ).href;
-    const { ScopedModelsSelectorComponent } = await import(scopedUrl);
-
-    const modelProto =
-      ModelSelectorComponent.prototype as unknown as PatchedPrototype;
-    if (!modelProto._cursorPatched) {
-      modelProto._cursorPatched = true;
-
-      const origModelHandle = modelProto.handleInput;
-      modelProto.handleInput = function (
-        this: ModelSelectorThis,
-        keyData: unknown,
-      ) {
-        const prev = this.searchInput.getValue();
-        origModelHandle.call(this, keyData);
-        if (this.searchInput.getValue() !== prev) {
-          this.selectedIndex = 0;
-          this.updateList();
-        }
-      };
+  const originalHandleInput = proto.handleInput;
+  proto.handleInput = function (this: ModelSelectorThis, data: unknown) {
+    const previous = this.searchInput.getValue();
+    originalHandleInput.call(this, data);
+    if (this.searchInput.getValue() !== previous) {
+      this.selectedIndex = 0;
+      this.updateList();
     }
+  };
+}
 
-    const scopedProto =
-      ScopedModelsSelectorComponent.prototype as unknown as PatchedPrototype;
-    if (!scopedProto._cursorPatched) {
-      scopedProto._cursorPatched = true;
+function patchScopedPrototype(proto: PatchedPrototype) {
+  if (proto._cursorPatched) return;
+  proto._cursorPatched = true;
 
-      const origScopedHandle = scopedProto.handleInput;
-      scopedProto.handleInput = function (
-        this: ScopedSelectorThis,
-        data: unknown,
-      ) {
-        const prev = this.searchInput.getValue();
-        origScopedHandle.call(this, data);
-        if (this.searchInput.getValue() !== prev) {
-          this.selectedIndex = 0;
-          this.refresh();
-        }
-      };
+  const originalHandleInput = proto.handleInput;
+  proto.handleInput = function (this: ScopedSelectorThis, data: unknown) {
+    const previous = this.searchInput.getValue();
+    originalHandleInput.call(this, data);
+    if (this.searchInput.getValue() !== previous) {
+      this.selectedIndex = 0;
+      this.refresh();
     }
-  });
+  };
+}
+
+export default function (_pi: ExtensionAPI) {
+  patchModelPrototype(
+    ModelSelectorComponent.prototype as unknown as PatchedPrototype,
+  );
+
+  const interactiveProto = InteractiveMode.prototype as any;
+  if (interactiveProto.__scopedModelCursorAdapterPatched) return;
+  interactiveProto.__scopedModelCursorAdapterPatched = true;
+
+  const originalShowSelector = interactiveProto.showSelector;
+  interactiveProto.showSelector = function (
+    factory: (done: () => void) => { component: any; focus: any },
+  ) {
+    return originalShowSelector.call(this, (done: () => void) => {
+      const result = factory(done);
+      const component = result?.component;
+      if (
+        component?.constructor?.name === "ScopedModelsSelectorComponent" &&
+        typeof component.handleInput === "function"
+      ) {
+        patchScopedPrototype(Object.getPrototypeOf(component));
+      }
+      return result;
+    });
+  };
 }

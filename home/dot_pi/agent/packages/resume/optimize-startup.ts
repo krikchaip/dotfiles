@@ -6,7 +6,8 @@
  */
 
 import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
 const LOAD_PATCHED = "__resumeSnapPatched";
 
@@ -41,18 +42,18 @@ export function scheduleResumeSessionSync(scope: ResumeSessionScope) {
   scheduleSyncImpl(scope);
 }
 
+export function getResumeDefaultSessionDir(cwd: string) {
+  const resolvedCwd = resolve(cwd);
+  const safePath = `--${resolvedCwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`;
+  return join(getAgentDir(), "sessions", safePath);
+}
+
 export function installOptimizeStartup(
-  req: NodeRequire,
-  distPath: string,
+  SessionSelectorComponent: any,
+  SessionManager: any,
   sessionInfoCache: SessionInfoCache,
 ) {
-  const { SessionSelectorComponent } = req(
-    join(distPath, "modes", "interactive", "components", "session-selector.js"),
-  );
   const selectorProto = SessionSelectorComponent.prototype as any;
-  const { getDefaultSessionDir, SessionManager } = req(
-    join(distPath, "core", "session-manager.js"),
-  );
   const syncInFlight = new Map<string, Promise<unknown>>();
   const currentSyncKey = (cwd: string, sessionDir: string | undefined) =>
     `current\0${cwd}\0${sessionDir ?? ""}`;
@@ -97,7 +98,8 @@ export function installOptimizeStartup(
     // but do not mutate the visible selector after it renders.
     if (_resumeCwd) {
       try {
-        const dir = _resumeSessionDir ?? getDefaultSessionDir(_resumeCwd);
+        const dir =
+          _resumeSessionDir ?? getResumeDefaultSessionDir(_resumeCwd);
         const dirEntries: string[] = readdirSync(dir);
         const files = dirEntries
           .filter((f: string) => f.endsWith(".jsonl"))

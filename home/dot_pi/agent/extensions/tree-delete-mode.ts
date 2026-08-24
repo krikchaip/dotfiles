@@ -6,10 +6,12 @@
  * rewrites the session file, and moves the active leaf to the nearest kept parent.
  */
 
-import { realpathSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import {
+  InteractiveMode,
+  keyHint,
+  rawKeyHint,
+  type ExtensionAPI,
+} from "@earendil-works/pi-coding-agent";
 import {
   getKeybindings,
   matchesKey,
@@ -600,21 +602,16 @@ function patchTreeSelector(
 }
 
 export default function (_pi: ExtensionAPI) {
-  const req = createRequire(__filename);
-  const cliPath = realpathSync(process.argv[1]);
-  const distPath = dirname(cliPath);
+  const themeKey = Symbol.for("@earendil-works/pi-coding-agent:theme");
+  const theme = new Proxy({} as any, {
+    get(_target, property) {
+      const current = (globalThis as Record<symbol, any>)[themeKey];
+      if (!current) throw new Error("Pi theme unavailable");
+      return current[property];
+    },
+  });
 
-  const { InteractiveMode } = req(
-    join(distPath, "modes", "interactive", "interactive-mode.js"),
-  );
-  const { theme } = req(
-    join(distPath, "modes", "interactive", "theme", "theme.js"),
-  );
-  const { keyHint, rawKeyHint } = req(
-    join(distPath, "modes", "interactive", "components", "keybinding-hints.js"),
-  );
-
-  const proto = InteractiveMode.prototype as PatchedInteractiveMode;
+  const proto = InteractiveMode.prototype as unknown as PatchedInteractiveMode;
   if (proto[TREE_DELETE_PATCHED]) return;
 
   const originalShowTreeSelector = proto.showTreeSelector;
@@ -631,7 +628,13 @@ export default function (_pi: ExtensionAPI) {
     ) {
       return originalShowSelector.call(this, (done: () => void) => {
         const result = factory(done);
-        patchTreeSelector(result?.component, this, theme, keyHint, rawKeyHint);
+        patchTreeSelector(
+          result?.component,
+          this,
+          theme,
+          keyHint as unknown as (id: string, description: string) => string,
+          rawKeyHint,
+        );
         return result;
       });
     };

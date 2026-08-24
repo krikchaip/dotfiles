@@ -8,14 +8,11 @@
  * duplicate after a live compaction.
  */
 
-import type {
-  ExtensionAPI,
-  SessionEntry,
+import {
+  InteractiveMode,
+  type ExtensionAPI,
+  type SessionEntry,
 } from "@earendil-works/pi-coding-agent";
-
-import { realpathSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
 
 const PATCH_STATE = "__dedupCompactionBannerPatchState";
 
@@ -183,15 +180,7 @@ function installPatch(InteractiveMode: { prototype: PatchedInteractiveMode }) {
 }
 
 export default function (_pi: ExtensionAPI) {
-  const req = createRequire(__filename);
-  const cliEntry = process.argv[1];
-  if (!cliEntry) throw new Error("Cannot locate Pi CLI entry");
-
-  const distPath = dirname(realpathSync(cliEntry));
-  const { InteractiveMode } = req(
-    join(distPath, "modes", "interactive", "interactive-mode.js"),
-  ) as { InteractiveMode?: { prototype: PatchedInteractiveMode } };
-
-  if (!InteractiveMode) throw new Error("Cannot load Pi InteractiveMode");
-  installPatch(InteractiveMode);
+  installPatch(
+    InteractiveMode as unknown as { prototype: PatchedInteractiveMode },
+  );
 }

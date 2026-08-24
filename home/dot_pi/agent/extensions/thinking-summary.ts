@@ -6,9 +6,10 @@
  */
 
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import type {
-  ExtensionAPI,
-  MarkdownTransformer,
+import {
+  AssistantMessageComponent,
+  type ExtensionAPI,
+  type MarkdownTransformer,
 } from "@earendil-works/pi-coding-agent";
 import {
   Markdown,
@@ -16,9 +17,6 @@ import {
   Spacer,
   Text,
 } from "@earendil-works/pi-tui";
-import { existsSync, realpathSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
 
 const LABEL = "Thinking:";
 const ANSI_PATTERN = /\x1b\[[0-9;]*m/g;
@@ -49,25 +47,14 @@ type AssistantMessageComponentInstance = {
   updateContent(message: AssistantMessage, isStreaming?: boolean): void;
 };
 
-type AssistantMessageComponentConstructor = {
-  prototype?: AssistantMessageComponentInstance;
-};
-
-type AssistantMessageModule = {
-  AssistantMessageComponent?: AssistantMessageComponentConstructor;
-};
-
-type ThemeModule = {
-  theme: ThemeLike;
-};
-
-type MarkdownTransformModule = {
-  createMarkdownTransform(
-    messageType: "assistant" | "assistant-thinking",
-    isStreaming: boolean,
-    transformers: readonly MarkdownTransformer[],
-  ): (markdown: string, availableWidth: number) => string;
-};
+const THEME_KEY = Symbol.for("@earendil-works/pi-coding-agent:theme");
+const theme = new Proxy({} as ThemeLike, {
+  get(_target, property) {
+    const current = (globalThis as Record<symbol, ThemeLike>)[THEME_KEY];
+    if (!current) throw new Error("Pi theme unavailable");
+    return current[property as keyof ThemeLike];
+  },
+});
 
 let patched = false;
 
@@ -124,49 +111,34 @@ function formatThinkingSummary(theme: ThemeLike, summary: string): string {
   return `${label} ${body}`;
 }
 
-function getPiDistDir(): string {
-  const argPath = process.argv[1];
-  if (!argPath) throw new Error("Cannot locate Pi entrypoint");
-
-  const entryDir = dirname(realpathSync(argPath));
-  const directComponent = join(
-    entryDir,
-    "modes/interactive/components/assistant-message.js",
-  );
-  if (existsSync(directComponent)) return entryDir;
-
-  const nestedDist = join(entryDir, "dist");
-  const nestedComponent = join(
-    nestedDist,
-    "modes/interactive/components/assistant-message.js",
-  );
-  if (existsSync(nestedComponent)) return nestedDist;
-
-  throw new Error(`Cannot locate Pi dist directory from ${argPath}`);
+function createMarkdownTransform(
+  messageType: "assistant" | "assistant-thinking",
+  isStreaming: boolean,
+  transformers: readonly MarkdownTransformer[],
+) {
+  return (markdown: string, availableWidth: number) => {
+    let transformed = markdown;
+    for (const transformer of transformers) {
+      try {
+        const next = transformer(transformed, {
+          messageType,
+          isStreaming,
+          availableWidth,
+        });
+        if (typeof next === "string") transformed = next;
+      } catch {
+        // Preserve Pi's behavior: one bad transformer does not stop rendering.
+      }
+    }
+    return transformed;
+  };
 }
 
-async function patchAssistantMessageComponent(): Promise<void> {
+function patchAssistantMessageComponent(): void {
   if (patched) return;
 
-  const distDir = getPiDistDir();
-  const componentUrl = pathToFileURL(
-    join(distDir, "modes/interactive/components/assistant-message.js"),
-  ).href;
-  const themeUrl = pathToFileURL(
-    join(distDir, "modes/interactive/theme/theme.js"),
-  ).href;
-  const markdownTransformUrl = pathToFileURL(
-    join(distDir, "modes/interactive/components/markdown-transform.js"),
-  ).href;
-
-  const [componentModule, themeModule, markdownTransformModule] =
-    await Promise.all([
-      import(componentUrl) as Promise<AssistantMessageModule>,
-      import(themeUrl) as Promise<ThemeModule>,
-      import(markdownTransformUrl) as Promise<MarkdownTransformModule>,
-    ]);
-
-  const proto = componentModule.AssistantMessageComponent?.prototype;
+  const proto = AssistantMessageComponent.prototype as unknown as
+    AssistantMessageComponentInstance | undefined;
   if (!proto?.updateContent) {
     throw new Error("AssistantMessageComponent.updateContent not found");
   }
@@ -209,7 +181,7 @@ async function patchAssistantMessageComponent(): Promise<void> {
             this.markdownTheme,
             undefined,
             {
-              transform: markdownTransformModule.createMarkdownTransform(
+              transform: createMarkdownTransform(
                 "assistant",
                 this.isStreaming,
                 this.markdownTransformers,
@@ -242,11 +214,11 @@ async function patchAssistantMessageComponent(): Promise<void> {
         );
       const summary = getThinkingSummary(content.thinking);
       const label = summary
-        ? formatThinkingSummary(themeModule.theme, summary)
+        ? formatThinkingSummary(theme, summary)
         : this.hiddenThinkingLabel;
       this.contentContainer.addChild(
         new Text(
-          themeModule.theme.italic(themeModule.theme.fg("thinkingText", label)),
+          theme.italic(theme.fg("thinkingText", label)),
           this.outputPad,
           0,
         ),
@@ -264,10 +236,7 @@ async function patchAssistantMessageComponent(): Promise<void> {
       this.contentContainer.addChild(new Spacer(1));
       this.contentContainer.addChild(
         new Text(
-          themeModule.theme.fg(
-            "error",
-            "Response was truncated before completion.",
-          ),
+          theme.fg("error", "Response was truncated before completion."),
           this.outputPad,
           0,
         ),
@@ -279,17 +248,13 @@ async function patchAssistantMessageComponent(): Promise<void> {
           : "Operation aborted";
       this.contentContainer.addChild(new Spacer(1));
       this.contentContainer.addChild(
-        new Text(
-          themeModule.theme.fg("error", abortMessage),
-          this.outputPad,
-          0,
-        ),
+        new Text(theme.fg("error", abortMessage), this.outputPad, 0),
       );
     } else if (!hasToolCalls && message.stopReason === "error") {
       this.contentContainer.addChild(new Spacer(1));
       this.contentContainer.addChild(
         new Text(
-          themeModule.theme.fg(
+          theme.fg(
             "error",
             `Error: ${message.errorMessage || "Unknown error"}`,
           ),
@@ -303,13 +268,11 @@ async function patchAssistantMessageComponent(): Promise<void> {
   patched = true;
 }
 
-export default async function thinkingSummaryExtension(
-  pi: ExtensionAPI,
-): Promise<void> {
+export default function thinkingSummaryExtension(pi: ExtensionAPI): void {
   let patchError: string | undefined;
 
   try {
-    await patchAssistantMessageComponent();
+    patchAssistantMessageComponent();
   } catch (error) {
     patchError = error instanceof Error ? error.message : String(error);
   }

@@ -8,13 +8,11 @@
  */
 
 import { spawn } from "node:child_process";
-import { realpathSync } from "node:fs";
 import { unlink } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
-import type {
-  ExtensionAPI,
-  ExtensionCommandContext,
+import {
+  InteractiveMode,
+  type ExtensionAPI,
+  type ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
 
 /** Confirm before dropping sessions with this many entries or more. */
@@ -133,16 +131,9 @@ function parseArgs(args: string): { quit: boolean } | undefined {
 }
 
 export default function (pi: ExtensionAPI) {
-  const cliEntry = process.argv[1];
-  if (!cliEntry) throw new Error("Cannot locate Pi CLI entry");
-
-  const req = createRequire(__filename);
-  const distPath = dirname(realpathSync(cliEntry));
-  const { InteractiveMode } = req(
-    join(distPath, "modes", "interactive", "interactive-mode.js"),
-  ) as { InteractiveMode?: { prototype: DropInteractiveMode } };
-  if (!InteractiveMode) throw new Error("Cannot load Pi InteractiveMode");
-  installDropShortcutAdapter(InteractiveMode);
+  installDropShortcutAdapter(
+    InteractiveMode as unknown as { prototype: DropInteractiveMode },
+  );
 
   pi.registerCommand("drop", {
     description:

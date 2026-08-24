@@ -76,6 +76,7 @@
 import {
   DynamicBorder,
   generateBranchSummary,
+  InteractiveMode,
   SessionManager,
   type ExtensionAPI,
   type ExtensionCommandContext,
@@ -98,9 +99,8 @@ import {
   type TUI,
 } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
-import { realpathSync, watch } from "node:fs";
+import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
-import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
@@ -2134,19 +2134,7 @@ type BranchShortcutPatchState = {
 };
 
 function installBranchShortcutAdapter() {
-  const cliEntry = process.argv[1];
-  if (!cliEntry) throw new Error("Cannot locate Pi CLI entry");
-
-  const req = createRequire(__filename);
-  const distPath = dirname(realpathSync(cliEntry));
-  const { InteractiveMode } = req(
-    join(distPath, "modes", "interactive", "interactive-mode.js"),
-  ) as {
-    InteractiveMode?: { prototype: BranchInteractiveMode };
-  };
-  if (!InteractiveMode) throw new Error("Cannot load Pi InteractiveMode");
-
-  const prototype = InteractiveMode.prototype as BranchInteractiveMode & {
+  const prototype = InteractiveMode.prototype as unknown as BranchInteractiveMode & {
     [BRANCH_SHORTCUT_ADAPTER]?: BranchShortcutPatchState;
   };
   if (prototype[BRANCH_SHORTCUT_ADAPTER]) return;

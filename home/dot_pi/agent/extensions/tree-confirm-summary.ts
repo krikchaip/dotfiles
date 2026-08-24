@@ -5,12 +5,11 @@
  * confirmation prompt for the selected tree node without changing settings.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import {
+  InteractiveMode,
+  type ExtensionAPI,
+} from "@earendil-works/pi-coding-agent";
 import { matchesKey } from "@earendil-works/pi-tui";
-
-import { realpathSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
 
 const TREE_CONFIRM_SUMMARY_PATCHED = "__treeConfirmSummaryPatched";
 
@@ -77,15 +76,7 @@ function patchTreeSelector(
 }
 
 export default function (_pi: ExtensionAPI) {
-  const req = createRequire(__filename);
-  const cliPath = realpathSync(process.argv[1]);
-  const distPath = dirname(cliPath);
-
-  const { InteractiveMode } = req(
-    join(distPath, "modes", "interactive", "interactive-mode.js"),
-  );
-
-  const proto = InteractiveMode.prototype as PatchedInteractiveMode;
+  const proto = InteractiveMode.prototype as unknown as PatchedInteractiveMode;
   if (proto[TREE_CONFIRM_SUMMARY_PATCHED]) return;
 
   const originalShowTreeSelector = proto.showTreeSelector;
