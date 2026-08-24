@@ -356,6 +356,33 @@ test.each([
   },
 );
 
+test.each(["completed", "failed", "cancelled", "closed"] as const)(
+  "%s event outcomes render Markdown structure",
+  (kind) => {
+    const outcome = [
+      "### Core rendering",
+      "",
+      "- **Preserve** `Agent` output",
+      "",
+      "| State | Tone |",
+      "| --- | --- |",
+      "| completed | green |",
+    ].join("\n");
+    const rendered = renderTerminalEvent({
+      error: kind === "completed" ? undefined : outcome,
+      kind,
+      response: kind === "completed" ? outcome : undefined,
+    });
+
+    expect(rendered).toContain("Core rendering");
+    expect(rendered).toContain("┌");
+    expect(rendered).toContain("│ State");
+    expect(rendered).not.toContain("**Preserve**");
+    expect(rendered).not.toContain("`Agent`");
+    expect(rendered).not.toContain("| State | Tone |");
+  },
+);
+
 test("collapsed terminal outcomes truncate after 240 Unicode characters", () => {
   const response = "🚀".repeat(241);
   const rendered = renderTerminalEvent({ kind: "completed", response });

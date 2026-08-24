@@ -1,9 +1,10 @@
 import {
   type ExtensionAPI,
   type Theme,
+  getMarkdownTheme,
   keyText,
 } from "@earendil-works/pi-coding-agent";
-import { Box, Text } from "@earendil-works/pi-tui";
+import { Box, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 
 /** Identifies parent messages that report sub-agent events. */
 export const RESULT_MESSAGE_TYPE = "side-quest-result";
@@ -108,43 +109,54 @@ export class SideQuestResultRenderer {
         : kind === "failed"
           ? "error"
           : "warning";
-    const lines = [
-      `${theme.fg(tone, theme.bold(`SUBAGENT ${kind.toUpperCase()}`))}  ${theme.fg("accent", identity.type)}`,
-      theme.fg("muted", identity.description),
-      "",
-      SideQuestResultRenderer.expandableText(
-        outcome,
-        expanded,
-        "customMessageText",
-        theme,
-      ),
-      ...(pendingQuestion
-        ? [
-            "",
-            theme.fg("warning", theme.bold("PENDING QUESTION")),
-            SideQuestResultRenderer.expandableText(
-              pendingQuestion,
-              expanded,
-              "muted",
-              theme,
-            ),
-          ]
-        : []),
-      ...(expanded
-        ? [
-            "",
-            theme.fg(
-              "muted",
-              `session path: ${details?.sessionPath ?? SideQuestResultRenderer.lineValue(content, "Resume:") ?? "Unavailable"}`,
-            ),
-          ]
-        : []),
-    ];
     const box = new Box(Math.max(1, outputPad + 1), 1, (text) =>
       theme.bg("customMessageBg", text),
     );
 
-    box.addChild(new Text(lines.join("\n"), 0, 0));
+    box.addChild(
+      new Text(
+        `${theme.fg(tone, theme.bold(`SUBAGENT ${kind.toUpperCase()}`))}  ${theme.fg("accent", identity.type)}\n${theme.fg("muted", identity.description)}`,
+        0,
+        0,
+      ),
+    );
+    box.addChild(new Spacer(1));
+    box.addChild(
+      SideQuestResultRenderer.expandableMarkdown(outcome, expanded, theme),
+    );
+
+    if (pendingQuestion) {
+      box.addChild(new Spacer(1));
+      box.addChild(
+        new Text(theme.fg("warning", theme.bold("PENDING QUESTION")), 0, 0),
+      );
+      box.addChild(
+        new Text(
+          SideQuestResultRenderer.expandableText(
+            pendingQuestion,
+            expanded,
+            "muted",
+            theme,
+          ),
+          0,
+          0,
+        ),
+      );
+    }
+
+    if (expanded) {
+      box.addChild(new Spacer(1));
+      box.addChild(
+        new Text(
+          theme.fg(
+            "muted",
+            `session path: ${details?.sessionPath ?? SideQuestResultRenderer.lineValue(content, "Resume:") ?? "Unavailable"}`,
+          ),
+          0,
+          0,
+        ),
+      );
+    }
 
     return box;
   }
@@ -190,7 +202,25 @@ export class SideQuestResultRenderer {
     return box;
   }
 
-  /** Renders one collapsed or expanded event text value. */
+  /** Renders one collapsed or expanded terminal outcome as Markdown. */
+  private static expandableMarkdown(
+    text: string,
+    expanded: boolean,
+    theme: Theme,
+  ): Markdown {
+    const collapsed = SideQuestResultRenderer.truncateText(text);
+    const truncated = !expanded && collapsed !== text;
+    const displayed = expanded ? text : collapsed;
+    const suffix = truncated
+      ? `${theme.fg("muted", "… ")}${theme.fg("dim", keyText("app.tools.expand"))}${theme.fg("muted", " to expand")}`
+      : "";
+
+    return new Markdown(`${displayed}${suffix}`, 0, 0, getMarkdownTheme(), {
+      color: (content) => theme.fg("customMessageText", content),
+    });
+  }
+
+  /** Renders one collapsed or expanded plain-text event value. */
   private static expandableText(
     text: string,
     expanded: boolean,

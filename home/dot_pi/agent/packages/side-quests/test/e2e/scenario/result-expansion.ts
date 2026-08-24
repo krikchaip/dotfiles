@@ -1,7 +1,16 @@
 import { configureBasicDelegation } from "../provider-support.ts";
 
-const longResult =
-  "The completed side quest verified parent questions, direct continuations, resumed tasks, inherited tool calls, narrow terminal wrapping, Unicode-safe truncation, durable session recovery, and host compositor compatibility before selecting the reference hierarchy for every terminal outcome. Expanded result marker.";
+const longResult = [
+  "### Result rendering",
+  "",
+  "**Markdown marker** with `Agent` output verified parent questions, direct continuations, resumed tasks, inherited tool calls, narrow terminal wrapping, Unicode-safe truncation, durable session recovery, and host compositor compatibility before selecting the reference hierarchy for every terminal outcome.",
+  "",
+  "| State | Tone |",
+  "| --- | --- |",
+  "| completed | green |",
+  "",
+  "Expanded result marker.",
+].join("\n");
 
 export const resultExpansion: Scenario = {
   name: "result-expansion",
@@ -18,6 +27,12 @@ export const resultExpansion: Scenario = {
     const collapsed = await harness.capture();
 
     harness.assert(
+      collapsed.includes("Markdown marker") &&
+        !collapsed.includes("**Markdown marker**") &&
+        !collapsed.includes("`Agent`"),
+      `The collapsed result did not render inline Markdown.\n${collapsed}`,
+    );
+    harness.assert(
       collapsed.includes("to expand"),
       `The collapsed result did not show the effective expand hint.\n${collapsed}`,
     );
@@ -27,7 +42,11 @@ export const resultExpansion: Scenario = {
     );
 
     await harness.sendParentKeys("C-o");
-    await harness.waitFor("Expanded result marker.", 5_000);
+    const expanded = await harness.waitFor("Expanded result marker.", 5_000);
+    harness.assert(
+      expanded.includes("┌") && expanded.includes("│ State"),
+      `The expanded result did not render the Markdown table.\n${expanded}`,
+    );
     await harness.waitFor("session path:", 5_000);
   },
 };
