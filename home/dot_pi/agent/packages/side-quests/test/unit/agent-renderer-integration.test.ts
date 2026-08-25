@@ -12,16 +12,26 @@ import {
   initTheme,
 } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { AgentRenderer } from "../../renderer/agent-renderer.ts";
+import { RuntimeStore } from "../../store/runtime.ts";
+import { SessionStore } from "../../store/session.ts";
+import { Tmux } from "../../tmux.ts";
 
 const PATCH_STATE = Symbol.for("side-quests:agent-renderer-state");
 
 type Renderer = (...args: unknown[]) => unknown;
 type RendererOwner = {
+  executionStarted?: boolean;
   isPartial?: boolean;
-  result?: { isError?: boolean };
+  result?: {
+    details?: {
+      continuationKind?: "answer" | "steer";
+      operation?: "launched" | "continued" | "reopened";
+    };
+    isError?: boolean;
+  };
   toolName?: string;
 };
 type RendererGetter = (this: RendererOwner) => unknown;
@@ -107,6 +117,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   delete globals[PATCH_STATE];
   if (originalAddChildDescriptor)
     Object.defineProperty(
@@ -229,6 +240,139 @@ test("Agent calls expose canonical text to transcript composers", () => {
   );
 });
 
+test.each([
+  ["answer", "continued", "answered"],
+  ["answer", "reopened", "answered"],
+  ["steer", "reopened", "resumed"],
+  ["steer", "continued", "steered"],
+] as const)(
+  "finished %s/%s Agent calls show %s in the parent header",
+  (continuationKind, operation, label) => {
+    expect(AgentRenderer.install()).toBe(true);
+
+    const renderer = rendererFor("getCallRenderer", {
+      isPartial: false,
+      result: {
+        details: { continuationKind, operation },
+        isError: false,
+      },
+      toolName: "Agent",
+    });
+    const rendered = renderer?.(
+      {
+        description: "classified continuation",
+        prompt: "Continue.",
+        resume: "/tmp/managed/session.jsonl",
+      },
+      theme,
+      { isPartial: false },
+    );
+
+    expect(renderedText(rendered)).toContain(
+      `general-purpose (${label}) :: classified continuation`,
+    );
+  },
+);
+
+test.each([false, true])(
+  "a live-child continuation shows steered when executionStarted=%s",
+  (executionStarted) => {
+    const sessionPath = "/tmp/managed/session.jsonl";
+
+    vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue({
+      version: 1,
+      childId: "live-child",
+      parentId: "parent",
+      ownerId: "owner",
+      sessionPath,
+      cwd: "/tmp",
+      agentName: "general-purpose",
+      displayName: "general-purpose",
+      description: "live child",
+      lifecycle: "interactive",
+      inheritContext: true,
+      tools: [],
+      createdAt: Date.now(),
+    });
+    vi.spyOn(SessionStore, "readRequest").mockReturnValue(undefined);
+    vi.spyOn(RuntimeStore, "hasTerminal").mockReturnValue(false);
+    vi.spyOn(Tmux, "findManagedPane").mockReturnValue({
+      paneId: "%2",
+      windowId: "@1",
+    });
+    vi.spyOn(Tmux, "paneProcessState").mockReturnValue({ dead: false });
+
+    expect(AgentRenderer.install()).toBe(true);
+
+    const renderer = rendererFor("getCallRenderer", {
+      executionStarted,
+      isPartial: true,
+      toolName: "Agent",
+    });
+    const rendered = renderer?.(
+      {
+        description: "Solve math problem",
+        prompt: "Solve it.",
+        resume: sessionPath,
+      },
+      theme,
+      { isPartial: true },
+    );
+
+    expect(renderedText(rendered)).toContain(
+      "general-purpose (steered) :: Solve math problem",
+    );
+  },
+);
+
+test("a pending-question continuation shows answered before execution starts", () => {
+  const sessionPath = "/tmp/managed/session.jsonl";
+
+  vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue({
+    version: 1,
+    childId: "question-child",
+    parentId: "parent",
+    ownerId: "owner",
+    sessionPath,
+    cwd: "/tmp",
+    agentName: "general-purpose",
+    displayName: "general-purpose",
+    description: "question child",
+    lifecycle: "interactive",
+    inheritContext: true,
+    tools: [],
+    createdAt: Date.now(),
+  });
+  vi.spyOn(SessionStore, "readRequest").mockReturnValue({
+    version: 1,
+    requestId: "request-1",
+    childId: "question-child",
+    prompt: "Which color?",
+    createdAt: Date.now(),
+  });
+
+  expect(AgentRenderer.install()).toBe(true);
+
+  const renderer = rendererFor("getCallRenderer", {
+    executionStarted: false,
+    isPartial: true,
+    toolName: "Agent",
+  });
+  const rendered = renderer?.(
+    {
+      description: "Answer color question",
+      prompt: "Use blue.",
+      resume: sessionPath,
+    },
+    theme,
+    { isPartial: true },
+  );
+
+  expect(renderedText(rendered)).toContain(
+    "general-purpose (answered) :: Answer color question",
+  );
+});
+
 test("Agent calls delegate status chrome to the active renderer", () => {
   prototype.getCallRenderer = function hostCallGetter() {
     return (args: unknown, theme: unknown, context: unknown) => {
@@ -260,6 +404,84 @@ test("Agent calls delegate status chrome to the active renderer", () => {
 
   expect(renderedText(rendered)).toContain(
     "\u001B[dimm●\u001B[39m Agent general-purpose :: host renderer",
+  );
+
+  const answeredRenderer = rendererFor("getCallRenderer", {
+    isPartial: false,
+    result: {
+      details: { continuationKind: "answer", operation: "continued" },
+      isError: false,
+    },
+    toolName: "Agent",
+  });
+  const answered = answeredRenderer?.(
+    {
+      description: "host answer renderer",
+      prompt: "Use blue.",
+      resume: "/tmp/managed/session.jsonl",
+    },
+    styledTheme,
+    { isPartial: false },
+  );
+
+  expect(renderedText(answered)).toContain(
+    "\u001B[successm●\u001B[39m Agent general-purpose (answered) :: host answer renderer",
+  );
+});
+
+test("settled continuation labels replace a host renderer's cached pending summary", () => {
+  prototype.getCallRenderer = function cachingHostCallGetter() {
+    return (args: unknown, _theme: unknown, context: unknown) => {
+      const display = args as { description?: string };
+      const renderContext = context as {
+        state: { agentSummary?: string };
+      };
+      renderContext.state.agentSummary ??= display.description;
+
+      return new Text(`● Agent ${renderContext.state.agentSummary}`, 0, 0);
+    };
+  };
+
+  expect(AgentRenderer.install()).toBe(true);
+
+  const state: { agentSummary?: string } = {};
+  const pendingRenderer = rendererFor("getCallRenderer", {
+    isPartial: false,
+    toolName: "Agent",
+  });
+  const pending = pendingRenderer?.(
+    {
+      description: "cached continuation",
+      prompt: "Continue.",
+      resume: "/tmp/managed/session.jsonl",
+    },
+    theme,
+    { argsComplete: true, isPartial: false, state },
+  );
+  expect(renderedText(pending)).toContain(
+    "general-purpose (resumed) :: cached continuation",
+  );
+
+  const settledRenderer = rendererFor("getCallRenderer", {
+    isPartial: false,
+    result: {
+      details: { continuationKind: "steer", operation: "continued" },
+      isError: false,
+    },
+    toolName: "Agent",
+  });
+  const settled = settledRenderer?.(
+    {
+      description: "cached continuation",
+      prompt: "Continue.",
+      resume: "/tmp/managed/session.jsonl",
+    },
+    theme,
+    { argsComplete: true, isPartial: false, state },
+  );
+
+  expect(renderedText(settled)).toContain(
+    "general-purpose (steered) :: cached continuation",
   );
 });
 

@@ -101,6 +101,70 @@ test("reports and clears an unanswered parent request", () => {
   expect(parent.replyPending(child)).toBe(false);
 });
 
+test.each([
+  [true, "answer"],
+  [false, "steer"],
+] as const)(
+  "classifies a live continuation with pending request %s as %s",
+  async (pendingRequest, continuationKind) => {
+    const parent = runtime();
+    vi.spyOn(Tmux, "findManagedPane").mockReturnValue({
+      paneId: child.paneId,
+      windowId: child.windowId,
+    });
+    vi.spyOn(Tmux, "paneExists").mockReturnValue(true);
+
+    if (pendingRequest) {
+      SessionStore.writeRequest(child.manifest.parentId, {
+        requestId: "request-id",
+        childId: child.manifest.childId,
+        prompt: "Which value should I use?",
+        createdAt: Date.now(),
+      });
+    }
+
+    await expect(
+      parent.continue(child.manifest, "Use the reference layout."),
+    ).resolves.toEqual({ continuationKind, operation: "continued" });
+  },
+);
+
+test.each([
+  [true, "answer"],
+  [false, "steer"],
+] as const)(
+  "classifies a stopped continuation with pending request %s as %s",
+  async (pendingRequest, continuationKind) => {
+    const parent = runtime();
+    vi.spyOn(Tmux, "findManagedPane").mockReturnValue(undefined);
+    vi.spyOn(Tmux, "paneExists").mockReturnValue(false);
+    vi.spyOn(Tmux, "createWindow").mockReturnValue({
+      paneId: child.paneId,
+      windowId: child.windowId,
+    });
+    vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+
+    RuntimeStore.writeTerminal(child.manifest.parentId, {
+      eventId: "terminal-event",
+      childId: child.manifest.childId,
+      kind: "closed",
+      createdAt: Date.now(),
+    });
+    if (pendingRequest) {
+      SessionStore.writeRequest(child.manifest.parentId, {
+        requestId: "request-id",
+        childId: child.manifest.childId,
+        prompt: "Which value should I use?",
+        createdAt: Date.now(),
+      });
+    }
+
+    await expect(
+      parent.continue(child.manifest, "Use the reference layout."),
+    ).resolves.toEqual({ continuationKind, operation: "reopened" });
+  },
+);
+
 test("cancelled events retain pending question and child identity details", () => {
   const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));
   temporaryRoots.push(root);

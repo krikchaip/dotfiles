@@ -16,6 +16,7 @@ export const askParent: Scenario = {
     lifecycle: "interactive",
     managed: true,
     positionalPrompt,
+    providerTokensPerSecond: 20,
   },
   timeoutMs: 45_000,
   configureProvider({ faux, role }) {
@@ -102,6 +103,17 @@ export const askParent: Scenario = {
     await harness.waitFor("general-purpose");
     await harness.waitFor("E2E delegated task");
     await harness.waitFor("Before I update the renderer");
+    await harness.waitFor(
+      "Agent general-purpose (answered) :: Answer the E2E child question",
+    );
+
+    const terminalLog = harness.read(harness.logPath);
+    harness.assert(
+      !terminalLog.includes(
+        "Agent general-purpose (resumed) :: Answer the E2E child question",
+      ),
+      "The parent answer briefly rendered as resumed before answered.",
+    );
 
     const collapsedParent = await harness.capture();
     harness.assert(
@@ -179,6 +191,16 @@ export const askParent: Scenario = {
     );
 
     await harness.sendKeys(childPane, "C-o");
+    await harness.waitUntil(
+      "child ask_parent output to be expanded",
+      async () => {
+        const view = await harness.capture(childPane);
+        return (
+          view.lastIndexOf("Tool output: expanded") >
+          view.lastIndexOf("Tool output: collapsed")
+        );
+      },
+    );
     const expanded = await harness.capture(childPane);
     const expandedError = expanded
       .split("\n")

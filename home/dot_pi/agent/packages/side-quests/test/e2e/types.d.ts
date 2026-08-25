@@ -21,6 +21,7 @@ declare global {
     readonly outsideTmux?: boolean;
     readonly persistSession?: boolean;
     readonly positionalPrompt?: string;
+    readonly providerTokensPerSecond?: number;
     readonly settings?: Readonly<Record<string, unknown>>;
   }
 

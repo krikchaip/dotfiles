@@ -130,12 +130,16 @@ export class ParentTools {
             lifecycle: manifest.lifecycle,
           });
 
-          const operation = await this.runtime.continue(
+          const continuation = await this.runtime.continue(
             continued,
             request.prompt,
           );
 
-          return this.acknowledgement(operation, continued.sessionPath);
+          return this.acknowledgement(
+            continuation.operation,
+            continued.sessionPath,
+            continuation.continuationKind,
+          );
         }
 
         const parentId = context.sessionManager.getSessionId();
@@ -181,12 +185,14 @@ export class ParentTools {
   private acknowledgement(
     operation: "launched" | "continued" | "reopened",
     sessionPath: string,
+    continuationKind?: "answer" | "steer",
   ): AgentToolResult<{
     operation: "launched" | "continued" | "reopened";
+    continuationKind?: "answer" | "steer";
     sessionPath: string;
   }> {
     return {
-      details: { operation, sessionPath },
+      details: { operation, continuationKind, sessionPath },
       content: [
         {
           type: "text",

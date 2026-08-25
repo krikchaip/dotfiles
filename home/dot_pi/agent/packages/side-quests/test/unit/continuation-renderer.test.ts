@@ -99,6 +99,18 @@ test("correlated parent answers render layout A with muted question context firs
   expect(reply).toBeGreaterThan(question + 1);
 });
 
+test("parent questions and replies render Markdown", () => {
+  const rendered = renderContinuation({
+    question: "Review `src/render.ts`?",
+    reply: "Use **bold guidance** now.",
+  });
+
+  expect(rendered).toContain("src/render.ts");
+  expect(rendered).toContain("bold guidance");
+  expect(rendered).not.toContain("`src/render.ts`");
+  expect(rendered).not.toContain("**bold guidance**");
+});
+
 test("historical correlated answers recover question context from the active branch", () => {
   const question = "Should the compact view show elapsed time?";
   const responseId = "gallery-answer";
@@ -175,9 +187,8 @@ test("collapsed parent answers truncate long questions and replies independently
   expect(rendered).toContain(
     "<customMessageLabel><bold>FROM PARENT</bold></customMessageLabel>",
   );
-  expect(rendered).toMatch(
-    /<muted>… <\/muted><dim>[^<]*<\/dim><muted> to expand<\/muted>/,
-  );
+  expect(rendered).toContain("… ");
+  expect(rendered).toContain("<dim>");
 });
 
 test("expanded parent answers show complete questions and replies without hints", () => {

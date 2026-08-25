@@ -12,14 +12,14 @@ export const idleContinuation: Scenario = {
       childFirstResponse: "First idle phase settled.",
       childSecondResponse: "Idle continuation applied.",
       continuationDelayMs: 1_500,
-      continuationPrompt: "Apply the idle-continuation now.",
+      continuationPrompt: "Apply **bold parent guidance** now.",
       interactive: true,
       launchPrompt: "Start idle continuation E2E.",
     });
   },
   async run(harness: E2EHarness) {
     await harness.waitFor(
-      "Agent general-purpose (resumed) :: Continue the E2E delegated task",
+      "Agent general-purpose (steered) :: Continue the E2E delegated task",
     );
 
     const childPane = await harness.childPane();
@@ -34,7 +34,8 @@ export const idleContinuation: Scenario = {
       Math.max(0, continuationStart),
     );
     harness.assert(
-      continuationBanner.includes("Apply the idle-continuation now.") &&
+      continuationBanner.includes("Apply bold parent guidance now.") &&
+        !continuationBanner.includes("**bold parent guidance**") &&
         !continuationBanner.includes("YOUR QUESTION") &&
         !continuationBanner.includes("IN RESPONSE TO"),
       `The direct continuation did not render without question context.\n${continuationBanner}`,

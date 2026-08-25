@@ -1,4 +1,5 @@
 import {
+  type Dirent,
   chmodSync,
   existsSync,
   mkdirSync,
@@ -17,8 +18,16 @@ function quote(value: string): string {
 }
 
 function filesBelow(root: string): string[] {
-  if (!existsSync(root)) return [];
-  return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+  let entries: Dirent<string>[];
+
+  try {
+    entries = readdirSync(root, { withFileTypes: true });
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw cause;
+  }
+
+  return entries.flatMap((entry) => {
     const path = join(root, entry.name);
     return entry.isDirectory() ? filesBelow(path) : [path];
   });
@@ -371,6 +380,10 @@ export class E2EHarness {
     if (process.child) environment.PI_SIDE_QUESTS_CHILD_ID = "e2e-child";
     if (process.lifecycle)
       environment.SIDE_QUESTS_E2E_LIFECYCLE = process.lifecycle;
+    if (process.providerTokensPerSecond)
+      environment.SIDE_QUESTS_E2E_TOKENS_PER_SECOND = String(
+        process.providerTokensPerSecond,
+      );
 
     const launchPath = join(
       this.options.runDirectory,

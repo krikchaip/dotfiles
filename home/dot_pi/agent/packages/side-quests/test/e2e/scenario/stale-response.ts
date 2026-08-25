@@ -57,7 +57,7 @@ export const staleResponse: Scenario = {
   },
   async run(harness: E2EHarness) {
     await harness.waitFor(
-      "Agent general-purpose (resumed) :: Continue the E2E delegated task",
+      "Agent general-purpose (steered) :: Continue the E2E delegated task",
     );
     const childPane = await harness.childPane();
 

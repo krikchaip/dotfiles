@@ -24,6 +24,15 @@ export type ParentChild = Readonly<{
   windowId: string;
 }>;
 
+/** Describes the semantic intent and process effect of one continuation. */
+export type ParentContinuation = Readonly<{
+  /** Distinguishes an answer to ask_parent from a direct parent instruction. */
+  continuationKind: "answer" | "steer";
+
+  /** Records whether the existing child continued or had to reopen. */
+  operation: "continued" | "reopened";
+}>;
+
 /**
  * Coordinates parent-owned child processes and their persisted runtime state.
  */
@@ -74,7 +83,7 @@ export class ParentRuntime {
   async continue(
     manifest: ChildManifest,
     prompt: string,
-  ): Promise<"continued" | "reopened"> {
+  ): Promise<ParentContinuation> {
     const previous = this.childrenById.get(manifest.childId);
     const located = previous
       ? undefined
@@ -98,6 +107,7 @@ export class ParentRuntime {
       manifest.parentId,
       manifest.childId,
     );
+    const continuationKind = request ? "answer" : "steer";
 
     SessionStore.writeResponse(manifest.parentId, {
       responseId: randomUUID(),
@@ -112,7 +122,8 @@ export class ParentRuntime {
       manifest.childId,
     );
 
-    if (!stopped && Tmux.paneExists(child.paneId)) return "continued";
+    if (!stopped && Tmux.paneExists(child.paneId))
+      return { continuationKind, operation: "continued" };
 
     if (stopped && Tmux.paneExists(child.paneId)) {
       const deadline = Date.now() + 10_000;
@@ -132,7 +143,7 @@ export class ParentRuntime {
 
     this.launch(manifest);
 
-    return "reopened";
+    return { continuationKind, operation: "reopened" };
   }
 
   /**

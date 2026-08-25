@@ -137,6 +137,7 @@ export function configureContinuation(
           });
     },
     fauxAssistantMessage(fauxText("The delegated continuation was sent.")),
+    fauxAssistantMessage(fauxText("The delegated child completed.")),
   ]);
 }
 

@@ -1,9 +1,10 @@
 import {
   type ExtensionAPI,
   type Theme,
+  getMarkdownTheme,
   keyText,
 } from "@earendil-works/pi-coding-agent";
-import { Box, Text } from "@earendil-works/pi-tui";
+import { Box, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 
 /** Identifies a parent answer or direct continuation in a child transcript. */
 export const CONTINUATION_MESSAGE_TYPE = "side-quest-continuation";
@@ -46,31 +47,38 @@ export class ContinuationRenderer {
           details,
           historicalQuestions,
         );
-        const lines = [
-          theme.fg("customMessageLabel", theme.bold("FROM PARENT")),
-          ...(question
-            ? [
-                ContinuationRenderer.expandableText(
-                  question,
-                  options.expanded,
-                  "muted",
-                  theme,
-                ),
-                "",
-              ]
-            : [""]),
-          ContinuationRenderer.expandableText(
+        const box = new Box(Math.max(1, options.outputPad + 1), 1, (text) =>
+          theme.bg("customMessageBg", text),
+        );
+
+        box.addChild(
+          new Text(
+            theme.fg("customMessageLabel", theme.bold("FROM PARENT")),
+            0,
+            0,
+          ),
+        );
+        if (question) {
+          box.addChild(
+            ContinuationRenderer.expandableMarkdown(
+              question,
+              options.expanded,
+              "muted",
+              theme,
+            ),
+          );
+          box.addChild(new Spacer(1));
+        } else {
+          box.addChild(new Spacer(1));
+        }
+        box.addChild(
+          ContinuationRenderer.expandableMarkdown(
             reply,
             options.expanded,
             "customMessageText",
             theme,
           ),
-        ];
-        const box = new Box(Math.max(1, options.outputPad + 1), 1, (text) =>
-          theme.bg("customMessageBg", text),
         );
-
-        box.addChild(new Text(lines.join("\n"), 0, 0));
 
         return box;
       },
@@ -159,13 +167,13 @@ export class ContinuationRenderer {
       : undefined;
   }
 
-  /** Renders one collapsed or expanded question or reply. */
-  private static expandableText(
+  /** Renders one collapsed or expanded question or reply as Markdown. */
+  private static expandableMarkdown(
     text: string,
     expanded: boolean,
     color: "customMessageText" | "muted",
     theme: Theme,
-  ): string {
+  ): Markdown {
     const collapsed = ContinuationRenderer.truncate(text);
     const truncated = !expanded && collapsed !== text;
     const displayed = expanded ? text : collapsed;
@@ -173,7 +181,9 @@ export class ContinuationRenderer {
       ? `${theme.fg("muted", "… ")}${theme.fg("dim", keyText("app.tools.expand"))}${theme.fg("muted", " to expand")}`
       : "";
 
-    return `${theme.fg(color, displayed)}${suffix}`;
+    return new Markdown(`${displayed}${suffix}`, 0, 0, getMarkdownTheme(), {
+      color: (content) => theme.fg(color, content),
+    });
   }
 
   /** Truncates text by Unicode character before its styled suffix. */

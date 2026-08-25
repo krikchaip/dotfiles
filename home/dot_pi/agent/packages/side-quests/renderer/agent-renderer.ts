@@ -6,16 +6,25 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
 
+import { RuntimeStore } from "../store/runtime.ts";
 import { SessionStore } from "../store/session.ts";
+import { Tmux } from "../tmux.ts";
 import { AskParentRenderer } from "./ask-parent-renderer.ts";
 
 const AGENT_CALL_RENDERER = Symbol.for("side-quests:agent-call-renderer");
+const HOST_CALL_SUMMARY = Symbol.for("side-quests:host-call-summary");
 const PATCH_STATE = Symbol.for("side-quests:agent-renderer-state");
 const PATCH_OWNER = {};
 
+type RendererResult = Readonly<{
+  details?: unknown;
+  isError?: unknown;
+}>;
+
 type RendererOwner = {
+  executionStarted?: unknown;
   isPartial?: unknown;
-  result?: { isError?: unknown };
+  result?: RendererResult;
   toolName?: unknown;
 };
 type AddChild = (this: unknown, component: unknown) => unknown;
@@ -174,10 +183,6 @@ export class AgentRenderer {
       originalGetResultRenderer as RendererGetter;
     const delegatedHasRendererDefinition =
       originalHasRendererDefinition as RendererGetter;
-    const sideQuestsCallRenderer =
-      AgentRenderer.renderCall as AgentCallRenderer;
-
-    sideQuestsCallRenderer[AGENT_CALL_RENDERER] = true;
 
     rendererState.originalAddChild = delegatedAddChild;
     rendererState.originalGetCallRenderer = delegatedGetCallRenderer;
@@ -215,12 +220,36 @@ export class AgentRenderer {
 
       if (this.toolName === "ask_parent") return AskParentRenderer.renderCall;
       if (this.toolName !== "Agent") return original;
+
+      const result = this.result;
+      const sideQuestsCallRenderer = ((
+        args: unknown,
+        theme: Theme,
+        context: unknown,
+      ) =>
+        AgentRenderer.renderCall(
+          args,
+          theme,
+          context,
+          result,
+        )) as AgentCallRenderer;
+
+      sideQuestsCallRenderer[AGENT_CALL_RENDERER] = true;
+
       if (typeof original !== "function") return sideQuestsCallRenderer;
       if ((original as AgentCallRenderer)[AGENT_CALL_RENDERER] === true)
         return sideQuestsCallRenderer;
 
-      return (args: unknown, theme: unknown, context: unknown) =>
-        original(AgentRenderer.hostArgs(args), theme, context);
+      return (args: unknown, theme: unknown, context: unknown) => {
+        const summary = AgentRenderer.summary(args, result);
+        AgentRenderer.prepareHostSummary(
+          context,
+          summary,
+          result !== undefined,
+        );
+
+        return original(AgentRenderer.hostArgs(args, summary), theme, context);
+      };
     };
 
     const getRenderShell = function getSideQuestsRenderShell(
@@ -273,11 +302,14 @@ export class AgentRenderer {
   /**
    * Formats the stable summary shown in one Agent tool header.
    */
-  public static summary(args: unknown): string {
+  public static summary(args: unknown, result?: RendererResult): string {
     const agent = AgentRenderer.display(args);
-    const resumed = agent.mode === "resumed" ? " (resumed)" : "";
+    const continuation =
+      agent.mode === "resumed"
+        ? ` (${AgentRenderer.continuationLabel(args, result)})`
+        : "";
 
-    return `${agent.type}${resumed} :: ${agent.description}`;
+    return `${agent.type}${continuation} :: ${agent.description}`;
   }
 
   /**
@@ -362,13 +394,126 @@ export class AgentRenderer {
   /**
    * Supplies the stable Agent summary while preserving host renderer control.
    */
-  private static hostArgs(args: unknown): unknown {
+  private static hostArgs(args: unknown, summary: string): unknown {
     if (typeof args !== "object" || args === null) return args;
 
     return {
       ...(args as Record<string, unknown>),
-      description: AgentRenderer.summary(args),
+      description: summary,
     };
+  }
+
+  /**
+   * Invalidates a host renderer's stale pending summary after settlement.
+   */
+  private static prepareHostSummary(
+    context: unknown,
+    summary: string,
+    settled: boolean,
+  ): void {
+    if (typeof context !== "object" || context === null) return;
+
+    const state = (context as { state?: unknown }).state;
+    if (typeof state !== "object" || state === null) return;
+
+    const rendererState = state as Record<PropertyKey, unknown>;
+    const previous = rendererState[HOST_CALL_SUMMARY];
+    rendererState[HOST_CALL_SUMMARY] = summary;
+    if (!settled) return;
+
+    const candidates = new Set<string>();
+    if (typeof previous === "string") candidates.add(previous);
+    for (const label of ["answered", "resumed", "steered"]) {
+      candidates.add(
+        summary.replace(/\((?:answered|resumed|steered)\)/u, `(${label})`),
+      );
+    }
+    candidates.delete(summary);
+
+    for (const key of Reflect.ownKeys(rendererState)) {
+      if (key === HOST_CALL_SUMMARY) continue;
+
+      const cached = rendererState[key];
+      if (
+        typeof cached === "string" &&
+        [...candidates].some((candidate) =>
+          AgentRenderer.isCachedSummary(cached, candidate),
+        )
+      ) {
+        delete rendererState[key];
+      }
+    }
+  }
+
+  /**
+   * Tests an exact or host-truncated summary without host-private cache keys.
+   */
+  private static isCachedSummary(cached: string, expected: string): boolean {
+    const normalized = expected.replace(/\n/gu, " ").trim();
+    if (cached === normalized) return true;
+
+    const prefix = cached.endsWith("...")
+      ? cached.slice(0, -3)
+      : cached.endsWith("…")
+        ? cached.slice(0, -1)
+        : undefined;
+
+    return (
+      prefix !== undefined && prefix.length > 0 && normalized.startsWith(prefix)
+    );
+  }
+
+  /**
+   * Resolves the parent-facing label for one continuation.
+   */
+  private static continuationLabel(
+    args: unknown,
+    result?: RendererResult,
+  ): string {
+    if (result !== undefined) {
+      if (result.isError === true) return "resumed";
+      if (typeof result.details !== "object" || result.details === null)
+        return "resumed";
+
+      const details = result.details as {
+        continuationKind?: unknown;
+        operation?: unknown;
+      };
+
+      if (details.continuationKind === "answer") return "answered";
+      if (details.operation === "reopened") return "resumed";
+      if (details.continuationKind === "steer") return "steered";
+
+      return "resumed";
+    }
+
+    return AgentRenderer.pendingContinuationLabel(args);
+  }
+
+  /**
+   * Classifies an in-flight continuation from managed child process state.
+   */
+  private static pendingContinuationLabel(args: unknown): string {
+    const path = AgentRenderer.stringArg(args, "resume");
+    if (!path) return "resumed";
+
+    const manifest = SessionStore.readResumableManifest(path);
+    if (!manifest) return "resumed";
+
+    const request = SessionStore.readRequest(
+      manifest.parentId,
+      manifest.childId,
+    );
+    if (request) return "answered";
+
+    if (RuntimeStore.hasTerminal(manifest.parentId, manifest.childId))
+      return "resumed";
+
+    const pane = Tmux.findManagedPane(manifest.childId);
+    if (!pane) return "resumed";
+
+    const processState = Tmux.paneProcessState(pane.paneId);
+    return processState && !processState.dead ? "steered" : "resumed";
   }
 
   /**
@@ -411,15 +556,15 @@ export class AgentRenderer {
     args: unknown,
     theme: Theme,
     context: unknown,
+    result?: RendererResult,
   ): Text {
     const renderContext = context as
-      | { isError?: boolean; isPartial?: boolean }
-      | undefined;
+      { isError?: boolean; isPartial?: boolean } | undefined;
     const statusColor = renderContext?.isError ? "error" : "success";
     const statusGlyph = "●";
 
     return new ToolCallText(
-      `${theme.fg(statusColor, statusGlyph)} ${theme.fg("toolTitle", theme.bold("Agent"))} ${theme.fg("accent", AgentRenderer.summary(args))}`,
+      `${theme.fg(statusColor, statusGlyph)} ${theme.fg("toolTitle", theme.bold("Agent"))} ${theme.fg("accent", AgentRenderer.summary(args, result))}`,
     );
   }
 
