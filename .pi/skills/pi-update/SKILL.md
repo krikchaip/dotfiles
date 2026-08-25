@@ -1,34 +1,36 @@
 ---
 name: pi-update
-description: Update Pi and repair custom compatibility.
+description: Update Pi and prove custom plugin compatibility end to end.
 disable-model-invocation: true
 ---
 
 # Pi Update
 
-Input: one `https://pi.dev/news/releases/<version>` URL. Update Pi first, then audit and repair the custom setup.
+Input: one `https://pi.dev/news/releases/<version>` URL. Establish the behavioral baseline, update Pi, then audit and repair the custom setup.
 
 ## Policy
 
 - **Approval:** ask before the mise update, each repair set, and rollback. When custom intent stays unclear, read and follow the available `/skill:grilling` skill.
-- **Behavior:** preserve current custom behavior unless the user approves a change. Read each file again before editing; never overwrite newer user work.
+- **Behavioral parity:** after the target passes startup, compare every custom plugin and resource behavior with its proven baseline. Repair regressions after approval. Present every new or changed behavior for the user to preserve, adopt, or defer. Read each file again before editing; never overwrite newer user work.
 - **Source class:** record each file as a chezmoi source with a verified target, or a repository-local source used directly. The class—not its path—decides whether to run targeted `chezmoi apply`.
 - **Boundary:** treat all source under `home/dot_pi/agent/extensions/` and `home/dot_pi/agent/packages/` as customizations. Also audit custom settings, keybindings, themes, prompts, skills, agents, models, MCP, and Pi TypeScript setup. Exclude third-party packages outside those roots, caches, dependencies, generated files, and build output. Pi core is read-only evidence.
 - **No-write checks:** before repair approval, run proven read-only checks in place. Run checks that can write in a temporary copy. Compare Git status before and after; stop on an unexpected source change and leave it untouched.
 
-A **repair card** states the release item or failure, changed behavior, each planned code or configuration modification with its file and reason, behavior to preserve, and proof of the fix. Present every release assessment, unexpected regression, and repair card in chat; write a file only when asked.
+A **repair card** states the release item or failure, changed behavior, each planned code or configuration modification with its file and reason, behavior to preserve, and proof of the fix. A **behavior decision** states a new or changed behavior, baseline and target evidence, compatibility impact, options to preserve, adopt, or defer it, and a recommended next step. Present every release assessment, unexpected regression, repair card, and behavior decision in chat; write a file only when asked.
 
 A **full-stack startup** follows the available `/skill:pi-extension-e2e` skill with a real PTY, `PI_OFFLINE=1`, and no saved session. From a neutral directory, load the real global Pi directory and all discovered resources without resource-disabling flags. Require a stable editor or footer marker and a clean exit. Repeat from each inventoried project that has Pi resources; handle trust without saving a new decision. Keep logs.
+
+A **behavior matrix** accounts for every independent user-visible activation surface owned by each custom plugin or resource entrypoint. Each row records its owner, exact user action or terminal bytes, required fixture and state, positive oracle, negative oracle, baseline result, target result, behavior delta, and evidence. A **behavior delta** is any changed output, input handling, state transition, side effect, or newly reachable behavior, even when both results pass their oracles. Follow `/skill:pi-extension-e2e` for TUI rows. A loaded extension or clean startup does not prove an interaction row. Prefer the exact user path. When an external boundary cannot be automated safely, use the narrowest host-boundary fixture and name the boundary it excludes. Clipboard-owned rows also require one real OS-clipboard check on the baseline and target; ask the user to perform it when clipboard state cannot be replaced and restored losslessly. Example: the `image-attachments` Ctrl+V row sends `\x16`, supplies a valid Pi clipboard image, requires `[#image 1]`, and forbids a raw `pi-clipboard-<UUID>.<ext>` path.
 
 ## 1. Establish the baseline
 
 1. Validate the Pi release page and GitHub tag. Read the current version from `pi --version`; require a newer target.
 2. Build the stable release range from the first version newer than current through the target, inclusive. Exclude the current release. Confirm every page and tag, but defer content review.
 3. Confirm that `pi` resolves through mise. Record the exact current version, tool key, and global config file.
-4. Inventory both source classes within the policy boundary. Record Git status, Pi dependency pins and locks, and available lint, type-check, format-check, and test commands.
-5. Run the full-stack startup on the current version. Record pre-existing failures separately.
+4. Inventory both source classes within the policy boundary. Record Git status, Pi dependency pins and locks, and available lint, type-check, format-check, and test commands. Search test directories directly and reconcile every discovered executable test with package scripts; an omitted test remains required. Build the behavior matrix from extension entrypoints, package manifests, registered commands, keybindings, editor and clipboard hooks, renderers, settings, and existing tests. Account for every activation surface; internal helper modules belong to their owning entrypoint.
+5. Run the available source checks, full-stack startup, and every behavior-matrix row on the current version. A row passes only from its own oracle evidence. Record each pre-existing failure and untested external boundary separately.
 
-Completion: the range, global mise config, rollback version, source classes, checks, and working baseline are proven.
+Completion: the range, global mise config, rollback version, source classes, checks, startup, and baseline result for every behavior-matrix row are proven.
 
 ## 2. Update through mise
 
@@ -59,19 +61,19 @@ For each bullet:
 3. For a detailed item, report `Applies`, concrete `Impact`, `Action`, and linked `Evidence`; use a focused no-write check when static evidence is insufficient.
 4. For any unrelated item, give only one short line naming it and `Skipped: no custom match`. An unrelated breaking change is also safe to mention briefly. Point repeated summary bullets to the detailed item.
 
-Then run applicable no-write static and behavior checks across custom source roots. Put write-capable checks in temporary copies. Report new failures under `Unexpected regressions`; keep baseline failures separate.
+Then run applicable no-write static checks across custom source roots and the complete behavior matrix on the target, including rows with no predicted release match. Put write-capable checks in temporary copies. Compare each target result with its baseline, not only with its oracles. A lost baseline behavior is an `Unexpected regression`; additional or changed behavior requires a behavior decision. Keep baseline failures separate.
 
-Completion: every included bullet is either reviewed in detail or mentioned briefly, the baseline release stays excluded, and all repair candidates are known. After rollback, mark target-runtime checks blocked by the proven defect and use release, PR, tagged-source, and startup evidence.
+Completion: every included bullet is either reviewed in detail or mentioned briefly, the baseline release stays excluded, every behavior-matrix row has a target result and delta classification, and all repair candidates and behavior decisions are known. After rollback, mark target-runtime rows blocked by the proven defect and use release, PR, tagged-source, and startup evidence.
 
 ## 5. Repair and verify
 
-1. Present one numbered set of repair cards after the audit; startup blockers are the only earlier cards. Include target-version updates for applicable Pi development dependencies and lockfiles. Keep broad peer ranges unless evidence requires a narrower one. Wait for approval of specific numbers.
+1. Present one numbered set of repair cards and behavior decisions after the audit; startup blockers are the only earlier cards. Include target-version updates for applicable Pi development dependencies and lockfiles. Keep broad peer ranges unless evidence requires a narrower one. Wait for approval of specific repair numbers and a user disposition for every behavior decision.
 2. For each approved card, reread affected files, make only approved edits, and regenerate approved locks with their package manager. Apply chezmoi sources only to verified targets; edit repository-local sources directly.
 3. Verify source-to-target matches, then run each card's focused proof. New evidence that changes the repair requires a revised card and approval.
-4. Run full-stack global and project startup, applicable source-root checks, focused regressions, and real-TUI E2E for every affected user-visible resource. Include negative checks for behavior that must stay absent or unchanged.
-5. Report final version, reviewed range, startup, approved repairs and evidence, deferred work, baseline failures, blockers, and rollback evidence.
+4. Run full-stack global and project startup, applicable source-root checks, each repair's focused regression, and the complete behavior matrix again. Require each row's positive and negative oracles and compare it with the baseline or user-approved behavior; retest unaffected rows because compatibility impact can escape the release audit and static search.
+5. Report final version, reviewed range, startup, behavior-matrix results, approved repairs and evidence, deferred work, baseline failures, untested external boundaries, blockers, and rollback evidence.
 
 Completion is one of:
 
-- **Updated:** the exact target starts with the real custom stack; every release bullet is accounted for; all approved repairs pass.
-- **Rolled back:** a proven upstream blocker led to approved rollback; the exact previous version starts; every release bullet is accounted for; feasible approved repairs pass; blocked target checks are explicit.
+- **Updated:** the exact target starts with the real custom stack; every release bullet and behavior-matrix row is accounted for; every regression is repaired; every new or changed behavior has a user disposition; every row and approved repair passes against the baseline or approved behavior.
+- **Rolled back:** a proven upstream blocker led to approved rollback; the exact previous version starts; every release bullet and behavior-matrix row is accounted for; feasible rows and approved repairs pass; every behavior delta has a user disposition; blocked target rows are explicit.
