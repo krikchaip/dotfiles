@@ -1,0 +1,95 @@
+#!/usr/bin/expect -f
+
+if {$argc > 2} {
+  puts stderr "usage: startup.expect ?expected-version? ?work-dir?"
+  exit 2
+}
+
+set timeout 1
+set expected_version ""
+if {$argc >= 1} {
+  set expected_version [lindex $argv 0]
+}
+set owns_work_dir [expr {$argc < 2}]
+set work_dir [expr {$owns_work_dir ? [exec mktemp -d /tmp/pi-update-startup.XXXXXX] : [file normalize [lindex $argv 1]]}]
+if {![file isdirectory $work_dir]} {
+  puts stderr "work directory does not exist: $work_dir"
+  exit 2
+}
+set log_path "/tmp/pi-update-startup-[pid].ansi"
+set columns 90
+set rows 32
+set saw_version [expr {$expected_version eq ""}]
+set saw_loaded 0
+set saw_extensions 0
+set failed ""
+
+proc cleanup {} {
+  global owns_work_dir work_dir
+  if {$owns_work_dir} {
+    file delete -force $work_dir
+  }
+}
+
+cd $work_dir
+log_user 0
+log_file -noappend $log_path
+spawn env TERM=xterm-256color COLORTERM=truecolor COLUMNS=$columns LINES=$rows \
+  PI_OFFLINE=1 pi --no-session
+stty columns $columns rows $rows
+
+set deadline [expr {[clock milliseconds] + 15000}]
+while {[clock milliseconds] < $deadline && (!$saw_version || !$saw_loaded || !$saw_extensions) && $failed eq ""} {
+  expect {
+    "\033\[c" {
+      send "\033\[?1;2c"
+      exp_continue -continue_timer
+    }
+    "\033\[?u" {
+      send "\033\[?0u"
+      exp_continue -continue_timer
+    }
+    "Trust project folder?" {
+      after 100
+      send -- "\033\[B\033\[B\r"
+      exp_continue -continue_timer
+    }
+    -re {Failed to load extension|\[Extension errors\]|exiting due to uncaughtException} {
+      set failed "Pi reported an extension or runtime failure"
+    }
+    -exact "v$expected_version" {
+      set saw_version 1
+    }
+    -exact "Loaded" {
+      set saw_loaded 1
+    }
+    -exact "extensions" {
+      set saw_extensions 1
+    }
+    timeout {}
+    eof {
+      set failed "Pi exited before the editor became ready"
+    }
+  }
+}
+
+if {$failed eq "" && (!$saw_version || !$saw_loaded || !$saw_extensions)} {
+  set failed "Pi did not finish loading the custom setup before the deadline"
+}
+
+if {$failed ne ""} {
+  puts stderr "FAIL: $failed"
+  puts stderr "log: $log_path"
+  catch { send "\003\003" }
+  catch { close }
+  cleanup
+  exit 1
+}
+
+send "\003\003"
+catch { close }
+catch { wait }
+cleanup
+puts "PASS: Pi started with the full custom setup"
+puts "log: $log_path"
+exit 0
