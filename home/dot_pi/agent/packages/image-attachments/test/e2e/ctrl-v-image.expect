@@ -1,0 +1,104 @@
+#!/usr/bin/expect -f
+
+set timeout 1
+set root "/tmp/pi-image-attachments-ctrl-v-e2e"
+set config_dir "$root/config"
+set work_dir "$root/cwd"
+set image_path "$root/pi-clipboard-00000000-0000-4000-8000-000000000001.png"
+set log_path "$root/tui.ansi"
+set package_root [file normalize [file join [file dirname [info script]] ../..]]
+set image_extension "$package_root/index.ts"
+set clipboard_fixture "$root/clipboard-fixture.ts"
+set columns 90
+set rows 32
+
+file delete -force $root
+file mkdir $config_dir $work_dir
+
+set fixture_file [open $clipboard_fixture w]
+puts $fixture_file {
+import {
+  InteractiveMode,
+  type ExtensionAPI,
+} from "@earendil-works/pi-coding-agent";
+
+const imagePath = process.env.E2E_IMAGE_PATH;
+if (!imagePath) throw new Error("E2E_IMAGE_PATH is required");
+
+const prototype = InteractiveMode.prototype as any;
+prototype.handleClipboardPaste = async function () {
+  this.editor.insertTextAtCursor?.(imagePath);
+  this.ui.requestRender();
+};
+
+export default function (pi: ExtensionAPI) {
+  pi.on("session_start", (_event, ctx) => {
+    ctx.ui.setStatus("ctrl-v-image-e2e", "CTRL_V_IMAGE_E2E_READY");
+  });
+}
+}
+close $fixture_file
+
+set image_base64 {
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=
+}
+exec python3 -c {
+import base64
+import sys
+
+with open(sys.argv[1], "wb") as image:
+    image.write(base64.b64decode(sys.argv[2]))
+} $image_path $image_base64
+
+proc wait_for_exact {seconds pattern} {
+  set deadline [expr {[clock milliseconds] + ($seconds * 1000)}]
+  while {[clock milliseconds] < $deadline} {
+    expect {
+      "\033\[c" { send "\033\[?1;2c"; exp_continue -continue_timer }
+      "\033\[?u" { send "\033\[?0u"; exp_continue -continue_timer }
+      -exact $pattern { return 1 }
+      timeout {}
+      eof { return 0 }
+    }
+  }
+  return 0
+}
+
+proc fail {message} {
+  global log_path root
+  puts stderr "FAIL: $message"
+  catch { send "\003\003" }
+  catch { close }
+  if {[file exists $log_path]} {
+    set log_file_handle [open $log_path r]
+    set output [read $log_file_handle]
+    close $log_file_handle
+    puts stderr [string range $output end-3000 end]
+  }
+  file delete -force $root
+  exit 1
+}
+
+cd $work_dir
+log_user 0
+log_file -noappend $log_path
+spawn env TERM=xterm-256color COLORTERM=truecolor COLUMNS=$columns LINES=$rows \
+  PI_OFFLINE=1 PI_CODING_AGENT_DIR=$config_dir E2E_IMAGE_PATH=$image_path \
+  pi --no-session --no-context-files --no-prompt-templates --no-themes \
+  --no-extensions --no-skills -e $clipboard_fixture -e $image_extension
+stty columns $columns rows $rows
+
+if {![wait_for_exact 10 "CTRL_V_IMAGE_E2E_READY"]} {
+  fail "Pi TUI did not become ready"
+}
+
+send -- "\026"
+if {![wait_for_exact 5 "\[#image 1\]"]} {
+  fail "Ctrl+V did not convert Pi's clipboard image path to a placeholder"
+}
+
+send "\003\003"
+catch { close }
+file delete -force $root
+puts "PASS: Ctrl+V converted Pi's clipboard image path to an attachment placeholder"
+exit 0

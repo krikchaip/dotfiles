@@ -29,7 +29,7 @@ const LEGACY_EDITOR_PATCH_STATE = Symbol.for(
 const INLINE_PLACEHOLDER_PATTERN = /\[#image ([1-9]\d*)\]/g;
 const ATTACHED_LABEL_PATTERN = /^Attached \[#image ([1-9]\d*)\]$/;
 const CLIPBOARD_IMAGE_PATH_PATTERN =
-  /(^|[\s"'`([{<])((?:\/[^\s"'`()\[\]{}<>]+)*\/pi-clipboard-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.(?:png|jpe?g|gif|webp))(?=$|[\s"'`)\]}>,.!?;:])/g;
+  /(^|[\s"'`([{<])((?:\/[^\s"'`()\[\]{}<>]+)*\/pi-clipboard-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.(?:png|jpe?g|gif|webp))(?=$|[\s"'`)\]}>,.!?;:])/g;
 const PASTE_START = "\x1b[200~";
 const PASTE_END = "\x1b[201~";
 const SUPPORTED_IMAGE_EXTENSIONS = new Set([
@@ -1121,6 +1121,45 @@ function patchPromptContent() {
   };
 }
 
+function replaceClipboardImagePathsInEditor(editor: any): boolean {
+  if (!editor?.getText || !editor?.state) return false;
+
+  const oldText = editor.getText();
+  const oldCursorOffset = absoluteCursorOffset(editor);
+  let nextCursorOffset = oldCursorOffset;
+  let changed = false;
+
+  const text = oldText.replace(
+    CLIPBOARD_IMAGE_PATH_PATTERN,
+    (match: string, prefix: string, path: string, offset: number) => {
+      const loaded = loadImageFromPath(path);
+      if (!loaded) return match;
+
+      const draft = draftStore.add(
+        loaded.data,
+        loaded.mimeType,
+        loaded.hash,
+        path,
+      );
+      const replacement = `${prefix}[#image ${draft.id}]`;
+      const matchEnd = offset + match.length;
+
+      if (matchEnd <= oldCursorOffset) {
+        nextCursorOffset += replacement.length - match.length;
+      } else if (offset < oldCursorOffset) {
+        nextCursorOffset = offset + replacement.length;
+      }
+
+      changed = true;
+      return replacement;
+    },
+  );
+
+  if (!changed) return false;
+  setEditorTextWithoutUndo(editor, text, nextCursorOffset);
+  return true;
+}
+
 function patchClipboardImagePaste() {
   const prototype = InteractiveMode.prototype as any;
   const state = (prototype[PASTE_PATCH_STATE] ?? {}) as PastePatchState;
@@ -1129,25 +1168,11 @@ function patchClipboardImagePaste() {
   prototype[PASTE_PATCH_STATE] = state;
 
   prototype.handleClipboardPaste = async function (this: any) {
-    const fallback = () => state.originalHandleClipboardPaste?.call(this);
-
-    try {
-      const pkgUrl = import.meta.resolve("@earendil-works/pi-coding-agent");
-      const clipUrl = new URL("./utils/clipboard-image.js", pkgUrl).href;
-      const { readClipboardImage } = await import(clipUrl);
-
-      const image = await readClipboardImage();
-      if (!image) return fallback();
-
-      const data = Buffer.from(image.bytes).toString("base64");
-      const hash = createHash("sha256").update(image.bytes).digest("hex");
-
-      const draft = addDraftAttachment(data, image.mimeType, hash);
-      this.editor.insertTextAtCursor?.(`[#image ${draft.id}]`);
+    const result = await state.originalHandleClipboardPaste?.call(this);
+    if (replaceClipboardImagePathsInEditor(this.editor)) {
       this.ui.requestRender();
-    } catch {
-      return fallback();
     }
+    return result;
   };
 }
 
