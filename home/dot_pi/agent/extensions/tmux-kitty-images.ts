@@ -37,10 +37,8 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import * as piTui from "@earendil-works/pi-tui";
 import { randomInt } from "node:crypto";
-import { createRequire } from "node:module";
-import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
 
 type ImageProtocol = "kitty" | "iterm2" | null;
 
@@ -555,14 +553,8 @@ function registerExitCleanup(): void {
   process.once("SIGTERM", deleteAll);
 }
 
-function loadPiTui(): Promise<PiTuiModule> {
-  const entry = process.argv[1];
-  if (!entry) throw new Error("cannot locate pi entrypoint");
-
-  const require = createRequire(pathToFileURL(realpathSync(entry)));
-  const resolved = require.resolve("@earendil-works/pi-tui");
-
-  return import(pathToFileURL(resolved).href) as Promise<PiTuiModule>;
+function loadPiTui(): PiTuiModule {
+  return piTui as unknown as PiTuiModule;
 }
 
 export default function tmuxKittyImages(pi: ExtensionAPI): void {
@@ -570,10 +562,10 @@ export default function tmuxKittyImages(pi: ExtensionAPI): void {
 
   let sessionGeneration = 0;
 
-  pi.on("session_start", async (_event: unknown, ctx: ExtensionContext) => {
+  pi.on("session_start", (_event: unknown, ctx: ExtensionContext) => {
     const generation = ++sessionGeneration;
     try {
-      const mod = await loadPiTui();
+      const mod = loadPiTui();
       const current = mod.getCapabilities();
 
       mod.setCapabilities({

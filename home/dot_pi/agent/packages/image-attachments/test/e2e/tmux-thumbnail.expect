@@ -1,0 +1,163 @@
+#!/usr/bin/expect -f
+
+set timeout 1
+set root "/tmp/pi-image-attachments-tmux-thumbnail-e2e"
+set config_dir "$root/config"
+set work_dir "$root/cwd"
+set image_path "$root/pi-clipboard-00000000-0000-4000-8000-000000000001.png"
+set startup_log "$root/startup.ansi"
+set action_log "$root/action.ansi"
+set package_root [file normalize [file join [file dirname [info script]] ../..]]
+set image_extension "$package_root/index.ts"
+set tmux_image_extension [file normalize [file join $package_root ../../extensions/tmux-kitty-images.ts]]
+set clipboard_fixture "$root/clipboard-fixture.ts"
+set columns 90
+set rows 32
+
+file delete -force $root
+file mkdir $config_dir $work_dir
+
+set fixture_file [open $clipboard_fixture w]
+puts $fixture_file {
+import {
+  InteractiveMode,
+  type ExtensionAPI,
+} from "@earendil-works/pi-coding-agent";
+
+const imagePath = process.env.E2E_IMAGE_PATH;
+if (!imagePath) throw new Error("E2E_IMAGE_PATH is required");
+
+const prototype = InteractiveMode.prototype as any;
+prototype.handleClipboardPaste = async function () {
+  this.editor.insertTextAtCursor?.(imagePath);
+  this.ui.requestRender();
+};
+
+export default function (pi: ExtensionAPI) {
+  pi.on("session_start", (_event, ctx) => {
+    ctx.ui.setStatus("tmux-thumbnail-e2e", "TMUX_THUMBNAIL_E2E_READY");
+  });
+}
+}
+close $fixture_file
+
+exec python3 -c {
+import struct
+import sys
+import zlib
+
+width, height = 32, 18
+pixels = b"".join(
+    b"\x00" + bytes((x * 7 % 256, y * 13 % 256, (x + y) * 5 % 256)) * width
+    for y in range(height)
+    for x in [y]
+)
+
+def chunk(kind, data):
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
+
+png = (
+    b"\x89PNG\r\n\x1a\n"
+    + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+    + chunk(b"IDAT", zlib.compress(pixels))
+    + chunk(b"IEND", b"")
+)
+with open(sys.argv[1], "wb") as image:
+    image.write(png)
+} $image_path
+set expected_payload [exec python3 -c {
+import base64
+import sys
+print(base64.b64encode(open(sys.argv[1], "rb").read()).decode())
+} $image_path]
+
+proc wait_for_exact {seconds pattern} {
+  set deadline [expr {[clock milliseconds] + ($seconds * 1000)}]
+  while {[clock milliseconds] < $deadline} {
+    expect {
+      "\033\[c" { send "\033\[?1;2c"; exp_continue -continue_timer }
+      "\033\[?u" { send "\033\[?0u"; exp_continue -continue_timer }
+      -exact $pattern { return 1 }
+      timeout {}
+      eof { return 0 }
+    }
+  }
+  return 0
+}
+
+proc fail {message} {
+  global startup_log action_log root
+  puts stderr "FAIL: $message"
+  catch { send "\003\003" }
+  catch { close }
+  foreach log_path [list $action_log $startup_log] {
+    if {[file exists $log_path]} {
+      set log_file_handle [open $log_path r]
+      fconfigure $log_file_handle -translation binary
+      set output [read $log_file_handle]
+      close $log_file_handle
+      puts stderr [string range $output end-3000 end]
+    }
+  }
+  file delete -force $root
+  exit 1
+}
+
+proc require_log {output pattern label} {
+  if {[string first $pattern $output] < 0} {
+    puts stderr "FAIL: missing $label"
+    exit 1
+  }
+}
+
+cd $work_dir
+log_user 0
+log_file -a -noappend $startup_log
+spawn env TERM=tmux-256color TERM_PROGRAM=kitty KITTY_WINDOW_ID=1 \
+  TMUX=/tmp/pi-image-attachments-e2e-tmux,1,0 \
+  COLORTERM=truecolor COLUMNS=$columns LINES=$rows PI_OFFLINE=1 \
+  PI_CODING_AGENT_DIR=$config_dir E2E_IMAGE_PATH=$image_path \
+  pi --no-session --no-context-files --no-prompt-templates --no-themes \
+  --no-extensions --no-skills -e $tmux_image_extension \
+  -e $clipboard_fixture -e $image_extension
+stty columns $columns rows $rows
+
+if {![wait_for_exact 10 "TMUX_THUMBNAIL_E2E_READY"]} {
+  fail "Pi TUI did not become ready"
+}
+
+log_file
+log_file -a -noappend $action_log
+send -- "\026"
+if {![wait_for_exact 5 "\[#image 1\]"]} {
+  fail "Ctrl+V did not create an image placeholder"
+}
+if {![wait_for_exact 5 "U=1"]} {
+  fail "draft thumbnail did not emit a Kitty U=1 placement"
+}
+
+after 300
+send "\003\003"
+catch { close }
+catch { wait }
+log_file
+
+set action_file [open $action_log r]
+fconfigure $action_file -translation binary
+set output [read $action_file]
+close $action_file
+
+set tmux_kitty_prefix "\033Ptmux;\033\033_G"
+require_log $output $tmux_kitty_prefix "tmux-wrapped Kitty APC"
+require_log $output "a=t" "Kitty image transmission"
+require_log $output "U=1" "Kitty Unicode placement"
+require_log $output $expected_payload "captured fixture image bytes"
+if {[string first {[Image:} $output] >= 0} {
+  puts stderr "FAIL: draft thumbnail rendered the text fallback"
+  file delete -force $root
+  exit 1
+}
+
+file delete -force $root
+puts "PASS: tmux draft thumbnail transmitted the captured image with Kitty U=1"
+exit 0
