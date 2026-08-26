@@ -1,15 +1,10 @@
-import {
-  type ExtensionAPI,
-  type Theme,
-  getMarkdownTheme,
-  keyText,
-} from "@earendil-works/pi-coding-agent";
-import { Box, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Box, Spacer, Text } from "@earendil-works/pi-tui";
+
+import { expandableMarkdown } from "./expandable-markdown.ts";
 
 /** Identifies a parent answer or direct continuation in a child transcript. */
 export const CONTINUATION_MESSAGE_TYPE = "side-quest-continuation";
-
-const COLLAPSED_TEXT_CHAR_LIMIT = 240;
 
 type ContinuationDetails = Readonly<{
   /** Identifies the child question that this parent answer resolves. */
@@ -60,19 +55,14 @@ export class ContinuationRenderer {
         );
         if (question) {
           box.addChild(
-            ContinuationRenderer.expandableMarkdown(
-              question,
-              options.expanded,
-              "muted",
-              theme,
-            ),
+            expandableMarkdown(question, options.expanded, "muted", theme),
           );
           box.addChild(new Spacer(1));
         } else {
           box.addChild(new Spacer(1));
         }
         box.addChild(
-          ContinuationRenderer.expandableMarkdown(
+          expandableMarkdown(
             reply,
             options.expanded,
             "customMessageText",
@@ -165,33 +155,6 @@ export class ContinuationRenderer {
     return typeof value === "object" && value !== null
       ? (value as Record<string, unknown>)
       : undefined;
-  }
-
-  /** Renders one collapsed or expanded question or reply as Markdown. */
-  private static expandableMarkdown(
-    text: string,
-    expanded: boolean,
-    color: "customMessageText" | "muted",
-    theme: Theme,
-  ): Markdown {
-    const collapsed = ContinuationRenderer.truncate(text);
-    const truncated = !expanded && collapsed !== text;
-    const displayed = expanded ? text : collapsed;
-    const suffix = truncated
-      ? `${theme.fg("muted", "… ")}${theme.fg("dim", keyText("app.tools.expand"))}${theme.fg("muted", " to expand")}`
-      : "";
-
-    return new Markdown(`${displayed}${suffix}`, 0, 0, getMarkdownTheme(), {
-      color: (content) => theme.fg(color, content),
-    });
-  }
-
-  /** Truncates text by Unicode character before its styled suffix. */
-  private static truncate(text: string): string {
-    const characters = Array.from(text);
-    if (characters.length <= COLLAPSED_TEXT_CHAR_LIMIT) return text;
-
-    return characters.slice(0, COLLAPSED_TEXT_CHAR_LIMIT).join("").trimEnd();
   }
 
   /** Converts custom-message content to plain text. */

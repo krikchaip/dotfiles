@@ -15,8 +15,15 @@ const INITIAL_RESPONSE = "Initial interactive work is ready.";
 const REOPENED_RESPONSE = "Transcript reopened for wrap-up banner inspection.";
 const RECOVERY_RESPONSE = "Recovery question sent after wrap-up.";
 const RECOVERY_QUESTION = "Did ask_parent return after the wrap-up attempt?";
-const SYNTHESIS_RESPONSE =
-  "Synthesized parent handoff with completed work and verification.";
+const SYNTHESIS_START = "### Synthesized parent handoff";
+const SYNTHESIS_END = "Expanded wrap-up marker.";
+const SYNTHESIS_RESPONSE = [
+  SYNTHESIS_START,
+  "",
+  "**Completed work** includes verified files, exact decisions, provider behavior, tool-disabled synthesis, durable transcript storage, lifecycle recovery, interruption handling, Unicode-safe presentation, tmux process cleanup, parent delivery, and focused continuation behavior across every supported interactive completion state.",
+  "",
+  SYNTHESIS_END,
+].join("\n");
 const WRAP_UP_PROMPT = "Prepare the final handoff to the parent agent.";
 
 type UnsuccessfulWrapUp = "failed" | "interrupted" | "textless";
@@ -31,6 +38,16 @@ function hasTool(context: Context, expected: string): boolean {
 
 function hasWrapUpPrompt(context: Context): boolean {
   return JSON.stringify(context.messages).includes(WRAP_UP_PROMPT);
+}
+
+function foregroundBefore(view: string, label: string): string | undefined {
+  const index = view.indexOf(label);
+  if (index < 0) return undefined;
+
+  return view
+    .slice(Math.max(0, index - 160), index)
+    .match(/38;2;\d+;\d+;\d+m/g)
+    ?.at(-1);
 }
 
 function configureParent(context: ProviderContext, description: string): void {
@@ -205,6 +222,7 @@ export const wrapUpSuccess: Scenario = {
     lifecycle: "interactive",
     managed: true,
     positionalPrompt: "Delegate this E2E task now.",
+    providerTokensPerSecond: 20,
   },
   configureProvider(context) {
     if (context.role === "parent") {
@@ -242,6 +260,15 @@ export const wrapUpSuccess: Scenario = {
     await waitForWaiting(harness);
 
     await harness.sendLiteral(childPane, "/subagent-done --wrap-up", true);
+    await delay(1_100);
+    const streamingView = await harness.capture(childPane);
+    harness.assert(
+      !streamingView.includes("WRAP UP") &&
+        !streamingView.includes(SYNTHESIS_START) &&
+        (await harness.childPanes()).includes(childPane),
+      "Wrap-up synthesis was visible before the complete banner was ready.",
+    );
+
     await harness.waitFor("SUBAGENT COMPLETED");
 
     harness.assert(
@@ -256,7 +283,7 @@ export const wrapUpSuccess: Scenario = {
     );
     const terminal = harness.read(terminals[0] ?? "");
     harness.assert(
-      terminal.includes(SYNTHESIS_RESPONSE),
+      JSON.parse(terminal).response === SYNTHESIS_RESPONSE,
       `Successful wrap-up did not return its synthesis.\n${terminal}`,
     );
     harness.assert(
@@ -268,17 +295,23 @@ export const wrapUpSuccess: Scenario = {
     const reopenedPane = await harness.childPane();
     const view = await harness.waitFor(REOPENED_RESPONSE, 10_000, reopenedPane);
     const wrapUpHeadings = view.match(/WRAP UP/g) ?? [];
-    const synthesisCopies = view.match(
-      new RegExp(SYNTHESIS_RESPONSE.replaceAll(".", "\\."), "g"),
-    );
+    const synthesisCopies = view.match(/Synthesized parent handoff/g) ?? [];
 
     harness.assert(
       wrapUpHeadings.length === 1,
       `The reopened transcript rendered ${wrapUpHeadings.length} WRAP UP headings instead of one.`,
     );
     harness.assert(
-      synthesisCopies?.length === 1,
-      `The final synthesis rendered ${synthesisCopies?.length ?? 0} times instead of once.`,
+      synthesisCopies.length === 1,
+      `The final synthesis rendered ${synthesisCopies.length} times instead of once.`,
+    );
+    harness.assert(
+      view.includes("to expand") && !view.includes(SYNTHESIS_END),
+      "The final wrap-up banner did not use collapsed transcript rendering.",
+    );
+    harness.assert(
+      !view.includes(WRAP_UP_PROMPT),
+      "The model-only wrap-up request was visible in the reopened transcript.",
     );
 
     const ansiView = await harness.tmux(
@@ -292,10 +325,10 @@ export const wrapUpSuccess: Scenario = {
       "-",
     );
     const headingIndex = ansiView.indexOf("WRAP UP");
-    const synthesisIndex = ansiView.indexOf(SYNTHESIS_RESPONSE);
+    const synthesisIndex = ansiView.indexOf("Synthesized parent handoff");
     const bannerAnsi = ansiView.slice(
       Math.max(0, headingIndex - 120),
-      synthesisIndex + SYNTHESIS_RESPONSE.length + 120,
+      synthesisIndex + SYNTHESIS_START.length + 120,
     );
     harness.assert(
       headingIndex >= 0 &&
@@ -303,18 +336,48 @@ export const wrapUpSuccess: Scenario = {
         bannerAnsi.includes("\u001b[48;2;"),
       "The final wrap-up text was not rendered inside a styled TUI banner.",
     );
+    harness.assert(
+      foregroundBefore(ansiView, "WRAP UP") ===
+        foregroundBefore(ansiView, "FROM PARENT") &&
+        foregroundBefore(ansiView, "WRAP UP") !== undefined,
+      "WRAP UP did not use the FROM PARENT label color.",
+    );
+
+    await harness.sendKeys(reopenedPane, "C-o");
+    const expanded = await harness.waitFor(SYNTHESIS_END, 5_000, reopenedPane);
+    harness.assert(
+      (expanded.match(/Expanded wrap-up marker\./g) ?? []).length === 1,
+      "Expanded wrap-up did not show its complete response exactly once.",
+    );
 
     const session = harness.read(harness.filesNamed("session.jsonl")[0] ?? "");
-    harness.assert(
-      session.includes(
-        `\"customType\":\"side-quest-wrap-up\",\"data\":{\"content\":\"${SYNTHESIS_RESPONSE}`,
-      ),
-      "Successful wrap-up did not persist its final banner entry.",
+    const sessionEntries = session
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line)) as Array<{
+      type?: string;
+      customType?: string;
+      data?: { content?: string };
+      display?: boolean;
+    }>;
+    const finalEntries = sessionEntries.filter(
+      (entry) =>
+        entry.type === "custom" &&
+        entry.customType === "side-quest-wrap-up" &&
+        entry.data?.content === SYNTHESIS_RESPONSE,
     );
     harness.assert(
-      session.includes('"customType":"side-quest-wrap-up"') &&
-        session.includes('"display":false'),
-      "The model-only wrap-up request was visible in the transcript.",
+      finalEntries.length === 1,
+      "Successful wrap-up did not persist exactly one final banner entry.",
+    );
+    harness.assert(
+      sessionEntries.some(
+        (entry) =>
+          entry.type === "custom_message" &&
+          entry.customType === "side-quest-wrap-up" &&
+          entry.display === false,
+      ),
+      "The synthesis request was not persisted as a hidden message.",
     );
   },
 };

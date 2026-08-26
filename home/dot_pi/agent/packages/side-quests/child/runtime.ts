@@ -135,13 +135,11 @@ export class ChildRuntime {
   /**
    * Reports whether assistant Markdown belongs inside the final wrap-up banner.
    */
-  shouldHideWrapUpResponse(markdown: string, isStreaming: boolean): boolean {
+  shouldHideWrapUpResponse(markdown: string, _isStreaming: boolean): boolean {
     const normalized = markdown.trim();
     if (!normalized) return false;
 
-    return (
-      this.wrapUpResponses.has(normalized) || (this.wrappingUp && isStreaming)
-    );
+    return this.wrappingUp || this.wrapUpResponses.has(normalized);
   }
 
   /**
@@ -447,10 +445,10 @@ export class ChildRuntime {
         return;
       }
 
+      this.restoreToolsAfterWrapUp();
       this.pi.appendEntry<WrapUpEntryData>(WRAP_UP_MESSAGE_TYPE, {
         content: response,
       });
-      this.restoreToolsAfterWrapUp();
       this.finish("completed", context, response);
       return;
     }

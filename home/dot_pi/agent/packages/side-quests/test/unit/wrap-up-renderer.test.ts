@@ -52,7 +52,7 @@ function registeredRenderer() {
   };
 }
 
-test("renders the final Markdown inside one warning-colored WRAP UP banner", () => {
+test("renders final Markdown with the FROM PARENT label color", () => {
   const { entryRenderer } = registeredRenderer();
   const component = entryRenderer(
     {
@@ -68,10 +68,36 @@ test("renders the final Markdown inside one warning-colored WRAP UP banner", () 
   );
   const rendered = component?.render(80).join("\n") ?? "";
 
-  expect(rendered).toContain("<warning><bold>WRAP UP</bold></warning>");
+  expect(rendered).toContain(
+    "<customMessageLabel><bold>WRAP UP</bold></customMessageLabel>",
+  );
   expect(rendered).toContain("<bg:customMessageBg>");
   expect(rendered).toContain("Result");
   expect(rendered).toContain("Verified in real tmux");
+});
+
+test("uses shared collapsed and expanded transcript Markdown", () => {
+  const { entryRenderer } = registeredRenderer();
+  const entry = {
+    type: "custom" as const,
+    id: "long-wrap-up-entry",
+    parentId: null,
+    timestamp: new Date().toISOString(),
+    customType: WRAP_UP_MESSAGE_TYPE,
+    data: { content: `${"A".repeat(245)} Expanded marker.` },
+  };
+
+  const collapsed =
+    entryRenderer(entry, { expanded: false }, theme)?.render(500).join("\n") ??
+    "";
+  expect(collapsed).toContain("to expand");
+  expect(collapsed).not.toContain("Expanded marker.");
+
+  const expanded =
+    entryRenderer(entry, { expanded: true }, theme)?.render(500).join("\n") ??
+    "";
+  expect(expanded).toContain("Expanded marker.");
+  expect(expanded).not.toContain("to expand");
 });
 
 test("hides the native assistant rendering owned by the wrap-up banner", () => {

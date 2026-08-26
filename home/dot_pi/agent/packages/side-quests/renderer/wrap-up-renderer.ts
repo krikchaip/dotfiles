@@ -1,10 +1,8 @@
-import {
-  type ExtensionAPI,
-  getMarkdownTheme,
-} from "@earendil-works/pi-coding-agent";
-import { Box, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
+import { Box, Spacer, Text } from "@earendil-works/pi-tui";
 
 import type { ChildRuntime } from "../child/runtime.ts";
+import { expandableMarkdown } from "./expandable-markdown.ts";
 
 /** Identifies the hidden synthesis request and visible final transcript entry. */
 export const WRAP_UP_MESSAGE_TYPE = "side-quest-wrap-up";
@@ -47,24 +45,28 @@ export class WrapUpRenderer {
 
     pi.registerEntryRenderer<WrapUpEntryData>(
       WRAP_UP_MESSAGE_TYPE,
-      (entry, _options, theme) => {
+      (entry, options, theme) => {
         const content = WrapUpRenderer.entryContent(entry.data);
-        if (!content) return undefined;
-
-        const box = new Box(2, 1, (text) => theme.bg("customMessageBg", text));
-        box.addChild(
-          new Text(theme.fg("warning", theme.bold("WRAP UP")), 0, 0),
-        );
-        box.addChild(new Spacer(1));
-        box.addChild(
-          new Markdown(content, 0, 0, getMarkdownTheme(), {
-            color: (text) => theme.fg("customMessageText", text),
-          }),
-        );
-
-        return box;
+        return content
+          ? WrapUpRenderer.banner(content, options.expanded, theme)
+          : undefined;
       },
     );
+  }
+
+  /** Builds the persisted WRAP UP banner. */
+  static banner(content: string, expanded: boolean, theme: Theme): Box {
+    const box = new Box(2, 1, (text) => theme.bg("customMessageBg", text));
+    box.addChild(
+      new Text(theme.fg("customMessageLabel", theme.bold("WRAP UP")), 0, 0),
+    );
+    box.addChild(new Spacer(1));
+    if (content)
+      box.addChild(
+        expandableMarkdown(content, expanded, "customMessageText", theme),
+      );
+
+    return box;
   }
 
   /** Returns persisted wrap-up text from one unknown custom-entry payload. */

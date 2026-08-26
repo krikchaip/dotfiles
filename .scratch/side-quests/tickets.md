@@ -38,7 +38,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [x] Clone the parent runtime for the standard general-purpose child, copy context once by default, preserve a fresh-context option, hard-deny every spawning tool, and force-enable `ask_parent`.
 - [x] Persist the session, resolved manifest, owner state, activity state, terminal state, and request/response mailboxes under the managed Side Quests storage root.
 - [x] Support autonomous and initially interactive lifecycles, permanent promotion only through accepted direct terminal input after creation, no demotion, and no promotion from resume, incidental input, or programmatic input.
-- [x] Register child-only `/subagent-done` exactly when persisted interactive lifecycle permits it; accept only optional `--wrap-up`, refuse active-turn completion, keep plain idle completion immediate, and run wrap-up as one tool-disabled synthesis turn whose model-only request and native response stay hidden, whose non-empty output appears once as one persisted final Markdown banner before exit, and which preserves the session and pending request.
+- [x] Register `/subagent-done` only for interactive children. Plain completion returns the latest response. `--wrap-up` hides one tool-disabled final turn, then shows and saves its complete `WRAP UP` banner before closing the child.
 - [x] Make `ask_parent` accept one correlated request, return without terminating the child turn, preserve sibling tool execution, reject a second pending request, wake the parent, and accept its matching answer only through `Agent.resume`.
 - [x] Render the complete restrained parent widget and child identity widget with elapsed time, identity, task, lifecycle/activity, reply state, exact padding and column alignment, and task-first narrow-width truncation.
 - [x] Implement `/side-quests` navigation with effective Pi selection bindings, stable child identity, explicit pane jump, scoped delete key hint, named confirmation, cancellation semantics, and no parent interrupt action.
@@ -46,7 +46,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [x] Include the final assistant response only from the current run when valid, the canonical session path, pending-request state where relevant, and no full transcript or stale-response substitution.
 - [x] Keep interactive provider or agent-loop turn failures local while treating autonomous exhausted failures and fatal process exits as terminal according to the README.
 - [x] Preserve unmanaged panes and use a safe basic tmux arrangement until the deterministic layout ticket replaces geometry policy.
-- [x] E2E-demo autonomous completion, plain interactive completion, one persisted final wrap-up Markdown banner after synthesized completion, wrap-up failure, interruption, and textless recovery with restored tools and no final banner, terminal takeover, parent questions, active and idle continuation, stopped reopen, navigation, confirmed cancellation, unmarked closure, failure display, narrow widgets, result expansion, focus preservation, and retained sessions.
+- [x] E2E-demo autonomous and interactive completion, live and persisted wrap-up banners, wrap-up recovery, terminal takeover, parent questions, continuation, reopen, navigation, closure outcomes, narrow widgets, focus, and retained sessions.
 
 ## 3. Configure general-purpose and named agents
 

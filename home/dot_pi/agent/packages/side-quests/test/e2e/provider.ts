@@ -27,13 +27,16 @@ export default function installE2eProvider(pi: ExtensionAPI): void {
   if (!scenario?.configureProvider)
     throw new Error(`E2E scenario has no provider script: ${name}`);
 
-  const tokensPerSecond = Number.parseFloat(
+  const environmentTokensPerSecond = Number.parseFloat(
     process.env.SIDE_QUESTS_E2E_TOKENS_PER_SECOND ?? "",
   );
+  const tokensPerSecond = Number.isFinite(environmentTokensPerSecond)
+    ? environmentTokensPerSecond
+    : scenario.process.providerTokensPerSecond;
   const faux = registerFauxProvider({
     provider: "side-quests-e2e",
     models: [{ id: "fake", reasoning: false }],
-    ...(Number.isFinite(tokensPerSecond) ? { tokensPerSecond } : {}),
+    ...(tokensPerSecond ? { tokensPerSecond } : {}),
   });
 
   scenario.configureProvider({
