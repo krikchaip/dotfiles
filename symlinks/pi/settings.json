@@ -77,7 +77,7 @@
     "git:github.com/krikchaip/pi-treex@personal",
     "npm:@gotgenes/pi-permission-system",
     {
-      "source": "npm:pi-mcp-adapter",
+      "source": "npm:pi-mcp-adapter@2.27.0",
       "skills": []
     },
     "npm:pi-web-access",
