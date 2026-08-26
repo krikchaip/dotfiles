@@ -42,5 +42,8 @@
       "*sudo *": "ask"
     },
     "external_directory": "allow"
-  }
+  },
+  "debugLog": false,
+  "permissionReviewLog": true,
+  "yoloMode": true
 }
