@@ -559,7 +559,8 @@ export class AgentRenderer {
     result?: RendererResult,
   ): Text {
     const renderContext = context as
-      { isError?: boolean; isPartial?: boolean } | undefined;
+      | { isError?: boolean; isPartial?: boolean }
+      | undefined;
     const statusColor = renderContext?.isError ? "error" : "success";
     const statusGlyph = "●";
 

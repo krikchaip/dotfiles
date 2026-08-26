@@ -6,6 +6,7 @@ import type {
 import type { ChildRuntime } from "./runtime.ts";
 
 const COMMAND_NAME = "subagent-done";
+const WRAP_UP_FLAG = "--wrap-up";
 const COMMAND_DESCRIPTION = "Finish this interactive Side Quests subagent.";
 
 /**
@@ -51,9 +52,26 @@ export class ChildCommands {
 
     this.pi.registerCommand(COMMAND_NAME, {
       description: COMMAND_DESCRIPTION,
+      getArgumentCompletions: (prefix) => {
+        const normalized = prefix.trimStart();
+        return normalized !== WRAP_UP_FLAG &&
+          WRAP_UP_FLAG.startsWith(normalized)
+          ? [
+              {
+                value: WRAP_UP_FLAG,
+                label: WRAP_UP_FLAG,
+                description: "Synthesize a final tool-disabled parent handoff.",
+              },
+            ]
+          : null;
+      },
       handler: async (args, context) => {
-        if (args.trim()) {
-          context.ui.notify(`Usage: /${COMMAND_NAME}`, "warning");
+        const normalized = args.trim();
+        if (normalized && normalized !== WRAP_UP_FLAG) {
+          context.ui.notify(
+            `Usage: /${COMMAND_NAME} [${WRAP_UP_FLAG}]`,
+            "warning",
+          );
           return;
         }
 
@@ -65,7 +83,19 @@ export class ChildCommands {
           return;
         }
 
-        this.runtime.complete(context);
+        if (!normalized) {
+          this.runtime.complete(context);
+          return;
+        }
+
+        try {
+          await this.runtime.wrapUp();
+        } catch (cause) {
+          context.ui.notify(
+            cause instanceof Error ? cause.message : String(cause),
+            "error",
+          );
+        }
       },
     });
   }

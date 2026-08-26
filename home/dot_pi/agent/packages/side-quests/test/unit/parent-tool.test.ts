@@ -52,6 +52,18 @@ test("tells the model that child configuration is launch-only", () => {
   );
 });
 
+test("explains when interactive dialogue and final wrap-up are useful", () => {
+  const guidelines = registerParentTools()[0]?.promptGuidelines?.join("\n");
+
+  expect(guidelines).toContain("Use interactive: true");
+  expect(guidelines).toContain("decision grilling");
+  expect(guidelines).toContain("requirements discovery");
+  expect(guidelines).toContain("prototype feedback");
+  expect(guidelines).toContain("human-in-the-loop review");
+  expect(guidelines).toContain("/subagent-done --wrap-up");
+  expect(guidelines).toContain("tool-disabled handoff turn");
+});
+
 test("defines the strict Agent request contract", () => {
   const schema = registerParentTools()[0]
     ?.parameters as unknown as AgentRequestSchema;

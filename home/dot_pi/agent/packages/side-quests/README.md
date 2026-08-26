@@ -450,12 +450,14 @@ Command availability follows the child's current persisted lifecycle:
 - When an autonomous child accepts a direct non-command prompt, it becomes interactive and registers the command immediately, even though the new turn is active.
 - Interactive state and command availability survive `/reload` and session reopen. Resume cannot change or demote lifecycle.
 
-The command takes no arguments:
+The command accepts only the optional `--wrap-up` flag:
 
-- While idle, `/subagent-done` atomically writes a trusted completion marker, sends the final assistant response to the parent as a completion result, and shuts down the child. The saved session remains resumable.
-- An unanswered `ask_parent` request does not block completion. The request remains saved after the pane closes.
+- While idle, `/subagent-done` atomically writes a trusted completion marker, sends the latest settled assistant response to the parent as a completion result, and shuts down the child.
+- While idle, `/subagent-done --wrap-up` starts one final synthesis turn with all child tools disabled. The model-only request and native assistant output stay hidden. A non-empty final response is persisted and shown once as a large `WRAP UP` Markdown banner, becomes the parent completion result, and then the child exits.
+- If the wrap-up turn fails, is interrupted, or returns no text, the pane stays open and the previous child tools are restored.
+- The saved session remains resumable. An unanswered `ask_parent` request does not block either completion path and remains saved after the pane closes.
 
-If the user types `/subagent-done` or `/subagent-done anything` while the child is autonomous, Side Quests shows that the command is available only in interactive mode. The text does not reach the model, complete the child, or promote it to interactive mode.
+If the user types either completion form while the child is autonomous, Side Quests shows that the command is available only in interactive mode. The text does not reach the model, complete the child, or promote it to interactive mode.
 
 ## Asking the parent for help
 
@@ -539,9 +541,9 @@ Result messages support collapsed and expanded views:
 A completed result has two sources:
 
 - An autonomous child reaches normal agent completion. Side Quests records completion and closes its pane automatically.
-- An idle interactive child receives `/subagent-done`. Side Quests records trusted completion and closes its pane explicitly. The end of an ordinary interactive agent turn alone does not produce completion because its pane remains available for more work.
+- An idle interactive child receives `/subagent-done` or `/subagent-done --wrap-up`. Plain completion uses the latest settled response. Wrap-up completion hides the model-only request and native response, persists its final tool-disabled synthesis response as one large `WRAP UP` Markdown banner, then exits. Side Quests records trusted completion and closes the pane only when the selected form has valid output. The end of an ordinary interactive turn alone does not produce completion because its pane remains available for more work.
 
-Both paths wake the parent agent once, return the child's final assistant response, and include the canonical session path. The saved session remains available for later resume, but the full child transcript is not copied into the parent session. An unanswered `ask_parent` request remains saved and does not prevent completion.
+Both lifecycle paths wake the parent agent once, return the selected current-run assistant response, and include the canonical session path. The saved session remains available for later resume, but the full child transcript is not copied into the parent session. An unanswered `ask_parent` request remains saved and does not prevent completion.
 
 ### Failed
 

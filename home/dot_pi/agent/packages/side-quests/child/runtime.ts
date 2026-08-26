@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto";
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type {
   ExtensionAPI,
   ExtensionContext,
+  MessageEndEvent,
 } from "@earendil-works/pi-coding-agent";
 
+import {
+  WRAP_UP_MESSAGE_TYPE,
+  type WrapUpEntryData,
+} from "../renderer/wrap-up-renderer.ts";
 import { type ActivitySnapshot, RuntimeStore } from "../store/runtime.ts";
 import {
   type ChildManifest,
@@ -55,6 +61,15 @@ export class ChildRuntime {
 
   /** Records the last terminal error from the current run. */
   private lastRunFailure: string | undefined;
+
+  /** Reports whether the current run is a final wrap-up turn. */
+  private wrappingUp = false;
+
+  /** Records tools to restore if the final wrap-up turn does not complete. */
+  private toolsBeforeWrapUp: string[] | undefined;
+
+  /** Records final wrap-up responses hidden behind persisted banner entries. */
+  private wrapUpResponses = new Set<string>();
 
   /** Records the heartbeat timer for activity and continuation polling. */
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
@@ -118,6 +133,18 @@ export class ChildRuntime {
   }
 
   /**
+   * Reports whether assistant Markdown belongs inside the final wrap-up banner.
+   */
+  shouldHideWrapUpResponse(markdown: string, isStreaming: boolean): boolean {
+    const normalized = markdown.trim();
+    if (!normalized) return false;
+
+    return (
+      this.wrapUpResponses.has(normalized) || (this.wrappingUp && isStreaming)
+    );
+  }
+
+  /**
    * Returns the current child state for child UI rendering.
    */
   status(): ChildStatus {
@@ -160,6 +187,33 @@ export class ChildRuntime {
    */
   complete(context: { shutdown(): void }): void {
     this.finish("completed", context, this.lastSettledResponse);
+  }
+
+  /**
+   * Starts one final tool-disabled synthesis turn before completion.
+   */
+  async wrapUp(): Promise<void> {
+    if (this.active || this.wrappingUp)
+      throw new Error("Wait for the current turn or interrupt it first.");
+
+    this.wrappingUp = true;
+    this.toolsBeforeWrapUp = this.pi.getActiveTools();
+    this.pi.setActiveTools([]);
+
+    try {
+      await this.pi.sendMessage(
+        {
+          customType: WRAP_UP_MESSAGE_TYPE,
+          content:
+            "Prepare the final handoff to the parent agent. State the completed result, exact files or decisions, verification evidence, blockers, and remaining uncertainty. Return only the handoff. Do not continue implementation.",
+          display: false,
+        },
+        { triggerTurn: true, deliverAs: "steer" },
+      );
+    } catch (cause) {
+      this.restoreToolsAfterWrapUp();
+      throw cause;
+    }
   }
 
   /**
@@ -335,21 +389,34 @@ export class ChildRuntime {
   /**
    * Stores final assistant output or an agent-loop failure from the current run.
    */
-  private recordAssistantMessage(event: { message: unknown }): void {
-    const message = event.message as {
-      role?: string;
-      stopReason?: string;
-      errorMessage?: string;
-    };
+  private recordAssistantMessage(
+    event: Pick<MessageEndEvent, "message">,
+  ): { message: AgentMessage } | undefined {
+    const message = event.message;
     if (message.role !== "assistant") return;
 
-    if (message.stopReason === "error") {
-      this.lastRunFailure = message.errorMessage || "Child agent failed.";
+    if (
+      message.stopReason === "error" ||
+      (this.wrappingUp && message.stopReason === "aborted")
+    ) {
+      this.lastRunFailure =
+        message.errorMessage ||
+        (message.stopReason === "aborted"
+          ? "Wrap-up turn was interrupted."
+          : "Child agent failed.");
       return;
     }
 
     this.lastSettledResponse =
       ChildRuntime.finalResponse([event.message]) ?? this.lastSettledResponse;
+
+    if (!this.wrappingUp || !this.lastSettledResponse) return undefined;
+
+    this.wrapUpResponses.add(this.lastSettledResponse.trim());
+
+    return {
+      message: { ...message, content: [] },
+    };
   }
 
   /**
@@ -361,9 +428,33 @@ export class ChildRuntime {
   }
 
   /**
-   * Stops autonomous children after the current agent run settles.
+   * Completes successful wrap-up turns and keeps failed ones open for recovery.
    */
-  private settleAgent(context: { shutdown(): void }): void {
+  private settleAgent(context: {
+    shutdown(): void;
+    ui: { notify(message: string, level: "warning" | "error"): void };
+  }): void {
+    if (this.wrappingUp) {
+      const response = this.lastSettledResponse?.trim();
+      const failure = this.lastRunFailure;
+
+      if (failure || !response) {
+        this.restoreToolsAfterWrapUp();
+        context.ui.notify(
+          failure ?? "Wrap-up returned no text. The subagent remains open.",
+          failure ? "error" : "warning",
+        );
+        return;
+      }
+
+      this.pi.appendEntry<WrapUpEntryData>(WRAP_UP_MESSAGE_TYPE, {
+        content: response,
+      });
+      this.restoreToolsAfterWrapUp();
+      this.finish("completed", context, response);
+      return;
+    }
+
     if (this.isInteractive()) return;
 
     context.shutdown();
@@ -373,6 +464,14 @@ export class ChildRuntime {
       this.lastSettledResponse,
       this.lastRunFailure,
     );
+  }
+
+  /** Restores the child tool set and clears final-wrap-up state. */
+  private restoreToolsAfterWrapUp(): void {
+    if (this.toolsBeforeWrapUp) this.pi.setActiveTools(this.toolsBeforeWrapUp);
+
+    this.toolsBeforeWrapUp = undefined;
+    this.wrappingUp = false;
   }
 
   /**
