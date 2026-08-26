@@ -24,8 +24,10 @@ export class ChildTools {
    * Registers the correlated parent-question tool.
    */
   private registerAskParent(): ChildTools {
+    const toolName = "ask_parent";
+
     this.pi.registerTool({
-      name: "ask_parent",
+      name: toolName,
       label: "Ask parent",
       description:
         "Send one correlated question to the parent agent. Only one request can be pending at a time. The tool returns immediately so the side quest can continue while the parent prepares a response.",
@@ -34,9 +36,9 @@ export class ChildTools {
         "Send a question to the parent agent without pausing the side quest.",
       promptGuidelines: [
         "You are a sub-agent executing an assigned side quest. The parent agent owns the main quest and delegates side quests.",
-        "Use ask_parent when your assigned side quest needs information or a decision from the parent agent.",
-        "After calling ask_parent, you may continue the assigned side quest without waiting for a reply.",
-        "Call ask_parent again only after the parent response arrives as a continuation message.",
+        `Use ${toolName} when your assigned side quest needs information or a decision from the parent agent.`,
+        `After calling ${toolName}, you may continue the assigned side quest without waiting for a reply.`,
+        `Call ${toolName} again only after the parent response arrives as a continuation message.`,
       ],
 
       parameters: Type.Object(
