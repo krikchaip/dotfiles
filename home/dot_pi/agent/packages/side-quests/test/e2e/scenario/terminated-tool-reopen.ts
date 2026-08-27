@@ -8,12 +8,18 @@ export const terminatedToolReopen: Scenario = {
     extensionFixtures: ["test/e2e/fixture/terminating-tool.ts"],
     managed: true,
     positionalPrompt: "Delegate this E2E task now.",
+    settings: { retry: { enabled: true, maxRetries: 2, baseDelayMs: 10 } },
   },
   configureProvider(context) {
     configureReopen(context, {
       launchPrompt: "Complete before terminated-tool reopen E2E.",
       resumedPrompt: "Run the reopened task through its terminating tool.",
       resumedResponse: FINAL_RESPONSE,
+      resumedResponseDelayMs: 750,
+      resumedRetryFailures: [
+        "Retryable provider failure 1: rate limit exceeded.",
+        "Retryable provider failure 2: rate limit exceeded.",
+      ],
       resumedTool: "e2e_terminating_tool",
     });
   },

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type {
+  AgentEndEvent,
   ExtensionAPI,
   ExtensionContext,
   MessageEndEvent,
@@ -256,7 +257,7 @@ export class ChildRuntime {
       this.snapshot("active", "tool", event.toolName);
     });
     this.pi.on("message_end", (event) => this.recordAssistantMessage(event));
-    this.pi.on("agent_end", () => this.endAgent());
+    this.pi.on("agent_end", (event) => this.endAgent(event));
     this.pi.on("agent_settled", (_event, context) => {
       this.settleAgent(context);
     });
@@ -435,8 +436,6 @@ export class ChildRuntime {
     const message = event.message;
     if (message.role !== "assistant") return;
 
-    this.toolContinuationPending = message.stopReason === "toolUse";
-
     if (
       message.stopReason === "error" ||
       (this.wrappingUp && message.stopReason === "aborted")
@@ -462,28 +461,19 @@ export class ChildRuntime {
   }
 
   /**
-   * Marks a completed agent run as idle for interactive child lifecycle.
+   * Records why the current agent run ended and marks interactive children idle.
    */
-  private endAgent(): void {
+  private endAgent(event: Pick<AgentEndEvent, "messages">): void {
     this.active = false;
 
-    if (
+    const latestAssistant = [...event.messages]
+      .reverse()
+      .find((message) => message.role === "assistant");
+    this.toolContinuationPending =
       !this.isInteractive() &&
       !this.wrappingUp &&
       !this.lastRunFailure &&
-      this.toolContinuationPending
-    ) {
-      this.toolContinuationPending = false;
-      this.pi.sendMessage(
-        {
-          customType: TOOL_CONTINUATION_MESSAGE_TYPE,
-          content: TOOL_CONTINUATION_PROMPT,
-          display: false,
-        },
-        { triggerTurn: true, deliverAs: "steer" },
-      );
-      return;
-    }
+      latestAssistant?.stopReason === "toolUse";
 
     if (this.isInteractive()) this.snapshot("waiting");
   }
@@ -517,6 +507,19 @@ export class ChildRuntime {
     }
 
     if (this.isInteractive()) return;
+
+    if (this.toolContinuationPending) {
+      this.toolContinuationPending = false;
+      this.pi.sendMessage(
+        {
+          customType: TOOL_CONTINUATION_MESSAGE_TYPE,
+          content: TOOL_CONTINUATION_PROMPT,
+          display: false,
+        },
+        { triggerTurn: true, deliverAs: "steer" },
+      );
+      return;
+    }
 
     context.shutdown();
 

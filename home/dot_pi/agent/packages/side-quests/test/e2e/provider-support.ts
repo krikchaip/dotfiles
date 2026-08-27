@@ -147,6 +147,8 @@ export interface ReopenDelegation {
   readonly resumedFailure?: string;
   readonly resumedPrompt: string;
   readonly resumedResponse?: string;
+  readonly resumedResponseDelayMs?: number;
+  readonly resumedRetryFailures?: readonly string[];
   readonly resumedTool?: string;
 }
 
@@ -170,6 +172,12 @@ export function configureReopen(
       ]);
     } else {
       faux.setResponses([
+        ...(options.resumedRetryFailures ?? []).map((failure) =>
+          fauxAssistantMessage(failure, {
+            stopReason: "error",
+            errorMessage: failure,
+          }),
+        ),
         ...(options.resumedTool
           ? [
               fauxAssistantMessage(fauxToolCall(options.resumedTool, {}), {
@@ -177,9 +185,14 @@ export function configureReopen(
               }),
             ]
           : []),
-        fauxAssistantMessage(
-          fauxText(options.resumedResponse ?? "Reopened run completed."),
-        ),
+        async () => {
+          if (options.resumedResponseDelayMs)
+            await delay(options.resumedResponseDelayMs);
+
+          return fauxAssistantMessage(
+            fauxText(options.resumedResponse ?? "Reopened run completed."),
+          );
+        },
       ]);
     }
     return;
