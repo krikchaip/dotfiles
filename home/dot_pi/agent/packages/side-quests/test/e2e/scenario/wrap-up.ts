@@ -25,6 +25,8 @@ const SYNTHESIS_RESPONSE = [
   SYNTHESIS_END,
 ].join("\n");
 const WRAP_UP_PROMPT = "Prepare the final handoff to the parent agent.";
+const LAUNCH_SCOPE_MARKER =
+  "The next user message is the side quest launch prompt and starts its handoff scope. Earlier messages are inherited context only.";
 
 type UnsuccessfulWrapUp = "failed" | "interrupted" | "textless";
 
@@ -36,8 +38,29 @@ function hasTool(context: Context, expected: string): boolean {
   return (context.tools ?? []).some((tool) => tool.name === expected);
 }
 
-function hasWrapUpPrompt(context: Context): boolean {
-  return JSON.stringify(context.messages).includes(WRAP_UP_PROMPT);
+function hasWrapUpPrompt(context: Context, initialPrompt: string): boolean {
+  const encoded = context.messages.map((message) => JSON.stringify(message));
+  const launchBoundary = encoded.findIndex((message) =>
+    message.includes(LAUNCH_SCOPE_MARKER),
+  );
+  const launchPrompt = encoded.findIndex(
+    (message, index) =>
+      index > launchBoundary && message.includes(initialPrompt),
+  );
+  const messages = encoded.join("\n");
+
+  return (
+    launchBoundary >= 0 &&
+    launchPrompt > launchBoundary &&
+    messages.includes(WRAP_UP_PROMPT) &&
+    messages.includes("most recent `side-quest-continuation`") &&
+    messages.includes("do not summarize earlier work") &&
+    messages.includes("most recent `side-quest-launch`") &&
+    messages.includes("Inherited messages before it are context only") &&
+    messages.includes("answer a question directly") &&
+    messages.includes("summarize the decision and trade-offs") &&
+    messages.includes("Do not force a template, headings, or sections")
+  );
 }
 
 function foregroundBefore(view: string, label: string): string | undefined {
@@ -107,7 +130,10 @@ function configureUnsuccessfulWrapUp(
     fauxAssistantMessage(fauxText(INITIAL_RESPONSE)),
     async (providerContext: Context) => {
       await delay(outcome === "interrupted" ? 10_000 : 750);
-      if (!hasNoTools(providerContext) || !hasWrapUpPrompt(providerContext))
+      if (
+        !hasNoTools(providerContext) ||
+        !hasWrapUpPrompt(providerContext, context.initialPrompt)
+      )
         return fauxAssistantMessage(
           "Wrap-up turn retained tools or missed its synthesis prompt.",
           {
@@ -241,7 +267,8 @@ export const wrapUpSuccess: Scenario = {
       fauxAssistantMessage(fauxText(INITIAL_RESPONSE)),
       async (providerContext: Context) => {
         await delay(750);
-        return hasNoTools(providerContext) && hasWrapUpPrompt(providerContext)
+        return hasNoTools(providerContext) &&
+          hasWrapUpPrompt(providerContext, context.initialPrompt)
           ? fauxAssistantMessage(fauxText(SYNTHESIS_RESPONSE))
           : fauxAssistantMessage(
               "Wrap-up turn retained tools or missed its synthesis prompt.",

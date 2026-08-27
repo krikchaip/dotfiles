@@ -6,7 +6,7 @@ export const activeContinuation: Scenario = {
     extensionFixtures: ["test/e2e/fixture/delegating-tool-renderer.ts"],
     managed: true,
     positionalPrompt: "Delegate this E2E task now.",
-    providerTokensPerSecond: 20,
+    providerTokensPerSecond: 100,
   },
   configureProvider(context) {
     configureContinuation(context, {

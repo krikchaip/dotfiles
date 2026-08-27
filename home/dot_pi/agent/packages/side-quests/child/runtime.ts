@@ -17,6 +17,13 @@ import {
   SessionStore,
 } from "../store/session.ts";
 
+/** Identifies the hidden boundary before a new child's launch prompt. */
+const LAUNCH_MESSAGE_TYPE = "side-quest-launch";
+
+/** Explains the launch boundary without prescribing the handoff format. */
+const LAUNCH_SCOPE_MARKER =
+  "The next user message is the side quest launch prompt and starts its handoff scope. Earlier messages are inherited context only.";
+
 /**
  * Describes the child state that the child UI renders.
  */
@@ -203,7 +210,7 @@ export class ChildRuntime {
         {
           customType: WRAP_UP_MESSAGE_TYPE,
           content:
-            "Prepare the final handoff to the parent agent. State the completed result, exact files or decisions, verification evidence, blockers, and remaining uncertainty. Return only the handoff. Do not continue implementation.",
+            "Prepare the final handoff to the parent agent. Find the most recent `side-quest-continuation` message in the conversation. If one exists, use that continuation and all work after it as the handoff scope; do not summarize earlier work. Otherwise, use the most recent `side-quest-launch` message and all work after it. Inherited messages before it are context only and outside the handoff scope. Choose the form that best serves that scope: answer a question directly, summarize the decision and trade-offs from a grilling session, or report an implementation result when applicable. Do not force a template, headings, or sections. Include only what the parent needs to continue or conclude the work. Do not continue implementation.",
           display: false,
         },
         { triggerTurn: true, deliverAs: "steer" },
@@ -255,6 +262,18 @@ export class ChildRuntime {
     }
 
     this.pi.setActiveTools([...required, "ask_parent"]);
+
+    if (this.initialPrompt) {
+      this.pi.sendMessage(
+        {
+          customType: LAUNCH_MESSAGE_TYPE,
+          content: LAUNCH_SCOPE_MARKER,
+          display: false,
+        },
+        { triggerTurn: false, deliverAs: "steer" },
+      );
+    }
+
     this.snapshot("starting");
     this.startHeartbeat();
   }
