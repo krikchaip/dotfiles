@@ -54,11 +54,16 @@ test("formats fresh and resumed Agent headers", () => {
   ).toBe("general-purpose :: review the renderer");
 
   expect(
-    AgentRenderer.summary({
-      resume: "/tmp/child/session.jsonl",
-      description: "continue the review",
-      prompt: "Continue.",
-    }),
+    AgentRenderer.summary(
+      {
+        resume: "/tmp/child/session.jsonl",
+        description: "continue the review",
+        prompt: "Continue.",
+      },
+      {
+        details: { continuationKind: "steer", operation: "reopened" },
+      },
+    ),
   ).toBe("general-purpose (resumed) :: continue the review");
 });
 

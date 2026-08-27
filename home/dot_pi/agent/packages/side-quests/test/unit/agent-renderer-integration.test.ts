@@ -274,6 +274,32 @@ test.each([
   },
 );
 
+test("an unclassified in-flight continuation does not flash resumed", () => {
+  vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue(undefined);
+
+  expect(AgentRenderer.install()).toBe(true);
+
+  const renderer = rendererFor("getCallRenderer", {
+    executionStarted: false,
+    isPartial: true,
+    toolName: "Agent",
+  });
+  const rendered = renderer?.(
+    {
+      description: "Continue delegated task",
+      prompt: "Continue.",
+      resume: "/tmp/managed/sess",
+    },
+    theme,
+    { isPartial: true },
+  );
+
+  expect(renderedText(rendered)).toContain(
+    "general-purpose :: Continue delegated task",
+  );
+  expect(renderedText(rendered)).not.toContain("(resumed)");
+});
+
 test.each([false, true])(
   "a live-child continuation shows steered when executionStarted=%s",
   (executionStarted) => {
@@ -459,8 +485,9 @@ test("settled continuation labels replace a host renderer's cached pending summa
     { argsComplete: true, isPartial: false, state },
   );
   expect(renderedText(pending)).toContain(
-    "general-purpose (resumed) :: cached continuation",
+    "general-purpose :: cached continuation",
   );
+  expect(renderedText(pending)).not.toContain("(resumed)");
 
   const settledRenderer = rendererFor("getCallRenderer", {
     isPartial: false,

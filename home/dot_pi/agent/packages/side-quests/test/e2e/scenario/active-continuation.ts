@@ -19,16 +19,9 @@ export const activeContinuation: Scenario = {
     });
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor(
+    await harness.waitForWithout(
       "Agent general-purpose (steered) :: Continue the E2E delegated task",
-    );
-
-    const terminalLog = harness.read(harness.logPath);
-    harness.assert(
-      !terminalLog.includes(
-        "Agent general-purpose (resumed) :: Continue the E2E delegated task",
-      ),
-      "The active continuation briefly rendered as resumed before steered.",
+      /Agent .*\(resume(?:d)?\) :: Continue the E2E delegated task/u,
     );
 
     await harness.waitFor("SUBAGENT COMPLETED");

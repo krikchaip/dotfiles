@@ -215,6 +215,38 @@ export class E2EHarness {
     return view;
   }
 
+  async waitForWithout(
+    expected: string | RegExp,
+    forbidden: string | RegExp,
+    timeoutMs = 20_000,
+    paneId = this.#paneId,
+  ): Promise<string> {
+    let view = "";
+
+    await this.waitUntil(
+      `terminal output ${String(expected)} without ${String(forbidden)}`,
+      async () => {
+        view = await this.capture(paneId);
+        const containsForbidden =
+          typeof forbidden === "string"
+            ? view.includes(forbidden)
+            : forbidden.test(view);
+
+        if (containsForbidden)
+          throw new Error(
+            `Observed forbidden transient terminal output ${String(forbidden)}.\n\nPane:\n${view}`,
+          );
+
+        return typeof expected === "string"
+          ? view.includes(expected)
+          : expected.test(view);
+      },
+      timeoutMs,
+    );
+
+    return view;
+  }
+
   async waitForStoredText(text: string, timeoutMs = 15_000): Promise<void> {
     await this.waitUntil(
       `stored session text ${JSON.stringify(text)}`,

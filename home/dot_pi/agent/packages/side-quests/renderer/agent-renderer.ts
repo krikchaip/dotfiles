@@ -304,10 +304,11 @@ export class AgentRenderer {
    */
   public static summary(args: unknown, result?: RendererResult): string {
     const agent = AgentRenderer.display(args);
-    const continuation =
+    const continuationLabel =
       agent.mode === "resumed"
-        ? ` (${AgentRenderer.continuationLabel(args, result)})`
-        : "";
+        ? AgentRenderer.continuationLabel(args, result)
+        : undefined;
+    const continuation = continuationLabel ? ` (${continuationLabel})` : "";
 
     return `${agent.type}${continuation} :: ${agent.description}`;
   }
@@ -469,7 +470,7 @@ export class AgentRenderer {
   private static continuationLabel(
     args: unknown,
     result?: RendererResult,
-  ): string {
+  ): string | undefined {
     if (result !== undefined) {
       if (result.isError === true) return "resumed";
       if (typeof result.details !== "object" || result.details === null)
@@ -493,12 +494,12 @@ export class AgentRenderer {
   /**
    * Classifies an in-flight continuation from managed child process state.
    */
-  private static pendingContinuationLabel(args: unknown): string {
+  private static pendingContinuationLabel(args: unknown): string | undefined {
     const path = AgentRenderer.stringArg(args, "resume");
-    if (!path) return "resumed";
+    if (!path) return undefined;
 
     const manifest = SessionStore.readResumableManifest(path);
-    if (!manifest) return "resumed";
+    if (!manifest) return undefined;
 
     const request = SessionStore.readRequest(
       manifest.parentId,
@@ -510,10 +511,12 @@ export class AgentRenderer {
       return "resumed";
 
     const pane = Tmux.findManagedPane(manifest.childId);
-    if (!pane) return "resumed";
+    if (!pane) return undefined;
 
     const processState = Tmux.paneProcessState(pane.paneId);
-    return processState && !processState.dead ? "steered" : "resumed";
+    if (!processState) return undefined;
+
+    return processState.dead ? "resumed" : "steered";
   }
 
   /**
