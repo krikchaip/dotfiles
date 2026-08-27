@@ -31,6 +31,7 @@ import { staleResponse } from "./scenario/stale-response.ts";
 import { staleTerminalResponse } from "./scenario/stale-terminal-response.ts";
 import { stoppedReopen } from "./scenario/stopped-reopen.ts";
 import { terminalTakeover } from "./scenario/terminal-takeover.ts";
+import { terminatedToolReopen } from "./scenario/terminated-tool-reopen.ts";
 import { threeConcurrentQuestions } from "./scenario/three-concurrent-questions.ts";
 import { toolsListed } from "./scenario/tools-listed.ts";
 import { unmarkedClosure } from "./scenario/unmarked-closure.ts";
@@ -61,6 +62,7 @@ export const scenarios: readonly Scenario[] = [
   activePromotionRejection,
   idleContinuation,
   stoppedReopen,
+  terminatedToolReopen,
   resumePromotionRejection,
   programmaticContinuation,
   failure,

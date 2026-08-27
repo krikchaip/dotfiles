@@ -24,6 +24,13 @@ const LAUNCH_MESSAGE_TYPE = "side-quest-launch";
 const LAUNCH_SCOPE_MARKER =
   "The next user message is the side quest launch prompt and starts its handoff scope. Earlier messages are inherited context only.";
 
+/** Continues an autonomous run when a tool batch intentionally settles Pi. */
+const TOOL_CONTINUATION_MESSAGE_TYPE = "side-quest-tool-continuation";
+
+/** Requests the final work after Pi settles on completed tool results. */
+const TOOL_CONTINUATION_PROMPT =
+  "Continue from the completed tool results without repeating completed work. Finish the delegated task and provide the final handoff.";
+
 /** Provides the hidden instruction for the final parent handoff synthesis. */
 const WRAP_UP_PROMPT = [
   "Prepare the final handoff to the parent agent.",
@@ -81,6 +88,9 @@ export class ChildRuntime {
 
   /** Records the last terminal error from the current run. */
   private lastRunFailure: string | undefined;
+
+  /** Reports whether the latest assistant message stopped on tool calls. */
+  private toolContinuationPending = false;
 
   /** Reports whether the current run is a final wrap-up turn. */
   private wrappingUp = false;
@@ -411,6 +421,7 @@ export class ChildRuntime {
     this.active = true;
     this.lastSettledResponse = undefined;
     this.lastRunFailure = undefined;
+    this.toolContinuationPending = false;
 
     this.snapshot("active", "agent");
   }
@@ -423,6 +434,8 @@ export class ChildRuntime {
   ): { message: AgentMessage } | undefined {
     const message = event.message;
     if (message.role !== "assistant") return;
+
+    this.toolContinuationPending = message.stopReason === "toolUse";
 
     if (
       message.stopReason === "error" ||
@@ -453,6 +466,25 @@ export class ChildRuntime {
    */
   private endAgent(): void {
     this.active = false;
+
+    if (
+      !this.isInteractive() &&
+      !this.wrappingUp &&
+      !this.lastRunFailure &&
+      this.toolContinuationPending
+    ) {
+      this.toolContinuationPending = false;
+      this.pi.sendMessage(
+        {
+          customType: TOOL_CONTINUATION_MESSAGE_TYPE,
+          content: TOOL_CONTINUATION_PROMPT,
+          display: false,
+        },
+        { triggerTurn: true, deliverAs: "steer" },
+      );
+      return;
+    }
+
     if (this.isInteractive()) this.snapshot("waiting");
   }
 

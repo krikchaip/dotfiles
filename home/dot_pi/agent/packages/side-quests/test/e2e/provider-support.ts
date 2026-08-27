@@ -146,6 +146,8 @@ export interface ReopenDelegation {
   readonly promoteInteractive?: boolean;
   readonly resumedFailure?: string;
   readonly resumedPrompt: string;
+  readonly resumedResponse?: string;
+  readonly resumedTool?: string;
 }
 
 export function configureReopen(
@@ -155,16 +157,31 @@ export function configureReopen(
   const { faux, initialPrompt, role } = context;
 
   if (role === "child") {
-    faux.setResponses([
-      initialPrompt
-        ? fauxAssistantMessage(fauxText("First run completed before reopen."))
-        : options.resumedFailure
-          ? fauxAssistantMessage(options.resumedFailure, {
-              stopReason: "error",
-              errorMessage: options.resumedFailure,
-            })
-          : fauxAssistantMessage(fauxText("Reopened run completed.")),
-    ]);
+    if (initialPrompt) {
+      faux.setResponses([
+        fauxAssistantMessage(fauxText("First run completed before reopen.")),
+      ]);
+    } else if (options.resumedFailure) {
+      faux.setResponses([
+        fauxAssistantMessage(options.resumedFailure, {
+          stopReason: "error",
+          errorMessage: options.resumedFailure,
+        }),
+      ]);
+    } else {
+      faux.setResponses([
+        ...(options.resumedTool
+          ? [
+              fauxAssistantMessage(fauxToolCall(options.resumedTool, {}), {
+                stopReason: "toolUse",
+              }),
+            ]
+          : []),
+        fauxAssistantMessage(
+          fauxText(options.resumedResponse ?? "Reopened run completed."),
+        ),
+      ]);
+    }
     return;
   }
 
