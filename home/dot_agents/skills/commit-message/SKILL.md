@@ -67,6 +67,7 @@ Always include body for: breaking changes, security fixes, data migrations, anyt
 
 ## Output Contract
 
-- Return exactly one plain-text fenced code block containing the subject and optional body or trailers.
-- Put no prose, labels, analysis, alternatives, or commands before or after the block.
-- Output commit text only. Do not run `git commit`, stage files, or amend a commit.
+- Return the subject and optional body or trailers as raw plain text.
+- Preserve commit-ready spacing: one blank line between the subject, body, and trailers.
+- Put no Markdown fence, prose, label, analysis, alternative, or command around the commit text.
+- Do not run `git commit`, stage files, or amend a commit.
