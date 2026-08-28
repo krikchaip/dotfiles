@@ -1,14 +1,18 @@
 ---
-name: caveman-commit
-description: >
-  Ultra-compressed commit message generator. Cuts noise from commit messages while preserving
-  intent and reasoning. Conventional Commits format. Subject ≤50 chars, body only when "why"
-  isn't obvious. Use when user says "write a commit", "commit message", "generate commit",
-  "/commit", or invokes /caveman-commit. Auto-triggers when staging changes.
+name: commit-message
+description: Generate a terse Conventional Commit message from staged changes only. Output only paste-ready commit text.
 disable-model-invocation: true
 ---
 
 Write commit messages terse and exact. Conventional Commits format. No fluff. Why over what.
+
+## Input
+
+- Treat the Git index as the complete, reviewed commit scope.
+- Analyze `git diff --cached` only. Read staged file content with `git show :<path>` when needed.
+- Exclude working-tree changes and untracked files, including unstaged changes in partly staged files.
+- Use commit history only to match the project's message conventions.
+- If the index is empty, output only `No staged changes.`
 
 ## Rules
 
@@ -20,7 +24,7 @@ Write commit messages terse and exact. Conventional Commits format. No fluff. Wh
 - No trailing period
 - Match project convention for capitalization after the colon
 
-**Body (only if needed):**
+**Description/body (only if needed):**
 - Skip entirely when subject is self-explanatory
 - Add body only for: non-obvious *why*, breaking changes, migration notes, linked issues
 - Wrap at 72 chars
@@ -61,6 +65,8 @@ Diff: breaking API change
 
 Always include body for: breaking changes, security fixes, data migrations, anything reverting a prior commit. Never compress these into subject-only — future debuggers need the context.
 
-## Boundaries
+## Output Contract
 
-Only generates the commit message. Does not run `git commit`, does not stage files, does not amend. Output the message as a code block ready to paste. "stop caveman-commit" or "normal mode": revert to verbose commit style.
+- Return exactly one plain-text fenced code block containing the subject and optional body or trailers.
+- Put no prose, labels, analysis, alternatives, or commands before or after the block.
+- Output commit text only. Do not run `git commit`, stage files, or amend a commit.
