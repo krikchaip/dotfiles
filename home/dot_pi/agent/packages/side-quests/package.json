@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run test/unit",
     "test:e2e": "bun test/e2e/run.ts",
+    "test:prompt": "bun test/e2e/model-behavior.ts",
     "test": "bun run check && bun run typecheck && bun run test:unit && bun run test:e2e"
   },
   "devDependencies": {

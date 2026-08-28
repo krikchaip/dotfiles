@@ -228,6 +228,14 @@ with-env { SIDE_QUESTS_E2E_MODES: "lifecycle ask-parent" } {
 }
 ```
 
+Run the opt-in real-model prompt behavior checks:
+
+```nu
+bun run test:prompt
+```
+
+`test:prompt` runs real Pi sessions in tmux with `antigravity/gemini-3.6-flash-medium`. It checks that normal context continuity omits `inherit_context` and intentional isolation sends `inherit_context: false`. Set `SIDE_QUESTS_PROMPT_MODEL` to test another configured model. This test is not part of `bun run test` because it needs a live model service and its output is probabilistic.
+
 ## Failure artifacts
 
 The runner prints the retained artifact directory on failure. Inspect these first:

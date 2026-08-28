@@ -62,6 +62,25 @@ test("explains when interactive dialogue is useful", () => {
   expect(guidelines).toContain("human-in-the-loop review");
 });
 
+test("explains the omission-aware context inheritance policy", () => {
+  const guidelines = registerParentTools()[0]?.promptGuidelines?.join("\n");
+
+  expect(guidelines).toContain(
+    "Omit inherit_context for standard context continuity; omission defaults to true.",
+  );
+  expect(guidelines).toContain(
+    "Set inherit_context: false only for intentional context isolation",
+  );
+  expect(guidelines).toContain("independent verification");
+  expect(guidelines).toContain("adversarial review");
+  expect(guidelines).toContain("second opinion");
+  expect(guidelines).toContain("competing design");
+  expect(guidelines).toContain("removing conversation noise");
+  expect(guidelines).toContain(
+    "Set inherit_context: true only to override a named sub-agent that defaults to false.",
+  );
+});
+
 test("defines the strict Agent request contract", () => {
   const schema = registerParentTools()[0]
     ?.parameters as unknown as AgentRequestSchema;
@@ -97,7 +116,7 @@ test("defines the strict Agent request contract", () => {
   expect(schema.properties.inherit_context).toMatchObject({
     type: "boolean",
     description:
-      "For a new sub-agent, copy the parent conversation once at launch. Defaults to true. Set false for fresh or unbiased work such as an adversarial review. Omit on resume.",
+      "New launch only. Omit for standard context continuity; omission defaults to true. Set false only for intentional context isolation, such as independent verification, an adversarial review, a second opinion, a competing design, or removing conversation noise. Set true only to override a named sub-agent that defaults to false. Omit on resume.",
   });
   expect(schema.properties.interactive).toMatchObject({
     type: "boolean",

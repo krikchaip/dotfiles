@@ -48,6 +48,7 @@ export class ParentTools {
         `When calling ${toolName}, give the sub-agent a self-contained handoff with purpose, context, ownership boundary, stable assumptions, dependencies, constraints, expected outcome, acceptance evidence, and return contract. Require clear blockers and uncertainty instead of guesses.`,
         `Use interactive: true on a new ${toolName} launch when the side quest needs several rounds of human dialogue, such as decision grilling, requirements discovery, prototype feedback, or human-in-the-loop review. Interactive mode keeps the child pane open until the human runs /subagent-done. Omit interactive for independent work that can return one final result.`,
         `After ${toolName} launches, continue any main-quest work outside the ownership boundary, regardless of size. If the main quest is blocked, let the turn settle and await the result without polling. Use resume for the same side quest; launch a new sub-agent only for a distinct branch or a fresh pass after the previous owner finishes.`,
+        "Omit inherit_context for standard context continuity; omission defaults to true. Set inherit_context: false only for intentional context isolation, such as independent verification, an adversarial review, a second opinion, a competing design, or removing conversation noise. Set inherit_context: true only to override a named sub-agent that defaults to false. This policy applies only to a new Agent launch.",
         "On resume, omit subagent_type, inherit_context, and interactive. These fields configure only a new sub-agent and Agent.resume rejects them.",
         `Review work returned by ${toolName} proportionately without repeating the side quest. Check key evidence and integration points, run relevant code checks, inspect research sources quickly, and deepen review only as risk warrants. For a prototype, confirm that it runs and addresses the question, then ask the user to make the design judgment.`,
       ],
@@ -79,7 +80,7 @@ export class ParentTools {
           inherit_context: Type.Optional(
             Type.Boolean({
               description:
-                "For a new sub-agent, copy the parent conversation once at launch. Defaults to true. Set false for fresh or unbiased work such as an adversarial review. Omit on resume.",
+                "New launch only. Omit for standard context continuity; omission defaults to true. Set false only for intentional context isolation, such as independent verification, an adversarial review, a second opinion, a competing design, or removing conversation noise. Set true only to override a named sub-agent that defaults to false. Omit on resume.",
             }),
           ),
           interactive: Type.Optional(
