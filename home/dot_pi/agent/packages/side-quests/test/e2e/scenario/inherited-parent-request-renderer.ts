@@ -4,7 +4,7 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
-import { delay } from "../provider-support.ts";
+import { delay, fauxSubagentDone } from "../provider-support.ts";
 
 const question =
   "Should inherited child sessions use the approved question banner?";
@@ -28,6 +28,7 @@ export const inheritedParentRequestRenderer: Scenario = {
             { stopReason: "toolUse" },
           ),
           fauxAssistantMessage(fauxText("The source child sent its question.")),
+          fauxSubagentDone("The source child sent its question."),
         ]);
         return;
       }
@@ -36,6 +37,7 @@ export const inheritedParentRequestRenderer: Scenario = {
         fauxAssistantMessage(
           fauxText("The viewer child loaded its inherited context."),
         ),
+        fauxSubagentDone("The viewer child loaded its inherited context."),
       ]);
       return;
     }

@@ -5,7 +5,7 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
-import { delay } from "../provider-support.ts";
+import { delay, fauxSubagentDone } from "../provider-support.ts";
 
 const labels = ["alpha", "beta", "gamma"] as const;
 
@@ -48,6 +48,7 @@ export const threeConcurrentQuestions: Scenario = {
                   errorMessage: `Child ${label} received the wrong answer.`,
                 },
               ),
+        fauxSubagentDone(`Child ${label} completed.`),
       ]);
     }
 

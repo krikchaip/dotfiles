@@ -8,14 +8,11 @@ type Command = Parameters<ExtensionAPI["registerCommand"]>[1];
 
 function registeredCommand(options: { readonly active?: boolean } = {}) {
   let command: Command | undefined;
-  const complete = vi.fn();
-  const wrapUp = vi.fn(async () => undefined);
+  const startCompletionTurn = vi.fn(async () => undefined);
   const notify = vi.fn();
   const runtime = {
-    complete,
     isActive: () => options.active ?? false,
-    onInteractive: (listener: () => void) => listener(),
-    wrapUp,
+    startCompletionTurn,
   } as unknown as ChildRuntime;
   const pi = {
     on() {},
@@ -29,50 +26,46 @@ function registeredCommand(options: { readonly active?: boolean } = {}) {
 
   return {
     command: command as Command,
-    complete,
-    context: { ui: { notify }, shutdown: vi.fn() },
+    context: { ui: { notify } },
     notify,
-    wrapUp,
+    startCompletionTurn,
   };
 }
 
-test("plain completion closes with the latest settled response", async () => {
+test("plain completion starts one hidden completion turn", async () => {
   const fixture = registeredCommand();
 
   await fixture.command.handler("", fixture.context as never);
 
-  expect(fixture.complete).toHaveBeenCalledOnce();
-  expect(fixture.wrapUp).not.toHaveBeenCalled();
+  expect(fixture.startCompletionTurn).toHaveBeenCalledOnce();
 });
 
-test("--wrap-up starts final synthesis instead of immediate completion", async () => {
+test("completion rejects every argument", async () => {
   const fixture = registeredCommand();
 
-  await fixture.command.handler(" --wrap-up ", fixture.context as never);
-
-  expect(fixture.wrapUp).toHaveBeenCalledOnce();
-  expect(fixture.complete).not.toHaveBeenCalled();
-});
-
-test("completion rejects unknown arguments", async () => {
-  const fixture = registeredCommand();
-
-  await fixture.command.handler("later", fixture.context as never);
+  await fixture.command.handler("--wrap-up", fixture.context as never);
 
   expect(fixture.notify).toHaveBeenCalledWith(
-    "Usage: /subagent-done [--wrap-up]",
+    "Usage: /subagent-done",
     "warning",
   );
-  expect(fixture.complete).not.toHaveBeenCalled();
-  expect(fixture.wrapUp).not.toHaveBeenCalled();
+  expect(fixture.startCompletionTurn).not.toHaveBeenCalled();
 });
 
-test("completion exposes only --wrap-up argument completion", () => {
+test("completion refuses while an agent turn is active", async () => {
+  const fixture = registeredCommand({ active: true });
+
+  await fixture.command.handler("", fixture.context as never);
+
+  expect(fixture.notify).toHaveBeenCalledWith(
+    "Wait for the current turn or interrupt it first.",
+    "warning",
+  );
+  expect(fixture.startCompletionTurn).not.toHaveBeenCalled();
+});
+
+test("completion has no argument suggestions", () => {
   const fixture = registeredCommand();
 
-  expect(fixture.command.getArgumentCompletions?.("--w")).toEqual([
-    expect.objectContaining({ value: "--wrap-up" }),
-  ]);
-  expect(fixture.command.getArgumentCompletions?.("--wrap-up")).toBeNull();
-  expect(fixture.command.getArgumentCompletions?.("other")).toBeNull();
+  expect(fixture.command.getArgumentCompletions).toBeUndefined();
 });

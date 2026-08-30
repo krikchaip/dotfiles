@@ -17,18 +17,35 @@ const MODEL =
 const MODEL_ID = MODEL.split("/").at(-1) ?? MODEL;
 const POLL_MS = 100;
 const TIMEOUT_MS = 60_000;
+const COMPLETION_ATTEMPTS = 10;
+const REQUIRED_COMPLETIONS = 9;
 
-type AgentCall = Readonly<Record<string, unknown>>;
+const packageExtension = resolve(import.meta.dir, "../../index.ts");
+const agentFixture = resolve(import.meta.dir, "fixture/capture-agent-call.ts");
+const completionFixture = resolve(
+  import.meta.dir,
+  "fixture/capture-subagent-done.ts",
+);
 
-type BehaviorCase = Readonly<{
+type Json = Readonly<Record<string, unknown>>;
+
+type PromptCase = Readonly<{
+  extensions: readonly string[];
   name: string;
+  outputEnvironment: string;
   prompt: string;
-  verify(call: AgentCall): void;
 }>;
 
-const cases: readonly BehaviorCase[] = [
+type AgentCase = PromptCase &
+  Readonly<{
+    verify(call: Json): void;
+  }>;
+
+const agentCases: readonly AgentCase[] = [
   {
+    extensions: [packageExtension, agentFixture],
     name: "continuity-omits-inherit-context",
+    outputEnvironment: "SIDE_QUESTS_AGENT_CALL_PATH",
     prompt:
       "Use Agent now to delegate an implementation branch. The child needs the normal context from our current conversation. Do not perform the branch yourself. Ask the child to inspect the project and propose the next implementation step.",
     verify(call) {
@@ -39,7 +56,9 @@ const cases: readonly BehaviorCase[] = [
     },
   },
   {
+    extensions: [packageExtension, agentFixture],
     name: "isolation-disables-inherit-context",
+    outputEnvironment: "SIDE_QUESTS_AGENT_CALL_PATH",
     prompt:
       "Use Agent now to delegate an independent adversarial review. The reviewer must not receive or be biased by our current conversation. Do not perform the review yourself. Ask the child to challenge the current design assumptions.",
     verify(call) {
@@ -50,6 +69,14 @@ const cases: readonly BehaviorCase[] = [
     },
   },
 ];
+
+const completionCase: PromptCase = {
+  extensions: [completionFixture],
+  name: "autonomous-completion-protocol",
+  outputEnvironment: "SIDE_QUESTS_SUBAGENT_DONE_PATH",
+  prompt:
+    "The assigned side quest is complete. Prepare a thorough parent-facing handoff from these verified observations: configuration loaded correctly, 163 unit tests passed, 41 real-tmux end-to-end scenarios passed, no blockers remain, and no uncertainty remains. Include the outcome, evidence, blockers, and remaining uncertainty.",
+};
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -94,20 +121,21 @@ async function waitUntil(
   );
 }
 
-async function runCase(testCase: BehaviorCase): Promise<void> {
+async function runCase(testCase: PromptCase, attempt = 1): Promise<Json> {
   const runDirectory = mkdtempSync(
     join(tmpdir(), `side-quests-model-${testCase.name}-`),
   );
   const socket = join(
     tmpdir(),
-    `sqm-${process.pid}-${testCase.name.slice(0, 1)}.sock`,
+    `sqm-${process.pid}-${testCase.name.slice(0, 1)}-${attempt}.sock`,
   );
-  const resultPath = join(runDirectory, "agent-call.json");
+  const resultPath = join(runDirectory, "model-decision.json");
   const launchPath = join(runDirectory, "launch.sh");
   const workDirectory = join(runDirectory, "cwd");
-  const extension = resolve(import.meta.dir, "../../index.ts");
-  const fixture = resolve(import.meta.dir, "fixture/capture-agent-call.ts");
-  const sessionName = `sq-model-${process.pid}`;
+  const sessionName = `sq-model-${process.pid}-${attempt}`;
+  const extensionArguments = testCase.extensions
+    .flatMap((extension) => ["-e", quote(extension)])
+    .join(" ");
   let paneId = "";
 
   rmSync(socket, { force: true });
@@ -117,9 +145,9 @@ async function runCase(testCase: BehaviorCase): Promise<void> {
     [
       "#!/bin/sh",
       "set -eu",
-      `export SIDE_QUESTS_AGENT_CALL_PATH=${quote(resultPath)}`,
+      `export ${testCase.outputEnvironment}=${quote(resultPath)}`,
       "export PI_TELEMETRY=0",
-      `exec pi --no-session --no-context-files --no-prompt-templates --no-skills --no-themes --no-extensions --no-builtin-tools --model ${quote(MODEL)} -e ${quote(extension)} -e ${quote(fixture)}`,
+      `exec pi --no-session --no-context-files --no-prompt-templates --no-skills --no-themes --no-extensions --no-builtin-tools --model ${quote(MODEL)} ${extensionArguments}`,
       "",
     ].join("\n"),
   );
@@ -171,16 +199,9 @@ async function runCase(testCase: BehaviorCase): Promise<void> {
     ]);
     await execute(["tmux", "-S", socket, "send-keys", "-t", paneId, "Enter"]);
 
-    await waitUntil("an Agent tool call", () => existsSync(resultPath));
+    await waitUntil("a model decision", () => existsSync(resultPath));
 
-    const call = JSON.parse(readFileSync(resultPath, "utf8")) as AgentCall;
-    assert(typeof call.prompt === "string", "Agent.prompt was not a string.");
-    assert(
-      typeof call.description === "string",
-      "Agent.description was not a string.",
-    );
-    assert(!("resume" in call), "A new launch unexpectedly included resume.");
-    testCase.verify(call);
+    return JSON.parse(readFileSync(resultPath, "utf8")) as Json;
   } catch (cause) {
     const pane = paneId
       ? await execute(
@@ -200,7 +221,7 @@ async function runCase(testCase: BehaviorCase): Promise<void> {
         )
       : "";
     throw new Error(
-      `${testCase.name} failed with ${MODEL}: ${cause instanceof Error ? cause.message : String(cause)}\n\nPane:\n${pane}`,
+      `${testCase.name} attempt ${attempt} failed with ${MODEL}: ${cause instanceof Error ? cause.message : String(cause)}\n\nPane:\n${pane}`,
     );
   } finally {
     await execute(["tmux", "-S", socket, "kill-server"], true);
@@ -209,10 +230,100 @@ async function runCase(testCase: BehaviorCase): Promise<void> {
   }
 }
 
-for (const testCase of cases) {
+function completionCompliance(
+  decision: Json,
+): { compliant: true } | { compliant: false; reason: string } {
+  if (decision.outcome !== "tool")
+    return {
+      compliant: false,
+      reason: "model ended with a normal assistant response",
+    };
+
+  const input = decision.input;
+  if (!input || typeof input !== "object")
+    return {
+      compliant: false,
+      reason: "subagent_done input was not an object",
+    };
+
+  const result = (input as Record<string, unknown>).result;
+  if (typeof result !== "string" || result.trim().length < 80)
+    return {
+      compliant: false,
+      reason: "subagent_done.result was not a complete handoff",
+    };
+
+  const content = Array.isArray(decision.assistantContent)
+    ? decision.assistantContent
+    : [];
+  const parts = content.filter(
+    (part): part is Record<string, unknown> =>
+      typeof part === "object" && part !== null,
+  );
+  const text = parts
+    .filter((part) => part.type === "text" && typeof part.text === "string")
+    .map((part) => String(part.text).trim())
+    .filter(Boolean);
+  const toolCalls = parts.filter((part) => part.type === "toolCall");
+
+  if (text.length > 0)
+    return {
+      compliant: false,
+      reason: "assistant text accompanied the final tool call",
+    };
+
+  if (toolCalls.length !== 1 || toolCalls[0]?.name !== "subagent_done")
+    return {
+      compliant: false,
+      reason: `final response contained ${toolCalls.length} tool calls`,
+    };
+
+  return { compliant: true };
+}
+
+for (const testCase of agentCases) {
   process.stdout.write(`MODEL ${testCase.name} ... `);
-  await runCase(testCase);
+  const call = await runCase(testCase);
+  assert(typeof call.prompt === "string", "Agent.prompt was not a string.");
+  assert(
+    typeof call.description === "string",
+    "Agent.description was not a string.",
+  );
+  assert(!("resume" in call), "A new launch unexpectedly included resume.");
+  testCase.verify(call);
   process.stdout.write("PASS\n");
 }
 
-console.log(`PASS Agent prompt behavior (${MODEL})`);
+assert(
+  !completionCase.prompt.includes("subagent_done") &&
+    !completionCase.prompt.toLowerCase().includes("tool call"),
+  "The autonomous completion prompt must not explicitly prescribe the mechanism.",
+);
+
+let compliantCompletions = 0;
+const failures: string[] = [];
+
+for (let attempt = 1; attempt <= COMPLETION_ATTEMPTS; attempt += 1) {
+  process.stdout.write(
+    `MODEL ${completionCase.name} ${attempt}/${COMPLETION_ATTEMPTS} ... `,
+  );
+  const decision = await runCase(completionCase, attempt);
+  const compliance = completionCompliance(decision);
+
+  if (compliance.compliant) {
+    compliantCompletions += 1;
+    process.stdout.write("PASS\n");
+  } else {
+    failures.push(`${attempt}: ${compliance.reason}`);
+    process.stdout.write(`FAIL ${compliance.reason}\n`);
+  }
+}
+
+assert(
+  compliantCompletions >= REQUIRED_COMPLETIONS,
+  `Completion reliability was ${compliantCompletions}/${COMPLETION_ATTEMPTS}; required ${REQUIRED_COMPLETIONS}/${COMPLETION_ATTEMPTS}. Failures: ${failures.join("; ")}`,
+);
+
+console.log(
+  `PASS prompt behavior (${MODEL}): autonomous completion ${compliantCompletions}/${COMPLETION_ATTEMPTS}`,
+);

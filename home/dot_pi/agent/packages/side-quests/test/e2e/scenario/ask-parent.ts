@@ -4,7 +4,7 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
-import { sessionPath } from "../provider-support.ts";
+import { fauxSubagentDone, sessionPath } from "../provider-support.ts";
 
 const positionalPrompt = "Delegate this E2E task now.";
 const parentQuestion =
@@ -60,6 +60,7 @@ export const askParent: Scenario = {
           fauxText("I continued while the reply was pending."),
         ),
         fauxAssistantMessage(fauxText("Parent answer applied: blue.")),
+        fauxSubagentDone("Parent answer applied: blue."),
       ]);
     }
 

@@ -4,6 +4,8 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
+import { fauxSubagentDone } from "../provider-support.ts";
+
 const QUESTIONS = {
   completed:
     "Should the completed outcome retain this unanswered question after the child reaches its terminal state? Confirm that the parent transcript keeps the pending-request warning, uses Unicode-safe truncation at 240 characters, restores the complete question in expanded mode, and preserves the durable request mailbox so a resumed side quest can still receive the answer. Completed pending marker.",
@@ -25,18 +27,18 @@ function configurePendingOutcome(
         fauxToolCall("ask_parent", { prompt: QUESTIONS[outcome] }),
         { stopReason: "toolUse" },
       ),
-      outcome === "failed"
-        ? fauxAssistantMessage("Pending request failure.", {
-            stopReason: "error",
-            errorMessage: "Pending request failure.",
-          })
-        : fauxAssistantMessage(
-            fauxText(
-              outcome === "completed"
-                ? "Completed while the parent request remained pending."
-                : "Waiting with the parent request still pending.",
+      outcome === "completed"
+        ? fauxSubagentDone(
+            "Completed while the parent request remained pending.",
+          )
+        : outcome === "failed"
+          ? fauxAssistantMessage("Pending request failure.", {
+              stopReason: "error",
+              errorMessage: "Pending request failure.",
+            })
+          : fauxAssistantMessage(
+              fauxText("Waiting with the parent request still pending."),
             ),
-          ),
     ]);
     return;
   }

@@ -112,6 +112,10 @@ _Avoid_: Sub-agent, child session, microtask, lookup, background job
 The work contract the parent agent sends to a sub-agent for a side quest, stating purpose, context, constraints, expected outcome, and acceptance evidence.
 _Avoid_: Sub-agent, prompt fragment, file-search request, context dump
 
+**Side-quest completion declaration**:
+A sub-agent's explicit declaration that its side quest and validation are complete and that the supplied result is the final handoff to the parent agent. Ending a turn without this declaration does not complete the side quest.
+_Avoid_: Final assistant response, inferred completion, normal turn end
+
 **Side-quest review loop**:
 The parent agent's evaluation of a returned side-quest result, followed when needed by resuming the same sub-agent session with corrections or follow-up work.
 _Avoid_: Sub-agent lifecycle, blind result acceptance, unrelated retry, new child session

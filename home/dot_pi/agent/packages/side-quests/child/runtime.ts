@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type {
   AgentEndEvent,
   ExtensionAPI,
@@ -7,10 +6,6 @@ import type {
   MessageEndEvent,
 } from "@earendil-works/pi-coding-agent";
 
-import {
-  WRAP_UP_MESSAGE_TYPE,
-  type WrapUpEntryData,
-} from "../renderer/wrap-up-renderer.ts";
 import { type ActivitySnapshot, RuntimeStore } from "../store/runtime.ts";
 import {
   type ChildManifest,
@@ -25,16 +20,13 @@ const LAUNCH_MESSAGE_TYPE = "side-quest-launch";
 const LAUNCH_SCOPE_MARKER =
   "The next user message is the side quest launch prompt and starts its handoff scope. Earlier messages are inherited context only.";
 
-/** Continues an autonomous run when a tool batch intentionally settles Pi. */
-const TOOL_CONTINUATION_MESSAGE_TYPE = "side-quest-tool-continuation";
+/** Names the only model tool that can declare successful child completion. */
+const SUBAGENT_DONE_TOOL_NAME = "subagent_done";
 
-/** Requests the final work after Pi settles on completed tool results. */
-const TOOL_CONTINUATION_PROMPT =
-  "Continue from the completed tool results without repeating completed work. Finish the delegated task and provide the final handoff.";
-
-/** Provides the hidden instruction for the final parent handoff synthesis. */
-const WRAP_UP_PROMPT = [
-  "Prepare the final handoff to the parent agent.",
+/** Provides the hidden instruction for one human-requested completion turn. */
+const COMPLETION_PROMPT = [
+  "Prepare the final handoff to the parent agent and call `subagent_done` immediately with that complete handoff in `result`.",
+  "Do not return a normal assistant response and do not perform more implementation.",
   "Find the most recent `side-quest-continuation` message in the conversation.",
   "If one exists, use that continuation and all work after it as the handoff scope; do not summarize earlier work.",
   "Otherwise, use the most recent `side-quest-launch` message and all work after it.",
@@ -42,7 +34,6 @@ const WRAP_UP_PROMPT = [
   "Choose the form that best serves that scope: answer a question directly, summarize the decision and trade-offs from a grilling session, or report an implementation result when applicable.",
   "Do not force a template, headings, or sections.",
   "Include only what the parent needs to continue or conclude the work.",
-  "Do not continue implementation.",
 ].join(" ");
 
 /**
@@ -81,26 +72,20 @@ export class ChildRuntime {
   /** Identifies this runtime as the child role. */
   readonly role = "child" as const;
 
-  /** Records listeners that install interactive-only child commands. */
-  private interactiveListeners = new Set<() => void>();
-
   /** Records the last final assistant response from the current run. */
   private lastSettledResponse: string | undefined;
 
   /** Records the last terminal error from the current run. */
   private lastRunFailure: string | undefined;
 
-  /** Reports whether the latest assistant message stopped on tool calls. */
-  private toolContinuationPending = false;
+  /** Reports whether a slash command started the current completion turn. */
+  private completionTurn = false;
 
-  /** Reports whether the current run is a final wrap-up turn. */
-  private wrappingUp = false;
+  /** Records tools to restore if a command completion turn does not complete. */
+  private toolsBeforeCompletion: string[] | undefined;
 
-  /** Records tools to restore if the final wrap-up turn does not complete. */
-  private toolsBeforeWrapUp: string[] | undefined;
-
-  /** Records final wrap-up responses hidden behind persisted banner entries. */
-  private wrapUpResponses = new Set<string>();
+  /** Reports whether subagent_done declared completion in the current run. */
+  private completionDeclared = false;
 
   /** Records the heartbeat timer for activity and continuation polling. */
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
@@ -164,16 +149,6 @@ export class ChildRuntime {
   }
 
   /**
-   * Reports whether assistant Markdown belongs inside the final wrap-up banner.
-   */
-  shouldHideWrapUpResponse(markdown: string, _isStreaming: boolean): boolean {
-    const normalized = markdown.trim();
-    if (!normalized) return false;
-
-    return this.wrappingUp || this.wrapUpResponses.has(normalized);
-  }
-
-  /**
    * Returns the current child state for child UI rendering.
    */
   status(): ChildStatus {
@@ -182,14 +157,6 @@ export class ChildRuntime {
       lifecycle: this.lifecycle,
       replyPending: !!SessionStore.readRequest(this.parentId, this.childId),
     };
-  }
-
-  /**
-   * Registers a listener that runs now or when lifecycle becomes interactive.
-   */
-  onInteractive(listener: () => void): void {
-    this.interactiveListeners.add(listener);
-    if (this.isInteractive()) listener();
   }
 
   /**
@@ -212,34 +179,45 @@ export class ChildRuntime {
   }
 
   /**
-   * Completes an idle interactive child and shuts down its Pi process.
+   * Records the only trusted successful completion declaration.
    */
-  complete(context: { shutdown(): void }): void {
-    this.finish("completed", context, this.lastSettledResponse);
+  declareCompletion(result: string): void {
+    if (this.isInteractive() && !this.completionTurn)
+      throw new Error(
+        "subagent_done is unavailable after interactive takeover. Use /subagent-done.",
+      );
+    if (this.completionDeclared)
+      throw new Error("subagent_done has already declared completion.");
+
+    const response = result.trim();
+    if (!response) throw new Error("subagent_done.result must not be empty.");
+
+    this.completionDeclared = true;
+    this.writeTerminal("completed", response);
   }
 
   /**
-   * Starts one final tool-disabled synthesis turn before completion.
+   * Starts one hidden handoff turn with only subagent_done active.
    */
-  async wrapUp(): Promise<void> {
-    if (this.active || this.wrappingUp)
+  async startCompletionTurn(): Promise<void> {
+    if (this.active || this.completionTurn)
       throw new Error("Wait for the current turn or interrupt it first.");
 
-    this.wrappingUp = true;
-    this.toolsBeforeWrapUp = this.pi.getActiveTools();
-    this.pi.setActiveTools([]);
+    this.completionTurn = true;
+    this.toolsBeforeCompletion = this.pi.getActiveTools();
+    this.pi.setActiveTools([SUBAGENT_DONE_TOOL_NAME]);
 
     try {
       await this.pi.sendMessage(
         {
-          customType: WRAP_UP_MESSAGE_TYPE,
-          content: WRAP_UP_PROMPT,
+          customType: "side-quest-wrap-up",
+          content: COMPLETION_PROMPT,
           display: false,
         },
         { triggerTurn: true, deliverAs: "steer" },
       );
     } catch (cause) {
-      this.restoreToolsAfterWrapUp();
+      this.restoreToolsAfterCompletion();
       throw cause;
     }
   }
@@ -284,7 +262,11 @@ export class ChildRuntime {
       return;
     }
 
-    this.pi.setActiveTools([...required, "ask_parent"]);
+    this.pi.setActiveTools([
+      ...required,
+      "ask_parent",
+      ...(this.isInteractive() ? [] : [SUBAGENT_DONE_TOOL_NAME]),
+    ]);
 
     if (this.initialPrompt) {
       this.pi.sendMessage(
@@ -364,24 +346,12 @@ export class ChildRuntime {
    */
   private handleInput(
     event: { source: string; text: string },
-    context: ExtensionContext,
+    _context: ExtensionContext,
   ): { action: "continue" | "handled" } {
     const text = event.text.trim();
     const isInitialPrompt =
       this.initialInputPending && text === this.initialPrompt;
     this.initialInputPending = false;
-
-    if (
-      event.source === "interactive" &&
-      !this.isInteractive() &&
-      /^\/subagent-done(?:\s|$)/.test(text)
-    ) {
-      context.ui.notify(
-        "/subagent-done is available only after interactive takeover.",
-        "warning",
-      );
-      return { action: "handled" };
-    }
 
     if (
       event.source === "interactive" &&
@@ -410,9 +380,12 @@ export class ChildRuntime {
       lifecycle: this.lifecycle,
     });
 
+    this.pi.setActiveTools(
+      this.pi
+        .getActiveTools()
+        .filter((name) => name !== SUBAGENT_DONE_TOOL_NAME),
+    );
     this.snapshot(this.active ? "active" : "waiting");
-
-    for (const listener of this.interactiveListeners) listener();
   }
 
   /**
@@ -422,7 +395,6 @@ export class ChildRuntime {
     this.active = true;
     this.lastSettledResponse = undefined;
     this.lastRunFailure = undefined;
-    this.toolContinuationPending = false;
 
     this.snapshot("active", "agent");
   }
@@ -432,110 +404,82 @@ export class ChildRuntime {
    */
   private recordAssistantMessage(
     event: Pick<MessageEndEvent, "message">,
-  ): { message: AgentMessage } | undefined {
+  ): void {
     const message = event.message;
     if (message.role !== "assistant") return;
 
-    if (
-      message.stopReason === "error" ||
-      (this.wrappingUp && message.stopReason === "aborted")
-    ) {
-      this.lastRunFailure =
-        message.errorMessage ||
-        (message.stopReason === "aborted"
-          ? "Wrap-up turn was interrupted."
-          : "Child agent failed.");
+    if (message.stopReason === "error") {
+      this.lastRunFailure = message.errorMessage || "Child agent failed.";
+      return;
+    }
+
+    if (message.stopReason === "aborted") {
+      if (this.completionTurn)
+        this.lastRunFailure = "Completion turn was interrupted.";
       return;
     }
 
     this.lastSettledResponse =
       ChildRuntime.finalResponse([event.message]) ?? this.lastSettledResponse;
-
-    if (!this.wrappingUp || !this.lastSettledResponse) return undefined;
-
-    this.wrapUpResponses.add(this.lastSettledResponse.trim());
-
-    return {
-      message: { ...message, content: [] },
-    };
   }
 
   /**
    * Records why the current agent run ended and marks interactive children idle.
    */
-  private endAgent(event: Pick<AgentEndEvent, "messages">): void {
+  private endAgent(_event: Pick<AgentEndEvent, "messages">): void {
     this.active = false;
-
-    const latestAssistant = [...event.messages]
-      .reverse()
-      .find((message) => message.role === "assistant");
-    this.toolContinuationPending =
-      !this.isInteractive() &&
-      !this.wrappingUp &&
-      !this.lastRunFailure &&
-      latestAssistant?.stopReason === "toolUse";
-
-    if (this.isInteractive()) this.snapshot("waiting");
+    this.snapshot("waiting");
   }
 
   /**
-   * Completes successful wrap-up turns and keeps failed ones open for recovery.
+   * Applies explicit completion or trusted failure without starting a new turn.
    */
   private settleAgent(context: {
     shutdown(): void;
     ui: { notify(message: string, level: "warning" | "error"): void };
   }): void {
-    if (this.wrappingUp) {
-      const response = this.lastSettledResponse?.trim();
-      const failure = this.lastRunFailure;
-
-      if (failure || !response) {
-        this.restoreToolsAfterWrapUp();
-        context.ui.notify(
-          failure ?? "Wrap-up returned no text. The subagent remains open.",
-          failure ? "error" : "warning",
-        );
-        return;
-      }
-
-      this.restoreToolsAfterWrapUp();
-      this.pi.appendEntry<WrapUpEntryData>(WRAP_UP_MESSAGE_TYPE, {
-        content: response,
-      });
-      this.finish("completed", context, response);
+    if (this.completionDeclared) {
+      this.restoreToolsAfterCompletion();
+      context.shutdown();
       return;
     }
 
-    if (this.isInteractive()) return;
-
-    if (this.toolContinuationPending) {
-      this.toolContinuationPending = false;
-      this.pi.sendMessage(
-        {
-          customType: TOOL_CONTINUATION_MESSAGE_TYPE,
-          content: TOOL_CONTINUATION_PROMPT,
-          display: false,
-        },
-        { triggerTurn: true, deliverAs: "steer" },
+    if (this.completionTurn) {
+      const failure = this.lastRunFailure;
+      this.restoreToolsAfterCompletion();
+      context.ui.notify(
+        failure ??
+          "The completion turn did not call subagent_done. The subagent remains open.",
+        failure ? "error" : "warning",
       );
       return;
     }
 
-    context.shutdown();
-
-    this.writeTerminal(
-      this.lastRunFailure ? "failed" : "completed",
-      this.lastSettledResponse,
-      this.lastRunFailure,
-    );
+    if (!this.isInteractive() && this.lastRunFailure) {
+      this.finish(
+        "failed",
+        context,
+        this.lastSettledResponse,
+        this.lastRunFailure,
+      );
+    }
   }
 
-  /** Restores the child tool set and clears final-wrap-up state. */
-  private restoreToolsAfterWrapUp(): void {
-    if (this.toolsBeforeWrapUp) this.pi.setActiveTools(this.toolsBeforeWrapUp);
+  /**
+   * Restores the child tool set after an incomplete command turn.
+   */
+  private restoreToolsAfterCompletion(): void {
+    if (this.toolsBeforeCompletion)
+      this.pi.setActiveTools(
+        this.isInteractive()
+          ? this.toolsBeforeCompletion.filter(
+              (name) => name !== SUBAGENT_DONE_TOOL_NAME,
+            )
+          : this.toolsBeforeCompletion,
+      );
 
-    this.toolsBeforeWrapUp = undefined;
-    this.wrappingUp = false;
+    this.toolsBeforeCompletion = undefined;
+    this.completionTurn = false;
   }
 
   /**

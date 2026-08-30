@@ -503,7 +503,12 @@ export class ParentRuntime {
     if (manifest.model) command.push("--model", manifest.model);
     if (manifest.thinking) command.push("--thinking", manifest.thinking);
 
-    command.push("--tools", [...manifest.tools, "ask_parent"].join(","));
+    // The CLI list is an execution allowlist, not only the initial active set.
+    // Interactive startup hides subagent_done until its human command needs it.
+    command.push(
+      "--tools",
+      [...manifest.tools, "ask_parent", "subagent_done"].join(","),
+    );
 
     if (initialPrompt) command.push(initialPrompt);
 

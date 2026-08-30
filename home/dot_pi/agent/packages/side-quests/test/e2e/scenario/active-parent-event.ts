@@ -4,6 +4,8 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
+import { fauxSubagentDone } from "../provider-support.ts";
+
 const expected = "Active parent received child event before next model call.";
 const missed = "Active parent missed child event before next model call.";
 
@@ -24,6 +26,7 @@ export const activeParentEvent: Scenario = {
           { stopReason: "toolUse" },
         ),
         fauxAssistantMessage(fauxText("The child remains available.")),
+        fauxSubagentDone("The child remains available."),
       ]);
       return;
     }

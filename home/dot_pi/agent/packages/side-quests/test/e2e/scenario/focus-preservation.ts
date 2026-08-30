@@ -31,7 +31,11 @@ export const focusPreservation: Scenario = {
       "Detached child launch stole focus from the parent window.",
     );
 
-    await Bun.sleep(1_000);
+    await harness.waitFor(
+      "Child completed its delegated E2E task.",
+      10_000,
+      childPane,
+    );
     await harness.sendLiteral(childPane, "/subagent-done", true);
     await harness.waitFor("SUBAGENT COMPLETED");
   },

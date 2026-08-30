@@ -4,7 +4,7 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
-import { delay } from "../provider-support.ts";
+import { delay, fauxSubagentDone } from "../provider-support.ts";
 
 export const terminalTakeover: Scenario = {
   name: "terminal-takeover",
@@ -21,6 +21,7 @@ export const terminalTakeover: Scenario = {
           return fauxAssistantMessage(fauxText("Autonomous phase settled."));
         },
         fauxAssistantMessage(fauxText("Terminal takeover applied.")),
+        fauxSubagentDone("Terminal takeover applied."),
       ]);
     }
 

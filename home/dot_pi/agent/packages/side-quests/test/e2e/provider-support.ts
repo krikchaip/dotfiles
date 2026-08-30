@@ -6,6 +6,13 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
+/** Returns one deterministic explicit autonomous completion declaration. */
+export function fauxSubagentDone(result: string) {
+  return fauxAssistantMessage(fauxToolCall("subagent_done", { result }), {
+    stopReason: "toolUse",
+  });
+}
+
 export interface BasicDelegation {
   readonly childResponse?: string;
   readonly description?: string;
@@ -22,13 +29,13 @@ export function configureBasicDelegation(
   const { faux, role } = context;
 
   if (role === "child") {
-    faux.setResponses([
-      fauxAssistantMessage(
-        fauxText(
-          options.childResponse ?? "Child completed its delegated E2E task.",
-        ),
-      ),
-    ]);
+    const result =
+      options.childResponse ?? "Child completed its delegated E2E task.";
+    faux.setResponses(
+      options.interactive
+        ? [fauxAssistantMessage(fauxText(result)), fauxSubagentDone(result)]
+        : [fauxSubagentDone(result)],
+    );
     return;
   }
 
@@ -94,9 +101,16 @@ export function configureContinuation(
       async () => {
         if (options.childFirstResponseDelayMs)
           await delay(options.childFirstResponseDelayMs);
-        return fauxAssistantMessage(fauxText(options.childFirstResponse));
+        return options.promoteOnContinuation
+          ? fauxSubagentDone(options.childFirstResponse)
+          : fauxAssistantMessage(fauxText(options.childFirstResponse));
       },
-      fauxAssistantMessage(fauxText(options.childSecondResponse)),
+      options.interactive
+        ? fauxAssistantMessage(fauxText(options.childSecondResponse))
+        : fauxSubagentDone(options.childSecondResponse),
+      ...(options.interactive
+        ? [fauxSubagentDone(options.childSecondResponse)]
+        : []),
     ]);
     return;
   }
@@ -161,7 +175,7 @@ export function configureReopen(
   if (role === "child") {
     if (initialPrompt) {
       faux.setResponses([
-        fauxAssistantMessage(fauxText("First run completed before reopen.")),
+        fauxSubagentDone("First run completed before reopen."),
       ]);
     } else if (options.resumedFailure) {
       faux.setResponses([
@@ -189,8 +203,8 @@ export function configureReopen(
           if (options.resumedResponseDelayMs)
             await delay(options.resumedResponseDelayMs);
 
-          return fauxAssistantMessage(
-            fauxText(options.resumedResponse ?? "Reopened run completed."),
+          return fauxSubagentDone(
+            options.resumedResponse ?? "Reopened run completed.",
           );
         },
       ]);

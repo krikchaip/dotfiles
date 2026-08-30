@@ -1,6 +1,10 @@
 import { fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
 
-import { configureBasicDelegation, delay } from "../provider-support.ts";
+import {
+  configureBasicDelegation,
+  delay,
+  fauxSubagentDone,
+} from "../provider-support.ts";
 
 function terminalLines(view: string): string[] {
   return view.split("\n").map((line) => line.trimEnd());
@@ -38,6 +42,7 @@ export const widgetSpacing: Scenario = {
         await delay(3_000);
         return fauxAssistantMessage(fauxText("Spacing child settled."));
       },
+      fauxSubagentDone("Spacing child settled."),
     ]);
   },
   async run(harness: E2EHarness) {

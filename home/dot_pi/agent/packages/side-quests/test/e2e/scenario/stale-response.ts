@@ -4,7 +4,7 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 
-import { delay, sessionPath } from "../provider-support.ts";
+import { delay, fauxSubagentDone, sessionPath } from "../provider-support.ts";
 
 export const staleResponse: Scenario = {
   name: "stale-response",
@@ -21,6 +21,7 @@ export const staleResponse: Scenario = {
           stopReason: "error",
           errorMessage: "Synthetic resumed child failure.",
         }),
+        fauxSubagentDone("Current interactive handoff."),
       ]);
     }
     faux.setResponses([
@@ -109,8 +110,8 @@ export const staleResponse: Scenario = {
     const terminal = harness.read(terminals[0]);
     harness.assert(
       !terminal.includes("Old successful response.") &&
-        !terminal.includes('"response":'),
-      "The failed current run reused a stale assistant response.",
+        terminal.includes('"response":"Current interactive handoff."'),
+      "The explicit completion reused a stale assistant response.",
     );
   },
 };

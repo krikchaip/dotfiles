@@ -8,6 +8,7 @@ import type { Context } from "@earendil-works/pi-ai";
 import {
   configureBasicDelegation,
   delay,
+  fauxSubagentDone,
   sessionPath,
 } from "../provider-support.ts";
 
@@ -24,14 +25,16 @@ const SYNTHESIS_RESPONSE = [
   "",
   SYNTHESIS_END,
 ].join("\n");
-const WRAP_UP_PROMPT = "Prepare the final handoff to the parent agent.";
+const WRAP_UP_PROMPT =
+  "Prepare the final handoff to the parent agent and call `subagent_done` immediately";
 const LAUNCH_SCOPE_MARKER =
   "The next user message is the side quest launch prompt and starts its handoff scope. Earlier messages are inherited context only.";
 
 type UnsuccessfulWrapUp = "failed" | "interrupted" | "textless";
 
-function hasNoTools(context: Context): boolean {
-  return (context.tools ?? []).length === 0;
+function hasOnlyCompletionTool(context: Context): boolean {
+  const toolNames = (context.tools ?? []).map((tool) => tool.name);
+  return toolNames.length === 1 && toolNames[0] === "subagent_done";
 }
 
 function hasTool(context: Context, expected: string): boolean {
@@ -131,15 +134,15 @@ function configureUnsuccessfulWrapUp(
     async (providerContext: Context) => {
       await delay(outcome === "interrupted" ? 10_000 : 750);
       if (
-        !hasNoTools(providerContext) ||
+        !hasOnlyCompletionTool(providerContext) ||
         !hasWrapUpPrompt(providerContext, context.initialPrompt)
       )
         return fauxAssistantMessage(
-          "Wrap-up turn retained tools or missed its synthesis prompt.",
+          "Wrap-up turn did not isolate subagent_done or missed its synthesis prompt.",
           {
             stopReason: "error",
             errorMessage:
-              "Wrap-up turn retained tools or missed its synthesis prompt.",
+              "Wrap-up turn did not isolate subagent_done or missed its synthesis prompt.",
           },
         );
 
@@ -166,6 +169,7 @@ function configureUnsuccessfulWrapUp(
             errorMessage: "ask_parent was not restored after wrap-up.",
           }),
     fauxAssistantMessage(fauxText(RECOVERY_RESPONSE)),
+    fauxSubagentDone(RECOVERY_RESPONSE),
   ]);
 }
 
@@ -196,7 +200,7 @@ async function proveUnsuccessfulWrapUpRecovery(
   await harness.waitFor(INITIAL_RESPONSE, 10_000, childPane);
   await waitForWaiting(harness);
 
-  await harness.sendLiteral(childPane, "/subagent-done --wrap-up", true);
+  await harness.sendLiteral(childPane, "/subagent-done", true);
   await waitForPhase(harness, "active");
   if (outcome === "interrupted") await harness.sendKeys(childPane, "Escape");
   if (outcome === "failed")
@@ -218,10 +222,8 @@ async function proveUnsuccessfulWrapUpRecovery(
     harness.filesNamed("session.jsonl")[0] ?? "",
   );
   harness.assert(
-    !failedSession.includes(
-      '"type":"custom","customType":"side-quest-wrap-up"',
-    ),
-    `The ${outcome} wrap-up appended a final banner.`,
+    !failedSession.includes('"name":"subagent_done"'),
+    `The ${outcome} wrap-up persisted a successful completion call.`,
   );
   harness.assert(
     !(await harness.capture(childPane)).includes("WRAP UP"),
@@ -267,15 +269,15 @@ export const wrapUpSuccess: Scenario = {
       fauxAssistantMessage(fauxText(INITIAL_RESPONSE)),
       async (providerContext: Context) => {
         await delay(750);
-        return hasNoTools(providerContext) &&
+        return hasOnlyCompletionTool(providerContext) &&
           hasWrapUpPrompt(providerContext, context.initialPrompt)
-          ? fauxAssistantMessage(fauxText(SYNTHESIS_RESPONSE))
+          ? fauxSubagentDone(SYNTHESIS_RESPONSE)
           : fauxAssistantMessage(
-              "Wrap-up turn retained tools or missed its synthesis prompt.",
+              "Wrap-up turn did not isolate subagent_done or missed its synthesis prompt.",
               {
                 stopReason: "error",
                 errorMessage:
-                  "Wrap-up turn retained tools or missed its synthesis prompt.",
+                  "Wrap-up turn did not isolate subagent_done or missed its synthesis prompt.",
               },
             );
       },
@@ -286,7 +288,7 @@ export const wrapUpSuccess: Scenario = {
     await harness.waitFor(INITIAL_RESPONSE, 10_000, childPane);
     await waitForWaiting(harness);
 
-    await harness.sendLiteral(childPane, "/subagent-done --wrap-up", true);
+    await harness.sendLiteral(childPane, "/subagent-done", true);
     await delay(1_100);
     const streamingView = await harness.capture(childPane);
     harness.assert(
@@ -378,33 +380,16 @@ export const wrapUpSuccess: Scenario = {
     );
 
     const session = harness.read(harness.filesNamed("session.jsonl")[0] ?? "");
-    const sessionEntries = session
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => JSON.parse(line)) as Array<{
-      type?: string;
-      customType?: string;
-      data?: { content?: string };
-      display?: boolean;
-    }>;
-    const finalEntries = sessionEntries.filter(
-      (entry) =>
-        entry.type === "custom" &&
-        entry.customType === "side-quest-wrap-up" &&
-        entry.data?.content === SYNTHESIS_RESPONSE,
+    harness.assert(
+      (session.match(/\"name\":\"subagent_done\"/g) ?? []).length === 1 &&
+        session.includes(JSON.stringify(SYNTHESIS_RESPONSE)),
+      "Successful wrap-up did not persist exactly one completion tool call with its result.",
     );
     harness.assert(
-      finalEntries.length === 1,
-      "Successful wrap-up did not persist exactly one final banner entry.",
-    );
-    harness.assert(
-      sessionEntries.some(
-        (entry) =>
-          entry.type === "custom_message" &&
-          entry.customType === "side-quest-wrap-up" &&
-          entry.display === false,
-      ),
-      "The synthesis request was not persisted as a hidden message.",
+      session.includes(
+        '"type":"custom_message","customType":"side-quest-wrap-up"',
+      ) && session.includes('"display":false'),
+      "The completion request was not persisted as a hidden message.",
     );
   },
 };

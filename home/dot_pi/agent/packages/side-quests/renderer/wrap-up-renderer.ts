@@ -1,81 +1,100 @@
-import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
+import type { Theme } from "@earendil-works/pi-coding-agent";
 import { Box, Spacer, Text } from "@earendil-works/pi-tui";
 
-import type { ChildRuntime } from "../child/runtime.ts";
 import { expandableMarkdown } from "./expandable-markdown.ts";
 
-/** Identifies the hidden synthesis request and visible final transcript entry. */
-export const WRAP_UP_MESSAGE_TYPE = "side-quest-wrap-up";
-
-/** Records the final synthesized handoff rendered in the child transcript. */
-export type WrapUpEntryData = Readonly<{
-  /** Contains the final Markdown returned by the wrap-up turn. */
-  content: string;
+type RenderContext = Readonly<{
+  args?: unknown;
+  isError?: boolean;
 }>;
 
-/** Describes the Pi 0.84.3 transcript transform API. */
-export type WrapUpMarkdownTransformer = (
-  markdown: string,
-  context: Readonly<{
-    messageType: "user" | "assistant" | "assistant-thinking";
-    isStreaming: boolean;
-    availableWidth: number;
-  }>,
-) => string;
-
-type ExtensionAPIWithMarkdownTransformer = ExtensionAPI & {
-  registerMarkdownTransformer?: (
-    transformer: WrapUpMarkdownTransformer,
-  ) => void;
-};
-
-/** Owns final-synthesis rendering in child transcripts. */
+/** Owns final side-quest handoff rendering in child transcripts. */
 export class WrapUpRenderer {
   private constructor() {}
 
-  /** Registers hidden assistant rendering and the final WRAP UP entry. */
-  public static register(pi: ExtensionAPI, runtime: ChildRuntime): void {
-    const markdownPi = pi as ExtensionAPIWithMarkdownTransformer;
-    markdownPi.registerMarkdownTransformer?.call(pi, (markdown, context) =>
-      context.messageType === "assistant" &&
-      runtime.shouldHideWrapUpResponse(markdown, context.isStreaming)
-        ? ""
-        : markdown,
-    );
+  /** Hides partial completion arguments until the tool result is settled. */
+  public static renderCall(
+    _args?: unknown,
+    _theme?: Theme,
+    _context?: unknown,
+  ): Text {
+    return new Text("", 0, 0);
+  }
 
-    pi.registerEntryRenderer<WrapUpEntryData>(
-      WRAP_UP_MESSAGE_TYPE,
-      (entry, options, theme) => {
-        const content = WrapUpRenderer.entryContent(entry.data);
-        return content
-          ? WrapUpRenderer.banner(content, options.expanded, theme)
-          : undefined;
-      },
+  /** Renders one settled subagent_done call as the durable WRAP UP banner. */
+  public static renderResult(
+    result: unknown,
+    options: unknown,
+    theme: Theme,
+    context: unknown,
+  ): Box {
+    const renderOptions = options as { expanded?: boolean } | undefined;
+    const renderContext = context as RenderContext | undefined;
+    const content = WrapUpRenderer.stringArg(renderContext?.args, "result");
+    const error = renderContext?.isError
+      ? WrapUpRenderer.resultText(result).trim() ||
+        "Subagent completion failed."
+      : undefined;
+
+    return WrapUpRenderer.banner(
+      content,
+      renderOptions?.expanded === true,
+      theme,
+      error,
     );
   }
 
   /** Builds the persisted WRAP UP banner. */
-  static banner(content: string, expanded: boolean, theme: Theme): Box {
+  static banner(
+    content: string,
+    expanded: boolean,
+    theme: Theme,
+    error?: string,
+  ): Box {
     const box = new Box(2, 1, (text) => theme.bg("customMessageBg", text));
-    box.addChild(
-      new Text(theme.fg("customMessageLabel", theme.bold("WRAP UP")), 0, 0),
-    );
-    box.addChild(new Spacer(1));
-    if (content)
+    const heading = error
+      ? theme.fg("error", `${theme.bold("WRAP UP")} · ERROR`)
+      : theme.fg("customMessageLabel", theme.bold("WRAP UP"));
+
+    box.addChild(new Text(heading, 0, 0));
+    if (content) {
+      box.addChild(new Spacer(1));
       box.addChild(
         expandableMarkdown(content, expanded, "customMessageText", theme),
       );
+    }
+    if (error) {
+      box.addChild(new Spacer(1));
+      box.addChild(new Text(theme.fg("error", error), 0, 0));
+    }
 
     return box;
   }
 
-  /** Returns persisted wrap-up text from one unknown custom-entry payload. */
-  public static entryContent(value: unknown): string | undefined {
-    if (typeof value !== "object" || value === null) return undefined;
+  /** Reads one string argument. */
+  private static stringArg(value: unknown, key: string): string {
+    if (typeof value !== "object" || value === null) return "";
 
-    const content = (value as { content?: unknown }).content;
-    return typeof content === "string" && content.trim()
-      ? content.trim()
-      : undefined;
+    const argument = (value as Record<string, unknown>)[key];
+    return typeof argument === "string" ? argument.trim() : "";
+  }
+
+  /** Extracts text blocks from one settled tool result. */
+  private static resultText(result: unknown): string {
+    if (typeof result !== "object" || result === null) return "";
+
+    const content = (result as { content?: unknown }).content;
+    if (!Array.isArray(content)) return "";
+
+    return content
+      .filter(
+        (block): block is { type: "text"; text: string } =>
+          typeof block === "object" &&
+          block !== null &&
+          (block as { type?: unknown }).type === "text" &&
+          typeof (block as { text?: unknown }).text === "string",
+      )
+      .map((block) => block.text)
+      .join("\n");
   }
 }

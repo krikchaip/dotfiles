@@ -6,72 +6,31 @@ import type {
 import type { ChildRuntime } from "./runtime.ts";
 
 const COMMAND_NAME = "subagent-done";
-const WRAP_UP_FLAG = "--wrap-up";
-const COMMAND_DESCRIPTION = "Finish this interactive Side Quests subagent.";
+const COMMAND_DESCRIPTION =
+  "Prepare and deliver the final parent handoff for this subagent.";
 
-/**
- * Child-only slash commands and command completion.
- */
+/** Child-only slash commands and command completion. */
 export class ChildCommands {
-  /**
-   * Registers child-only command behavior for the child runtime lifecycle.
-   */
+  /** Registers child-only command behavior for the child runtime lifecycle. */
   public static register(
     pi: ExtensionAPI,
     runtime: ChildRuntime,
   ): ChildCommands {
-    return new ChildCommands(pi, runtime).installEventListeners();
+    return new ChildCommands(pi, runtime).install();
   }
-
-  /** Reports whether the interactive-only command is registered. */
-  private doneCommandInstalled = false;
 
   private constructor(
     private readonly pi: ExtensionAPI,
     private readonly runtime: ChildRuntime,
   ) {}
 
-  /**
-   * Installs command completion and listens for interactive lifecycle promotion.
-   */
-  private installEventListeners(): ChildCommands {
-    this.runtime.onInteractive(() => this.installDoneCommand());
-    this.pi.on("session_start", (_event, context) => {
-      this.installAutocomplete(context);
-    });
-
-    return this;
-  }
-
-  /**
-   * Registers explicit completion for interactive child sessions once.
-   */
-  private installDoneCommand(): void {
-    if (this.doneCommandInstalled) return;
-    this.doneCommandInstalled = true;
-
+  /** Registers completion for human use in every child lifecycle. */
+  private install(): ChildCommands {
     this.pi.registerCommand(COMMAND_NAME, {
       description: COMMAND_DESCRIPTION,
-      getArgumentCompletions: (prefix) => {
-        const normalized = prefix.trimStart();
-        return normalized !== WRAP_UP_FLAG &&
-          WRAP_UP_FLAG.startsWith(normalized)
-          ? [
-              {
-                value: WRAP_UP_FLAG,
-                label: WRAP_UP_FLAG,
-                description: "Synthesize a final tool-disabled parent handoff.",
-              },
-            ]
-          : null;
-      },
       handler: async (args, context) => {
-        const normalized = args.trim();
-        if (normalized && normalized !== WRAP_UP_FLAG) {
-          context.ui.notify(
-            `Usage: /${COMMAND_NAME} [${WRAP_UP_FLAG}]`,
-            "warning",
-          );
+        if (args.trim()) {
+          context.ui.notify(`Usage: /${COMMAND_NAME}`, "warning");
           return;
         }
 
@@ -83,13 +42,8 @@ export class ChildCommands {
           return;
         }
 
-        if (!normalized) {
-          this.runtime.complete(context);
-          return;
-        }
-
         try {
-          await this.runtime.wrapUp();
+          await this.runtime.startCompletionTurn();
         } catch (cause) {
           context.ui.notify(
             cause instanceof Error ? cause.message : String(cause),
@@ -98,14 +52,16 @@ export class ChildCommands {
         }
       },
     });
+
+    this.pi.on("session_start", (_event, context) => {
+      this.installAutocomplete(context);
+    });
+
+    return this;
   }
 
-  /**
-   * Adds autocomplete only after the interactive command becomes available.
-   */
+  /** Adds the child-only completion command to slash autocomplete. */
   private installAutocomplete(context: ExtensionContext): void {
-    const isDoneCommandInstalled = () => this.doneCommandInstalled;
-
     context.ui.addAutocompleteProvider((current) => ({
       getSuggestions: async (lines, cursorLine, cursorCol, options) => {
         const suggestions = await current.getSuggestions(
@@ -118,7 +74,6 @@ export class ChildCommands {
         const commandPrefix = beforeCursor.match(/^\/([^\s/]*)$/)?.[1];
 
         if (
-          !isDoneCommandInstalled() ||
           commandPrefix === undefined ||
           !COMMAND_NAME.startsWith(commandPrefix)
         )

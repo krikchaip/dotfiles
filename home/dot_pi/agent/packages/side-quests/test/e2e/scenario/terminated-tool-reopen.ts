@@ -27,6 +27,19 @@ export const terminatedToolReopen: Scenario = {
     await harness.waitFor(
       "Agent general-purpose (resumed) :: Reopen the E2E delegated task",
     );
+    const childPane = await harness.childPane();
+    await harness.waitForStoredText("Terminating tool completed.");
+
+    harness.assert(
+      harness.filesNamed("terminal.json").length === 0,
+      "The unrelated terminating tool declared successful completion.",
+    );
+    harness.assert(
+      (await harness.childPanes()).includes(childPane),
+      "The unrelated terminating tool closed the autonomous child.",
+    );
+
+    await harness.sendLiteral(childPane, "/subagent-done", true);
     await harness.waitForStoredText(FINAL_RESPONSE);
     await harness.waitFor("SUBAGENT COMPLETED");
 

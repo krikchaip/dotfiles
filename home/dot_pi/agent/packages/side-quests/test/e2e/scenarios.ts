@@ -4,6 +4,7 @@ import { activePromotionRejection } from "./scenario/active-promotion.ts";
 import { askParent } from "./scenario/ask-parent.ts";
 import { child } from "./scenario/child.ts";
 import { exhaustedProvider } from "./scenario/exhausted-provider.ts";
+import { explicitCompletion } from "./scenario/explicit-completion.ts";
 import { failure } from "./scenario/failure.ts";
 import { fatalAutonomous } from "./scenario/fatal-autonomous.ts";
 import { fatalInteractive } from "./scenario/fatal-interactive.ts";
@@ -63,6 +64,7 @@ export const scenarios: readonly Scenario[] = [
   idleContinuation,
   stoppedReopen,
   terminatedToolReopen,
+  explicitCompletion,
   resumePromotionRejection,
   programmaticContinuation,
   failure,

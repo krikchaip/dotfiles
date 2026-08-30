@@ -62,6 +62,30 @@ function writeActivity(
   });
 }
 
+test.each(["autonomous", "interactive"] as const)(
+  "includes control tools in %s child startup allowlist",
+  (lifecycle) => {
+    let command: string[] = [];
+    vi.spyOn(Tmux, "createWindow").mockImplementation((params) => {
+      command = params.command;
+      return { paneId: child.paneId, windowId: child.windowId };
+    });
+    vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+
+    runtime().launch({
+      ...child.manifest,
+      lifecycle,
+      childId: `${lifecycle}-child-id`,
+    });
+
+    const toolsIndex = command.indexOf("--tools");
+    expect(toolsIndex).toBeGreaterThan(-1);
+    expect(command[toolsIndex + 1]?.split(",")).toEqual(
+      expect.arrayContaining(["ask_parent", "subagent_done"]),
+    );
+  },
+);
+
 test("reports starting when no activity snapshot exists", () => {
   expect(runtime().status(child)).toBe("starting");
 });

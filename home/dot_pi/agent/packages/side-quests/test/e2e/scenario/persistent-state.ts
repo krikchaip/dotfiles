@@ -5,7 +5,43 @@ import {
 } from "@earendil-works/pi-ai";
 
 import { assertManagedStorage } from "../persistent-state-storage.ts";
-import { sessionPath } from "../provider-support.ts";
+import { delay, fauxSubagentDone, sessionPath } from "../provider-support.ts";
+
+function processDescendants(rootPid: number): number[] {
+  const snapshot = Bun.spawnSync(["ps", "-axo", "pid=,ppid="]);
+  if (snapshot.exitCode !== 0)
+    throw new Error("Could not inspect the managed child process tree.");
+
+  const children = new Map<number, number[]>();
+  for (const line of new TextDecoder().decode(snapshot.stdout).split("\n")) {
+    const [pidText, parentText] = line.trim().split(/\s+/);
+    const pid = Number.parseInt(pidText ?? "", 10);
+    const parent = Number.parseInt(parentText ?? "", 10);
+    if (!Number.isInteger(pid) || !Number.isInteger(parent)) continue;
+    children.set(parent, [...(children.get(parent) ?? []), pid]);
+  }
+
+  const descendants: number[] = [];
+  const queue = [...(children.get(rootPid) ?? [])];
+  for (const pid of queue) {
+    descendants.push(pid);
+    queue.push(...(children.get(pid) ?? []));
+  }
+  return descendants;
+}
+
+function signalProcesses(
+  pids: readonly number[],
+  signal: NodeJS.Signals,
+): void {
+  for (const pid of pids) {
+    try {
+      process.kill(pid, signal);
+    } catch (cause) {
+      if ((cause as NodeJS.ErrnoException).code !== "ESRCH") throw cause;
+    }
+  }
+}
 
 export const persistentState: Scenario = {
   name: "persistent-state",
@@ -26,6 +62,7 @@ export const persistentState: Scenario = {
         ),
         fauxAssistantMessage(fauxText("Persistence request remains pending.")),
         fauxAssistantMessage(fauxText("Persistence response applied.")),
+        fauxSubagentDone("Persistence response applied."),
       ]);
     }
 
@@ -40,7 +77,11 @@ export const persistentState: Scenario = {
         { stopReason: "toolUse" },
       ),
       fauxAssistantMessage(fauxText("The delegated work is in progress.")),
-      (context: { messages: unknown }) => {
+      async (context: { messages: unknown }) => {
+        // Give the harness time to pause the child before the parent writes the
+        // response. Without this boundary, the child can consume both mailbox
+        // files before their permissions are checked.
+        await delay(1_000);
         const resume = sessionPath(
           context.messages,
           /Resume:\s*([^"\n]+session\.jsonl)/,
@@ -83,13 +124,14 @@ export const persistentState: Scenario = {
     ).trim();
 
     const childPid = Number.parseInt(childPidText, 10);
-
     harness.assert(
       Number.isInteger(childPid),
       "Managed child pane did not identify its process.",
     );
 
-    process.kill(childPid, "SIGSTOP");
+    const descendants = processDescendants(childPid);
+    const childProcesses = descendants.length > 0 ? descendants : [childPid];
+    signalProcesses([...childProcesses].reverse(), "SIGSTOP");
 
     try {
       await harness.waitFor("Which persistence value should I use?");
@@ -100,7 +142,7 @@ export const persistentState: Scenario = {
 
       assertManagedStorage("response", harness.stateDirectory, childPane);
     } finally {
-      process.kill(childPid, "SIGCONT");
+      signalProcesses(childProcesses, "SIGCONT");
     }
 
     await harness.waitForStoredText("Persistence response applied.");

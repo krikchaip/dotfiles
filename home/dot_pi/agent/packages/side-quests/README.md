@@ -279,12 +279,15 @@ For the example above, the child receives Pi's standard instructions first, the 
 - `disallowed_tools` removes tools after the allowlist is applied.
 - Unknown tool names stop launch.
 
-Every child also follows two fixed safety rules:
+Every child also follows fixed safety rules:
 
 - `Agent` and all other known subagent-spawning tools are always denied.
 - `ask_parent` is always registered and enabled, even when the agent file denies it.
+- Autonomous children activate the separate lifecycle tool `subagent_done`, even when the agent file omits or denies it.
 
-A child's resolved tool policy is saved in its manifest. Interactive takeover, continuation, resume, changed parent settings, and changed agent files never broaden that policy. If a required registered tool is missing when the session reopens, resume reports an error instead of using a broader fallback.
+A child's resolved capability policy is saved in its manifest. Interactive takeover, continuation, resume, changed parent settings, and changed agent files never broaden that policy. If a required registered tool is missing when the session reopens, resume reports an error instead of using a broader fallback.
+
+Permanent human promotion removes `subagent_done` from the active model tools. This also removes its schema, description, `Available tools` snippet, and tool-specific system Guidelines from the next model request. The human `/subagent-done` command can temporarily activate only that tool for one hidden completion turn.
 
 ### Skills
 
@@ -415,16 +418,22 @@ The box shows:
 ### Autonomous children
 
 - Autonomous is the default lifecycle.
-- The pane closes after normal autonomous completion, even when an `ask_parent` response is pending.
-- An unanswered request remains saved after the child completes or closes.
+- The model must finish with one explicit `subagent_done({ result })` call after all work and validation are complete.
+- The completion call must be alone. Its required `result` is the complete parent-facing handoff.
+- A normal assistant response or model turn end does not complete the side quest, close the pane, or start an automatic continuation.
+- Another tool can settle its run with `terminate: true`, but it cannot complete or shut down the child session.
+- Successful explicit completion closes the pane even when an `ask_parent` response is pending. The unanswered request remains saved.
 - Long work does not become stalled only because it takes a long time.
-- `/subagent-done` is not registered or shown while the child remains autonomous.
+- The human `/subagent-done` command is also available as a safety path.
+
+The `subagent_done` tool description, prompt snippet, and system Guidelines all state this contract. The tool accepts exactly one non-empty `result`, records the trusted completion result, and returns `terminate: true`. Settlement can then shut down without sending a message or starting another turn.
 
 ### Interactive children
 
-- `interactive: true` starts a persistent pane and registers `/subagent-done` immediately.
-- The pane stays open after an agent turn ends.
-- Tool permissions stay unchanged during takeover.
+- `interactive: true` starts a persistent pane with `/subagent-done` available.
+- The pane stays open after an ordinary agent turn ends.
+- `subagent_done` is absent from normal active tools and all model prompt surfaces.
+- Resolved capability permissions stay unchanged during takeover.
 - Use `/subagent-done` when the work is complete.
 
 After creation, only one action permanently promotes an autonomous child to interactive:
@@ -441,12 +450,18 @@ These actions do not promote it:
 
 ### `/subagent-done`
 
-Use this command in an idle interactive child:
+Use `/subagent-done` in an idle autonomous or interactive child. It accepts no arguments and refuses while an agent or tool turn is active.
 
-- `/subagent-done` returns the latest response and closes the child.
-- `/subagent-done --wrap-up` shows the complete final handoff in a `WRAP UP` block, then closes the child.
+The command:
 
-If wrap-up fails, the child stays open.
+1. Saves the current active tools.
+2. Temporarily activates only `subagent_done`.
+3. Sends one hidden instruction that tells the model to call that tool immediately with the final parent-facing result.
+4. Leaves lifecycle unchanged. Running the command never promotes an autonomous child.
+
+On success, the saved `subagent_done` tool call renders directly as one `WRAP UP` block. Its `result` is also the exact handoff sent to the parent agent. Side Quests hides partial tool arguments until the call is complete and suppresses a duplicate tool-result display.
+
+If the completion turn is aborted, errors, or ends without `subagent_done`, the child stays open. Side Quests restores the prior tools, shows one local warning, and does not retry automatically.
 
 ## Asking the parent for help
 
@@ -467,6 +482,7 @@ Rules:
 
 - A child can have only one unanswered request.
 - The first `ask_parent` call writes the request and returns normally.
+- It never terminates the turn or shuts down the child session.
 - Other tools in the same batch still run.
 - The child continues work without waiting for the answer.
 - Another `ask_parent` call fails until the first request is answered.
@@ -527,12 +543,11 @@ Result messages support collapsed and expanded views:
 
 ### Completed
 
-A child completes when:
+A child completes only when `subagent_done` records an explicit side-quest completion declaration and non-empty `result`. The autonomous model can call it directly. A human can request the same completion turn with `/subagent-done` in either lifecycle.
 
-- Autonomous work ends normally.
-- An idle interactive child runs `/subagent-done` or `/subagent-done --wrap-up`.
+A normal assistant response does not complete the side quest. No other tool can authorize successful session shutdown.
 
-Side Quests closes the child, wakes the parent, and keeps the child session available for resume.
+Side Quests closes the child, wakes the parent with the exact declared result, and keeps the child session available for resume.
 
 ### Failed
 
@@ -540,7 +555,9 @@ Failure handling depends on whether the child can continue.
 
 #### Autonomous turn failure
 
-An exhausted provider or agent-loop error ends autonomous work. Side Quests records a terminal failed result, closes the child, removes its widget row, and wakes the parent agent:
+An exhausted provider or agent-loop error outside a human `/subagent-done` completion turn ends autonomous work. Side Quests records a terminal failed result, closes the child, removes its widget row, and wakes the parent agent. A failed human completion turn is recoverable instead: Side Quests restores the prior tools, keeps the pane open, and warns locally.
+
+A terminal autonomous failure looks like this:
 
 ```text
 Sub-agent failed
