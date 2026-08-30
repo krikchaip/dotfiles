@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -28,9 +27,9 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        pi_path = shutil.which("pi")
-        pi_version = output("pi", "--version")
         mise_version = output("mise", "current", TOOL)
+        pi_path = output("mise", "exec", "--", "which", "pi")
+        pi_version = output("mise", "exec", "--", "pi", "--version")
 
         failures = []
         if pi_version != args.expected:

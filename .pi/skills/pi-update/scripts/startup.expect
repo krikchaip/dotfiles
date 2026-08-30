@@ -1,95 +1,117 @@
-#!/usr/bin/expect -f
+#!/usr/bin/env bash
 
-if {$argc > 2} {
-  puts stderr "usage: startup.expect ?expected-version? ?work-dir?"
+set -euo pipefail
+
+if (( $# > 2 )); then
+  printf 'usage: startup.expect [expected-version] [work-dir]\n' >&2
   exit 2
-}
+fi
 
-set timeout 1
-set expected_version ""
-if {$argc >= 1} {
-  set expected_version [lindex $argv 0]
-}
-set owns_work_dir [expr {$argc < 2}]
-set work_dir [expr {$owns_work_dir ? [exec mktemp -d /tmp/pi-update-startup.XXXXXX] : [file normalize [lindex $argv 1]]}]
-if {![file isdirectory $work_dir]} {
-  puts stderr "work directory does not exist: $work_dir"
+expected_version=${1-}
+owns_work_dir=0
+if (( $# < 2 )); then
+  work_dir=$(mktemp -d /tmp/pi-update-startup.XXXXXX)
+  owns_work_dir=1
+else
+  if [[ ! -d $2 ]]; then
+    printf 'work directory does not exist: %s\n' "$2" >&2
+    exit 2
+  fi
+  work_dir=$(cd "$2" && pwd -P)
+fi
+
+source_agent_dir=${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}
+if [[ ! -d $source_agent_dir ]]; then
+  printf 'Pi agent directory does not exist: %s\n' "$source_agent_dir" >&2
   exit 2
+fi
+source_agent_dir=$(cd "$source_agent_dir" && pwd -P)
+agent_dir=$(mktemp -d /tmp/pi-update-agent.XXXXXX)
+socket="pi-update-startup-$$"
+session="pi-update-startup-$$"
+log_path="/tmp/pi-update-startup-$$.txt"
+
+cleanup() {
+  set +e
+  tmux -L "$socket" kill-server >/dev/null 2>&1
+  if [[ $agent_dir == /tmp/pi-update-agent.* ]]; then
+    rm -rf -- "$agent_dir"
+  fi
+  if (( owns_work_dir )) && [[ $work_dir == /tmp/pi-update-startup.* ]]; then
+    rm -rf -- "$work_dir"
+  fi
 }
-set log_path "/tmp/pi-update-startup-[pid].ansi"
-set columns 90
-set rows 32
-set saw_version [expr {$expected_version eq ""}]
-set saw_loaded 0
-set saw_extensions 0
-set failed ""
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 
-proc cleanup {} {
-  global owns_work_dir work_dir
-  if {$owns_work_dir} {
-    file delete -force $work_dir
-  }
-}
+shopt -s dotglob nullglob
+for source in "$source_agent_dir"/*; do
+  name=${source##*/}
+  case "$name" in
+    sessions|tmp|mcp-oauth)
+      mkdir -p "$agent_dir/$name"
+      ;;
+    *.log)
+      ;;
+    *)
+      if [[ -f $source ]]; then
+        cp -L -- "$source" "$agent_dir/$name"
+      else
+        ln -s -- "$source" "$agent_dir/$name"
+      fi
+      ;;
+  esac
+done
+mkdir -p "$agent_dir/sessions"
 
-cd $work_dir
-log_user 0
-log_file -noappend $log_path
-spawn env TERM=xterm-256color COLORTERM=truecolor COLUMNS=$columns LINES=$rows \
-  PI_OFFLINE=1 pi --no-session
-stty columns $columns rows $rows
+printf -v pi_command \
+  'exec env TERM=xterm-256color COLORTERM=truecolor COLUMNS=90 LINES=32 PI_CODING_AGENT_DIR=%q PI_OFFLINE=1 mise exec -- pi --no-session' \
+  "$agent_dir"
 
-set deadline [expr {[clock milliseconds] + 15000}]
-while {[clock milliseconds] < $deadline && (!$saw_version || !$saw_loaded || !$saw_extensions) && $failed eq ""} {
-  expect {
-    "\033\[c" {
-      send "\033\[?1;2c"
-      exp_continue -continue_timer
-    }
-    "\033\[?u" {
-      send "\033\[?0u"
-      exp_continue -continue_timer
-    }
-    "Trust project folder?" {
-      after 100
-      send -- "\033\[B\033\[B\r"
-      exp_continue -continue_timer
-    }
-    -re {Failed to load extension|\[Extension errors\]|exiting due to uncaughtException} {
-      set failed "Pi reported an extension or runtime failure"
-    }
-    -exact "v$expected_version" {
-      set saw_version 1
-    }
-    -exact "Loaded" {
-      set saw_loaded 1
-    }
-    -exact "extensions" {
-      set saw_extensions 1
-    }
-    timeout {}
-    eof {
-      set failed "Pi exited before the editor became ready"
-    }
-  }
-}
+tmux -L "$socket" -f /dev/null new-session -d -x 90 -y 32 -s "$session" -c "$work_dir" "$pi_command"
 
-if {$failed eq "" && (!$saw_version || !$saw_loaded || !$saw_extensions)} {
-  set failed "Pi did not finish loading the custom setup before the deadline"
-}
+trust_answered=0
+failure=''
+ready=0
+for _ in {1..150}; do
+  if ! tmux -L "$socket" has-session -t "$session" 2>/dev/null; then
+    failure='Pi exited before the editor became ready'
+    break
+  fi
 
-if {$failed ne ""} {
-  puts stderr "FAIL: $failed"
-  puts stderr "log: $log_path"
-  catch { send "\003\003" }
-  catch { close }
-  cleanup
+  pane=$(tmux -L "$socket" capture-pane -p -J -t "$session":0.0 2>/dev/null || true)
+  printf '%s\n' "$pane" > "$log_path"
+
+  if grep -Eq 'Failed to load extension|\[Extension errors\]|exiting due to uncaughtException' <<<"$pane"; then
+    failure='Pi reported an extension or runtime failure'
+    break
+  fi
+
+  if (( ! trust_answered )) && grep -Fq 'Trust project folder?' <<<"$pane"; then
+    tmux -L "$socket" send-keys -t "$session":0.0 Down Down Enter
+    trust_answered=1
+  fi
+
+  version_ready=1
+  if [[ -n $expected_version ]] && ! grep -Fq "v$expected_version" <<<"$pane"; then
+    version_ready=0
+  fi
+  if (( version_ready )) && grep -Eq -- '- [1-9][0-9]* extensions|\[Extensions\]' <<<"$pane"; then
+    ready=1
+    break
+  fi
+
+  sleep 0.1
+done
+
+if (( ! ready )); then
+  if [[ -z $failure ]]; then
+    failure='Pi did not finish loading the custom setup before the deadline'
+  fi
+  printf 'FAIL: %s\n' "$failure" >&2
+  printf 'log: %s\n' "$log_path" >&2
   exit 1
-}
+fi
 
-send "\003\003"
-catch { close }
-catch { wait }
-cleanup
-puts "PASS: Pi started with the full custom setup"
-puts "log: $log_path"
-exit 0
+printf 'PASS: Pi started with the full custom setup\n'
+printf 'log: %s\n' "$log_path"

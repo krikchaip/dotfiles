@@ -25,8 +25,10 @@ Input: one `https://pi.dev/news/releases/<version>` URL.
 - Apply chezmoi changes only to verified targets.
 - Treat `home/dot_pi/agent/extensions/`, `home/dot_pi/agent/packages/`, and other custom Pi resources as custom work.
 - Use Pi core and third-party code as read-only evidence.
+- Run every interactive Pi process with a disposable `PI_CODING_AGENT_DIR`. Copy mutable config and link read-only custom resources.
 - Run write-capable checks in a temporary copy.
-- Stop if a check changes the source tree.
+- Pin and record the Pi executable used by every baseline and target test.
+- Compare source status after each check. Stop on a new source change.
 
 ## 1. Record old behavior
 
@@ -40,11 +42,13 @@ Input: one `https://pi.dev/news/releases/<version>` URL.
    ```text
    scripts/startup.expect <current-version>
    ```
-   Repeat with `scripts/startup.expect <current-version> <project-dir>` for each project with Pi resources.
+   Repeat with `scripts/startup.expect <current-version> <project-dir>` for each project with Pi resources. Use stable tmux pane captures for fullscreen readiness; repaint byte streams are not stable readiness evidence.
 5. Follow `/skill:pi-extension-e2e`. Run every plugin test. Each test sends the real user input, checks the expected result, and checks that known bad output is absent. A group test must prove a separate result for each plugin.
-6. Save the result for every plugin. Keep old failures separate.
+6. Save the command, Pi version, Pi path, and result for every plugin. Keep old failures separate.
 
-Do not continue until every plugin has startup proof and behavior results.
+Before accepting an E2E result, assert the child TUI version. Package runners can prepend local `node_modules/.bin` and start another Pi version. Call the harness file directly with the selected Mise bin first in `PATH` when this occurs.
+
+Do not update until every plugin has a saved baseline result. For a baseline failure, show the exact evidence and ask the user to repair or carry it.
 
 ## 2. Update Pi
 
@@ -59,7 +63,9 @@ Do not continue until every plugin has startup proof and behavior results.
    scripts/verify-version.py <target>
    ```
 
-Do not continue unless the normal `pi` command uses the exact target.
+The running agent keeps its startup `PATH`. Use `mise exec --` or the exact target executable for all remaining checks.
+
+Do not continue unless a fresh Mise environment uses the exact target.
 
 ## 3. Test target startup
 
@@ -84,12 +90,12 @@ Do not continue until startup passes or the approved rollback passes.
 
 ## 4. Test every plugin on the target
 
-1. Repeat every previous-version plugin test. Test all plugins. Release notes and changed-file lists do not reduce this set.
+1. Repeat every previous-version plugin test with the exact target executable. Test all plugins. Release notes and changed-file lists do not reduce this set.
 2. Compare each result:
    - Same: pass.
    - Old behavior is broken or missing: propose a fix.
    - Behavior is new or different: show the evidence and ask the user to preserve, accept, or defer it.
-   - Failure also existed before: keep it separate.
+   - Failure also existed before: carry it only when the scenario and failure signature match.
 3. For clipboard behavior, use the real OS clipboard on both versions. Ask the user to perform the test when the clipboard cannot be restored safely.
 4. Run all source checks. Use a temporary copy for checks that write.
 5. Review every release in the range. For related items, report `Applies`, `Impact`, `Action`, and evidence. For unrelated items, report `Skipped: no custom match`.
@@ -104,4 +110,4 @@ Do not continue until every plugin has a target result and every difference is r
 4. Repeat version verification, startup, source checks, and every plugin test.
 5. Report the version, release range, startup results, every plugin result, fixes, user decisions, old failures, deferred work, blockers, and rollback evidence.
 
-Finish only when the exact target starts, every plugin passes, every regression is fixed, and the user has decided what to do with every new behavior.
+Finish only when the exact target starts, every passing baseline still passes, every carried baseline failure matches, every regression is fixed, and the user has decided what to do with every new behavior.
