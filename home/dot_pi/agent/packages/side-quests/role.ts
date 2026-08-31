@@ -1,4 +1,5 @@
 export const CHILD_ID_ENV = "PI_SIDE_QUESTS_CHILD_ID";
+export const PARENT_PANE_ENV = "PI_SIDE_QUESTS_PARENT_PANE";
 
 export const UNSUPPORTED_TMUX_WARNING =
   "Side Quests: tmux is required; extension is inactive.";

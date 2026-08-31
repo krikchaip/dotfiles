@@ -24,6 +24,18 @@ const markedTheme = {
   bold: (text: string) => `<bold>${text}</bold>`,
   fg: (color: string, text: string) => `<${color}>${text}</${color}>`,
 } as Theme;
+const widgetAnsi = {
+  accent: 31,
+  dim: 32,
+  muted: 33,
+  warning: 34,
+} as const;
+const widgetTheme = {
+  ...plainTheme,
+  bold: (text: string) => `\u001b[1m${text}\u001b[22m`,
+  fg: (color: string, text: string) =>
+    `\u001b[${widgetAnsi[color as keyof typeof widgetAnsi]}m${text}\u001b[39m`,
+} as Theme;
 
 function renderAskParent(options: {
   readonly error?: string;
@@ -183,6 +195,27 @@ test("child widget formats elapsed boundaries deterministically", () => {
 
   expect(elapsed).toContain("01:02:03");
   expect(future).toContain("00:00:00");
+});
+
+test("child widget uses the selected semantic color hierarchy", () => {
+  const pending = ChildUI.renderWidget(
+    makeRuntime({}, { replyPending: true }),
+    100,
+    widgetTheme,
+  ).join("\n");
+  const idle = ChildUI.renderWidget(
+    makeRuntime({}, { replyPending: false }),
+    100,
+    widgetTheme,
+  ).join("\n");
+
+  expect(pending).toContain("\u001b[33m╭─ \u001b[39m");
+  expect(pending).toContain(
+    "\u001b[31m\u001b[1m[general-purpose]\u001b[22m\u001b[39m",
+  );
+  expect(pending).toContain("\u001b[32m00:00:00\u001b[39m");
+  expect(pending).toContain("\u001b[34minteractive · reply pending\u001b[39m");
+  expect(idle).toContain("\u001b[33minteractive\u001b[39m");
 });
 
 test("collapsed ask_parent banners hide success output and truncate after 240 characters", () => {

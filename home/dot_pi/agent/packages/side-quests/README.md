@@ -329,7 +329,8 @@ Each parent agent session owns one shared sub-agent window.
 - Pi starts directly as the pane process in the parent agent's current working directory.
 - Side Quests does not start an intermediate shell, replay terminal keystrokes, or wait for a shell-ready delay.
 - Starting or resuming a sub-agent does not switch panes. You remain with the parent agent.
-- Use `/side-quests` to select and open a child pane.
+- Press `Shift+Up` in the parent session, or use `/side-quests`, to select and open a child pane.
+- Press `Shift+Up` in a child session to return to the parent tmux pane.
 
 When the last managed pane closes:
 
@@ -384,9 +385,11 @@ Activity states:
 
 Completion and terminal failure are result messages, not permanent widget rows. A recoverable interactive turn failure returns its live row to `waiting`. The widget remains visible whenever at least one child is live; there is no status-visibility toggle.
 
-### `/side-quests`
+The widget follows Pi's active theme. Frames use `muted`; titles and agent identity use bold `accent`; elapsed time uses `dim`. States use `accent` for `starting`, `success` for `active`, `muted` for `waiting`, and `error` for `stalled`. A pending parent reply uses `warning`.
 
-Run `/side-quests` to navigate live rows. If no child is live, Pi shows a notification and returns to the editor.
+### `Shift+Up` and `/side-quests`
+
+Press `Shift+Up` or run `/side-quests` to navigate live rows. If no child is live, Pi shows a notification and returns to the editor.
 
 Navigation marks the selected row and displays key hints from your effective Pi bindings instead of hard-coded labels:
 
@@ -414,6 +417,10 @@ The box shows:
 - Current `Agent.description`
 - `autonomous` or `interactive`
 - `reply pending` when a parent response is pending
+
+Press `Shift+Up` from any child pane to return directly to the parent tmux pane.
+
+The child box uses the same active-theme hierarchy: a `muted` frame, bold `accent` title, `dim` elapsed time, and `muted` lifecycle text. A pending reply changes the lifecycle text to `warning`.
 
 ### Autonomous children
 

@@ -89,6 +89,20 @@ const markedTheme = {
       ? `<${color}>${text}</${color}>`
       : text,
 } as Theme;
+const widgetAnsi = {
+  accent: 31,
+  dim: 32,
+  error: 33,
+  muted: 34,
+  success: 35,
+  warning: 36,
+} as const;
+const widgetTheme = {
+  ...plainTheme,
+  bold: (text: string) => `\u001b[1m${text}\u001b[22m`,
+  fg: (color: string, text: string) =>
+    `\u001b[${widgetAnsi[color as keyof typeof widgetAnsi]}m${text}\u001b[39m`,
+} as Theme;
 
 function renderParentQuestion(options: {
   readonly description: string;
@@ -273,6 +287,34 @@ test("parent widget formats elapsed boundaries deterministically", () => {
 
   expect(rendered).toContain("01:02:03");
   expect(rendered).toContain("00:00:00");
+});
+
+test("parent widget uses the selected semantic color hierarchy", () => {
+  const children = [
+    makeChild("active", { description: "active task" }),
+    makeChild("pending", { description: "pending task" }),
+    makeChild("stalled", { description: "stalled task" }),
+  ];
+  const rendered = ParentUI.renderWidget(
+    makeRuntime(children, {
+      pending: new Set(["pending"]),
+      statuses: { active: "active", pending: "waiting", stalled: "stalled" },
+    }),
+    120,
+    "active",
+    widgetTheme,
+  ).join("\n");
+
+  expect(rendered).toContain("\u001b[34m╭─ \u001b[39m");
+  expect(rendered).toContain(
+    "\u001b[31m\u001b[1mSide Quests · 3 live\u001b[22m\u001b[39m",
+  );
+  expect(rendered).toContain("\u001b[32m00:00:00\u001b[39m");
+  expect(rendered).toContain("\u001b[31m\u001b[1mgeneral-purpose");
+  expect(rendered).toContain("\u001b[35mactive");
+  expect(rendered).toContain("\u001b[36mwaiting · reply needed");
+  expect(rendered).toContain("\u001b[33mstalled");
+  expect(rendered).toContain("\u001b[31m›\u001b[39m");
 });
 
 test("collapsed parent questions use the identity-first banner and truncate after 240 characters", () => {

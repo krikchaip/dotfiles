@@ -53,6 +53,20 @@ export class ChildCommands {
       },
     });
 
+    this.pi.registerShortcut("shift+up", {
+      description: "Return to the Side Quests parent pane",
+      handler: (context) => {
+        try {
+          this.runtime.focusParent();
+        } catch (cause) {
+          context.ui.notify(
+            cause instanceof Error ? cause.message : String(cause),
+            "error",
+          );
+        }
+      },
+    });
+
     this.pi.on("session_start", (_event, context) => {
       this.installAutocomplete(context);
     });

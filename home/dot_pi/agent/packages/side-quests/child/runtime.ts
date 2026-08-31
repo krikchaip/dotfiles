@@ -6,12 +6,14 @@ import type {
   MessageEndEvent,
 } from "@earendil-works/pi-coding-agent";
 
+import { PARENT_PANE_ENV } from "../role.ts";
 import { type ActivitySnapshot, RuntimeStore } from "../store/runtime.ts";
 import {
   type ChildManifest,
   type Lifecycle,
   SessionStore,
 } from "../store/session.ts";
+import { Tmux } from "../tmux.ts";
 
 /** Identifies the hidden boundary before a new child's launch prompt. */
 const LAUNCH_MESSAGE_TYPE = "side-quest-launch";
@@ -108,6 +110,9 @@ export class ChildRuntime {
   /** Records the parent identity supplied by the managed process environment. */
   private readonly parentId = environment("PI_SIDE_QUESTS_PARENT_ID");
 
+  /** Identifies the parent tmux pane when this child process was launched. */
+  private readonly parentPaneId = process.env[PARENT_PANE_ENV]?.trim();
+
   /** Records the canonical managed child session path. */
   private readonly sessionPath = environment("PI_SIDE_QUESTS_SESSION");
 
@@ -146,6 +151,16 @@ export class ChildRuntime {
    */
   isInteractive(): boolean {
     return this.lifecycle === "interactive";
+  }
+
+  /**
+   * Returns terminal focus to the parent pane that launched this child.
+   */
+  focusParent(): void {
+    if (!this.parentPaneId)
+      throw new Error("This child does not know its parent tmux pane.");
+
+    Tmux.focusPane(this.parentPaneId);
   }
 
   /**

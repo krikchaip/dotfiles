@@ -5,6 +5,8 @@ import { AskParentRenderer } from "../renderer/ask-parent-renderer.ts";
 import { WrapUpRenderer } from "../renderer/wrap-up-renderer.ts";
 import type { ChildRuntime } from "./runtime.ts";
 
+export const SUBAGENT_DONE_TOOL_NAME = "subagent_done";
+
 /**
  * Child-only model tools.
  */
@@ -81,13 +83,13 @@ export class ChildTools {
    * Registers the explicit completion declaration for autonomous model work.
    */
   private registerSubagentDone(): ChildTools {
-    const toolName = "subagent_done";
+    const toolName = SUBAGENT_DONE_TOOL_NAME;
     const paramName = "result";
 
     this.pi.registerTool({
       name: toolName,
       label: "Subagent done",
-      description: `When the assigned side quest is complete, your final action MUST be exactly one ${toolName} call. Emit no normal assistant text before or after that call. Call it only after all work and validation are complete. Put the complete parent-facing handoff in ${paramName}. A normal assistant response leaves the side quest unfinished.`,
+      description: `When the assigned side quest is complete, your final action MUST be exactly one \`${toolName}\` call. Emit no normal assistant text before or after that call. Call it only after all work and validation are complete. Put the complete parent-facing handoff in \`${paramName}\`. A normal assistant response leaves the side quest unfinished.`,
 
       promptSnippet: `Finish an autonomous side quest with one parent-facing ${toolName} result.`,
       promptGuidelines: [

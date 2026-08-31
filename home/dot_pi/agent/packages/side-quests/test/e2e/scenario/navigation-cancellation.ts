@@ -17,7 +17,7 @@ export const navigationCancellation: Scenario = {
   async run(harness: E2EHarness) {
     const childPane = await harness.childPane();
 
-    await harness.sendParent("/side-quests", true);
+    await harness.sendParentKeys("S-Up");
     await harness.waitFor("close", 5_000);
 
     const navigationView = await harness.capture();
@@ -49,17 +49,23 @@ export const navigationCancellation: Scenario = {
       "Navigation confirm did not activate the managed child window.",
     );
 
-    const parentWindow = (
+    await harness.sendKeys(childPane, "S-Up");
+    await Bun.sleep(500);
+
+    const parentActive = (
       await harness.tmux(
         "display-message",
         "-p",
         "-t",
         harness.parentPane,
-        "#{window_id}",
+        "#{window_active}",
       )
     ).trim();
 
-    await harness.tmux("select-window", "-t", parentWindow);
+    harness.assert(
+      parentActive === "1",
+      "Child Shift+Up did not return focus to the parent tmux pane.",
+    );
 
     await harness.sendParent("/side-quests", true);
     await harness.waitFor("close", 5_000);

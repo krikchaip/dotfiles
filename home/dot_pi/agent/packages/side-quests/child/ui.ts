@@ -1,6 +1,7 @@
 import type {
   ExtensionAPI,
   ExtensionContext,
+  Theme,
 } from "@earendil-works/pi-coding-agent";
 import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
 
@@ -11,6 +12,12 @@ import {
   CHILD_WIDGET_ID,
   WidgetStackSpacing,
 } from "../renderer/widget-spacing.ts";
+import {
+  widgetBottom,
+  widgetPalette,
+  widgetRow,
+  widgetTitle,
+} from "../renderer/widget-theme.ts";
 import type { ChildRuntime } from "./runtime.ts";
 
 const REFRESH_INTERVAL_MS = 1_000;
@@ -47,10 +54,15 @@ export class ChildUI {
   /**
    * Renders the responsive child identity widget.
    */
-  static renderWidget(runtime: ChildRuntime, width: number): string[] {
+  static renderWidget(
+    runtime: ChildRuntime,
+    width: number,
+    theme?: Theme,
+  ): string[] {
     if (width < 4) return [];
 
     const { manifest, lifecycle, replyPending } = runtime.status();
+    const palette = widgetPalette(theme);
     const innerWidth = width - 2;
     const sidePadding = Math.min(2, Math.floor(innerWidth / 2));
     const contentWidth = innerWidth - sidePadding * 2;
@@ -58,27 +70,30 @@ export class ChildUI {
     const lifecycleState = `${lifecycle}${replyPending ? " · reply pending" : ""}`;
     const taskWidth =
       contentWidth - visibleWidth(elapsed) - visibleWidth(lifecycleState) - 4;
+    const styledElapsed = palette.elapsed(elapsed);
+    const styledLifecycle = palette.lifecycle(replyPending, lifecycleState);
     const content =
       taskWidth >= 1
         ? [
-            elapsed,
+            styledElapsed,
             ChildUI.pad(manifest.description, taskWidth, " ", "…"),
-            lifecycleState,
+            styledLifecycle,
           ].join("  ")
-        : ChildUI.pad(`${elapsed}  ${lifecycleState}`, contentWidth, " ", "…");
-    const title = ChildUI.pad(
-      `─ [${manifest.displayName}] `,
-      innerWidth,
-      "─",
-      "…",
-    );
-
+        : ChildUI.pad(
+            `${styledElapsed}  ${styledLifecycle}`,
+            contentWidth,
+            " ",
+            "…",
+          );
     const padding = " ".repeat(sidePadding);
 
     return [
-      `╭${title}╮`,
-      `│${padding}${ChildUI.pad(content, contentWidth)}${padding}│`,
-      `╰${"─".repeat(innerWidth)}╯`,
+      widgetTitle(`[${manifest.displayName}]`, innerWidth, palette),
+      widgetRow(
+        `${padding}${ChildUI.pad(content, contentWidth)}${padding}`,
+        palette,
+      ),
+      widgetBottom(innerWidth, palette),
     ];
   }
 
@@ -104,11 +119,12 @@ export class ChildUI {
 
     context.ui.setWidget(
       CHILD_WIDGET_ID,
-      (tui) => {
+      (tui, theme) => {
         this.requestWidgetRender = () => tui.requestRender();
 
         return {
-          render: (width: number) => ChildUI.renderWidget(this.runtime, width),
+          render: (width: number) =>
+            ChildUI.renderWidget(this.runtime, width, theme),
           invalidate() {},
         };
       },

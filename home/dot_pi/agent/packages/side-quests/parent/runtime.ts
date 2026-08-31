@@ -5,7 +5,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 
 import { RESULT_MESSAGE_TYPE } from "../renderer/side-quest-result-renderer.ts";
-import { CHILD_ID_ENV } from "../role.ts";
+import { CHILD_ID_ENV, PARENT_PANE_ENV } from "../role.ts";
 import { RuntimeStore, type TerminalState } from "../store/runtime.ts";
 import { type ChildManifest, SessionStore } from "../store/session.ts";
 import { Tmux } from "../tmux.ts";
@@ -410,6 +410,7 @@ export class ParentRuntime {
   private open(manifest: ChildManifest, initialPrompt?: string): ParentChild {
     const environment = {
       [CHILD_ID_ENV]: manifest.childId,
+      [PARENT_PANE_ENV]: process.env.TMUX_PANE ?? "",
       PI_SIDE_QUESTS_PARENT_ID: manifest.parentId,
       PI_SIDE_QUESTS_OWNER_ID: manifest.ownerId,
       PI_SIDE_QUESTS_SESSION: manifest.sessionPath,

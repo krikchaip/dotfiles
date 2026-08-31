@@ -40,13 +40,13 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [x] Support autonomous and initially interactive lifecycles, permanent promotion only through accepted direct terminal input after creation, no demotion, and no promotion from resume, incidental input, or programmatic input.
 - [x] Use `subagent_done({ result })` as the only successful completion declaration for autonomous children. Remove it and all prompt metadata on promotion. Keep no-argument `/subagent-done` available in both lifecycles to start one hidden completion-only turn. Render the persisted tool call as the single `WRAP UP` banner.
 - [x] Make `ask_parent` accept one correlated request, return without terminating the child turn, preserve sibling tool execution, reject a second pending request, wake the parent, and accept its matching answer only through `Agent.resume`.
-- [x] Render the complete restrained parent widget and child identity widget with elapsed time, identity, task, lifecycle/activity, reply state, exact padding and column alignment, and task-first narrow-width truncation.
-- [x] Implement `/side-quests` navigation with effective Pi selection bindings, stable child identity, explicit pane jump, scoped delete key hint, named confirmation, cancellation semantics, and no parent interrupt action.
+- [x] Render the complete restrained parent widget and child identity widget with elapsed time, identity, task, lifecycle/activity, reply state, exact padding and column alignment, task-first narrow-width truncation, and semantic colors from Pi's active theme.
+- [x] Implement `Shift+Up` and `/side-quests` parent navigation with effective Pi selection bindings, stable child identity, explicit pane jump, scoped delete key hint, named confirmation, cancellation semantics, and no parent interrupt action. In a child, make `Shift+Up` focus the canonical parent pane.
 - [x] Render collapsed and expanded parent results with effective `app.tools.expand` hints and clear completed, failed, cancelled, and closed outcomes.
 - [x] Include the explicit `subagent_done.result` for success, current-run assistant output only as valid failure or closure diagnostics, the canonical session path, pending-request state where relevant, and no full transcript or stale-response substitution.
 - [x] Keep interactive provider or agent-loop turn failures local while treating autonomous exhausted failures and fatal process exits as terminal according to the README.
 - [x] Preserve unmanaged panes and use a safe basic tmux arrangement until the deterministic layout ticket replaces geometry policy.
-- [x] E2E-demo explicit autonomous and command-driven completion, completion-tool removal on promotion, live and persisted tool-owned `WRAP UP` banners, failed command-turn recovery, terminal takeover, parent questions, continuation, reopen, navigation, closure outcomes, narrow widgets, focus, and retained sessions.
+- [x] E2E-demo explicit autonomous and command-driven completion, completion-tool removal on promotion, live and persisted tool-owned `WRAP UP` banners, failed command-turn recovery, terminal takeover, parent questions, continuation, reopen, `Shift+Up` and command navigation, closure outcomes, narrow widgets, focus, and retained sessions.
 
 ## 3. Configure general-purpose and named agents
 

@@ -1,7 +1,7 @@
 import {
   type ExtensionAPI,
-  type ExtensionCommandContext,
   type ExtensionContext,
+  type Theme,
   keyHint,
   rawKeyHint,
 } from "@earendil-works/pi-coding-agent";
@@ -18,6 +18,13 @@ import {
   PARENT_WIDGET_ID,
   WidgetStackSpacing,
 } from "../renderer/widget-spacing.ts";
+import {
+  type WidgetState,
+  widgetBottom,
+  widgetPalette,
+  widgetRow,
+  widgetTitle,
+} from "../renderer/widget-theme.ts";
 import type { ParentRuntime } from "./runtime.ts";
 
 const REFRESH_INTERVAL_MS = 1_000;
@@ -53,6 +60,12 @@ export type WidgetRow = Readonly<{
 
   /** Shows activity and pending-reply state. */
   state: string;
+
+  /** Records the child's activity state for semantic coloring. */
+  status: WidgetState;
+
+  /** Reports whether the child has an unanswered request. */
+  replyPending: boolean;
 }>;
 
 /**
@@ -92,9 +105,7 @@ export class ParentUI {
   /**
    * Runs scoped row navigation and returns one selected child intent.
    */
-  async selectLiveChild(
-    context: ExtensionCommandContext,
-  ): Promise<NavigationIntent> {
+  async selectLiveChild(context: ExtensionContext): Promise<NavigationIntent> {
     const initial = this.runtime.children();
     let selectedIndex = 0;
     let refreshTimer: ReturnType<typeof setInterval> | undefined;
@@ -240,7 +251,7 @@ export class ParentUI {
               this.runtime,
               width,
               this.selectedChildId,
-              (text) => theme.fg("accent", text),
+              theme,
             ),
           invalidate() {},
         };
@@ -272,20 +283,26 @@ export class ParentUI {
     runtime: ParentRuntime,
     width: number,
     selectedChildId?: string,
-    accent: (text: string) => string = (text) => text,
+    theme?: Theme,
   ): string[] {
     const children = runtime.children();
     if (!children.length || width < 4) return [];
 
-    const rows = children.map(
-      (child): WidgetRow => ({
+    const palette = widgetPalette(theme);
+    const rows = children.map((child): WidgetRow => {
+      const status = runtime.status(child);
+      const replyPending = runtime.replyPending(child);
+
+      return {
         childId: child.manifest.childId,
         elapsed: ParentUI.elapsed(child.manifest.createdAt),
         agent: child.manifest.displayName,
         task: child.manifest.description,
-        state: `${runtime.status(child)}${runtime.replyPending(child) ? " · reply needed" : ""}`,
-      }),
-    );
+        state: `${status}${replyPending ? " · reply needed" : ""}`,
+        status,
+        replyPending,
+      };
+    });
 
     const innerWidth = width - 2;
     const markerWidth = Math.min(1, innerWidth);
@@ -302,39 +319,45 @@ export class ParentUI {
     const agentWidth = Math.max(...rows.map((row) => visibleWidth(row.agent)));
     const stateWidth = Math.max(...rows.map((row) => visibleWidth(row.state)));
     const taskWidth = contentWidth - elapsedWidth - agentWidth - stateWidth - 6;
-    const title = ParentUI.pad(
-      `─ Side Quests · ${children.length} live `,
-      innerWidth,
-      "─",
-      "…",
-    );
 
     return [
-      `╭${title}╮`,
+      widgetTitle(`Side Quests · ${children.length} live`, innerWidth, palette),
       ...rows.map((row) => {
+        const elapsed = palette.elapsed(
+          ParentUI.pad(row.elapsed, elapsedWidth),
+        );
+        const state = palette.state(
+          row.status,
+          row.replyPending,
+          ParentUI.pad(row.state, stateWidth),
+        );
         const text =
           taskWidth >= 1
             ? [
-                ParentUI.pad(row.elapsed, elapsedWidth),
-                ParentUI.pad(row.agent, agentWidth),
+                elapsed,
+                palette.identity(ParentUI.pad(row.agent, agentWidth)),
                 ParentUI.pad(row.task, taskWidth, " ", "…"),
-                ParentUI.pad(row.state, stateWidth),
+                state,
               ].join("  ")
             : [
-                ParentUI.pad(row.elapsed, elapsedWidth),
-                ParentUI.pad(
-                  row.agent,
-                  Math.max(1, contentWidth - elapsedWidth - stateWidth - 4),
-                  " ",
-                  "…",
+                elapsed,
+                palette.identity(
+                  ParentUI.pad(
+                    row.agent,
+                    Math.max(1, contentWidth - elapsedWidth - stateWidth - 4),
+                    " ",
+                    "…",
+                  ),
                 ),
-                ParentUI.pad(row.state, stateWidth),
+                state,
               ].join("  ");
-        const marker = row.childId === selectedChildId ? accent("›") : " ";
+        const marker =
+          row.childId === selectedChildId ? palette.marker("›") : " ";
+        const content = `${ParentUI.pad(marker, markerWidth)}${" ".repeat(markerGapWidth)}${ParentUI.pad(text, contentWidth)}${" ".repeat(trailingWidth)}`;
 
-        return `│${ParentUI.pad(marker, markerWidth)}${" ".repeat(markerGapWidth)}${ParentUI.pad(text, contentWidth)}${" ".repeat(trailingWidth)}│`;
+        return widgetRow(content, palette);
       }),
-      `╰${"─".repeat(innerWidth)}╯`,
+      widgetBottom(innerWidth, palette),
     ];
   }
 

@@ -1,6 +1,6 @@
 import type {
   ExtensionAPI,
-  ExtensionCommandContext,
+  ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 
 import type { ParentRuntime } from "./runtime.ts";
@@ -38,15 +38,20 @@ export class ParentCommands {
       },
     });
 
+    this.pi.registerShortcut("shift+up", {
+      description: "Open Side Quests pane navigation",
+      handler: async (context) => {
+        await this.handleSideQuests(context);
+      },
+    });
+
     return this;
   }
 
   /**
    * Applies the selected pane-navigation intent.
    */
-  private async handleSideQuests(
-    context: ExtensionCommandContext,
-  ): Promise<void> {
+  private async handleSideQuests(context: ExtensionContext): Promise<void> {
     if (context.mode !== "tui") return;
 
     if (!this.runtime.children().length) {
