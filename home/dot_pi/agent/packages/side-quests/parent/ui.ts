@@ -30,13 +30,10 @@ import type { ParentRuntime } from "./runtime.ts";
 const REFRESH_INTERVAL_MS = 1_000;
 
 /**
- * Describes the pane action selected from live-child navigation.
+ * Describes the pane selected for focus from live-child navigation.
  */
 export type NavigationIntent =
   | Readonly<{
-      /** Identifies whether to focus or close the selected pane. */
-      action: "focus" | "close";
-
       /** Identifies the selected managed child. */
       childId: string;
     }>
@@ -103,20 +100,17 @@ export class ParentUI {
   ) {}
 
   /**
-   * Runs scoped row navigation and returns one selected child intent.
+   * Runs row navigation and confirmed deletion inside one mounted component.
    */
   async selectLiveChild(
     context: ExtensionContext,
-    initialChildId?: string,
+    closeChild: (childId: string) => void,
   ): Promise<NavigationIntent> {
-    const initial = this.runtime.children();
-    const initialIndex = initial.findIndex(
-      (child) => child.manifest.childId === initialChildId,
-    );
-    let selectedIndex = Math.max(0, initialIndex);
+    let selectedIndex = 0;
     let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
-    this.selectedChildId = initial[selectedIndex]?.manifest.childId;
+    this.selectedChildId =
+      this.runtime.children()[selectedIndex]?.manifest.childId;
     this.requestWidgetRender?.();
 
     const syncSelection = () => {
@@ -139,6 +133,14 @@ export class ParentUI {
     try {
       return await context.ui.custom<NavigationIntent>(
         (tui, theme, keybindings, done) => {
+          let confirmation:
+            | {
+                childId: string;
+                description: string;
+                displayName: string;
+                selectedIndex: number;
+              }
+            | undefined;
           let finished = false;
 
           const finish = (intent: NavigationIntent) => {
@@ -147,73 +149,148 @@ export class ParentUI {
             done(intent);
           };
 
-          const selectedIntent = (
-            action: "focus" | "close",
-          ): NavigationIntent => {
-            if (!this.selectedChildId) return undefined;
-            return { action, childId: this.selectedChildId };
+          const requestRender = () => {
+            this.requestWidgetRender?.();
+            tui.requestRender();
           };
 
           refreshTimer = setInterval(() => {
-            if (!syncSelection().length) {
-              return finish(undefined);
+            const live = syncSelection();
+            if (!live.length) return finish(undefined);
+
+            if (
+              confirmation &&
+              !live.some(
+                (child) => child.manifest.childId === confirmation?.childId,
+              )
+            ) {
+              confirmation = undefined;
             }
 
             tui.requestRender();
           }, REFRESH_INTERVAL_MS);
 
           const separator = theme.fg("muted", " · ");
-          const hints = [
+          const navigationHints = [
             keyHint("tui.select.up", "up"),
             keyHint("tui.select.down", "down"),
             keyHint("tui.select.confirm", "open"),
             rawKeyHint("d", "close"),
             keyHint("tui.select.cancel", "cancel"),
           ].join(separator);
+          const confirmationHints = [
+            keyHint("tui.select.up", "navigate"),
+            keyHint("tui.select.confirm", "select"),
+            keyHint("tui.select.cancel", "cancel"),
+          ].join(separator);
 
           return {
-            render: (width: number) => [truncateToWidth(hints, width, "")],
+            render: (width: number) => {
+              if (!confirmation)
+                return [truncateToWidth(navigationHints, width, "")];
+
+              const option = (index: number, label: string) => {
+                const marker =
+                  confirmation?.selectedIndex === index ? "→ " : "  ";
+                const color =
+                  confirmation?.selectedIndex === index ? "accent" : "text";
+                return theme.fg(color, `${marker}${label}`);
+              };
+
+              return [
+                truncateToWidth(
+                  theme.fg("accent", theme.bold("Close subagent?")),
+                  width,
+                  "",
+                ),
+                truncateToWidth(
+                  theme.fg(
+                    "accent",
+                    theme.bold(
+                      `${confirmation.displayName} — ${confirmation.description}`,
+                    ),
+                  ),
+                  width,
+                  "",
+                ),
+                "",
+                truncateToWidth(option(0, "Yes"), width, ""),
+                truncateToWidth(option(1, "No"), width, ""),
+                "",
+                truncateToWidth(confirmationHints, width, ""),
+              ];
+            },
             invalidate() {},
             handleInput: (data: string) => {
               const live = syncSelection();
-              if (!live.length) {
-                return finish(undefined);
+              if (!live.length) return finish(undefined);
+
+              if (confirmation) {
+                if (
+                  keybindings.matches(data, "tui.select.up") ||
+                  keybindings.matches(data, "tui.select.down")
+                ) {
+                  confirmation.selectedIndex =
+                    confirmation.selectedIndex === 0 ? 1 : 0;
+                  tui.requestRender();
+                  return;
+                }
+
+                if (keybindings.matches(data, "tui.select.confirm")) {
+                  if (confirmation.selectedIndex === 1)
+                    return finish(undefined);
+
+                  const childId = confirmation.childId;
+                  confirmation = undefined;
+                  closeChild(childId);
+
+                  if (!syncSelection().length) return finish(undefined);
+                  requestRender();
+                  return;
+                }
+
+                if (keybindings.matches(data, "tui.select.cancel"))
+                  return finish(undefined);
+
+                return;
               }
 
               if (keybindings.matches(data, "tui.select.up")) {
                 selectedIndex =
                   selectedIndex === 0 ? live.length - 1 : selectedIndex - 1;
-
                 this.selectedChildId = live[selectedIndex]?.manifest.childId;
-                this.requestWidgetRender?.();
-
-                tui.requestRender();
-
+                requestRender();
                 return;
               }
 
               if (keybindings.matches(data, "tui.select.down")) {
                 selectedIndex = (selectedIndex + 1) % live.length;
-
                 this.selectedChildId = live[selectedIndex]?.manifest.childId;
-                this.requestWidgetRender?.();
-
-                tui.requestRender();
-
+                requestRender();
                 return;
               }
 
               if (keybindings.matches(data, "tui.select.confirm")) {
-                return finish(selectedIntent("focus"));
+                if (!this.selectedChildId) return finish(undefined);
+                return finish({ childId: this.selectedChildId });
               }
 
               if (data === "d") {
-                return finish(selectedIntent("close"));
+                const selected = live[selectedIndex];
+                if (!selected) return finish(undefined);
+
+                confirmation = {
+                  childId: selected.manifest.childId,
+                  description: selected.manifest.description,
+                  displayName: selected.manifest.displayName,
+                  selectedIndex: 0,
+                };
+                tui.requestRender();
+                return;
               }
 
-              if (keybindings.matches(data, "tui.select.cancel")) {
+              if (keybindings.matches(data, "tui.select.cancel"))
                 return finish(undefined);
-              }
             },
           };
         },

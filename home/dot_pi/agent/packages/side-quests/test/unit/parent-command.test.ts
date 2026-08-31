@@ -6,6 +6,7 @@ import type { ParentChild, ParentRuntime } from "../../parent/runtime.ts";
 import type { NavigationIntent, ParentUI } from "../../parent/ui.ts";
 
 type Command = Parameters<ExtensionAPI["registerCommand"]>[1];
+type NavigationEvent = NavigationIntent | { readonly closeChildId: string };
 
 function child(childId: string): ParentChild {
   return {
@@ -19,7 +20,7 @@ function child(childId: string): ParentChild {
 
 function fixture(options: {
   readonly children: ParentChild[];
-  readonly intents: readonly NavigationIntent[];
+  readonly events: readonly NavigationEvent[];
 }) {
   let command: Command | undefined;
   let live = [...options.children];
@@ -27,9 +28,23 @@ function fixture(options: {
     live = live.filter((candidate) => candidate.manifest.childId !== childId);
   });
   const focus = vi.fn();
-  const selectLiveChild = vi.fn();
-  for (const intent of options.intents)
-    selectLiveChild.mockResolvedValueOnce(intent);
+  const selectLiveChild = vi.fn(
+    async (
+      _context: unknown,
+      closeChild: (childId: string) => void,
+    ): Promise<NavigationIntent> => {
+      for (const event of options.events) {
+        if (event && "closeChildId" in event) {
+          closeChild(event.closeChildId);
+          continue;
+        }
+
+        return event;
+      }
+
+      return undefined;
+    },
+  );
 
   const runtime = {
     children: () => live,
@@ -63,36 +78,38 @@ function fixture(options: {
   };
 }
 
-test("confirmed deletion keeps navigation on the nearest surviving child", async () => {
-  const children = [child("first"), child("selected"), child("next")];
+test("confirmed deletion stays inside one mounted navigation component", async () => {
   const scenario = fixture({
-    children,
-    intents: [{ action: "close", childId: "selected" }, undefined],
+    children: [child("selected"), child("next")],
+    events: [{ closeChildId: "selected" }, undefined],
   });
 
   await scenario.command.handler("", scenario.context as never);
 
   expect(scenario.close).toHaveBeenCalledWith("selected");
-  expect(scenario.selectLiveChild).toHaveBeenNthCalledWith(
-    1,
-    scenario.context,
-    undefined,
-  );
-  expect(scenario.selectLiveChild).toHaveBeenNthCalledWith(
-    2,
-    scenario.context,
-    "next",
-  );
+  expect(scenario.selectLiveChild).toHaveBeenCalledOnce();
+  expect(scenario.confirm).not.toHaveBeenCalled();
 });
 
 test("confirmed deletion closes navigation after the final child", async () => {
   const scenario = fixture({
     children: [child("only")],
-    intents: [{ action: "close", childId: "only" }],
+    events: [{ closeChildId: "only" }, undefined],
   });
 
   await scenario.command.handler("", scenario.context as never);
 
   expect(scenario.close).toHaveBeenCalledWith("only");
   expect(scenario.selectLiveChild).toHaveBeenCalledOnce();
+});
+
+test("opening a selected child focuses its pane", async () => {
+  const scenario = fixture({
+    children: [child("selected")],
+    events: [{ childId: "selected" }],
+  });
+
+  await scenario.command.handler("", scenario.context as never);
+
+  expect(scenario.focus).toHaveBeenCalledWith("selected");
 });

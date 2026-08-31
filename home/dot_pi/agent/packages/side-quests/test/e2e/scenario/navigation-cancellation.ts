@@ -116,6 +116,8 @@ export const navigationCancellation: Scenario = {
     await harness.waitFor("close", 5_000);
     await harness.sendParent("d");
     await harness.waitFor("Yes", 5_000);
+    await Bun.sleep(250);
+    const beforeConfirmedDeletion = harness.read(harness.logPath);
     await harness.sendParentKeys("Enter");
     await harness.waitFor("SUBAGENT CANCELLED");
     await harness.waitUntil(
@@ -129,6 +131,25 @@ export const navigationCancellation: Scenario = {
       continuedNavigationView.includes("d close") &&
         continuedNavigationView.includes("›"),
       "Navigation closed after deleting one of multiple live children.",
+    );
+
+    await Bun.sleep(250);
+    const confirmedDeletionOutput = harness
+      .read(harness.logPath)
+      .slice(beforeConfirmedDeletion.length);
+    const confirmedDeletionRenders = confirmedDeletionOutput
+      .split("\u001B[?2026h")
+      .slice(1)
+      .map((render) => render.split("\u001B[?2026l")[0] ?? render);
+    const editorOnlyRender = confirmedDeletionRenders.some(
+      (render) =>
+        (render.includes("\u001B[7m ") ||
+          render.includes("\u001B]133;B\u0007")) &&
+        !render.includes("close"),
+    );
+    harness.assert(
+      confirmedDeletionRenders.length > 0 && !editorOnlyRender,
+      "Confirmed deletion briefly restored the editor before navigation.",
     );
 
     await harness.sendParent("d");
