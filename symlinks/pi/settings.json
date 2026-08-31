@@ -9,6 +9,7 @@
   "followUpMode": "all",
   "autocompleteMaxVisible": 10,
   "outputPad": 1,
+  "showHardwareCursor": true,
   "defaultTools": [
     "read",
     "bash",
