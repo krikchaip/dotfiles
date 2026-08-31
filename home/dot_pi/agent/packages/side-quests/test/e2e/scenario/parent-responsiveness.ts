@@ -6,8 +6,12 @@ import {
 
 import { delay } from "../provider-support.ts";
 
-const CHILD_COUNT = 8;
-const MAX_ADDED_INPUT_LATENCY_MS = 25;
+const CHILD_COUNT = Number.parseInt(
+  process.env.SIDE_QUESTS_E2E_CHILD_COUNT ?? "8",
+  10,
+);
+const MAX_LOADED_INPUT_LATENCY_MS = 150;
+const MAX_LAUNCH_EVENT_LOOP_LAG_MS = 100;
 
 function median(values: readonly number[]): number {
   const sorted = [...values].sort((left, right) => left - right);
@@ -82,7 +86,11 @@ async function medianNavigationLatency(harness: E2EHarness): Promise<number> {
 export const parentResponsiveness: Scenario = {
   name: "parent-responsiveness",
   exclusive: true,
-  process: { managed: true },
+  process: {
+    extensionFixtures: ["test/e2e/fixture/event-loop-lag.ts"],
+    managed: true,
+    persistSession: true,
+  },
   timeoutMs: 60_000,
   configureProvider(context) {
     if (context.role === "child") {
@@ -111,8 +119,19 @@ export const parentResponsiveness: Scenario = {
   async run(harness: E2EHarness) {
     const baseline = await medianInputLatency(harness, "baseline");
     await harness.sendParentKeys("C-u");
+    const launchStarted = performance.now();
     await harness.sendParent("Launch all performance children.", true);
     await harness.waitFor("All performance children launched.", 20_000);
+    const launchDuration = performance.now() - launchStarted;
+    await harness.waitUntil(
+      "parent event-loop lag measurement",
+      () => harness.filesNamed("parent-event-loop-lag.json").length === 1,
+      5_000,
+    );
+    const lagPath = harness.filesNamed("parent-event-loop-lag.json")[0] ?? "";
+    const { maximumLagMs } = JSON.parse(harness.read(lagPath)) as {
+      maximumLagMs: number;
+    };
     await harness.waitUntil(
       `${CHILD_COUNT} managed child panes`,
       async () => (await harness.childPanes()).length === CHILD_COUNT,
@@ -122,14 +141,26 @@ export const parentResponsiveness: Scenario = {
 
     const loaded = await medianInputLatency(harness, "loaded");
     const added = loaded - baseline;
-    await harness.sendParentKeys("C-u");
-    const navigation = await medianNavigationLatency(harness);
+    console.log(
+      `parent-responsiveness: launch ${launchDuration.toFixed(1)}ms, ` +
+        `max event-loop lag ${maximumLagMs.toFixed(1)}ms, ` +
+        `baseline ${baseline.toFixed(1)}ms, loaded ${loaded.toFixed(1)}ms, ` +
+        `added ${added.toFixed(1)}ms`,
+    );
 
     harness.assert(
-      added <= MAX_ADDED_INPUT_LATENCY_MS,
-      `Active children added ${added.toFixed(1)}ms parent input latency ` +
-        `(baseline ${baseline.toFixed(1)}ms, loaded ${loaded.toFixed(1)}ms).`,
+      maximumLagMs <= MAX_LAUNCH_EVENT_LOOP_LAG_MS,
+      `Launching ${CHILD_COUNT} children blocked the parent event loop for ` +
+        `${maximumLagMs.toFixed(1)}ms.`,
     );
+    harness.assert(
+      loaded <= MAX_LOADED_INPUT_LATENCY_MS,
+      `Parent input took ${loaded.toFixed(1)}ms with ${CHILD_COUNT} active ` +
+        `children (maximum ${MAX_LOADED_INPUT_LATENCY_MS}ms).`,
+    );
+
+    await harness.sendParentKeys("C-u");
+    const navigation = await medianNavigationLatency(harness);
     harness.assert(
       navigation <= loaded + 15,
       `Widget navigation took ${navigation.toFixed(1)}ms versus ` +

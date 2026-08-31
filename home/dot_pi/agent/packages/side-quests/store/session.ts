@@ -1,4 +1,5 @@
 import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import {
   basename,
@@ -124,17 +125,72 @@ export type CreateSessionParams = Readonly<
  * Provides the Side Quests boundary to resumable child session state.
  */
 export class SessionStore {
+  /** Shares one parent-session read across children launched in the same batch. */
+  private static readonly inheritedReads = new Map<string, Promise<string>>();
+
   /**
    * Creates a private child Pi session and its immutable manifest.
    */
-  public static create(params: CreateSessionParams): ChildManifest {
+  public static async create(
+    params: CreateSessionParams,
+  ): Promise<ChildManifest> {
     const path = SessionStore.sessionPath(params.parentId, params.childId);
     const inherited =
       params.inheritContext && params.parentSessionPath
-        ? SessionStore.inheritedEntries(params.parentSessionPath)
-        : [];
+        ? await SessionStore.inheritedJsonLines(params.parentSessionPath)
+        : "";
 
     // Pi's session header format
+    const session = {
+      type: "session",
+      version: 3,
+      id: params.childId,
+      timestamp: new Date().toISOString(),
+      cwd: params.cwd,
+      parentSession: params.parentSessionPath,
+    };
+
+    await JsonStore.writeTextAsync(
+      path,
+      `${JSON.stringify(session)}\n${inherited}`,
+    );
+
+    const manifest: ChildManifest = {
+      version: STORE_VERSION,
+      childId: params.childId,
+      parentId: params.parentId,
+      ownerId: params.ownerId,
+      sessionPath: realpathSync(path),
+      cwd: params.cwd,
+      agentName: "general-purpose",
+      displayName: "general-purpose",
+      description: params.description,
+      lifecycle: params.lifecycle,
+      inheritContext: params.inheritContext,
+      model: params.model,
+      thinking: params.thinking,
+      tools: params.tools,
+      createdAt: Date.now(),
+    };
+
+    await JsonStore.writeAsync(
+      SessionStore.manifestPath(params.parentId, params.childId),
+      manifest,
+    );
+
+    return manifest;
+  }
+
+  /**
+   * Creates a child session synchronously for isolated setup and fixtures.
+   * Runtime launch paths must use {@link create}.
+   */
+  public static createSync(params: CreateSessionParams): ChildManifest {
+    const path = SessionStore.sessionPath(params.parentId, params.childId);
+    const inherited =
+      params.inheritContext && params.parentSessionPath
+        ? SessionStore.inheritedEntriesSync(params.parentSessionPath)
+        : [];
     const session = {
       type: "session",
       version: 3,
@@ -168,7 +224,6 @@ export class SessionStore {
       SessionStore.manifestPath(params.parentId, params.childId),
       manifest,
     );
-
     return manifest;
   }
 
@@ -434,9 +489,9 @@ export class SessionStore {
   }
 
   /**
-   * Returns inherited parent-session entries without its session header.
+   * Returns parsed parent-session entries for synchronous setup.
    */
-  private static inheritedEntries(parentPath: string): unknown[] {
+  private static inheritedEntriesSync(parentPath: string): unknown[] {
     try {
       return readFileSync(parentPath, "utf8")
         .split("\n")
@@ -446,8 +501,8 @@ export class SessionStore {
             const entry = JSON.parse(line) as unknown;
             const isSessionHeader =
               typeof entry === "object" &&
+              entry !== null &&
               (entry as { type?: unknown }).type === "session";
-
             return entry === null || isSessionHeader ? [] : [entry];
           } catch {
             return [];
@@ -456,5 +511,43 @@ export class SessionStore {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Returns serialized parent-session entries without its session header.
+   */
+  private static inheritedJsonLines(parentPath: string): Promise<string> {
+    const activeRead = SessionStore.inheritedReads.get(parentPath);
+    if (activeRead) return activeRead;
+
+    const read = readFile(parentPath, "utf8")
+      .then((content) => {
+        const inherited = content.split("\n").flatMap((line) => {
+          if (!line) return [];
+
+          try {
+            const entry = JSON.parse(line) as unknown;
+            const isSessionHeader =
+              typeof entry === "object" &&
+              entry !== null &&
+              (entry as { type?: unknown }).type === "session";
+
+            return entry === null || isSessionHeader ? [] : [line];
+          } catch {
+            return [];
+          }
+        });
+
+        return inherited.length ? `${inherited.join("\n")}\n` : "";
+      })
+      .catch(() => "");
+
+    SessionStore.inheritedReads.set(parentPath, read);
+    void read.then(() => {
+      if (SessionStore.inheritedReads.get(parentPath) === read)
+        SessionStore.inheritedReads.delete(parentPath);
+    });
+
+    return read;
   }
 }

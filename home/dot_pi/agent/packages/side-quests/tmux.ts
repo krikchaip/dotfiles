@@ -1,5 +1,12 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+
+type TmuxCommandResult = Readonly<{
+  status: number | null;
+  stdout: string;
+  stderr: string;
+  error?: Error;
+}>;
 
 /**
  * Describes one tmux pane in the shared Side Quests window.
@@ -153,15 +160,41 @@ export class Tmux {
   }
 
   /**
+   * Lists all panes in a window without blocking Pi's event loop.
+   */
+  public static async runningPanesAsync(windowId: string): Promise<Pane[]> {
+    const result = await Tmux.runAsync([
+      "list-panes",
+      "-t",
+      windowId,
+      "-F",
+      "#{pane_id}\t#{pane_pid}\t#{pane_dead}",
+    ]);
+
+    if (result.status !== 0) return [];
+
+    return Tmux.output(result.stdout)
+      .split("\n")
+      .flatMap((line) => {
+        const [id, rawPid, rawDead] = line.split("\t");
+        const pid = Number(rawPid);
+
+        return id && Number.isInteger(pid)
+          ? [{ id, pid, dead: rawDead === "1" }]
+          : [];
+      });
+  }
+
+  /**
    * Creates the detached shared window and its first Pi child pane.
    */
-  public static createWindow(params: {
+  public static async createWindow(params: {
     name: string;
     cwd: string;
     command: string[];
     environment: Record<string, string>;
-  }): { windowId: string; paneId: string } {
-    const result = Tmux.run([
+  }): Promise<{ windowId: string; paneId: string }> {
+    const result = await Tmux.runAsync([
       "new-window",
       "-d",
       "-P",
@@ -191,18 +224,18 @@ export class Tmux {
   /**
    * Starts Pi directly in a new detached pane in the shared window.
    */
-  public static startPiPane(params: {
+  public static async startPiPane(params: {
     windowId: string;
     cwd: string;
     command: string[];
     environment: Record<string, string>;
-  }): string {
+  }): Promise<string> {
     if (!existsSync(params.command[1] ?? ""))
       throw new Error(
         "Could not find the running Pi program for the child pane.",
       );
 
-    const result = Tmux.run([
+    const result = await Tmux.runAsync([
       "split-window",
       "-d",
       "-P",
@@ -230,8 +263,11 @@ export class Tmux {
   /**
    * Marks a pane as owned by a child and retains failed process exits.
    */
-  public static markManagedPane(paneId: string, childId: string): void {
-    const result = Tmux.run([
+  public static async markManagedPane(
+    paneId: string,
+    childId: string,
+  ): Promise<void> {
+    const result = await Tmux.runAsync([
       "set-option",
       "-p",
       "-t",
@@ -298,6 +334,25 @@ export class Tmux {
   }
 
   /**
+   * Arranges all panes asynchronously for the launch path.
+   */
+  public static async applyWindowLayoutAsync(
+    windowId: string,
+    layout?: WindowLayout,
+  ): Promise<void> {
+    switch (layout) {
+      case WindowLayout.Binary:
+        await Tmux.WindowLayoutStrategy.binaryAsync(windowId);
+        break;
+      case WindowLayout.Ternary:
+        await Tmux.WindowLayoutStrategy.ternaryAsync(windowId);
+        break;
+      default:
+        await Tmux.WindowLayoutStrategy.tiledAsync(windowId);
+    }
+  }
+
+  /**
    * Closes a managed pane, while tolerating a concurrent pane exit.
    */
   public static closePane(paneId: string): void {
@@ -355,6 +410,45 @@ export class Tmux {
   }
 
   /**
+   * Runs tmux without blocking Pi's event loop.
+   */
+  private static runAsync(
+    args: string[],
+    cwd?: string,
+    environment?: Record<string, string>,
+  ): Promise<TmuxCommandResult> {
+    return new Promise((resolve) => {
+      const child = spawn("tmux", args, {
+        cwd,
+        env: { ...process.env, ...environment },
+      });
+      let stdout = "";
+      let stderr = "";
+      let settled = false;
+
+      child.stdout.setEncoding("utf8");
+      child.stderr.setEncoding("utf8");
+      child.stdout.on("data", (chunk: string) => {
+        stdout += chunk;
+      });
+      child.stderr.on("data", (chunk: string) => {
+        stderr += chunk;
+      });
+
+      child.once("error", (error) => {
+        if (settled) return;
+        settled = true;
+        resolve({ status: null, stdout, stderr, error });
+      });
+      child.once("close", (status) => {
+        if (settled) return;
+        settled = true;
+        resolve({ status, stdout, stderr });
+      });
+    });
+  }
+
+  /**
    * Converts environment values to tmux command-line arguments.
    */
   private static environmentArguments(
@@ -369,14 +463,16 @@ export class Tmux {
   /**
    * Returns text output from a tmux process result.
    */
-  private static output(value: string | NonSharedBuffer | undefined): string {
+  private static output(value: unknown): string {
     return typeof value === "string" ? value : "";
   }
 
   /**
    * Returns a usable error message for a failed tmux command.
    */
-  private static error(result: ReturnType<typeof spawnSync>): string {
+  private static error(
+    result: ReturnType<typeof spawnSync> | TmuxCommandResult,
+  ): string {
     return (
       result.error?.message ||
       Tmux.output(result.stderr).trim() ||
@@ -395,6 +491,28 @@ export class Tmux {
           `Could not arrange Side Quests panes: ${Tmux.error(result)}`,
         );
     }
+
+    /**
+     * Applies the default tmux tiled layout without blocking Pi's event loop.
+     */
+    public static async tiledAsync(windowId: string): Promise<void> {
+      const result = await Tmux.runAsync([
+        "select-layout",
+        "-t",
+        windowId,
+        "tiled",
+      ]);
+      if (result.status !== 0)
+        throw new Error(
+          `Could not arrange Side Quests panes: ${Tmux.error(result)}`,
+        );
+    }
+
+    /** Applies the binary Side Quests layout asynchronously. */
+    public static async binaryAsync(_windowId: string): Promise<void> {}
+
+    /** Applies the ternary Side Quests layout asynchronously. */
+    public static async ternaryAsync(_windowId: string): Promise<void> {}
 
     /**
      * Applies the binary Side Quests layout to a window.

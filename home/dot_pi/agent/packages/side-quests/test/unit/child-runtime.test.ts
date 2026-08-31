@@ -41,7 +41,7 @@ function autonomousRuntime(
   process.env.PI_CODING_AGENT_DIR = root;
   Reflect.deleteProperty(process.env, "PI_SIDE_QUESTS_INITIAL_PROMPT");
 
-  const manifest = SessionStore.create({
+  const manifest = SessionStore.createSync({
     parentId: "parent-id",
     childId: "child-id",
     ownerId: "owner-id",

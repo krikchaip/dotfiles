@@ -168,11 +168,15 @@ export class ParentTools {
         });
 
         try {
-          this.runtime.launch(manifest, request.prompt);
-          return this.acknowledgement("launched", manifest.sessionPath);
+          const launched = await this.runtime.launch(manifest, request.prompt);
+          return this.acknowledgement("launched", launched.sessionPath);
         } catch (cause) {
+          const child = await manifest.then(
+            (created) => created.sessionPath,
+            () => childId,
+          );
           throw new Error(
-            `${toolName} could not launch ${manifest.sessionPath}: ${cause instanceof Error ? cause.message : String(cause)}`,
+            `${toolName} could not launch ${child}: ${cause instanceof Error ? cause.message : String(cause)}`,
           );
         }
       },

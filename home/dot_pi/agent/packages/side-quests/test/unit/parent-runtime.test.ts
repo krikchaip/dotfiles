@@ -67,15 +67,15 @@ function writeActivity(
 
 test.each(["autonomous", "interactive"] as const)(
   "includes control tools in %s child startup allowlist",
-  (lifecycle) => {
+  async (lifecycle) => {
     let command: string[] = [];
-    vi.spyOn(Tmux, "createWindow").mockImplementation((params) => {
+    vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
       command = params.command;
       return { paneId: child.paneId, windowId: child.windowId };
     });
-    vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+    vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
 
-    runtime().launch({
+    await runtime().launch({
       ...child.manifest,
       lifecycle,
       childId: `${lifecycle}-child-id`,
@@ -89,31 +89,69 @@ test.each(["autonomous", "interactive"] as const)(
   },
 );
 
-test("lists tracked children without probing tmux during render", () => {
-  vi.spyOn(Tmux, "createWindow").mockReturnValue({
+test("reserves launch order before session preparation finishes", async () => {
+  const order: string[] = [];
+  vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
+    order.push(params.environment.PI_SIDE_QUESTS_CHILD_ID ?? "");
+    return { paneId: "%1", windowId: "@1" };
+  });
+  vi.spyOn(Tmux, "runningPanesAsync").mockResolvedValue([
+    { id: "%1", pid: 1, dead: false },
+  ]);
+  vi.spyOn(Tmux, "startPiPane").mockImplementation(async (params) => {
+    order.push(params.environment.PI_SIDE_QUESTS_CHILD_ID ?? "");
+    return "%2";
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  vi.spyOn(Tmux, "applyWindowLayoutAsync").mockResolvedValue();
+
+  let resolveFirst: ((manifest: typeof child.manifest) => void) | undefined;
+  let resolveSecond: ((manifest: typeof child.manifest) => void) | undefined;
+  const first = new Promise<typeof child.manifest>((resolve) => {
+    resolveFirst = resolve;
+  });
+  const second = new Promise<typeof child.manifest>((resolve) => {
+    resolveSecond = resolve;
+  });
+  const parent = runtime();
+  const firstLaunch = parent.launch(first);
+  const secondLaunch = parent.launch(second);
+
+  resolveSecond?.({ ...child.manifest, childId: "second-child" });
+  await Promise.resolve();
+  expect(order).toEqual([]);
+
+  resolveFirst?.({ ...child.manifest, childId: "first-child" });
+  await Promise.all([firstLaunch, secondLaunch]);
+
+  expect(order).toEqual(["first-child", "second-child"]);
+});
+
+test("lists tracked children without probing tmux during render", async () => {
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
     paneId: child.paneId,
     windowId: child.windowId,
   });
-  vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
   const paneExists = vi.spyOn(Tmux, "paneExists");
   const parent = runtime();
-  parent.launch(child.manifest);
+  await parent.launch(child.manifest);
   paneExists.mockClear();
 
   expect(parent.children()).toEqual([child]);
   expect(paneExists).not.toHaveBeenCalled();
 });
 
-test("serves tracked widget state without reading files during render", () => {
-  vi.spyOn(Tmux, "createWindow").mockReturnValue({
+test("serves tracked widget state without reading files during render", async () => {
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
     paneId: child.paneId,
     windowId: child.windowId,
   });
-  vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
   const readActivity = vi.spyOn(RuntimeStore, "readActivity");
   const readRequest = vi.spyOn(SessionStore, "readRequest");
   const parent = runtime();
-  parent.launch(child.manifest);
+  await parent.launch(child.manifest);
   readActivity.mockClear();
   readRequest.mockClear();
 
@@ -125,7 +163,7 @@ test("serves tracked widget state without reading files during render", () => {
   expect(readRequest).not.toHaveBeenCalled();
 });
 
-test("polls all child process states with one tmux query", () => {
+test("polls all child process states with one tmux query", async () => {
   vi.useFakeTimers();
   const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));
   temporaryRoots.push(root);
@@ -143,11 +181,11 @@ test("polls all child process states with one tmux query", () => {
     },
   } as unknown as ExtensionAPI;
 
-  vi.spyOn(Tmux, "createWindow").mockReturnValue({
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
     paneId: child.paneId,
     windowId: child.windowId,
   });
-  vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
   const processStates = vi
     .spyOn(Tmux, "paneProcessStates")
     .mockReturnValue(new Map([[child.paneId, { dead: false }]]));
@@ -155,7 +193,7 @@ test("polls all child process states with one tmux query", () => {
   const paneExists = vi.spyOn(Tmux, "paneExists");
 
   const parent = ParentRuntime.register(pi);
-  parent.launch(child.manifest);
+  await parent.launch(child.manifest);
   sessionStart?.({}, {
     sessionManager: {
       getSessionId: () => child.manifest.parentId,
@@ -245,11 +283,11 @@ test.each([
     const parent = runtime();
     vi.spyOn(Tmux, "findManagedPane").mockReturnValue(undefined);
     vi.spyOn(Tmux, "paneExists").mockReturnValue(false);
-    vi.spyOn(Tmux, "createWindow").mockReturnValue({
+    vi.spyOn(Tmux, "createWindow").mockResolvedValue({
       paneId: child.paneId,
       windowId: child.windowId,
     });
-    vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+    vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
 
     RuntimeStore.writeTerminal(child.manifest.parentId, {
       eventId: "terminal-event",
@@ -272,7 +310,7 @@ test.each([
   },
 );
 
-test("cancelled events retain pending question and child identity details", () => {
+test("cancelled events retain pending question and child identity details", async () => {
   const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));
   temporaryRoots.push(root);
   process.env.PI_CODING_AGENT_DIR = root;
@@ -285,16 +323,16 @@ test("cancelled events retain pending question and child identity details", () =
     },
   } as unknown as ExtensionAPI;
 
-  vi.spyOn(Tmux, "createWindow").mockReturnValue({
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
     paneId: child.paneId,
     windowId: child.windowId,
   });
-  vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
   vi.spyOn(Tmux, "closePane").mockImplementation(() => {});
   vi.spyOn(Tmux, "runningPanes").mockReturnValue([]);
 
   const parent = ParentRuntime.register(pi);
-  parent.launch(child.manifest);
+  await parent.launch(child.manifest);
   SessionStore.writeRequest(child.manifest.parentId, {
     requestId: "request-id",
     childId: child.manifest.childId,

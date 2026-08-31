@@ -8,6 +8,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
+import { chmod, mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 /** The schema version shared by Side Quests persisted state files. */
@@ -32,6 +33,37 @@ export class JsonStore {
       path,
       `${values.map((value) => JSON.stringify(value)).join("\n")}\n`,
     );
+  }
+
+  /**
+   * Writes one JSON value asynchronously through an atomic rename.
+   */
+  public static async writeAsync(path: string, value: unknown): Promise<void> {
+    await JsonStore.writeTextAsync(path, `${JSON.stringify(value)}\n`);
+  }
+
+  /**
+   * Writes pre-serialized private text asynchronously through an atomic rename.
+   */
+  public static async writeTextAsync(
+    path: string,
+    content: string,
+  ): Promise<void> {
+    const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
+    const directory = dirname(path);
+
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+    await chmod(directory, 0o700);
+
+    try {
+      await writeFile(temporary, content, { encoding: "utf8", mode: 0o600 });
+      await rename(temporary, path);
+      await chmod(path, 0o600);
+    } finally {
+      await unlink(temporary).catch((cause: NodeJS.ErrnoException) => {
+        if (cause.code !== "ENOENT") throw cause;
+      });
+    }
   }
 
   /**

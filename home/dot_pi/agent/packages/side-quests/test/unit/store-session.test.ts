@@ -31,9 +31,9 @@ function temporaryRoot(): string {
 
 function createManagedSession(
   update: Partial<CreateSessionParams> = {},
-): ReturnType<typeof SessionStore.create> {
+): ReturnType<typeof SessionStore.createSync> {
   const root = temporaryRoot();
-  return SessionStore.create({
+  return SessionStore.createSync({
     parentId: "parent-id",
     childId: "child-id",
     ownerId: "owner-id",
@@ -136,7 +136,7 @@ test("rejects a symlink that points at a managed child session", () => {
   expect(SessionStore.readResumableManifest(alias)).toBeUndefined();
 });
 
-test("inherits valid parent entries without copying its session header", () => {
+test("inherits valid parent entries without copying its session header", async () => {
   const root = temporaryRoot();
   const parentSession = join(root, "parent.jsonl");
   writeFileSync(
@@ -150,7 +150,7 @@ test("inherits valid parent entries without copying its session header", () => {
       "",
     ].join("\n"),
   );
-  const manifest = SessionStore.create({
+  const manifest = await SessionStore.create({
     parentId: "parent-id",
     childId: "inherited-child",
     ownerId: "owner-id",
@@ -178,14 +178,14 @@ test("inherits valid parent entries without copying its session header", () => {
   ]);
 });
 
-test("does not inherit parent entries when inheritance is disabled", () => {
+test("does not inherit parent entries when inheritance is disabled", async () => {
   const root = temporaryRoot();
   const parentSession = join(root, "parent.jsonl");
   writeFileSync(
     parentSession,
     `${JSON.stringify({ type: "session", id: "parent-id" })}\n${JSON.stringify({ type: "message", id: "parent-message" })}\n`,
   );
-  const manifest = SessionStore.create({
+  const manifest = await SessionStore.create({
     parentId: "parent-id",
     childId: "isolated-child",
     ownerId: "owner-id",

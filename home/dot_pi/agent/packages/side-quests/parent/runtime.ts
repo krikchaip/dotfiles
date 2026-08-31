@@ -77,13 +77,27 @@ export class ParentRuntime {
   /** Records the timer that polls managed children. */
   private poller: ReturnType<typeof setInterval> | undefined;
 
+  /** Serializes tmux mutations for the one shared child window. */
+  private launchTail: Promise<void> = Promise.resolve();
+
   private constructor(private readonly pi: ExtensionAPI) {}
 
   /**
-   * Starts a new child process and retains it for parent coordination.
+   * Reserves launch order, then starts and retains a child when storage is ready.
    */
-  launch(manifest: ChildManifest, initialPrompt?: string): void {
-    const child = this.open(manifest, initialPrompt);
+  async launch(
+    manifest: ChildManifest | Promise<ChildManifest>,
+    initialPrompt?: string,
+  ): Promise<ChildManifest> {
+    const operation = this.launchTail.then(async () =>
+      this.open(await manifest, initialPrompt),
+    );
+    this.launchTail = operation.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    const child = await operation;
     this.childrenById.set(child.manifest.childId, child);
     this.activityByChildId.set(
       child.manifest.childId,
@@ -99,6 +113,8 @@ export class ParentRuntime {
         child.manifest.childId,
       ),
     );
+
+    return child.manifest;
   }
 
   /**
@@ -170,7 +186,7 @@ export class ParentRuntime {
 
     RuntimeStore.clearTerminal(manifest.parentId, manifest.childId);
 
-    this.launch(manifest);
+    await this.launch(manifest);
 
     return { continuationKind, operation: "reopened" };
   }
@@ -459,7 +475,10 @@ export class ParentRuntime {
   /**
    * Starts one child process in the shared managed tmux window.
    */
-  private open(manifest: ChildManifest, initialPrompt?: string): ParentChild {
+  private async open(
+    manifest: ChildManifest,
+    initialPrompt?: string,
+  ): Promise<ParentChild> {
     const environment = {
       [CHILD_ID_ENV]: manifest.childId,
       [PARENT_PANE_ENV]: process.env.TMUX_PANE ?? "",
@@ -476,11 +495,14 @@ export class ParentRuntime {
 
     const command = this.childCommand(manifest, initialPrompt);
 
-    if (this.windowId && Tmux.runningPanes(this.windowId).length === 0)
+    if (
+      this.windowId &&
+      (await Tmux.runningPanesAsync(this.windowId)).length === 0
+    )
       this.windowId = undefined;
 
     if (!this.windowId) {
-      const created = Tmux.createWindow({
+      const created = await Tmux.createWindow({
         name: `side-quests-${manifest.parentId.split("-")[0]}`,
         cwd: manifest.cwd,
         command,
@@ -490,7 +512,7 @@ export class ParentRuntime {
       this.windowId = created.windowId;
 
       try {
-        Tmux.markManagedPane(created.paneId, manifest.childId);
+        await Tmux.markManagedPane(created.paneId, manifest.childId);
         RuntimeStore.writeChildRuntime({
           parentId: manifest.parentId,
           childId: manifest.childId,
@@ -509,7 +531,7 @@ export class ParentRuntime {
       }
     }
 
-    const paneId = Tmux.startPiPane({
+    const paneId = await Tmux.startPiPane({
       windowId: this.windowId,
       cwd: manifest.cwd,
       command,
@@ -517,8 +539,8 @@ export class ParentRuntime {
     });
 
     try {
-      Tmux.markManagedPane(paneId, manifest.childId);
-      Tmux.applyWindowLayout(this.windowId);
+      await Tmux.markManagedPane(paneId, manifest.childId);
+      await Tmux.applyWindowLayoutAsync(this.windowId);
 
       RuntimeStore.writeChildRuntime({
         parentId: manifest.parentId,
