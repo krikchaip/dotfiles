@@ -1,0 +1,276 @@
+#!/usr/bin/expect -f
+
+set timeout 1
+log_user 0
+set extension_path "/Users/asol/.pi/agent/extensions/blinking-cursor.ts"
+set temp_root "/tmp/blinking-cursor-e2e-[pid]"
+set work_dir "$temp_root/work"
+set state_dir "$temp_root/state"
+set fixture_path "$temp_root/fixture.ts"
+set startup_log "$temp_root/startup.ansi"
+set editor_log "$temp_root/editor.ansi"
+set focus_out_log "$temp_root/focus-out.ansi"
+set focus_in_log "$temp_root/focus-in.ansi"
+set dialog_log "$temp_root/dialog.ansi"
+set dialog_focus_log "$temp_root/dialog-focus.ansi"
+set scroll_log "$temp_root/scroll.ansi"
+set shutdown_log "$temp_root/shutdown.ansi"
+set columns 80
+set rows 24
+set active_spawn ""
+
+set begin_sync "\x1b\[?2026h"
+set end_sync "\x1b\[?2026l"
+set hide_cursor "\x1b\[?25l"
+set show_cursor "\x1b\[?25h"
+
+proc cleanup {} {
+  global active_spawn temp_root
+  if {$active_spawn ne ""} {
+    catch {send -i $active_spawn "\003\003"}
+    after 150
+    catch {close -i $active_spawn}
+    catch {wait -i $active_spawn}
+    set active_spawn ""
+  }
+  catch {log_file}
+  catch {file delete -force $temp_root}
+}
+
+proc readable {text} {
+  return [string map [list "\x1b" "<ESC>" "\x07" "<BEL>"] $text]
+}
+
+proc failure {message {content ""}} {
+  puts stderr "FAIL: $message"
+  if {$content ne ""} {
+    set start [expr {max(0, [string length $content] - 5000)}]
+    puts stderr [readable [string range $content $start end]]
+  }
+  cleanup
+  exit 1
+}
+
+proc read_binary {path} {
+  set channel [open $path r]
+  fconfigure $channel -translation binary -encoding binary
+  set content [read $channel]
+  close $channel
+  return $content
+}
+
+proc require_bytes {content needle label} {
+  if {[string first $needle $content] < 0} {
+    failure "missing $label" $content
+  }
+}
+
+proc forbid_bytes {content needle label} {
+  if {[string first $needle $content] >= 0} {
+    failure "unexpected $label" $content
+  }
+}
+
+proc drain_until {seconds pattern} {
+  global active_spawn
+  set deadline [expr {[clock milliseconds] + ($seconds * 1000)}]
+  while {[clock milliseconds] < $deadline} {
+    expect -i $active_spawn \
+      "\033\[c" { send -i $active_spawn -- "\033\[?1;2c"; exp_continue -continue_timer } \
+      "\033\[?u" { send -i $active_spawn -- "\033\[?0u"; exp_continue -continue_timer } \
+      "Trust project folder?" { failure "unexpected project trust prompt" } \
+      -re $pattern { return 1 } \
+      timeout {} \
+      eof { return 0 }
+  }
+  return 0
+}
+
+proc drain_for {seconds pattern} {
+  global active_spawn
+  set deadline [expr {[clock milliseconds] + ($seconds * 1000)}]
+  while {[clock milliseconds] < $deadline} {
+    expect -i $active_spawn \
+      "\033\[c" { send -i $active_spawn -- "\033\[?1;2c"; exp_continue -continue_timer } \
+      "\033\[?u" { send -i $active_spawn -- "\033\[?0u"; exp_continue -continue_timer } \
+      -re $pattern { exp_continue -continue_timer } \
+      timeout {} \
+      eof { return }
+  }
+}
+
+proc rotate_log {path} {
+  catch {log_file}
+  log_file -a -noappend $path
+}
+
+proc assert_scroll_frames_hide_cursor {content} {
+  global begin_sync end_sync hide_cursor show_cursor
+  set checked 0
+  set search_from 0
+
+  while {1} {
+    set begin_at [string first $begin_sync $content $search_from]
+    if {$begin_at < 0} break
+    set frame_start [expr {$begin_at + [string length $begin_sync]}]
+    set end_at [string first $end_sync $content $frame_start]
+    if {$end_at < 0} { set end_at [string length $content] }
+    set frame [string range $content $frame_start [expr {$end_at - 1}]]
+    set search_from [expr {$end_at + [string length $end_sync]}]
+
+    set move_count [regexp -all {\x1b\[[0-9]+;[0-9]+H} $frame]
+    if {[string first $show_cursor $frame] < 0 || $move_count < 2} continue
+
+    incr checked
+    regexp -indices {\x1b\[[0-9]+;[0-9]+H} $frame first_move
+    set first_move_at [lindex $first_move 0]
+    set hide_at [string first $hide_cursor $frame]
+    if {$hide_at < 0 || $hide_at > $first_move_at} {
+      failure "hardware cursor stayed visible while a rapid-scroll frame repainted transcript rows" $frame
+    }
+  }
+
+  if {$checked < 2} {
+    failure "rapid scrolling produced fewer than two cursor-bearing repaint frames" $content
+  }
+}
+
+file mkdir $work_dir
+file mkdir $state_dir
+set settings [open "$state_dir/settings.json" w]
+puts $settings { {"showHardwareCursor":true,"tuiMode":"fullscreen"} }
+close $settings
+
+set fixture [open $fixture_path w]
+puts $fixture {
+export default function (pi: any): void {
+  pi.on("session_start", (_event: unknown, ctx: any) => {
+    if (ctx.mode === "tui") ctx.ui.setStatus("cursor-e2e", "CURSOR_E2E_READY");
+  });
+
+  pi.registerCommand("cursor-dialog", {
+    description: "Open a cursorless dialog for focus testing",
+    handler: async (_args: string, ctx: any) => {
+      await ctx.ui.select("CURSOR_DIALOG_OPEN", ["Keep dialog open"]);
+    },
+  });
+
+  pi.registerCommand("seed-scroll", {
+    description: "Seed a long transcript for cursor scroll testing",
+    handler: () => {
+      for (let index = 1; index <= 80; index += 1) {
+        pi.sendMessage({
+          customType: "cursor-scroll-fixture",
+          content: `CURSOR_SCROLL_FIXTURE_${String(index).padStart(3, "0")} ${"transcript ".repeat(8)}`,
+          display: true,
+        });
+      }
+    },
+  });
+}
+}
+close $fixture
+
+if {![file exists $extension_path]} {
+  failure "runtime extension not found: $extension_path"
+}
+
+cd $work_dir
+log_file -a -noappend $startup_log
+spawn env TERM=xterm-256color COLORTERM=truecolor COLUMNS=$columns LINES=$rows \
+  PI_OFFLINE=1 PI_CODING_AGENT_DIR=$state_dir \
+  pi --tui-mode fullscreen --no-session --no-context-files --no-prompt-templates \
+  --no-themes --no-extensions --no-skills --no-tools \
+  -e $extension_path -e $fixture_path
+set active_spawn $spawn_id
+stty columns $columns rows $rows
+
+if {![drain_until 10 {CURSOR_E2E_READY}]} {
+  failure "Pi fullscreen TUI did not become ready" [read_binary $startup_log]
+}
+drain_for 1 {CURSOR_E2E_READY}
+set startup [read_binary $startup_log]
+require_bytes $startup "\x1b\[?1004h" "focus reporting enable"
+require_bytes $startup "\x1b\[1 q" "blinking block cursor mode"
+require_bytes $startup $show_cursor "hardware cursor show"
+
+rotate_log $editor_log
+send -i $active_spawn -- "X"
+if {![drain_until 5 {X}]} {
+  failure "editor input did not render" [read_binary $editor_log]
+}
+drain_for 0.25 {X}
+set editor [read_binary $editor_log]
+forbid_bytes $editor "\x1b\[7m" "inverse-video software cursor"
+
+rotate_log $focus_out_log
+send -i $active_spawn -- "\033\[O"
+if {![drain_until 3 {\x1b\[\?25l}]} {
+  failure "focus-out did not hide cursor" [read_binary $focus_out_log]
+}
+require_bytes [read_binary $focus_out_log] $hide_cursor "focus-out cursor hide"
+
+rotate_log $focus_in_log
+send -i $active_spawn -- "\033\[I"
+if {![drain_until 3 {\x1b\[\?25h}]} {
+  failure "focus-in did not show cursor" [read_binary $focus_in_log]
+}
+set focus_in [read_binary $focus_in_log]
+require_bytes $focus_in $show_cursor "focus-in cursor show"
+forbid_bytes $focus_in "\x1b\[1 q" "focus-in cursor-mode reset"
+
+rotate_log $dialog_log
+send -i $active_spawn -- "\025/cursor-dialog\r"
+if {![drain_until 5 {CURSOR_DIALOG_OPEN}]} {
+  failure "cursorless dialog did not open" [read_binary $dialog_log]
+}
+drain_for 0.25 {CURSOR_DIALOG_OPEN}
+require_bytes [read_binary $dialog_log] $hide_cursor "dialog cursor hide"
+
+rotate_log $dialog_focus_log
+send -i $active_spawn -- "\033\[O"
+if {![drain_until 3 {\x1b\[\?25l}]} {
+  failure "dialog focus-out did not hide cursor" [read_binary $dialog_focus_log]
+}
+rotate_log $dialog_focus_log
+send -i $active_spawn -- "\033\[I"
+drain_for 0.4 {CURSOR_DIALOG_OPEN}
+forbid_bytes [read_binary $dialog_focus_log] $show_cursor \
+  "stale hardware cursor show while dialog owns focus"
+send -i $active_spawn -- "\033"
+drain_for 0.5 {CURSOR_E2E_READY|X}
+
+rotate_log $startup_log
+send -i $active_spawn -- "\025/seed-scroll\r"
+if {![drain_until 8 {CURSOR_SCROLL_FIXTURE_080}]} {
+  failure "transcript fixture did not render" [read_binary $startup_log]
+}
+drain_for 0.5 {CURSOR_SCROLL_FIXTURE}
+
+rotate_log $scroll_log
+for {set burst 0} {$burst < 8} {incr burst} {
+  send -i $active_spawn -- "\033\[<64;40;10M\033\[<64;40;10M\033\[<64;40;10M\033\[<64;40;10M"
+  after 20
+  drain_for 0.08 {CURSOR_SCROLL_FIXTURE}
+}
+drain_for 0.5 {CURSOR_SCROLL_FIXTURE}
+set scroll [read_binary $scroll_log]
+assert_scroll_frames_hide_cursor $scroll
+
+rotate_log $shutdown_log
+send -i $active_spawn "\003\003"
+expect -i $active_spawn {
+  eof {}
+  timeout {}
+}
+catch {close -i $active_spawn}
+catch {wait -i $active_spawn}
+set active_spawn ""
+set shutdown [read_binary $shutdown_log]
+require_bytes $shutdown "\x1b\[?1004l" "focus reporting disable"
+require_bytes $shutdown "\x1b\[0 q" "default cursor restore"
+require_bytes $shutdown $show_cursor "shutdown cursor show"
+
+puts "PASS blinking-cursor real-PTY E2E: hardware blink, software-cursor removal, editor and dialog focus transitions, safe fullscreen rapid scrolling, and shutdown restore"
+cleanup
+exit 0
