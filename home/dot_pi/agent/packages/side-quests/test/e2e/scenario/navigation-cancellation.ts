@@ -1,3 +1,9 @@
+import {
+  fauxAssistantMessage,
+  fauxText,
+  fauxToolCall,
+} from "@earendil-works/pi-ai";
+
 import { configureBasicDelegation } from "../provider-support.ts";
 
 export const navigationCancellation: Scenario = {
@@ -9,10 +15,32 @@ export const navigationCancellation: Scenario = {
   },
   timeoutMs: 45_000,
   configureProvider(context) {
-    configureBasicDelegation(context, {
-      interactive: true,
-      prompt: "Stay open for navigation and cancellation E2E.",
-    });
+    if (context.role === "child") {
+      configureBasicDelegation(context, {
+        interactive: true,
+        prompt: "Stay open for navigation and cancellation E2E.",
+      });
+      return;
+    }
+
+    context.faux.setResponses([
+      fauxAssistantMessage(
+        [
+          fauxToolCall("Agent", {
+            description: "first navigation child",
+            interactive: true,
+            prompt: "Stay open as the first navigation child.",
+          }),
+          fauxToolCall("Agent", {
+            description: "second navigation child",
+            interactive: true,
+            prompt: "Stay open as the second navigation child.",
+          }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("Both navigation children are open.")),
+    ]);
   },
   async run(harness: E2EHarness) {
     const childPane = await harness.childPane();
@@ -90,5 +118,33 @@ export const navigationCancellation: Scenario = {
     await harness.waitFor("Yes", 5_000);
     await harness.sendParentKeys("Enter");
     await harness.waitFor("SUBAGENT CANCELLED");
+    await harness.waitUntil(
+      "one surviving managed child pane",
+      async () => (await harness.childPanes()).length === 1,
+      5_000,
+    );
+
+    const continuedNavigationView = await harness.capture();
+    harness.assert(
+      continuedNavigationView.includes("d close") &&
+        continuedNavigationView.includes("›"),
+      "Navigation closed after deleting one of multiple live children.",
+    );
+
+    await harness.sendParent("d");
+    await harness.waitFor("Close subagent?", 5_000);
+    await harness.sendParentKeys("Enter");
+    await harness.waitUntil(
+      "no managed child panes",
+      async () => (await harness.childPanes()).length === 0,
+      5_000,
+    );
+
+    const emptyNavigationView = await harness.capture();
+    harness.assert(
+      !emptyNavigationView.includes("d close") &&
+        !emptyNavigationView.includes("›"),
+      "Navigation stayed open after deleting the final live child.",
+    );
   },
 };

@@ -59,25 +59,40 @@ export class ParentCommands {
       return;
     }
 
-    const intent = await this.ui.selectLiveChild(context);
-    if (!intent) return;
+    let preferredChildId: string | undefined;
 
-    const child = this.runtime
-      .children()
-      .find((candidate) => candidate.manifest.childId === intent.childId);
-    if (!child) return;
+    while (this.runtime.children().length) {
+      const intent = await this.ui.selectLiveChild(context, preferredChildId);
+      if (!intent) return;
 
-    if (intent.action === "focus") {
-      this.runtime.focus(intent.childId);
-      return;
+      const live = this.runtime.children();
+      const selectedIndex = live.findIndex(
+        (candidate) => candidate.manifest.childId === intent.childId,
+      );
+      const child = live[selectedIndex];
+
+      if (!child) {
+        preferredChildId = live[0]?.manifest.childId;
+        continue;
+      }
+
+      if (intent.action === "focus") {
+        this.runtime.focus(intent.childId);
+        return;
+      }
+
+      const confirmed = await context.ui.confirm(
+        "Close subagent?",
+        `${child.manifest.displayName} — ${child.manifest.description}`,
+      );
+      if (!confirmed) return;
+
+      this.runtime.close(intent.childId);
+
+      const survivors = this.runtime.children();
+      preferredChildId =
+        survivors[Math.min(selectedIndex, survivors.length - 1)]?.manifest
+          .childId;
     }
-
-    const confirmed = await context.ui.confirm(
-      "Close subagent?",
-      `${child.manifest.displayName} — ${child.manifest.description}`,
-    );
-    if (!confirmed) return;
-
-    this.runtime.close(intent.childId);
   }
 }

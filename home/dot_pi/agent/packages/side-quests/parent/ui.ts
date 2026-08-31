@@ -105,12 +105,18 @@ export class ParentUI {
   /**
    * Runs scoped row navigation and returns one selected child intent.
    */
-  async selectLiveChild(context: ExtensionContext): Promise<NavigationIntent> {
+  async selectLiveChild(
+    context: ExtensionContext,
+    initialChildId?: string,
+  ): Promise<NavigationIntent> {
     const initial = this.runtime.children();
-    let selectedIndex = 0;
+    const initialIndex = initial.findIndex(
+      (child) => child.manifest.childId === initialChildId,
+    );
+    let selectedIndex = Math.max(0, initialIndex);
     let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
-    this.selectedChildId = initial[0]?.manifest.childId;
+    this.selectedChildId = initial[selectedIndex]?.manifest.childId;
     this.requestWidgetRender?.();
 
     const syncSelection = () => {

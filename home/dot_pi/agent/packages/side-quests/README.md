@@ -398,6 +398,8 @@ Navigation marks the selected row and displays key hints from your effective Pi 
 - `tui.select.cancel` returns to the editor.
 - `d` asks for confirmation before it closes the selected child.
 
+After a confirmed close, navigation stays active and selects the nearest surviving child. When the final child closes, navigation exits and the widget disappears.
+
 The parent widget has no interrupt action. To interrupt one child, open that child pane and use Pi's normal effective `app.interrupt` action.
 
 ## Child identity and lifecycle
