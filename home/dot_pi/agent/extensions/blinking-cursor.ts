@@ -16,14 +16,17 @@ const PATCH_STATE = Symbol.for("blinking-cursor.editor-render.patch");
 const UI_PATCH_STATE = Symbol.for("blinking-cursor.editor-component.patch");
 const TERMINAL_PATCH_STATE = Symbol.for("blinking-cursor.terminal-write.patch");
 const INVERSE_VIDEO = "\x1b[7m";
-const BLINKING_BLOCK_CURSOR = "\x1b[1 q";
+const STEADY_BLOCK_CURSOR = "\x1b[2 q";
 const DEFAULT_CURSOR = "\x1b[0 q";
+const BLINK_INTERVAL_MS = 500;
 const SHOW_CURSOR = "\x1b[?25h";
 const HIDE_CURSOR = "\x1b[?25l";
 const ENABLE_FOCUS_REPORTING = "\x1b[?1004h";
 const DISABLE_FOCUS_REPORTING = "\x1b[?1004l";
 const BEGIN_SYNCHRONIZED_OUTPUT = "\x1b[?2026h";
+const END_SYNCHRONIZED_OUTPUT = "\x1b[?2026l";
 const FOCUS_EVENT_PATTERN = /\x1b\[([IO])/g;
+const MOUSE_WHEEL_EVENT_PATTERN = /\x1b\[<6[45];\d+;\d+[Mm]/g;
 
 type EditorRender = (width: number) => string[];
 type EditorFactory = NonNullable<
@@ -34,6 +37,7 @@ type TerminalPatchState = {
   originalWrite: TerminalWrite;
   patchedWrite: TerminalWrite;
   renderRequestedCursor: boolean;
+  emittedCursorVisible: boolean;
 };
 type PatchableTerminal = Pick<Terminal, "write"> & {
   [TERMINAL_PATCH_STATE]?: TerminalPatchState;
@@ -109,29 +113,32 @@ function patchEditorRender(target: PatchableEditor): void {
 }
 
 /**
- * Inserts a cursor-hide command at the start of each synchronized repaint.
+ * Masks the hardware cursor while one synchronized repaint moves across rows.
  *
- * @param data - Terminal output that can contain synchronized repaint frames.
- * @returns Terminal output that hides the cursor before each repaint.
+ * Pi's cursor requests are removed because the fixed-phase blink clock owns
+ * visibility. The cursor is restored before the synchronized frame is shown
+ * only when the current blink phase requires it.
+ *
+ * @param data - Terminal output that contains a synchronized repaint frame.
+ * @param restoreCursor - Whether the cursor is visible in this blink phase.
+ * @returns Terminal output with repaint-safe cursor visibility commands.
  */
-function hideCursorBeforeSynchronizedRepaints(data: string): string {
-  if (!data.includes(BEGIN_SYNCHRONIZED_OUTPUT)) return data;
-
-  let output = "";
-  let sourceIndex = 0;
-  for (
-    let syncIndex = data.indexOf(BEGIN_SYNCHRONIZED_OUTPUT);
-    syncIndex >= 0;
-    syncIndex = data.indexOf(BEGIN_SYNCHRONIZED_OUTPUT, sourceIndex)
-  ) {
-    const repaintIndex = syncIndex + BEGIN_SYNCHRONIZED_OUTPUT.length;
-    output += data.slice(sourceIndex, repaintIndex);
-    if (!data.startsWith(HIDE_CURSOR, repaintIndex)) {
-      output += HIDE_CURSOR;
-    }
-    sourceIndex = repaintIndex;
+function maskCursorDuringSynchronizedRepaint(
+  data: string,
+  restoreCursor: boolean,
+): string {
+  let output = data.replaceAll(HIDE_CURSOR, "").replaceAll(SHOW_CURSOR, "");
+  output = output.replaceAll(
+    BEGIN_SYNCHRONIZED_OUTPUT,
+    BEGIN_SYNCHRONIZED_OUTPUT + HIDE_CURSOR,
+  );
+  if (restoreCursor) {
+    output = output.replaceAll(
+      END_SYNCHRONIZED_OUTPUT,
+      SHOW_CURSOR + END_SYNCHRONIZED_OUTPUT,
+    );
   }
-  return output + data.slice(sourceIndex);
+  return output;
 }
 
 /**
@@ -156,6 +163,7 @@ function requestedCursorVisibility(data: string): boolean | undefined {
 function patchTerminalWrite(
   terminal: PatchableTerminal,
   isTerminalFocused: () => boolean,
+  isBlinkVisible: () => boolean,
 ): void {
   if (terminal[TERMINAL_PATCH_STATE]) return;
 
@@ -176,16 +184,30 @@ function patchTerminalWrite(
       state.renderRequestedCursor = requestedVisibility;
     }
 
-    let output = hideCursorBeforeSynchronizedRepaints(data);
-    if (!isTerminalFocused()) {
-      output = output.replaceAll(SHOW_CURSOR, HIDE_CURSOR);
+    const shouldShowCursor =
+      isTerminalFocused() && isBlinkVisible() && state.renderRequestedCursor;
+    const isSynchronizedRepaint = data.includes(BEGIN_SYNCHRONIZED_OUTPUT);
+    if (isSynchronizedRepaint) {
+      originalWrite.call(
+        this,
+        maskCursorDuringSynchronizedRepaint(data, shouldShowCursor),
+      );
+      state.emittedCursorVisible = shouldShowCursor;
+      return;
     }
+
+    const output = data.replaceAll(HIDE_CURSOR, "").replaceAll(SHOW_CURSOR, "");
     originalWrite.call(this, output);
+    if (shouldShowCursor !== state.emittedCursorVisible) {
+      originalWrite.call(this, shouldShowCursor ? SHOW_CURSOR : HIDE_CURSOR);
+      state.emittedCursorVisible = shouldShowCursor;
+    }
   };
   state = {
     originalWrite,
     patchedWrite,
     renderRequestedCursor: true,
+    emittedCursorVisible: true,
   };
   terminal[TERMINAL_PATCH_STATE] = state;
   terminal.write = patchedWrite;
@@ -283,37 +305,12 @@ function removeEditorComponentPatch(ui: PatchableEditorUI): void {
 export default function blinkingCursor(pi: ExtensionAPI): void {
   let cursorControlsEnabled = false;
   let terminalFocused = true;
+  let blinkVisible = true;
+  let blinkTimer: ReturnType<typeof setTimeout> | undefined;
+  let nextBlinkAt = 0;
   let focusInputRemainder = "";
   let patchedUI: PatchableEditorUI | undefined;
   const cursorTuis = new Set<CursorTUI>();
-
-  /**
-   * Reports whether any registered TUI last requested a visible cursor.
-   *
-   * @returns `true` when a TUI render requested a visible cursor.
-   */
-  const renderRequestedCursor = (): boolean => {
-    for (const tui of cursorTuis) {
-      if (tui.terminal[TERMINAL_PATCH_STATE]?.renderRequestedCursor) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  /**
-   * Updates terminal focus and applies the active component's cursor request.
-   *
-   * @param focused - Whether the terminal or tmux pane now has focus.
-   */
-  const setTerminalFocused = (focused: boolean): void => {
-    if (terminalFocused === focused) return;
-    terminalFocused = focused;
-
-    process.stdout.write(
-      focused && renderRequestedCursor() ? SHOW_CURSOR : HIDE_CURSOR,
-    );
-  };
 
   /**
    * Reports the current terminal focus state to the terminal write patch.
@@ -323,16 +320,129 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   const isTerminalFocused = (): boolean => terminalFocused;
 
   /**
+   * Reports the current fixed-clock blink phase.
+   *
+   * @returns `true` during the visible half of the blink cycle.
+   */
+  const isBlinkVisible = (): boolean => blinkVisible;
+
+  /**
+   * Applies the current focus, component, and blink state to each terminal.
+   *
+   * @param force - Whether to emit a command even when visibility is unchanged.
+   */
+  const refreshCursorVisibility = (force = false): void => {
+    let foundTerminal = false;
+    for (const tui of cursorTuis) {
+      const state = tui.terminal[TERMINAL_PATCH_STATE];
+      if (!state) continue;
+      foundTerminal = true;
+      const shouldShowCursor =
+        terminalFocused && blinkVisible && state.renderRequestedCursor;
+      if (!force && shouldShowCursor === state.emittedCursorVisible) continue;
+      state.originalWrite.call(
+        tui.terminal,
+        shouldShowCursor ? SHOW_CURSOR : HIDE_CURSOR,
+      );
+      state.emittedCursorVisible = shouldShowCursor;
+    }
+
+    if (force && !foundTerminal) {
+      process.stdout.write(
+        terminalFocused && blinkVisible ? SHOW_CURSOR : HIDE_CURSOR,
+      );
+    }
+  };
+
+  /**
+   * Holds the cursor visible while keyboard input is active.
+   *
+   * Each input moves the next blink deadline without tying it to a render.
+   */
+  const noteKeyboardActivity = (): void => {
+    blinkVisible = true;
+    nextBlinkAt = performance.now() + BLINK_INTERVAL_MS;
+    refreshCursorVisibility();
+  };
+
+  /**
+   * Reports whether complete terminal input contains keyboard activity.
+   *
+   * Focus reports and wheel scrolling must not reset the blink clock.
+   *
+   * @param input - Complete terminal input without a partial focus sequence.
+   * @returns `true` when input should hold the cursor visible.
+   */
+  const containsKeyboardActivity = (input: string): boolean => {
+    return (
+      input
+        .replace(FOCUS_EVENT_PATTERN, "")
+        .replace(MOUSE_WHEEL_EVENT_PATTERN, "").length > 0
+    );
+  };
+
+  /**
+   * Advances the blink phase from an absolute deadline, not from render time.
+   */
+  const runBlinkClock = (): void => {
+    const now = performance.now();
+    if (now >= nextBlinkAt) {
+      const elapsedIntervals =
+        Math.floor((now - nextBlinkAt) / BLINK_INTERVAL_MS) + 1;
+      if (elapsedIntervals % 2 === 1) blinkVisible = !blinkVisible;
+      nextBlinkAt += elapsedIntervals * BLINK_INTERVAL_MS;
+      refreshCursorVisibility();
+    }
+
+    blinkTimer = setTimeout(
+      runBlinkClock,
+      Math.max(1, nextBlinkAt - performance.now()),
+    );
+    blinkTimer.unref();
+  };
+
+  /**
+   * Starts the fixed-phase cursor blink clock.
+   */
+  const startBlinkClock = (): void => {
+    if (blinkTimer) clearTimeout(blinkTimer);
+    blinkVisible = true;
+    nextBlinkAt = performance.now() + BLINK_INTERVAL_MS;
+    runBlinkClock();
+  };
+
+  /**
+   * Stops the fixed-phase cursor blink clock.
+   */
+  const stopBlinkClock = (): void => {
+    if (blinkTimer) clearTimeout(blinkTimer);
+    blinkTimer = undefined;
+    blinkVisible = true;
+  };
+
+  /**
+   * Updates terminal focus without requesting an expensive TUI repaint.
+   *
+   * @param focused - Whether the terminal or tmux pane now has focus.
+   */
+  const setTerminalFocused = (focused: boolean): void => {
+    if (terminalFocused === focused) return;
+    terminalFocused = focused;
+    refreshCursorVisibility(true);
+  };
+
+  /**
    * Registers a TUI and enables its hardware cursor marker handling.
    *
    * @param tui - The TUI instance to register.
    */
   const registerTUI: RegisterCursorTUI = (tui) => {
-    patchTerminalWrite(tui.terminal, isTerminalFocused);
+    patchTerminalWrite(tui.terminal, isTerminalFocused, isBlinkVisible);
     cursorTuis.add(tui);
     // Keep Pi's cursor-marker behavior active. The terminal patch masks cursor
-    // show commands while the pane or terminal window is unfocused.
+    // movement during repaints and owns the final visibility command.
     tui.showHardwareCursor = true;
+    refreshCursorVisibility();
   };
 
   /**
@@ -347,6 +457,10 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
       : input.endsWith("\x1b")
         ? "\x1b"
         : "";
+    const completeInput = focusInputRemainder
+      ? input.slice(0, -focusInputRemainder.length)
+      : input;
+    if (containsKeyboardActivity(completeInput)) noteKeyboardActivity();
 
     FOCUS_EVENT_PATTERN.lastIndex = 0;
     for (
@@ -374,8 +488,9 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
       // Focus reporting gives both tmux pane focus and terminal window focus.
       process.stdin.on("data", handleTerminalInput);
       process.stdout.write(
-        ENABLE_FOCUS_REPORTING + BLINKING_BLOCK_CURSOR + SHOW_CURSOR,
+        ENABLE_FOCUS_REPORTING + STEADY_BLOCK_CURSOR + SHOW_CURSOR,
       );
+      startBlinkClock();
       cursorControlsEnabled = true;
     } catch (error) {
       console.error("blinking-cursor: failed to patch editor", error);
@@ -391,6 +506,7 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
       patchedUI = undefined;
     }
     process.stdin.removeListener("data", handleTerminalInput);
+    stopBlinkClock();
     for (const tui of cursorTuis) {
       removeTerminalWritePatch(tui.terminal);
     }

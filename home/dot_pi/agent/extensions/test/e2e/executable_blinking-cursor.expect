@@ -9,6 +9,8 @@ set state_dir "$temp_root/state"
 set fixture_path "$temp_root/fixture.ts"
 set startup_log "$temp_root/startup.ansi"
 set editor_log "$temp_root/editor.ansi"
+set typing_log "$temp_root/typing.ansi"
+set blink_log "$temp_root/blink.ansi"
 set focus_out_log "$temp_root/focus-out.ansi"
 set focus_in_log "$temp_root/focus-in.ansi"
 set dialog_log "$temp_root/dialog.ansi"
@@ -99,13 +101,25 @@ proc drain_for {seconds pattern} {
   }
 }
 
+proc drain_ready {} {
+  global active_spawn
+  while {1} {
+    expect -i $active_spawn -timeout 0 \
+      "\033\[c" { send -i $active_spawn -- "\033\[?1;2c" } \
+      "\033\[?u" { send -i $active_spawn -- "\033\[?0u" } \
+      -re {(.|\n)+} {} \
+      timeout { return } \
+      eof { return }
+  }
+}
+
 proc rotate_log {path} {
   catch {log_file}
   log_file -a -noappend $path
 }
 
-proc assert_scroll_frames_hide_cursor {content} {
-  global begin_sync end_sync hide_cursor show_cursor
+proc assert_typing_frames_restore_cursor {content} {
+  global begin_sync end_sync show_cursor
   set checked 0
   set search_from 0
 
@@ -118,20 +132,80 @@ proc assert_scroll_frames_hide_cursor {content} {
     set frame [string range $content $frame_start [expr {$end_at - 1}]]
     set search_from [expr {$end_at + [string length $end_sync]}]
 
-    set move_count [regexp -all {\x1b\[[0-9]+;[0-9]+H} $frame]
-    if {[string first $show_cursor $frame] < 0 || $move_count < 2} continue
+    set moves [regexp -all -inline -indices {\x1b\[[0-9]+;[0-9]+H} $frame]
+    if {[llength $moves] < 2} continue
 
     incr checked
-    regexp -indices {\x1b\[[0-9]+;[0-9]+H} $frame first_move
-    set first_move_at [lindex $first_move 0]
-    set hide_at [string first $hide_cursor $frame]
-    if {$hide_at < 0 || $hide_at > $first_move_at} {
-      failure "hardware cursor stayed visible while a rapid-scroll frame repainted transcript rows" $frame
+    set last_move_end [lindex [lindex $moves end] 1]
+    set show_at [string last $show_cursor $frame]
+    if {$show_at < $last_move_end} {
+      failure "typing repaint did not finish with a solid visible cursor" $frame
     }
   }
 
-  if {$checked < 2} {
-    failure "rapid scrolling produced fewer than two cursor-bearing repaint frames" $content
+  if {$checked < 5} {
+    failure "continuous typing produced fewer than five cursor-bearing repaint frames" $content
+  }
+}
+
+proc assert_scroll_frames_mask_cursor {content} {
+  global begin_sync end_sync hide_cursor show_cursor
+  set checked 0
+  set visible_frames 0
+  set hidden_frames 0
+  set search_from 0
+
+  while {1} {
+    set begin_at [string first $begin_sync $content $search_from]
+    if {$begin_at < 0} break
+    set frame_start [expr {$begin_at + [string length $begin_sync]}]
+    set end_at [string first $end_sync $content $frame_start]
+    if {$end_at < 0} { set end_at [string length $content] }
+    set frame [string range $content $frame_start [expr {$end_at - 1}]]
+    set search_from [expr {$end_at + [string length $end_sync]}]
+
+    set move_count [regexp -all {\x1b\[[0-9]+;[0-9]+H} $frame]
+    if {$move_count < 2} continue
+
+    incr checked
+    set moves [regexp -all -inline -indices {\x1b\[[0-9]+;[0-9]+H} $frame]
+    set first_move_at [lindex [lindex $moves 0] 0]
+    set last_move_end [lindex [lindex $moves end] 1]
+    set hide_at [string first $hide_cursor $frame]
+    if {$hide_at < 0 || $hide_at > $first_move_at} {
+      failure "rapid-scroll repaint exposed the hardware cursor over transcript rows" $frame
+    }
+    set show_at [string first $show_cursor $frame]
+    if {$show_at >= 0 && $show_at < $last_move_end} {
+      failure "rapid-scroll repaint restored the cursor before transcript movement ended" $frame
+    }
+    if {$show_at >= 0} {
+      incr visible_frames
+    } else {
+      incr hidden_frames
+    }
+  }
+
+  if {$checked < 5} {
+    failure "rapid scrolling produced fewer than five cursor-bearing repaint frames" $content
+  }
+  if {$visible_frames < 1 || $hidden_frames < 1} {
+    failure "wheel scrolling reset the independent blink phase" $content
+  }
+}
+
+proc assert_shutdown_final_state {content} {
+  global hide_cursor show_cursor
+  set focus_disabled [string last "\x1b\[?1004l" $content]
+  set default_cursor [string last "\x1b\[0 q" $content]
+  set cursor_shown [string last $show_cursor $content]
+  set cursor_hidden [string last $hide_cursor $content]
+
+  if {$focus_disabled < 0 || $default_cursor < 0 || $cursor_shown < 0} {
+    failure "shutdown omitted terminal cursor restoration" $content
+  }
+  if {$cursor_shown < $default_cursor || $cursor_shown < $cursor_hidden} {
+    failure "shutdown did not leave the hardware cursor visible" $content
   }
 }
 
@@ -191,7 +265,8 @@ if {![drain_until 10 {CURSOR_E2E_READY}]} {
 drain_for 1 {CURSOR_E2E_READY}
 set startup [read_binary $startup_log]
 require_bytes $startup "\x1b\[?1004h" "focus reporting enable"
-require_bytes $startup "\x1b\[1 q" "blinking block cursor mode"
+require_bytes $startup "\x1b\[2 q" "steady block cursor mode"
+forbid_bytes $startup "\x1b\[1 q" "terminal-managed blinking cursor mode"
 require_bytes $startup $show_cursor "hardware cursor show"
 
 rotate_log $editor_log
@@ -203,6 +278,21 @@ drain_for 0.25 {X}
 set editor [read_binary $editor_log]
 forbid_bytes $editor "\x1b\[7m" "inverse-video software cursor"
 
+rotate_log $typing_log
+for {set key 0} {$key < 14} {incr key} {
+  send -i $active_spawn -- "z"
+  after 100
+}
+drain_for 0.5 {z}
+assert_typing_frames_restore_cursor [read_binary $typing_log]
+
+rotate_log $blink_log
+drain_for 1.3 {\x1b\[\?25[hl]}
+set blink [read_binary $blink_log]
+require_bytes $blink $hide_cursor "fixed-clock hidden blink phase"
+require_bytes $blink $show_cursor "fixed-clock visible blink phase"
+forbid_bytes $blink $begin_sync "repaint-driven blink timing"
+
 rotate_log $focus_out_log
 send -i $active_spawn -- "\033\[O"
 if {![drain_until 3 {\x1b\[\?25l}]} {
@@ -212,12 +302,10 @@ require_bytes [read_binary $focus_out_log] $hide_cursor "focus-out cursor hide"
 
 rotate_log $focus_in_log
 send -i $active_spawn -- "\033\[I"
-if {![drain_until 3 {\x1b\[\?25h}]} {
-  failure "focus-in did not show cursor" [read_binary $focus_in_log]
-}
+drain_for 1.2 {\x1b\[\?25[hl]}
 set focus_in [read_binary $focus_in_log]
-require_bytes $focus_in $show_cursor "focus-in cursor show"
-forbid_bytes $focus_in "\x1b\[1 q" "focus-in cursor-mode reset"
+require_bytes $focus_in $show_cursor "focus-in resumed visible blink phase"
+forbid_bytes $focus_in "\x1b\[2 q" "focus-in cursor-mode reset"
 
 rotate_log $dialog_log
 send -i $active_spawn -- "\025/cursor-dialog\r"
@@ -248,29 +336,27 @@ if {![drain_until 8 {CURSOR_SCROLL_FIXTURE_080}]} {
 drain_for 0.5 {CURSOR_SCROLL_FIXTURE}
 
 rotate_log $scroll_log
-for {set burst 0} {$burst < 8} {incr burst} {
-  send -i $active_spawn -- "\033\[<64;40;10M\033\[<64;40;10M\033\[<64;40;10M\033\[<64;40;10M"
-  after 20
-  drain_for 0.08 {CURSOR_SCROLL_FIXTURE}
+for {set wheel 0} {$wheel < 26} {incr wheel} {
+  set button [expr {$wheel % 2 == 0 ? 64 : 65}]
+  send -i $active_spawn -- "\033\[<$button;40;10M"
+  after 50
+  drain_ready
 }
 drain_for 0.5 {CURSOR_SCROLL_FIXTURE}
 set scroll [read_binary $scroll_log]
-assert_scroll_frames_hide_cursor $scroll
+assert_scroll_frames_mask_cursor $scroll
 
 rotate_log $shutdown_log
-send -i $active_spawn "\003\003"
-expect -i $active_spawn {
-  eof {}
-  timeout {}
+send -i $active_spawn -- "\025/quit\r"
+if {![drain_until 8 {\x1b\[0 q\x1b\[\?25h}]} {
+  failure "Pi did not restore the terminal cursor during shutdown" [read_binary $shutdown_log]
 }
 catch {close -i $active_spawn}
 catch {wait -i $active_spawn}
 set active_spawn ""
 set shutdown [read_binary $shutdown_log]
-require_bytes $shutdown "\x1b\[?1004l" "focus reporting disable"
-require_bytes $shutdown "\x1b\[0 q" "default cursor restore"
-require_bytes $shutdown $show_cursor "shutdown cursor show"
+assert_shutdown_final_state $shutdown
 
-puts "PASS blinking-cursor real-PTY E2E: hardware blink, software-cursor removal, editor and dialog focus transitions, safe fullscreen rapid scrolling, and shutdown restore"
+puts "PASS blinking-cursor real-PTY E2E: fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, masked fullscreen scrolling, and shutdown restore"
 cleanup
 exit 0
