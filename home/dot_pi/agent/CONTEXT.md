@@ -12,6 +12,18 @@ _Avoid_: Dotfile tweak, random plugin, agent hack
 A TypeScript module loaded by Pi to change behavior through lifecycle events, commands, tools, UI hooks, or runtime patches.
 _Avoid_: Plugin, script
 
+**Hex color token**:
+A color literal that starts with `#` and contains exactly six hexadecimal digits, such as `#FF8800`.
+_Avoid_: Bare hex value, three-digit color, eight-digit color
+
+**Hex color highlight**:
+A display-only style that uses a Hex color token's value as its background and uses a readable black or white foreground. Cursor and selection styles take priority.
+_Avoid_: Swatch, text color, source transformation
+
+**Visible TUI text**:
+Characters displayed by Pi's terminal components, excluding terminal control payloads, image pixels, and hidden hyperlink destinations.
+_Avoid_: Raw terminal output, image content, escape sequence payload
+
 **Package**:
 A reusable Pi add-on distributed or installed through Pi's package mechanism, which may provide extensions or related assets.
 _Avoid_: Dependency, plugin
