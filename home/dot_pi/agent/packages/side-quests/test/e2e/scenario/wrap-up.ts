@@ -132,7 +132,7 @@ function configureUnsuccessfulWrapUp(
   context.faux.setResponses([
     fauxAssistantMessage(fauxText(INITIAL_RESPONSE)),
     async (providerContext: Context) => {
-      await delay(outcome === "interrupted" ? 10_000 : 750);
+      await delay(750);
       if (
         !hasOnlyCompletionTool(providerContext) ||
         !hasWrapUpPrompt(providerContext, context.initialPrompt)
@@ -152,11 +152,9 @@ function configureUnsuccessfulWrapUp(
           errorMessage: "Synthetic wrap-up provider failure.",
         });
 
-      return outcome === "textless"
-        ? fauxAssistantMessage([])
-        : fauxAssistantMessage(
-            fauxText("Wrap-up interruption was not applied."),
-          );
+      return fauxAssistantMessage([], {
+        stopReason: outcome === "interrupted" ? "aborted" : "stop",
+      });
     },
     (providerContext: Context) =>
       hasTool(providerContext, "ask_parent")
@@ -173,18 +171,25 @@ function configureUnsuccessfulWrapUp(
   ]);
 }
 
+function hasActivityPhase(
+  harness: E2EHarness,
+  phase: "active" | "waiting",
+): boolean {
+  return harness.filesNamed("activity.json").some((path) => {
+    try {
+      return JSON.parse(harness.read(path)).phase === phase;
+    } catch {
+      return false;
+    }
+  });
+}
+
 async function waitForPhase(
   harness: E2EHarness,
   phase: "active" | "waiting",
 ): Promise<void> {
   await harness.waitUntil(`the child to become ${phase}`, () =>
-    harness.filesNamed("activity.json").some((path) => {
-      try {
-        return JSON.parse(harness.read(path)).phase === phase;
-      } catch {
-        return false;
-      }
-    }),
+    hasActivityPhase(harness, phase),
   );
 }
 
@@ -202,7 +207,6 @@ async function proveUnsuccessfulWrapUpRecovery(
 
   await harness.sendLiteral(childPane, "/subagent-done", true);
   await waitForPhase(harness, "active");
-  if (outcome === "interrupted") await harness.sendKeys(childPane, "Escape");
   if (outcome === "failed")
     await harness.waitForStoredText("Synthetic wrap-up provider failure.");
   await waitForWaiting(harness);

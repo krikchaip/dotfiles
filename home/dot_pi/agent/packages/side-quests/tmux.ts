@@ -93,6 +93,40 @@ export class Tmux {
   }
 
   /**
+   * Returns recorded process states for pane IDs with one tmux query.
+   */
+  public static paneProcessStates(
+    paneIds: readonly string[],
+  ): ReadonlyMap<string, PaneProcessState> {
+    const requested = new Set(paneIds.filter(Boolean));
+    if (!requested.size) return new Map();
+
+    const result = Tmux.run([
+      "list-panes",
+      "-a",
+      "-F",
+      "#{pane_id}\t#{pane_dead}\t#{pane_dead_status}\t#{pane_dead_signal}",
+    ]);
+
+    if (result.status !== 0) return new Map();
+
+    const states = new Map<string, PaneProcessState>();
+    for (const line of Tmux.output(result.stdout).split("\n")) {
+      const [paneId, rawDead, rawStatus, rawSignal] = line.split("\t");
+      if (!paneId || !requested.has(paneId)) continue;
+
+      const status = rawStatus ? Number(rawStatus) : undefined;
+      states.set(paneId, {
+        dead: rawDead === "1",
+        ...(Number.isInteger(status) ? { exitStatus: status } : {}),
+        ...(rawSignal ? { exitSignal: rawSignal } : {}),
+      });
+    }
+
+    return states;
+  }
+
+  /**
    * Lists all panes in a window and their recorded process state.
    */
   public static runningPanes(windowId: string): Pane[] {

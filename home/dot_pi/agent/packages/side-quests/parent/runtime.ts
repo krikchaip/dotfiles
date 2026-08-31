@@ -6,7 +6,11 @@ import type {
 
 import { RESULT_MESSAGE_TYPE } from "../renderer/side-quest-result-renderer.ts";
 import { CHILD_ID_ENV, PARENT_PANE_ENV } from "../role.ts";
-import { RuntimeStore, type TerminalState } from "../store/runtime.ts";
+import {
+  type ActivitySnapshot,
+  RuntimeStore,
+  type TerminalState,
+} from "../store/runtime.ts";
 import { type ChildManifest, SessionStore } from "../store/session.ts";
 import { Tmux } from "../tmux.ts";
 
@@ -55,6 +59,12 @@ export class ParentRuntime {
   /** Records managed children by child ID. */
   private childrenById = new Map<string, ParentChild>();
 
+  /** Caches child activity so widget repaint does not read files. */
+  private activityByChildId = new Map<string, ActivitySnapshot | undefined>();
+
+  /** Caches unanswered-request state so widget repaint does not read files. */
+  private replyPendingByChildId = new Map<string, boolean>();
+
   /** Records parent events that Pi already received. */
   private deliveredEvents = new Set<string>();
 
@@ -75,6 +85,20 @@ export class ParentRuntime {
   launch(manifest: ChildManifest, initialPrompt?: string): void {
     const child = this.open(manifest, initialPrompt);
     this.childrenById.set(child.manifest.childId, child);
+    this.activityByChildId.set(
+      child.manifest.childId,
+      RuntimeStore.readActivity(
+        child.manifest.parentId,
+        child.manifest.childId,
+      ),
+    );
+    this.replyPendingByChildId.set(
+      child.manifest.childId,
+      !!SessionStore.readRequest(
+        child.manifest.parentId,
+        child.manifest.childId,
+      ),
+    );
   }
 
   /**
@@ -107,6 +131,11 @@ export class ParentRuntime {
       manifest.parentId,
       manifest.childId,
     );
+    this.activityByChildId.set(
+      manifest.childId,
+      RuntimeStore.readActivity(manifest.parentId, manifest.childId),
+    );
+    this.replyPendingByChildId.set(manifest.childId, !!request);
     const continuationKind = request ? "answer" : "steer";
 
     SessionStore.writeResponse(manifest.parentId, {
@@ -147,12 +176,10 @@ export class ParentRuntime {
   }
 
   /**
-   * Lists live children whose tmux panes still exist.
+   * Lists children retained by the one-second liveness poll.
    */
   children(): readonly ParentChild[] {
-    return [...this.childrenById.values()].filter((child) =>
-      Tmux.paneExists(child.paneId),
-    );
+    return [...this.childrenById.values()];
   }
 
   /**
@@ -199,6 +226,9 @@ export class ParentRuntime {
       Tmux.applyWindowLayout(child.windowId);
 
     this.childrenById.delete(childId);
+    this.activityByChildId.delete(childId);
+    this.replyPendingByChildId.delete(childId);
+    this.missingPanes.delete(childId);
   }
 
   /**
@@ -213,10 +243,12 @@ export class ParentRuntime {
    * Gets the current activity state for a child.
    */
   status(child: ParentChild): "starting" | "active" | "waiting" | "stalled" {
-    const snapshot = RuntimeStore.readActivity(
-      child.manifest.parentId,
-      child.manifest.childId,
-    );
+    const snapshot = this.childrenById.has(child.manifest.childId)
+      ? this.activityByChildId.get(child.manifest.childId)
+      : RuntimeStore.readActivity(
+          child.manifest.parentId,
+          child.manifest.childId,
+        );
 
     if (!snapshot) return "starting";
     if (Date.now() - snapshot.heartbeatAt >= 60_000) return "stalled";
@@ -228,10 +260,12 @@ export class ParentRuntime {
    * Reports whether a child has an unanswered parent request.
    */
   replyPending(child: ParentChild): boolean {
-    return !!SessionStore.readRequest(
-      child.manifest.parentId,
-      child.manifest.childId,
-    );
+    return this.childrenById.has(child.manifest.childId)
+      ? (this.replyPendingByChildId.get(child.manifest.childId) ?? false)
+      : !!SessionStore.readRequest(
+          child.manifest.parentId,
+          child.manifest.childId,
+        );
   }
 
   /**
@@ -259,6 +293,9 @@ export class ParentRuntime {
         Tmux.closePane(child.paneId);
 
       this.childrenById.clear();
+      this.activityByChildId.clear();
+      this.replyPendingByChildId.clear();
+      this.missingPanes.clear();
     });
   }
 
@@ -302,11 +339,23 @@ export class ParentRuntime {
    * Polls managed children for parent requests and terminal outcomes.
    */
   private poll(): void {
+    const processStates = Tmux.paneProcessStates(
+      [...this.childrenById.values()].map((child) => child.paneId),
+    );
+
     for (const child of this.childrenById.values()) {
       const request = SessionStore.readRequest(
         child.manifest.parentId,
         child.manifest.childId,
       );
+      this.activityByChildId.set(
+        child.manifest.childId,
+        RuntimeStore.readActivity(
+          child.manifest.parentId,
+          child.manifest.childId,
+        ),
+      );
+      this.replyPendingByChildId.set(child.manifest.childId, !!request);
 
       if (request) {
         this.deliver(
@@ -329,7 +378,7 @@ export class ParentRuntime {
           child.manifest.childId,
         );
 
-      const processState = Tmux.paneProcessState(child.paneId);
+      const processState = processStates.get(child.paneId);
 
       // A live pane clears a prior transient absence and has no outcome yet.
       if (!terminal && processState && !processState.dead) {
@@ -376,7 +425,7 @@ export class ParentRuntime {
 
       if (processState?.dead) Tmux.closePane(child.paneId);
 
-      if (Tmux.paneExists(child.paneId)) continue;
+      if (processState && !processState.dead) continue;
 
       const text = [
         `Subagent ${terminal.kind}: ${child.manifest.displayName} — ${child.manifest.description}`,
@@ -401,6 +450,9 @@ export class ParentRuntime {
       });
 
       this.childrenById.delete(child.manifest.childId);
+      this.activityByChildId.delete(child.manifest.childId);
+      this.replyPendingByChildId.delete(child.manifest.childId);
+      this.missingPanes.delete(child.manifest.childId);
     }
   }
 

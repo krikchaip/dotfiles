@@ -1,7 +1,10 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { type ParentChild, ParentRuntime } from "../../parent/runtime.ts";
@@ -85,6 +88,86 @@ test.each(["autonomous", "interactive"] as const)(
     );
   },
 );
+
+test("lists tracked children without probing tmux during render", () => {
+  vi.spyOn(Tmux, "createWindow").mockReturnValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+  const paneExists = vi.spyOn(Tmux, "paneExists");
+  const parent = runtime();
+  parent.launch(child.manifest);
+  paneExists.mockClear();
+
+  expect(parent.children()).toEqual([child]);
+  expect(paneExists).not.toHaveBeenCalled();
+});
+
+test("serves tracked widget state without reading files during render", () => {
+  vi.spyOn(Tmux, "createWindow").mockReturnValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+  const readActivity = vi.spyOn(RuntimeStore, "readActivity");
+  const readRequest = vi.spyOn(SessionStore, "readRequest");
+  const parent = runtime();
+  parent.launch(child.manifest);
+  readActivity.mockClear();
+  readRequest.mockClear();
+
+  expect(parent.status(child)).toBe("starting");
+  expect(parent.replyPending(child)).toBe(false);
+  expect(parent.status(child)).toBe("starting");
+  expect(parent.replyPending(child)).toBe(false);
+  expect(readActivity).not.toHaveBeenCalled();
+  expect(readRequest).not.toHaveBeenCalled();
+});
+
+test("polls all child process states with one tmux query", () => {
+  vi.useFakeTimers();
+  const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));
+  temporaryRoots.push(root);
+  process.env.PI_CODING_AGENT_DIR = root;
+
+  let sessionStart:
+    | ((event: unknown, context: ExtensionContext) => void)
+    | undefined;
+  const pi = {
+    on(
+      event: string,
+      handler: (event: unknown, context: ExtensionContext) => void,
+    ) {
+      if (event === "session_start") sessionStart = handler;
+    },
+  } as unknown as ExtensionAPI;
+
+  vi.spyOn(Tmux, "createWindow").mockReturnValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockImplementation(() => {});
+  const processStates = vi
+    .spyOn(Tmux, "paneProcessStates")
+    .mockReturnValue(new Map([[child.paneId, { dead: false }]]));
+  const processState = vi.spyOn(Tmux, "paneProcessState");
+  const paneExists = vi.spyOn(Tmux, "paneExists");
+
+  const parent = ParentRuntime.register(pi);
+  parent.launch(child.manifest);
+  sessionStart?.({}, {
+    sessionManager: {
+      getSessionId: () => child.manifest.parentId,
+    },
+  } as unknown as ExtensionContext);
+  vi.advanceTimersByTime(1_000);
+
+  expect(processStates).toHaveBeenCalledOnce();
+  expect(processStates).toHaveBeenCalledWith([child.paneId]);
+  expect(processState).not.toHaveBeenCalled();
+  expect(paneExists).not.toHaveBeenCalled();
+});
 
 test("reports starting when no activity snapshot exists", () => {
   expect(runtime().status(child)).toBe("starting");

@@ -17,6 +17,7 @@ import { lifecycle } from "./scenario/lifecycle.ts";
 import { narrowWidgets } from "./scenario/narrow-widgets.ts";
 import { navigationCancellation } from "./scenario/navigation-cancellation.ts";
 import { outside } from "./scenario/outside.ts";
+import { parentResponsiveness } from "./scenario/parent-responsiveness.ts";
 import { parent } from "./scenario/parent.ts";
 import { pendingRequestClosure } from "./scenario/pending-request-closure.ts";
 import {
@@ -75,6 +76,7 @@ export const scenarios: readonly Scenario[] = [
   staleTerminalResponse,
   terminalTakeover,
   navigationCancellation,
+  parentResponsiveness,
   unmarkedClosure,
   narrowWidgets,
   widgetSpacing,
