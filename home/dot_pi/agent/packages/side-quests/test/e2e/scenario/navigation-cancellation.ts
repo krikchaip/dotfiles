@@ -50,10 +50,13 @@ export const navigationCancellation: Scenario = {
     await harness.waitFor("close", 5_000);
 
     const navigationView = await harness.capture();
+    const navigationHintLine = navigationView
+      .split("\n")
+      .find((line) => line.includes("d close"));
 
     harness.assert(
-      navigationView.includes("d close"),
-      "Navigation did not render the literal close-key hint.",
+      navigationHintLine?.search(/\S/) === 3,
+      "Navigation key hints did not align with the widget content.",
     );
     harness.assert(
       navigationView.includes("›"),

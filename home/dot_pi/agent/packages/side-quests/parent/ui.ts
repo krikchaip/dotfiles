@@ -187,15 +187,18 @@ export class ParentUI {
 
           return {
             render: (width: number) => {
+              const text = (value: string) =>
+                new Text(value, 3, 0).render(width);
+
               if (!confirmation)
-                return [truncateToWidth(navigationHints, width, "")];
+                return text(
+                  truncateToWidth(navigationHints, Math.max(0, width - 6), ""),
+                );
 
               const option = (index: number, label: string) =>
                 confirmation?.selectedIndex === index
                   ? theme.fg("accent", "→ ") + theme.fg("accent", label)
                   : `  ${theme.fg("text", label)}`;
-              const text = (value: string) =>
-                new Text(value, 3, 0).render(width);
               const title = theme.fg(
                 "accent",
                 theme.bold(
