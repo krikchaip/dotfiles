@@ -49,7 +49,7 @@ export class ParentCommands {
   }
 
   /**
-   * Applies the selected pane-navigation intent.
+   * Keeps pane navigation mounted while it focuses and closes children.
    */
   private async handleSideQuests(context: ExtensionContext): Promise<void> {
     if (context.mode !== "tui") return;
@@ -59,10 +59,14 @@ export class ParentCommands {
       return;
     }
 
-    const intent = await this.ui.selectLiveChild(context, (childId) => {
-      this.runtime.close(childId);
-    });
-
-    if (intent) this.runtime.focus(intent.childId);
+    await this.ui.selectLiveChild(
+      context,
+      (childId) => {
+        this.runtime.close(childId);
+      },
+      (childId) => {
+        this.runtime.focus(childId);
+      },
+    );
   }
 }

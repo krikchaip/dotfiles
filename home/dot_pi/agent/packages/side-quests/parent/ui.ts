@@ -31,16 +31,6 @@ import type { ParentRuntime } from "./runtime.ts";
 const REFRESH_INTERVAL_MS = 1_000;
 
 /**
- * Describes the pane selected for focus from live-child navigation.
- */
-export type NavigationIntent =
-  | Readonly<{
-      /** Identifies the selected managed child. */
-      childId: string;
-    }>
-  | undefined;
-
-/**
  * Describes one rendered row in the live-child widget.
  */
 export type WidgetRow = Readonly<{
@@ -106,7 +96,8 @@ export class ParentUI {
   async selectLiveChild(
     context: ExtensionContext,
     closeChild: (childId: string) => void,
-  ): Promise<NavigationIntent> {
+    focusChild: (childId: string) => void,
+  ): Promise<void> {
     let selectedIndex = 0;
     let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -132,192 +123,186 @@ export class ParentUI {
     };
 
     try {
-      return await context.ui.custom<NavigationIntent>(
-        (tui, theme, keybindings, done) => {
-          let confirmation:
-            | {
-                childId: string;
-                description: string;
-                displayName: string;
-                selectedIndex: number;
-              }
-            | undefined;
-          let finished = false;
-
-          const finish = (intent: NavigationIntent) => {
-            if (finished) return;
-            finished = true;
-            done(intent);
-          };
-
-          const requestRender = () => {
-            this.requestWidgetRender?.();
-            tui.requestRender();
-          };
-
-          refreshTimer = setInterval(() => {
-            const live = syncSelection();
-            if (!live.length) return finish(undefined);
-
-            if (
-              confirmation &&
-              !live.some(
-                (child) => child.manifest.childId === confirmation?.childId,
-              )
-            ) {
-              confirmation = undefined;
+      await context.ui.custom<void>((tui, theme, keybindings, done) => {
+        let confirmation:
+          | {
+              childId: string;
+              description: string;
+              displayName: string;
+              selectedIndex: number;
             }
+          | undefined;
+        let finished = false;
 
-            tui.requestRender();
-          }, REFRESH_INTERVAL_MS);
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          done(undefined);
+        };
 
-          const separator = theme.fg("muted", " · ");
-          const navigationHints = [
-            keyHint("tui.select.up", "up"),
-            keyHint("tui.select.down", "down"),
-            keyHint("tui.select.confirm", "open"),
-            rawKeyHint("d", "close"),
-            keyHint("tui.select.cancel", "cancel"),
-          ].join(separator);
-          const confirmationHints = [
-            rawKeyHint("↑↓", "navigate"),
-            keyHint("tui.select.confirm", "select"),
-            keyHint("tui.select.cancel", "cancel"),
-          ].join("  ");
+        const requestRender = () => {
+          this.requestWidgetRender?.();
+          tui.requestRender();
+        };
 
-          return {
-            render: (width: number) => {
-              const text = (value: string) =>
-                new Text(value, 3, 0).render(width);
+        refreshTimer = setInterval(() => {
+          const live = syncSelection();
+          if (!live.length) return finish();
 
-              if (!confirmation)
-                return text(
-                  truncateToWidth(navigationHints, Math.max(0, width - 6), ""),
+          if (
+            confirmation &&
+            !live.some(
+              (child) => child.manifest.childId === confirmation?.childId,
+            )
+          ) {
+            confirmation = undefined;
+          }
+
+          tui.requestRender();
+        }, REFRESH_INTERVAL_MS);
+
+        const separator = theme.fg("muted", " · ");
+        const navigationHints = [
+          keyHint("tui.select.up", "up"),
+          keyHint("tui.select.down", "down"),
+          keyHint("tui.select.confirm", "open"),
+          rawKeyHint("d", "close"),
+          keyHint("tui.select.cancel", "cancel"),
+        ].join(separator);
+        const confirmationHints = [
+          rawKeyHint("↑↓", "navigate"),
+          keyHint("tui.select.confirm", "select"),
+          keyHint("tui.select.cancel", "cancel"),
+        ].join("  ");
+
+        return {
+          render: (width: number) => {
+            const text = (value: string) => new Text(value, 3, 0).render(width);
+
+            if (!confirmation)
+              return text(
+                truncateToWidth(navigationHints, Math.max(0, width - 6), ""),
+              );
+
+            const option = (index: number, label: string) =>
+              confirmation?.selectedIndex === index
+                ? theme.fg("accent", "→ ") + theme.fg("accent", label)
+                : `  ${theme.fg("text", label)}`;
+            const title = theme.fg(
+              "accent",
+              theme.bold(
+                `Close subagent?\n${confirmation.displayName} — ${confirmation.description}`,
+              ),
+            );
+            const border = theme.fg(
+              "borderAccent",
+              "─".repeat(Math.max(1, width)),
+            );
+
+            return [
+              border,
+              "",
+              ...text(title),
+              "",
+              ...text(option(0, "Yes")),
+              ...text(option(1, "No")),
+              "",
+              ...text(confirmationHints),
+              "",
+              border,
+            ];
+          },
+          invalidate() {},
+          handleInput: (data: string) => {
+            const live = syncSelection();
+            if (!live.length) return finish();
+
+            if (confirmation) {
+              if (keybindings.matches(data, "tui.select.up") || data === "k") {
+                confirmation.selectedIndex = Math.max(
+                  0,
+                  confirmation.selectedIndex - 1,
                 );
-
-              const option = (index: number, label: string) =>
-                confirmation?.selectedIndex === index
-                  ? theme.fg("accent", "→ ") + theme.fg("accent", label)
-                  : `  ${theme.fg("text", label)}`;
-              const title = theme.fg(
-                "accent",
-                theme.bold(
-                  `Close subagent?\n${confirmation.displayName} — ${confirmation.description}`,
-                ),
-              );
-              const border = theme.fg(
-                "borderAccent",
-                "─".repeat(Math.max(1, width)),
-              );
-
-              return [
-                border,
-                "",
-                ...text(title),
-                "",
-                ...text(option(0, "Yes")),
-                ...text(option(1, "No")),
-                "",
-                ...text(confirmationHints),
-                "",
-                border,
-              ];
-            },
-            invalidate() {},
-            handleInput: (data: string) => {
-              const live = syncSelection();
-              if (!live.length) return finish(undefined);
-
-              if (confirmation) {
-                if (
-                  keybindings.matches(data, "tui.select.up") ||
-                  data === "k"
-                ) {
-                  confirmation.selectedIndex = Math.max(
-                    0,
-                    confirmation.selectedIndex - 1,
-                  );
-                  tui.requestRender();
-                  return;
-                }
-
-                if (
-                  keybindings.matches(data, "tui.select.down") ||
-                  data === "j"
-                ) {
-                  confirmation.selectedIndex = Math.min(
-                    1,
-                    confirmation.selectedIndex + 1,
-                  );
-                  tui.requestRender();
-                  return;
-                }
-
-                if (keybindings.matches(data, "tui.select.confirm")) {
-                  if (confirmation.selectedIndex === 1) {
-                    confirmation = undefined;
-                    requestRender();
-                    return;
-                  }
-
-                  const childId = confirmation.childId;
-                  confirmation = undefined;
-                  closeChild(childId);
-
-                  if (!syncSelection().length) return finish(undefined);
-                  requestRender();
-                  return;
-                }
-
-                if (keybindings.matches(data, "tui.select.cancel")) {
-                  confirmation = undefined;
-                  requestRender();
-                  return;
-                }
-
-                return;
-              }
-
-              if (keybindings.matches(data, "tui.select.up")) {
-                selectedIndex =
-                  selectedIndex === 0 ? live.length - 1 : selectedIndex - 1;
-                this.selectedChildId = live[selectedIndex]?.manifest.childId;
-                requestRender();
-                return;
-              }
-
-              if (keybindings.matches(data, "tui.select.down")) {
-                selectedIndex = (selectedIndex + 1) % live.length;
-                this.selectedChildId = live[selectedIndex]?.manifest.childId;
-                requestRender();
-                return;
-              }
-
-              if (keybindings.matches(data, "tui.select.confirm")) {
-                if (!this.selectedChildId) return finish(undefined);
-                return finish({ childId: this.selectedChildId });
-              }
-
-              if (data === "d") {
-                const selected = live[selectedIndex];
-                if (!selected) return finish(undefined);
-
-                confirmation = {
-                  childId: selected.manifest.childId,
-                  description: selected.manifest.description,
-                  displayName: selected.manifest.displayName,
-                  selectedIndex: 0,
-                };
                 tui.requestRender();
                 return;
               }
 
-              if (keybindings.matches(data, "tui.select.cancel"))
-                return finish(undefined);
-            },
-          };
-        },
-      );
+              if (
+                keybindings.matches(data, "tui.select.down") ||
+                data === "j"
+              ) {
+                confirmation.selectedIndex = Math.min(
+                  1,
+                  confirmation.selectedIndex + 1,
+                );
+                tui.requestRender();
+                return;
+              }
+
+              if (keybindings.matches(data, "tui.select.confirm")) {
+                if (confirmation.selectedIndex === 1) {
+                  confirmation = undefined;
+                  requestRender();
+                  return;
+                }
+
+                const childId = confirmation.childId;
+                confirmation = undefined;
+                closeChild(childId);
+
+                if (!syncSelection().length) return finish();
+                requestRender();
+                return;
+              }
+
+              if (keybindings.matches(data, "tui.select.cancel")) {
+                confirmation = undefined;
+                requestRender();
+                return;
+              }
+
+              return;
+            }
+
+            if (keybindings.matches(data, "tui.select.up")) {
+              selectedIndex =
+                selectedIndex === 0 ? live.length - 1 : selectedIndex - 1;
+              this.selectedChildId = live[selectedIndex]?.manifest.childId;
+              requestRender();
+              return;
+            }
+
+            if (keybindings.matches(data, "tui.select.down")) {
+              selectedIndex = (selectedIndex + 1) % live.length;
+              this.selectedChildId = live[selectedIndex]?.manifest.childId;
+              requestRender();
+              return;
+            }
+
+            if (keybindings.matches(data, "tui.select.confirm")) {
+              if (!this.selectedChildId) return finish();
+              focusChild(this.selectedChildId);
+              return;
+            }
+
+            if (data === "d") {
+              const selected = live[selectedIndex];
+              if (!selected) return finish();
+
+              confirmation = {
+                childId: selected.manifest.childId,
+                description: selected.manifest.description,
+                displayName: selected.manifest.displayName,
+                selectedIndex: 0,
+              };
+              tui.requestRender();
+              return;
+            }
+
+            if (keybindings.matches(data, "tui.select.cancel")) return finish();
+          },
+        };
+      });
     } finally {
       if (refreshTimer) clearInterval(refreshTimer);
       this.selectedChildId = undefined;

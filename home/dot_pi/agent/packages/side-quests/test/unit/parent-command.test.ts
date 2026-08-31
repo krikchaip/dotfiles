@@ -3,10 +3,13 @@ import { expect, test, vi } from "vitest";
 
 import { ParentCommands } from "../../parent/command.ts";
 import type { ParentChild, ParentRuntime } from "../../parent/runtime.ts";
-import type { NavigationIntent, ParentUI } from "../../parent/ui.ts";
+import type { ParentUI } from "../../parent/ui.ts";
 
 type Command = Parameters<ExtensionAPI["registerCommand"]>[1];
-type NavigationEvent = NavigationIntent | { readonly closeChildId: string };
+type NavigationEvent =
+  | { readonly closeChildId: string }
+  | { readonly focusChildId: string }
+  | undefined;
 
 function child(childId: string): ParentChild {
   return {
@@ -32,17 +35,14 @@ function fixture(options: {
     async (
       _context: unknown,
       closeChild: (childId: string) => void,
-    ): Promise<NavigationIntent> => {
+      focusChild: (childId: string) => void,
+    ): Promise<void> => {
       for (const event of options.events) {
-        if (event && "closeChildId" in event) {
-          closeChild(event.closeChildId);
-          continue;
-        }
+        if (!event) return;
 
-        return event;
+        if ("closeChildId" in event) closeChild(event.closeChildId);
+        if ("focusChildId" in event) focusChild(event.focusChildId);
       }
-
-      return undefined;
     },
   );
 
@@ -103,10 +103,10 @@ test("confirmed deletion closes navigation after the final child", async () => {
   expect(scenario.selectLiveChild).toHaveBeenCalledOnce();
 });
 
-test("opening a selected child focuses its pane", async () => {
+test("opening a selected child focuses its pane without remounting", async () => {
   const scenario = fixture({
     children: [child("selected")],
-    events: [{ childId: "selected" }],
+    events: [{ focusChildId: "selected" }, undefined],
   });
 
   await scenario.command.handler("", scenario.context as never);

@@ -43,13 +43,36 @@ export const navigationCancellation: Scenario = {
     ]);
   },
   async run(harness: E2EHarness) {
-    const childPane = await harness.childPane();
+    let childPane = "";
+    await harness.waitUntil(
+      "two managed child panes",
+      async () => {
+        const panes = await harness.childPanes();
+        childPane = panes[1] ?? "";
+        return panes.length === 2;
+      },
+      15_000,
+    );
     await harness.waitFor("[general-purpose]", 15_000, childPane);
 
     await harness.sendParentKeys("S-Up");
     await harness.waitFor("close", 5_000);
+    await harness.sendParentKeys("Down");
 
-    const navigationView = await harness.capture();
+    let navigationView = "";
+    await harness.waitUntil(
+      "navigation to select the second live child",
+      async () => {
+        navigationView = await harness.capture();
+        return navigationView
+          .split("\n")
+          .some(
+            (line) =>
+              line.includes("›") && line.includes("second navigation child"),
+          );
+      },
+      5_000,
+    );
     const navigationHintLine = navigationView
       .split("\n")
       .find((line) => line.includes("d close"));
@@ -58,11 +81,6 @@ export const navigationCancellation: Scenario = {
       navigationHintLine?.search(/\S/) === 3,
       "Navigation key hints did not align with the widget content.",
     );
-    harness.assert(
-      navigationView.includes("›"),
-      "Navigation did not mark the selected live-child row.",
-    );
-
     await harness.sendParentKeys("Enter");
     await harness.waitUntil(
       "navigation to activate the managed child window",
@@ -95,8 +113,16 @@ export const navigationCancellation: Scenario = {
       5_000,
     );
 
-    await harness.sendParent("/side-quests", true);
-    await harness.waitFor("close", 5_000);
+    const retainedNavigationView = await harness.waitFor("d close", 5_000);
+    harness.assert(
+      retainedNavigationView
+        .split("\n")
+        .some(
+          (line) =>
+            line.includes("›") && line.includes("second navigation child"),
+        ),
+      "Pane navigation closed or lost the last selected row after returning.",
+    );
     await Bun.sleep(250);
     const beforeConfirmation = harness.read(harness.logPath);
     await harness.sendParent("d");
@@ -231,11 +257,16 @@ export const navigationCancellation: Scenario = {
       5_000,
     );
 
-    const emptyNavigationView = await harness.capture();
-    harness.assert(
-      !emptyNavigationView.includes("d close") &&
-        !emptyNavigationView.includes("›"),
-      "Navigation stayed open after deleting the final live child.",
+    await harness.waitUntil(
+      "navigation to close after deleting the final live child",
+      async () => {
+        const emptyNavigationView = await harness.capture();
+        return (
+          !emptyNavigationView.includes("d close") &&
+          !emptyNavigationView.includes("›")
+        );
+      },
+      5_000,
     );
   },
 };
