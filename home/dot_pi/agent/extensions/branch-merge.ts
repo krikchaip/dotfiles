@@ -1468,6 +1468,8 @@ async function generateMergeArtifactsWithSpinner(
   }
 }
 
+const POST_MERGE_TEXT_INDENT = "  ";
+
 function postMergeLineWidth(width: number) {
   return Math.max(1, width);
 }
@@ -1540,10 +1542,10 @@ class PostMergeActionPicker implements Component {
     const lines = [
       postMergeBorder(this.theme, width),
       "",
-      this.theme.fg(
+      `${POST_MERGE_TEXT_INDENT}${this.theme.fg(
         "accent",
         this.theme.bold("Merge complete. Select next action:"),
-      ),
+      )}`,
       "",
     ];
 
@@ -1554,17 +1556,17 @@ class PostMergeActionPicker implements Component {
         index === this.selected ? this.theme.fg("accent", "→") : " ";
       const label =
         index === this.selected ? this.theme.fg("accent", text) : text;
-      lines.push(` ${prefix} ${label}`);
+      lines.push(`${POST_MERGE_TEXT_INDENT}${prefix} ${label}`);
     }
 
     lines.push(
       "",
-      this.theme.fg(
+      `${POST_MERGE_TEXT_INDENT}${this.theme.fg(
         "muted",
         `↑↓ navigate · <cr> select · <esc> stay · 1–${this.items.length} select`,
-      ),
+      )}`,
       "",
-      `${this.theme.fg("muted", "Target")} ${this.theme.fg("warning", sessionIdPrefix(this.params.targetSessionId))} ${this.theme.fg("muted", "← Source")} ${this.theme.fg("success", sessionIdPrefix(this.params.sourceSessionId))}`,
+      `${POST_MERGE_TEXT_INDENT}${this.theme.fg("muted", "Target")} ${this.theme.fg("warning", sessionIdPrefix(this.params.targetSessionId))} ${this.theme.fg("muted", "← Source")} ${this.theme.fg("success", sessionIdPrefix(this.params.sourceSessionId))}`,
       "",
       postMergeBorder(this.theme, width),
     );
@@ -2134,9 +2136,10 @@ type BranchShortcutPatchState = {
 };
 
 function installBranchShortcutAdapter() {
-  const prototype = InteractiveMode.prototype as unknown as BranchInteractiveMode & {
-    [BRANCH_SHORTCUT_ADAPTER]?: BranchShortcutPatchState;
-  };
+  const prototype =
+    InteractiveMode.prototype as unknown as BranchInteractiveMode & {
+      [BRANCH_SHORTCUT_ADAPTER]?: BranchShortcutPatchState;
+    };
   if (prototype[BRANCH_SHORTCUT_ADAPTER]) return;
   if (typeof prototype.setupExtensionShortcuts !== "function") {
     throw new Error("InteractiveMode.setupExtensionShortcuts unavailable");
