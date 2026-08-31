@@ -16,7 +16,7 @@ run.ts
         -> asserts the user journey
 ```
 
-Tmux provides the real PTY and replaces the old Expect harness.
+Tmux provides the real PTY and replaces the old Expect harness. Scenarios run in parallel by default, but each scenario uses a separate tmux server, Pi state directory, working directory, and artifact set.
 
 ## Required programs
 
@@ -34,10 +34,11 @@ The fake provider comes from `@earendil-works/pi-ai` in the package dependencies
 The central entrypoint:
 
 1. Applies the runtime extension with chezmoi.
-2. Creates one temporary run directory and one isolated tmux socket.
+2. Creates one temporary run directory and one isolated tmux socket per scenario.
 3. Selects scenarios.
-4. runs each scenario with a watchdog timeout.
-5. Cleans resources after success or keeps artifacts after failure.
+4. Runs scenarios through a bounded parallel worker pool with one watchdog per scenario.
+5. Runs exclusive timing scenarios without other active scenario workers.
+6. Stops active workers on the first failure, then cleans resources or keeps artifacts.
 
 `SIDE_QUESTS_E2E_MODES` filters managed scenarios. The runner always includes the first three startup checks: `outside`, `parent`, and `child`.
 
@@ -96,6 +97,7 @@ This folder contains only test cases. Each file defines one user journey as a `S
 ```ts
 interface Scenario {
   readonly name: string;
+  readonly exclusive?: boolean;
   readonly process: ScenarioProcess;
   readonly timeoutMs?: number;
   readonly width?: number;
@@ -104,7 +106,7 @@ interface Scenario {
 }
 ```
 
-`configureProvider()` defines deterministic parent and child model replies. `run()` drives the real terminal and checks the result.
+`configureProvider()` defines deterministic parent and child model replies. `run()` drives the real terminal and checks the result. Set `exclusive` only for machine-level timing scenarios whose measurements would be invalid under parallel test load.
 
 Common `process` options:
 
@@ -123,10 +125,11 @@ Common `process` options:
 
 ### 1. Select and isolate
 
-`run.ts` creates a temporary directory and tmux socket. Each scenario gets its own working directory, Pi state directory, status file, ANSI log, and launch script.
+`run.ts` creates a temporary directory. Each scenario gets its own tmux socket, working directory, Pi state directory, status file, ANSI log, and launch script.
 
 ```text
 run directory/
+  N.sock
   scenario-cwd/
   scenario-state/
   scenario-launch.sh
@@ -206,10 +209,18 @@ parent prompt
 
 ## Commands
 
-Run all scenarios:
+Run all scenarios with the default bounded parallelism:
 
 ```nu
 bun run test:e2e
+```
+
+Set the worker count explicitly. Use `1` to reproduce sequential execution:
+
+```nu
+with-env { SIDE_QUESTS_E2E_JOBS: "2" } {
+  bun run test:e2e
+}
 ```
 
 Run one managed scenario plus the three startup scenarios:
@@ -238,7 +249,7 @@ bun run test:prompt
 
 ## Failure artifacts
 
-The runner prints the retained artifact directory on failure. Inspect these first:
+The runner stops active scenarios after the first failure and prints the retained artifact directory. Inspect these first:
 
 - `SCENARIO.ansi`: raw terminal output
 - `SCENARIO.status`: Pi process exit status

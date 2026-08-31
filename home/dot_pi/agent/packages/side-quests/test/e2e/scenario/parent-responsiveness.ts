@@ -81,6 +81,7 @@ async function medianNavigationLatency(harness: E2EHarness): Promise<number> {
 
 export const parentResponsiveness: Scenario = {
   name: "parent-responsiveness",
+  exclusive: true,
   process: { managed: true },
   timeoutMs: 60_000,
   configureProvider(context) {

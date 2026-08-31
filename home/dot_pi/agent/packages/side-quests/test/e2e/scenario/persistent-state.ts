@@ -1,3 +1,6 @@
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   fauxAssistantMessage,
   fauxText,
@@ -6,6 +9,22 @@ import {
 
 import { assertManagedStorage } from "../persistent-state-storage.ts";
 import { delay, fauxSubagentDone, sessionPath } from "../provider-support.ts";
+
+const childPausedGate = "persistent-state-child-paused";
+
+async function waitForChildPaused(): Promise<void> {
+  const stateDirectory = process.env.PI_CODING_AGENT_DIR;
+  if (!stateDirectory) throw new Error("Missing isolated Pi state directory.");
+
+  const gate = join(stateDirectory, childPausedGate);
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (existsSync(gate)) return;
+    await delay(20);
+  }
+
+  throw new Error("Storage child was not paused before the parent response.");
+}
 
 function processDescendants(rootPid: number): number[] {
   const snapshot = Bun.spawnSync(["ps", "-axo", "pid=,ppid="]);
@@ -78,10 +97,9 @@ export const persistentState: Scenario = {
       ),
       fauxAssistantMessage(fauxText("The delegated work is in progress.")),
       async (context: { messages: unknown }) => {
-        // Give the harness time to pause the child before the parent writes the
-        // response. Without this boundary, the child can consume both mailbox
-        // files before their permissions are checked.
-        await delay(1_000);
+        // The harness pauses the child before opening this gate. The child
+        // cannot consume either mailbox file before its permissions are checked.
+        await waitForChildPaused();
         const resume = sessionPath(
           context.messages,
           /Resume:\s*([^"\n]+session\.jsonl)/,
@@ -132,6 +150,7 @@ export const persistentState: Scenario = {
     const descendants = processDescendants(childPid);
     const childProcesses = descendants.length > 0 ? descendants : [childPid];
     signalProcesses([...childProcesses].reverse(), "SIGSTOP");
+    writeFileSync(join(harness.stateDirectory, childPausedGate), "ready\n");
 
     try {
       await harness.waitFor("Which persistence value should I use?");

@@ -55,12 +55,16 @@ async function execute(
 
 /** Removes all resources owned by one complete E2E run. */
 export async function cleanupHarnessRun(
-  socket: string,
+  sockets: readonly string[],
   runDirectory: string,
   keepArtifacts: boolean,
 ): Promise<void> {
-  await execute(["tmux", "-S", socket, "kill-server"], true);
-  rmSync(socket, { force: true });
+  await Promise.all(
+    sockets.map(async (socket) => {
+      await execute(["tmux", "-S", socket, "kill-server"], true);
+      rmSync(socket, { force: true });
+    }),
+  );
   if (!keepArtifacts) rmSync(runDirectory, { force: true, recursive: true });
 }
 
@@ -78,6 +82,7 @@ export class E2EHarness {
   readonly stateDirectory: string;
   readonly workDirectory: string;
 
+  #aborted = false;
   #logDonePath: string;
   #paneId = "";
   #statusPath: string;
@@ -263,6 +268,7 @@ export class E2EHarness {
     const deadline = Date.now() + timeoutMs;
 
     while (Date.now() < deadline) {
+      if (this.#aborted) throw new Error(`E2E scenario aborted: ${this.name}`);
       if (await predicate()) return;
       await Bun.sleep(POLL_MS);
     }
@@ -329,6 +335,7 @@ export class E2EHarness {
   }
 
   async abort(): Promise<void> {
+    this.#aborted = true;
     if (!this.#paneId) return;
     await execute(
       [...this.#tmuxCommand, "kill-pane", "-t", this.#paneId],

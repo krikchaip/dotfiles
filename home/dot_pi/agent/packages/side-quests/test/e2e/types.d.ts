@@ -27,6 +27,7 @@ declare global {
 
   interface Scenario {
     readonly name: string;
+    readonly exclusive?: boolean;
     readonly process: ScenarioProcess;
     readonly timeoutMs?: number;
     readonly width?: number;
