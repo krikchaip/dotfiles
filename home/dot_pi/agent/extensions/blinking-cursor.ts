@@ -355,11 +355,12 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   };
 
   /**
-   * Holds the cursor visible while keyboard input is active.
+   * Holds the cursor visible until one full idle interval has elapsed.
    *
-   * Each input moves the next blink deadline without tying it to a render.
+   * Keyboard activity and focus-in both restart this delay without requesting
+   * a TUI repaint.
    */
-  const noteKeyboardActivity = (): void => {
+  const holdCursorVisible = (): void => {
     blinkVisible = true;
     nextBlinkAt = performance.now() + BLINK_INTERVAL_MS;
     refreshCursorVisibility();
@@ -428,6 +429,10 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   const setTerminalFocused = (focused: boolean): void => {
     if (terminalFocused === focused) return;
     terminalFocused = focused;
+    if (focused) {
+      holdCursorVisible();
+      return;
+    }
     refreshCursorVisibility(true);
   };
 
@@ -460,7 +465,7 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
     const completeInput = focusInputRemainder
       ? input.slice(0, -focusInputRemainder.length)
       : input;
-    if (containsKeyboardActivity(completeInput)) noteKeyboardActivity();
+    if (containsKeyboardActivity(completeInput)) holdCursorVisible();
 
     FOCUS_EVENT_PATTERN.lastIndex = 0;
     for (

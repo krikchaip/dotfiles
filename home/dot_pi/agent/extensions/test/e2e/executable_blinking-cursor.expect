@@ -293,6 +293,9 @@ require_bytes $blink $hide_cursor "fixed-clock hidden blink phase"
 require_bytes $blink $show_cursor "fixed-clock visible blink phase"
 forbid_bytes $blink $begin_sync "repaint-driven blink timing"
 
+if {![drain_until 2 {\x1b\[\?25l}]} {
+  failure "could not align focus-out with a hidden blink phase" [read_binary $blink_log]
+}
 rotate_log $focus_out_log
 send -i $active_spawn -- "\033\[O"
 if {![drain_until 3 {\x1b\[\?25l}]} {
@@ -302,10 +305,16 @@ require_bytes [read_binary $focus_out_log] $hide_cursor "focus-out cursor hide"
 
 rotate_log $focus_in_log
 send -i $active_spawn -- "\033\[I"
-drain_for 1.2 {\x1b\[\?25[hl]}
-set focus_in [read_binary $focus_in_log]
-require_bytes $focus_in $show_cursor "focus-in resumed visible blink phase"
-forbid_bytes $focus_in "\x1b\[2 q" "focus-in cursor-mode reset"
+after 400
+drain_ready
+set solid_focus_in [read_binary $focus_in_log]
+require_bytes $solid_focus_in $show_cursor "immediate focus-in cursor show"
+forbid_bytes $solid_focus_in $hide_cursor "focus-in blink before idle delay"
+forbid_bytes $solid_focus_in "\x1b\[2 q" "focus-in cursor-mode reset"
+after 200
+drain_ready
+require_bytes [read_binary $focus_in_log] $hide_cursor \
+  "focus-in blink after idle delay"
 
 rotate_log $dialog_log
 send -i $active_spawn -- "\025/cursor-dialog\r"
