@@ -6,6 +6,7 @@ import {
   rawKeyHint,
 } from "@earendil-works/pi-coding-agent";
 import {
+  Text,
   sliceByColumn,
   truncateToWidth,
   visibleWidth,
@@ -179,45 +180,44 @@ export class ParentUI {
             keyHint("tui.select.cancel", "cancel"),
           ].join(separator);
           const confirmationHints = [
-            keyHint("tui.select.up", "navigate"),
+            rawKeyHint("↑↓", "navigate"),
             keyHint("tui.select.confirm", "select"),
             keyHint("tui.select.cancel", "cancel"),
-          ].join(separator);
+          ].join("  ");
 
           return {
             render: (width: number) => {
               if (!confirmation)
                 return [truncateToWidth(navigationHints, width, "")];
 
-              const option = (index: number, label: string) => {
-                const marker =
-                  confirmation?.selectedIndex === index ? "→ " : "  ";
-                const color =
-                  confirmation?.selectedIndex === index ? "accent" : "text";
-                return theme.fg(color, `${marker}${label}`);
-              };
+              const option = (index: number, label: string) =>
+                confirmation?.selectedIndex === index
+                  ? theme.fg("accent", "→ ") + theme.fg("accent", label)
+                  : `  ${theme.fg("text", label)}`;
+              const text = (value: string) =>
+                new Text(value, 3, 0).render(width);
+              const title = theme.fg(
+                "accent",
+                theme.bold(
+                  `Close subagent?\n${confirmation.displayName} — ${confirmation.description}`,
+                ),
+              );
+              const border = theme.fg(
+                "borderAccent",
+                "─".repeat(Math.max(1, width)),
+              );
 
               return [
-                truncateToWidth(
-                  theme.fg("accent", theme.bold("Close subagent?")),
-                  width,
-                  "",
-                ),
-                truncateToWidth(
-                  theme.fg(
-                    "accent",
-                    theme.bold(
-                      `${confirmation.displayName} — ${confirmation.description}`,
-                    ),
-                  ),
-                  width,
-                  "",
-                ),
+                border,
                 "",
-                truncateToWidth(option(0, "Yes"), width, ""),
-                truncateToWidth(option(1, "No"), width, ""),
+                ...text(title),
                 "",
-                truncateToWidth(confirmationHints, width, ""),
+                ...text(option(0, "Yes")),
+                ...text(option(1, "No")),
+                "",
+                ...text(confirmationHints),
+                "",
+                border,
               ];
             },
             invalidate() {},
@@ -228,17 +228,34 @@ export class ParentUI {
               if (confirmation) {
                 if (
                   keybindings.matches(data, "tui.select.up") ||
-                  keybindings.matches(data, "tui.select.down")
+                  data === "k"
                 ) {
-                  confirmation.selectedIndex =
-                    confirmation.selectedIndex === 0 ? 1 : 0;
+                  confirmation.selectedIndex = Math.max(
+                    0,
+                    confirmation.selectedIndex - 1,
+                  );
+                  tui.requestRender();
+                  return;
+                }
+
+                if (
+                  keybindings.matches(data, "tui.select.down") ||
+                  data === "j"
+                ) {
+                  confirmation.selectedIndex = Math.min(
+                    1,
+                    confirmation.selectedIndex + 1,
+                  );
                   tui.requestRender();
                   return;
                 }
 
                 if (keybindings.matches(data, "tui.select.confirm")) {
-                  if (confirmation.selectedIndex === 1)
-                    return finish(undefined);
+                  if (confirmation.selectedIndex === 1) {
+                    confirmation = undefined;
+                    requestRender();
+                    return;
+                  }
 
                   const childId = confirmation.childId;
                   confirmation = undefined;
@@ -249,8 +266,11 @@ export class ParentUI {
                   return;
                 }
 
-                if (keybindings.matches(data, "tui.select.cancel"))
-                  return finish(undefined);
+                if (keybindings.matches(data, "tui.select.cancel")) {
+                  confirmation = undefined;
+                  requestRender();
+                  return;
+                }
 
                 return;
               }

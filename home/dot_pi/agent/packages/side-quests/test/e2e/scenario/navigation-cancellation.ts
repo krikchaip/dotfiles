@@ -44,6 +44,7 @@ export const navigationCancellation: Scenario = {
   },
   async run(harness: E2EHarness) {
     const childPane = await harness.childPane();
+    await harness.waitFor("[general-purpose]", 15_000, childPane);
 
     await harness.sendParentKeys("S-Up");
     await harness.waitFor("close", 5_000);
@@ -60,46 +61,114 @@ export const navigationCancellation: Scenario = {
     );
 
     await harness.sendParentKeys("Enter");
-    await Bun.sleep(500);
-
-    const active = (
-      await harness.tmux(
-        "display-message",
-        "-p",
-        "-t",
-        childPane,
-        "#{window_active}",
-      )
-    ).trim();
-
-    harness.assert(
-      active === "1",
-      "Navigation confirm did not activate the managed child window.",
+    await harness.waitUntil(
+      "navigation to activate the managed child window",
+      async () =>
+        (
+          await harness.tmux(
+            "display-message",
+            "-p",
+            "-t",
+            childPane,
+            "#{window_active}",
+          )
+        ).trim() === "1",
+      5_000,
     );
 
-    await harness.sendKeys(childPane, "S-Up");
-    await Bun.sleep(500);
-
-    const parentActive = (
-      await harness.tmux(
-        "display-message",
-        "-p",
-        "-t",
-        harness.parentPane,
-        "#{window_active}",
-      )
-    ).trim();
-
-    harness.assert(
-      parentActive === "1",
-      "Child Shift+Up did not return focus to the parent tmux pane.",
+    await harness.sendLiteral(childPane, "\u001B[1;2A");
+    await harness.waitUntil(
+      "child Shift+Up to activate the parent window",
+      async () =>
+        (
+          await harness.tmux(
+            "display-message",
+            "-p",
+            "-t",
+            harness.parentPane,
+            "#{window_active}",
+          )
+        ).trim() === "1",
+      5_000,
     );
 
     await harness.sendParent("/side-quests", true);
     await harness.waitFor("close", 5_000);
+    await Bun.sleep(250);
+    const beforeConfirmation = harness.read(harness.logPath);
+    await harness.sendParent("d");
+    const confirmationView = await harness.waitFor("Close subagent?", 5_000);
+    await Bun.sleep(250);
+    const confirmationOutput = harness
+      .read(harness.logPath)
+      .slice(beforeConfirmation.length);
+    const confirmationLines = confirmationView.split("\n");
+    const confirmationTitleIndex = confirmationLines.findIndex((line) =>
+      line.includes("Close subagent?"),
+    );
+    const confirmationHintIndex = confirmationLines.findIndex((line) =>
+      line.includes("↑↓ navigate"),
+    );
+    const timerLine = confirmationLines.find((line) =>
+      /\d{2}:\d{2}:\d{2}/.test(line),
+    );
+    const borderAccent = "\u001B[38;2;0;215;255m─";
+    harness.assert(
+      confirmationTitleIndex >= 2 &&
+        confirmationLines[confirmationTitleIndex - 1]?.trim() === "" &&
+        /^─+$/.test(
+          confirmationLines[confirmationTitleIndex - 2]?.trim() ?? "",
+        ) &&
+        confirmationHintIndex > confirmationTitleIndex &&
+        confirmationLines[confirmationHintIndex + 1]?.trim() === "" &&
+        /^─+$/.test(
+          confirmationLines[confirmationHintIndex + 2]?.trim() ?? "",
+        ) &&
+        confirmationLines[confirmationTitleIndex]?.indexOf(
+          "Close subagent?",
+        ) === 3 &&
+        timerLine?.search(/\d{2}:\d{2}:\d{2}/) === 3 &&
+        confirmationOutput.split(borderAccent).length - 1 >= 2,
+      "Close confirmation did not match the aligned accent-border UI.",
+    );
+
+    await harness.sendParentKeys("Escape");
+    let cancelledConfirmationView = "";
+    await harness.waitUntil(
+      "cancelled confirmation to return to widget navigation",
+      async () => {
+        cancelledConfirmationView = await harness.capture();
+        return (
+          cancelledConfirmationView.includes("d close") &&
+          !cancelledConfirmationView.includes("Close subagent?")
+        );
+      },
+      5_000,
+    );
+    harness.assert(
+      cancelledConfirmationView.includes("›"),
+      "Cancelling close confirmation did not return focus to the widget.",
+    );
+
     await harness.sendParent("d");
     await harness.waitFor("Close subagent?", 5_000);
     await harness.sendParentKeys("Down", "Enter");
+    let declinedConfirmationView = "";
+    await harness.waitUntil(
+      "declined confirmation to return to widget navigation",
+      async () => {
+        declinedConfirmationView = await harness.capture();
+        return (
+          declinedConfirmationView.includes("d close") &&
+          !declinedConfirmationView.includes("Close subagent?")
+        );
+      },
+      5_000,
+    );
+    harness.assert(
+      declinedConfirmationView.includes("›"),
+      "Selecting No did not return focus to the widget.",
+    );
 
     await Bun.sleep(500);
 
@@ -112,8 +181,6 @@ export const navigationCancellation: Scenario = {
       "Cancelling close confirmation removed the child pane.",
     );
 
-    await harness.sendParent("/side-quests", true);
-    await harness.waitFor("close", 5_000);
     await harness.sendParent("d");
     await harness.waitFor("Yes", 5_000);
     await Bun.sleep(250);
