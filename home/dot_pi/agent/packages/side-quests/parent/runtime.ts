@@ -530,6 +530,10 @@ export class ParentRuntime {
       if (!windowId) return;
 
       const selection = await Tmux.selectedPaneId(windowId);
+      if ("missing" in selection) {
+        if (this.windowId === windowId) this.windowId = undefined;
+        return;
+      }
       if ("error" in selection) {
         this.warnTitleFailure(selection.error);
         return;

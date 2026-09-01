@@ -32,10 +32,12 @@ type WindowTitleControl =
   | Readonly<{ state: "error"; error: string }>;
 
 /**
- * Contains the selected pane or the tmux inspection error.
+ * Contains the selected pane, expected window absence, or inspection error.
  */
 type SelectedPaneResult =
-  Readonly<{ paneId: string }> | Readonly<{ error: string }>;
+  | Readonly<{ paneId: string }>
+  | Readonly<{ missing: true }>
+  | Readonly<{ error: string }>;
 
 /** Stores permanent title ownership on the tmux window. */
 const TITLE_OWNER_OPTION = "@side_quests_title_owner";
@@ -394,17 +396,20 @@ export class Tmux {
     windowId: string,
   ): Promise<SelectedPaneResult> {
     const result = await Tmux.runAsync(
-      ["display-message", "-p", "-t", windowId, "#{pane_id}"],
+      ["list-windows", "-a", "-F", "#{window_id}\t#{pane_id}"],
       undefined,
       undefined,
       TITLE_COMMAND_TIMEOUT_MS,
     );
     if (result.status !== 0) return { error: Tmux.error(result) };
 
-    const paneId = Tmux.output(result.stdout).trim();
-    return paneId
-      ? { paneId }
-      : { error: "tmux produced an empty selected pane ID." };
+    for (const line of Tmux.output(result.stdout).split("\n")) {
+      const [listedWindowId, paneId] = line.split("\t");
+      if (listedWindowId === windowId)
+        return paneId ? { paneId } : { missing: true };
+    }
+
+    return { missing: true };
   }
 
   /**
