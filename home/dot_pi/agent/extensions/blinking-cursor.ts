@@ -38,6 +38,7 @@ type TerminalPatchState = {
   patchedWrite: TerminalWrite;
   renderRequestedCursor: boolean;
   emittedCursorVisible: boolean;
+  synchronizedOutputBuffer?: string;
 };
 type PatchableTerminal = Pick<Terminal, "write"> & {
   [TERMINAL_PATCH_STATE]?: TerminalPatchState;
@@ -121,29 +122,26 @@ function patchEditorRender(
 }
 
 /**
- * Applies a cursor visibility transition at a synchronized frame boundary.
+ * Hides the hardware cursor while a synchronized repaint moves across rows.
  *
  * Pi's cursor requests are removed because the fixed-phase blink clock owns
- * visibility. A frame that keeps the same state emits no cursor command. This
- * prevents tmux from exposing a short hide/show pulse during normal repaints.
+ * visibility. tmux synchronized-update support keeps these internal cursor
+ * transitions out of the displayed frame.
  *
- * @param data - Terminal output that contains a synchronized repaint frame.
- * @param cursorWasVisible - Whether the terminal cursor is currently visible.
- * @param cursorShouldBeVisible - Whether it must be visible after this frame.
- * @returns Terminal output with only the required visibility transition.
+ * @param data - One complete synchronized repaint frame.
+ * @param restoreCursor - Whether the cursor must be visible after the frame.
+ * @returns A frame that hides before movement and restores after movement.
  */
-function applyCursorTransitionToSynchronizedRepaint(
+function protectSynchronizedRepaint(
   data: string,
-  cursorWasVisible: boolean,
-  cursorShouldBeVisible: boolean,
+  restoreCursor: boolean,
 ): string {
   let output = data.replaceAll(HIDE_CURSOR, "").replaceAll(SHOW_CURSOR, "");
-  if (cursorWasVisible && !cursorShouldBeVisible) {
-    output = output.replaceAll(
-      BEGIN_SYNCHRONIZED_OUTPUT,
-      BEGIN_SYNCHRONIZED_OUTPUT + HIDE_CURSOR,
-    );
-  } else if (!cursorWasVisible && cursorShouldBeVisible) {
+  output = output.replaceAll(
+    BEGIN_SYNCHRONIZED_OUTPUT,
+    BEGIN_SYNCHRONIZED_OUTPUT + HIDE_CURSOR,
+  );
+  if (restoreCursor) {
     output = output.replaceAll(
       END_SYNCHRONIZED_OUTPUT,
       SHOW_CURSOR + END_SYNCHRONIZED_OUTPUT,
@@ -182,6 +180,95 @@ function patchTerminalWrite(
   let state: TerminalPatchState;
 
   /**
+   * Writes one complete plain output chunk or synchronized repaint frame.
+   *
+   * @param target - The terminal that owns the original write function.
+   * @param data - Complete output to process.
+   * @param synchronized - Whether `data` is one synchronized repaint frame.
+   */
+  const writeCompleteOutput = (
+    target: PatchableTerminal,
+    data: string,
+    synchronized: boolean,
+  ): void => {
+    const requestedVisibility = requestedCursorVisibility(data);
+    if (requestedVisibility !== undefined) {
+      state.renderRequestedCursor = requestedVisibility;
+    }
+
+    const shouldShowCursor =
+      isTerminalFocused() && isBlinkVisible() && state.renderRequestedCursor;
+    if (synchronized) {
+      originalWrite.call(
+        target,
+        protectSynchronizedRepaint(data, shouldShowCursor),
+      );
+      state.emittedCursorVisible = shouldShowCursor;
+      return;
+    }
+
+    const output = data.replaceAll(HIDE_CURSOR, "").replaceAll(SHOW_CURSOR, "");
+    originalWrite.call(target, output);
+    if (shouldShowCursor !== state.emittedCursorVisible) {
+      originalWrite.call(target, shouldShowCursor ? SHOW_CURSOR : HIDE_CURSOR);
+      state.emittedCursorVisible = shouldShowCursor;
+    }
+  };
+
+  /**
+   * Buffers split synchronized frames and emits each frame as one write.
+   *
+   * @param target - The terminal that owns the original write function.
+   * @param data - The next terminal output chunk from Pi.
+   */
+  const writeBufferedOutput = (
+    target: PatchableTerminal,
+    data: string,
+  ): void => {
+    let remaining = data;
+    while (remaining.length > 0) {
+      if (state.synchronizedOutputBuffer !== undefined) {
+        const endIndex = remaining.indexOf(END_SYNCHRONIZED_OUTPUT);
+        if (endIndex < 0) {
+          state.synchronizedOutputBuffer += remaining;
+          return;
+        }
+
+        const afterEnd = endIndex + END_SYNCHRONIZED_OUTPUT.length;
+        const frame =
+          state.synchronizedOutputBuffer + remaining.slice(0, afterEnd);
+        state.synchronizedOutputBuffer = undefined;
+        writeCompleteOutput(target, frame, true);
+        remaining = remaining.slice(afterEnd);
+        continue;
+      }
+
+      const beginIndex = remaining.indexOf(BEGIN_SYNCHRONIZED_OUTPUT);
+      if (beginIndex < 0) {
+        writeCompleteOutput(target, remaining, false);
+        return;
+      }
+      if (beginIndex > 0) {
+        writeCompleteOutput(target, remaining.slice(0, beginIndex), false);
+        remaining = remaining.slice(beginIndex);
+      }
+
+      const endIndex = remaining.indexOf(
+        END_SYNCHRONIZED_OUTPUT,
+        BEGIN_SYNCHRONIZED_OUTPUT.length,
+      );
+      if (endIndex < 0) {
+        state.synchronizedOutputBuffer = remaining;
+        return;
+      }
+
+      const afterEnd = endIndex + END_SYNCHRONIZED_OUTPUT.length;
+      writeCompleteOutput(target, remaining.slice(0, afterEnd), true);
+      remaining = remaining.slice(afterEnd);
+    }
+  };
+
+  /**
    * Records Pi's cursor request and writes output with focus-safe cursor commands.
    *
    * @param data - The terminal output from Pi.
@@ -190,33 +277,7 @@ function patchTerminalWrite(
     this: PatchableTerminal,
     data,
   ) {
-    const requestedVisibility = requestedCursorVisibility(data);
-    if (requestedVisibility !== undefined) {
-      state.renderRequestedCursor = requestedVisibility;
-    }
-
-    const shouldShowCursor =
-      isTerminalFocused() && isBlinkVisible() && state.renderRequestedCursor;
-    const isSynchronizedRepaint = data.includes(BEGIN_SYNCHRONIZED_OUTPUT);
-    if (isSynchronizedRepaint) {
-      originalWrite.call(
-        this,
-        applyCursorTransitionToSynchronizedRepaint(
-          data,
-          state.emittedCursorVisible,
-          shouldShowCursor,
-        ),
-      );
-      state.emittedCursorVisible = shouldShowCursor;
-      return;
-    }
-
-    const output = data.replaceAll(HIDE_CURSOR, "").replaceAll(SHOW_CURSOR, "");
-    originalWrite.call(this, output);
-    if (shouldShowCursor !== state.emittedCursorVisible) {
-      originalWrite.call(this, shouldShowCursor ? SHOW_CURSOR : HIDE_CURSOR);
-      state.emittedCursorVisible = shouldShowCursor;
-    }
+    writeBufferedOutput(this, data);
   };
   state = {
     originalWrite,

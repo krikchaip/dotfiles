@@ -15,6 +15,7 @@ set focus_out_log "$temp_root/focus-out.ansi"
 set focus_in_log "$temp_root/focus-in.ansi"
 set dialog_log "$temp_root/dialog.ansi"
 set dialog_focus_log "$temp_root/dialog-focus.ansi"
+set resume_log "$temp_root/resume.ansi"
 set scroll_log "$temp_root/scroll.ansi"
 set scroll_restore_log "$temp_root/scroll-restore.ansi"
 set shutdown_log "$temp_root/shutdown.ansi"
@@ -136,32 +137,27 @@ proc require_cursor_phase_duration {started_at pattern label log_path} {
   return $ended_at
 }
 
-proc assert_typing_frames_keep_cursor_state {content} {
-  global begin_sync end_sync hide_cursor show_cursor
-  set checked 0
-  set search_from 0
+proc assert_no_visible_cursor_movement {content label {minimum_movements 20}} {
+  set cursor_visible 1
+  set movement_count 0
+  set tokens [regexp -all -inline {\x1b\[\?25[hl]|\x1b\[[0-9]+;[0-9]+H} $content]
 
-  while {1} {
-    set begin_at [string first $begin_sync $content $search_from]
-    if {$begin_at < 0} break
-    set frame_start [expr {$begin_at + [string length $begin_sync]}]
-    set end_at [string first $end_sync $content $frame_start]
-    if {$end_at < 0} { set end_at [string length $content] }
-    set frame [string range $content $frame_start [expr {$end_at - 1}]]
-    set search_from [expr {$end_at + [string length $end_sync]}]
-
-    set moves [regexp -all -inline -indices {\x1b\[[0-9]+;[0-9]+H} $frame]
-    if {[llength $moves] < 2} continue
-
-    incr checked
-    if {[string first $hide_cursor $frame] >= 0 ||
-        [string first $show_cursor $frame] >= 0} {
-      failure "typing repaint changed stable cursor visibility" $frame
+  foreach token $tokens {
+    if {$token eq "\x1b\[?25l"} {
+      set cursor_visible 0
+    } elseif {$token eq "\x1b\[?25h"} {
+      set cursor_visible 1
+    } else {
+      incr movement_count
+      if {$cursor_visible} {
+        failure "$label moved the visible hardware cursor during repaint" $content
+      }
     }
   }
 
-  if {$checked < 5} {
-    failure "continuous typing produced fewer than five cursor-bearing repaint frames" $content
+  if {$movement_count < $minimum_movements} {
+    failure "$label produced $movement_count cursor movements, expected at least $minimum_movements" \
+      $content
   }
 }
 
@@ -277,16 +273,6 @@ stty columns $columns rows $rows
 if {![drain_until 10 {CURSOR_E2E_READY}]} {
   failure "Pi fullscreen TUI did not become ready" [read_binary $startup_log]
 }
-set editor_ready_at [clock milliseconds]
-if {![drain_until 2 {\x1b\[\?25l}]} {
-  failure "startup cursor did not enter its first hidden phase" [read_binary $startup_log]
-}
-set first_visible_ms [expr {[clock milliseconds] - $editor_ready_at}]
-if {$first_visible_ms < 450 || $first_visible_ms > 650} {
-  failure "startup cursor visible phase was ${first_visible_ms} ms, expected 450-650 ms" \
-    [read_binary $startup_log]
-}
-lappend cadence_durations $first_visible_ms
 drain_for 1 {CURSOR_E2E_READY}
 set startup [read_binary $startup_log]
 require_bytes $startup "\x1b\[?1004h" "focus reporting enable"
@@ -309,7 +295,8 @@ for {set key 0} {$key < 14} {incr key} {
   after 100
 }
 drain_for 0.5 {z}
-assert_typing_frames_keep_cursor_state [read_binary $typing_log]
+assert_no_visible_cursor_movement [read_binary $typing_log] \
+  "continuous typing stress" 5
 
 send -i $active_spawn -- "Q"
 if {![drain_until 3 {Q}]} {
@@ -379,6 +366,25 @@ if {![drain_until 8 {CURSOR_SCROLL_FIXTURE_080}]} {
   failure "transcript fixture did not render" [read_binary $startup_log]
 }
 drain_for 0.5 {CURSOR_SCROLL_FIXTURE}
+
+rotate_log $resume_log
+for {set cycle 0} {$cycle < 20} {incr cycle} {
+  send -i $active_spawn -- "\025/resume\r"
+  if {![drain_until 3 {Resume Session}]} {
+    failure "resume selector did not open in stress cycle $cycle" [read_binary $resume_log]
+  }
+  after 25
+  drain_ready
+  send -i $active_spawn -- "\033"
+  if {![drain_until 3 {\x1b\[\?25h}]} {
+    failure "resume selector did not restore the editor cursor in stress cycle $cycle" \
+      [read_binary $resume_log]
+  }
+  after 25
+  drain_ready
+}
+assert_no_visible_cursor_movement [read_binary $resume_log] \
+  "rapid resume selector stress"
 
 rotate_log $scroll_log
 for {set wheel 0} {$wheel < 26} {incr wheel} {

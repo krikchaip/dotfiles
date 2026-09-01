@@ -11,6 +11,10 @@ set -g status-position top
 
 # allow image rendering in tmux
 set -g allow-passthrough on
+
+# keep Kitty synchronized updates atomic during full-screen repaints
+set -g terminal-features[100] "xterm-kitty:sync"
+
 set -ga update-environment TERM
 set -ga update-environment TERM_PROGRAM
 
