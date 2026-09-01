@@ -121,26 +121,29 @@ function patchEditorRender(
 }
 
 /**
- * Masks the hardware cursor while one synchronized repaint moves across rows.
+ * Applies a cursor visibility transition at a synchronized frame boundary.
  *
  * Pi's cursor requests are removed because the fixed-phase blink clock owns
- * visibility. The cursor is restored before the synchronized frame is shown
- * only when the current blink phase requires it.
+ * visibility. A frame that keeps the same state emits no cursor command. This
+ * prevents tmux from exposing a short hide/show pulse during normal repaints.
  *
  * @param data - Terminal output that contains a synchronized repaint frame.
- * @param restoreCursor - Whether the cursor is visible in this blink phase.
- * @returns Terminal output with repaint-safe cursor visibility commands.
+ * @param cursorWasVisible - Whether the terminal cursor is currently visible.
+ * @param cursorShouldBeVisible - Whether it must be visible after this frame.
+ * @returns Terminal output with only the required visibility transition.
  */
-function maskCursorDuringSynchronizedRepaint(
+function applyCursorTransitionToSynchronizedRepaint(
   data: string,
-  restoreCursor: boolean,
+  cursorWasVisible: boolean,
+  cursorShouldBeVisible: boolean,
 ): string {
   let output = data.replaceAll(HIDE_CURSOR, "").replaceAll(SHOW_CURSOR, "");
-  output = output.replaceAll(
-    BEGIN_SYNCHRONIZED_OUTPUT,
-    BEGIN_SYNCHRONIZED_OUTPUT + HIDE_CURSOR,
-  );
-  if (restoreCursor) {
+  if (cursorWasVisible && !cursorShouldBeVisible) {
+    output = output.replaceAll(
+      BEGIN_SYNCHRONIZED_OUTPUT,
+      BEGIN_SYNCHRONIZED_OUTPUT + HIDE_CURSOR,
+    );
+  } else if (!cursorWasVisible && cursorShouldBeVisible) {
     output = output.replaceAll(
       END_SYNCHRONIZED_OUTPUT,
       SHOW_CURSOR + END_SYNCHRONIZED_OUTPUT,
@@ -198,7 +201,11 @@ function patchTerminalWrite(
     if (isSynchronizedRepaint) {
       originalWrite.call(
         this,
-        maskCursorDuringSynchronizedRepaint(data, shouldShowCursor),
+        applyCursorTransitionToSynchronizedRepaint(
+          data,
+          state.emittedCursorVisible,
+          shouldShowCursor,
+        ),
       );
       state.emittedCursorVisible = shouldShowCursor;
       return;

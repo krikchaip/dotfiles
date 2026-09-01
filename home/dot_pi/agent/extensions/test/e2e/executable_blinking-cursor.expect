@@ -21,6 +21,7 @@ set shutdown_log "$temp_root/shutdown.ansi"
 set columns 80
 set rows 24
 set active_spawn ""
+set cadence_durations {}
 
 set begin_sync "\x1b\[?2026h"
 set end_sync "\x1b\[?2026l"
@@ -120,8 +121,23 @@ proc rotate_log {path} {
   log_file -a -noappend $path
 }
 
-proc assert_typing_frames_restore_cursor {content} {
-  global begin_sync end_sync show_cursor
+proc require_cursor_phase_duration {started_at pattern label log_path} {
+  global cadence_durations
+  if {![drain_until 2 $pattern]} {
+    failure "$label did not end" [read_binary $log_path]
+  }
+  set ended_at [clock milliseconds]
+  set duration_ms [expr {$ended_at - $started_at}]
+  if {$duration_ms < 450 || $duration_ms > 650} {
+    failure "$label lasted ${duration_ms} ms, expected 450-650 ms" \
+      [read_binary $log_path]
+  }
+  lappend cadence_durations $duration_ms
+  return $ended_at
+}
+
+proc assert_typing_frames_keep_cursor_state {content} {
+  global begin_sync end_sync hide_cursor show_cursor
   set checked 0
   set search_from 0
 
@@ -138,10 +154,9 @@ proc assert_typing_frames_restore_cursor {content} {
     if {[llength $moves] < 2} continue
 
     incr checked
-    set last_move_end [lindex [lindex $moves end] 1]
-    set show_at [string last $show_cursor $frame]
-    if {$show_at < $last_move_end} {
-      failure "typing repaint did not finish with a solid visible cursor" $frame
+    if {[string first $hide_cursor $frame] >= 0 ||
+        [string first $show_cursor $frame] >= 0} {
+      failure "typing repaint changed stable cursor visibility" $frame
     }
   }
 
@@ -155,6 +170,15 @@ proc assert_scroll_frames_use_software_cursor {content} {
   set checked 0
   set software_cursor_frames 0
   set search_from 0
+  set first_move [regexp -inline -indices {\x1b\[[0-9]+;[0-9]+H} $content]
+  if {[llength $first_move] == 0} {
+    failure "rapid scrolling produced no cursor movement" $content
+  }
+  set first_move_at [lindex $first_move 0]
+  set hide_at [string first $hide_cursor $content]
+  if {$hide_at < 0 || $hide_at > $first_move_at} {
+    failure "hardware cursor was not hidden before the first scroll movement" $content
+  }
 
   while {1} {
     set begin_at [string first $begin_sync $content $search_from]
@@ -169,11 +193,6 @@ proc assert_scroll_frames_use_software_cursor {content} {
     if {[llength $moves] < 2} continue
 
     incr checked
-    set first_move_at [lindex [lindex $moves 0] 0]
-    set hide_at [string first $hide_cursor $frame]
-    if {$hide_at < 0 || $hide_at > $first_move_at} {
-      failure "rapid-scroll repaint exposed the hardware cursor over transcript rows" $frame
-    }
     if {[string first $show_cursor $frame] >= 0} {
       failure "rapid scrolling restored the hardware cursor during software-cursor mode" $frame
     }
@@ -258,6 +277,16 @@ stty columns $columns rows $rows
 if {![drain_until 10 {CURSOR_E2E_READY}]} {
   failure "Pi fullscreen TUI did not become ready" [read_binary $startup_log]
 }
+set editor_ready_at [clock milliseconds]
+if {![drain_until 2 {\x1b\[\?25l}]} {
+  failure "startup cursor did not enter its first hidden phase" [read_binary $startup_log]
+}
+set first_visible_ms [expr {[clock milliseconds] - $editor_ready_at}]
+if {$first_visible_ms < 450 || $first_visible_ms > 650} {
+  failure "startup cursor visible phase was ${first_visible_ms} ms, expected 450-650 ms" \
+    [read_binary $startup_log]
+}
+lappend cadence_durations $first_visible_ms
 drain_for 1 {CURSOR_E2E_READY}
 set startup [read_binary $startup_log]
 require_bytes $startup "\x1b\[?1004h" "focus reporting enable"
@@ -280,13 +309,24 @@ for {set key 0} {$key < 14} {incr key} {
   after 100
 }
 drain_for 0.5 {z}
-assert_typing_frames_restore_cursor [read_binary $typing_log]
+assert_typing_frames_keep_cursor_state [read_binary $typing_log]
 
+send -i $active_spawn -- "Q"
+if {![drain_until 3 {Q}]} {
+  failure "cadence trigger input did not render" [read_binary $typing_log]
+}
+drain_ready
 rotate_log $blink_log
-drain_for 1.3 {\x1b\[\?25[hl]}
+set phase_started_at [clock milliseconds]
+set phase_started_at [require_cursor_phase_duration $phase_started_at \
+  {\x1b\[\?25l} "first visible blink phase" $blink_log]
+set phase_started_at [require_cursor_phase_duration $phase_started_at \
+  {\x1b\[\?25h} "first hidden blink phase" $blink_log]
+set phase_started_at [require_cursor_phase_duration $phase_started_at \
+  {\x1b\[\?25l} "second visible blink phase" $blink_log]
+require_cursor_phase_duration $phase_started_at \
+  {\x1b\[\?25h} "second hidden blink phase" $blink_log
 set blink [read_binary $blink_log]
-require_bytes $blink $hide_cursor "fixed-clock hidden blink phase"
-require_bytes $blink $show_cursor "fixed-clock visible blink phase"
 forbid_bytes $blink $begin_sync "repaint-driven blink timing"
 
 if {![drain_until 2 {\x1b\[\?25l}]} {
@@ -382,6 +422,6 @@ set active_spawn ""
 set shutdown [read_binary $shutdown_log]
 assert_shutdown_final_state $shutdown
 
-puts "PASS blinking-cursor real-PTY E2E: fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, solid software cursor during fullscreen scrolling, and shutdown restore"
+puts "PASS blinking-cursor real-PTY E2E: cadence [join $cadence_durations /] ms; fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, solid software cursor during fullscreen scrolling, and shutdown restore"
 cleanup
 exit 0
