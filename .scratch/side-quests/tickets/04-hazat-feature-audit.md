@@ -18,8 +18,10 @@ Walking through `hazat/pi-interactive-subagents`' README in order, which feature
 - [Agent Interface](01-agent-interface.md), [Pane Layout Modes](02-pane-layout-modes.md), and [Agent Configuration](03-agent-configuration.md) remain the baseline, but this audit may explicitly revise them.
 - Consult `tintinweb/pi-subagents` only when a HazAT section reaches tool compatibility or inspires a targeted addition; defer a narrow compatibility-delta check until the HazAT audit is complete.
 - Exact session-directory structure, retention, and acceptance tests may remain dedicated follow-up tickets.
-- Name the shared tmux window with the first hyphen-delimited segment of the parent Pi session UUID. Treat that short name as display-only; retain the full parent session ID as ownership identity and target the canonical tmux window ID for every operation.
-- Creating or resuming a sub-agent pane does not steal tmux focus from the parent agent. The user switches to the shared sub-agent window explicitly.
+- Retain the full parent session ID as ownership identity and target the canonical tmux window ID for every operation. Replace the short-UUID display name with the selected-pane title policy: a managed child shows its normalized current `Agent.description`, capped at 48 terminal display cells; an unmanaged pane uses tmux's native automatic name. Pane selection is shared across attached tmux clients.
+- Creating or resuming a sub-agent pane does not steal tmux focus from the parent agent. A detached new pane does not replace the title for the pane already selected. The user switches to the shared sub-agent window explicitly.
+- A Side Quests pane jump and a selected child's accepted continuation refresh the title immediately. Direct tmux pane selection refreshes it within the one-second poll interval. Closing the selected pane follows tmux's next selected pane; closing the only pane destroys the window.
+- An explicit user rename, disabled automatic rename, or replaced window-local automatic rename format permanently transfers title ownership to the user until window destruction. Parent `/reload`, child launch, continuation, focus changes, and child closure preserve that title exactly. Side Quests-owned title updates use tmux automatic naming, render descriptions as safe literal text, and restore the user's current native automatic format for unmanaged panes. A failed title update warns once, retries on the next poll, and never blocks sub-agent work.
 
 ### How It Works — retained with targeted replacements
 

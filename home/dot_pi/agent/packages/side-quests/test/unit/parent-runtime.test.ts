@@ -89,6 +89,23 @@ test.each(["autonomous", "interactive"] as const)(
   },
 );
 
+test("leaves initial shared-window title ownership inside tmux", async () => {
+  let creation: Parameters<typeof Tmux.createWindow>[0] | undefined;
+  vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
+    creation = params;
+    return { paneId: child.paneId, windowId: child.windowId };
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  vi.spyOn(Tmux, "selectedPaneId").mockResolvedValue({
+    paneId: child.paneId,
+  });
+  vi.spyOn(Tmux, "setAutomaticWindowTitle").mockResolvedValue(undefined);
+
+  await runtime().launch(child.manifest);
+
+  expect(creation).not.toHaveProperty("name");
+});
+
 test("reserves launch order before session preparation finishes", async () => {
   const order: string[] = [];
   vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
@@ -309,6 +326,99 @@ test.each([
     ).resolves.toEqual({ continuationKind, operation: "reopened" });
   },
 );
+
+test("title update failures warn once, retry, and do not block launch", async () => {
+  vi.useFakeTimers();
+  const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));
+  temporaryRoots.push(root);
+  process.env.PI_CODING_AGENT_DIR = root;
+
+  const handlers = new Map<
+    string,
+    (event: { reason?: string }, context: ExtensionContext) => void
+  >();
+  const notify = vi.fn();
+  const pi = {
+    on(
+      event: string,
+      handler: (event: { reason?: string }, context: ExtensionContext) => void,
+    ) {
+      handlers.set(event, handler);
+    },
+  } as unknown as ExtensionAPI;
+  const context = {
+    sessionManager: { getSessionId: () => child.manifest.parentId },
+    ui: { notify },
+  } as unknown as ExtensionContext;
+
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  const selectedPane = vi
+    .spyOn(Tmux, "selectedPaneId")
+    .mockResolvedValueOnce({ paneId: child.paneId })
+    .mockResolvedValue({ error: "selected pane command failed" });
+  let finishTitle: (error: string | undefined) => void = () => {};
+  const pendingTitle = new Promise<string | undefined>((resolve) => {
+    finishTitle = resolve;
+  });
+  const setTitle = vi
+    .spyOn(Tmux, "setAutomaticWindowTitle")
+    .mockReturnValue(pendingTitle);
+  vi.spyOn(Tmux, "paneProcessStates").mockReturnValue(
+    new Map([[child.paneId, { dead: false }]]),
+  );
+  vi.spyOn(Tmux, "paneExists").mockReturnValue(true);
+
+  const parent = ParentRuntime.register(pi);
+  handlers.get("session_start")?.({}, context);
+
+  let launchResolved = false;
+  const launch = parent.launch(child.manifest).then((manifest) => {
+    launchResolved = true;
+    return manifest;
+  });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(launchResolved).toBe(true);
+  await expect(launch).resolves.toEqual(child.manifest);
+
+  let continuationResolved = false;
+  const continuation = parent
+    .continue(
+      { ...child.manifest, description: "continued title" },
+      "Continue without waiting for title work.",
+    )
+    .then((result) => {
+      continuationResolved = true;
+      return result;
+    });
+  await vi.advanceTimersByTimeAsync(2_100);
+  expect(continuationResolved).toBe(true);
+  await expect(continuation).resolves.toEqual({
+    continuationKind: "steer",
+    operation: "continued",
+  });
+  expect(setTitle).toHaveBeenCalledTimes(1);
+
+  finishTitle(undefined);
+  await vi.advanceTimersByTimeAsync(0);
+
+  expect(setTitle).toHaveBeenCalledTimes(1);
+  expect(selectedPane).toHaveBeenCalledTimes(2);
+  expect(notify).toHaveBeenCalledTimes(1);
+  expect(notify).toHaveBeenCalledWith(
+    "Side Quests could not update the tmux window title: selected pane command failed",
+    "warning",
+  );
+
+  await vi.advanceTimersByTimeAsync(1_000);
+  expect(selectedPane.mock.calls.length).toBeGreaterThan(2);
+  expect(notify).toHaveBeenCalledTimes(1);
+
+  handlers.get("session_shutdown")?.({ reason: "reload" }, context);
+});
 
 test("cancelled events retain pending question and child identity details", async () => {
   const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));

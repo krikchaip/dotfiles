@@ -38,6 +38,12 @@ import { threeConcurrentQuestions } from "./scenario/three-concurrent-questions.
 import { toolsListed } from "./scenario/tools-listed.ts";
 import { unmarkedClosure } from "./scenario/unmarked-closure.ts";
 import { widgetSpacing } from "./scenario/widget-spacing.ts";
+import { windowTitleNormalization } from "./scenario/window-title-normalization.ts";
+import {
+  windowTitleAutomaticRenameOff,
+  windowTitleFormatOverride,
+} from "./scenario/window-title-ownership.ts";
+import { windowTitle } from "./scenario/window-title.ts";
 import {
   wrapUpFailed,
   wrapUpInterrupted,
@@ -84,6 +90,10 @@ export const scenarios: readonly Scenario[] = [
   inheritedAgentRenderer,
   inheritedParentRequestRenderer,
   focusPreservation,
+  windowTitle,
+  windowTitleNormalization,
+  windowTitleAutomaticRenameOff,
+  windowTitleFormatOverride,
   wrapUpSuccess,
   wrapUpFailed,
   wrapUpInterrupted,

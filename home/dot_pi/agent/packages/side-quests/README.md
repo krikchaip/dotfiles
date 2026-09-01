@@ -322,7 +322,7 @@ Every child inherits the parent's loaded extensions. Side Quests remains child-s
 Each parent agent session owns one shared sub-agent window.
 
 - Side Quests creates the window on the first launch.
-- The window name uses the first segment of the parent session UUID as a short display label.
+- The window title shows the current description of the selected sub-agent pane.
 - Side Quests records the complete parent session ID and canonical tmux window ID. This makes sure it manages only that session's window and panes.
 - Each live child gets one pane in that window.
 - New and reopened panes start detached.
@@ -331,6 +331,16 @@ Each parent agent session owns one shared sub-agent window.
 - Starting or resuming a sub-agent does not switch panes. You remain with the parent agent.
 - Press `Shift+Up` in the parent session, or use `/side-quests`, to select and open a child pane.
 - Press `Shift+Up` in a child session to return to the parent tmux pane.
+
+The shared window title follows these rules:
+
+- A managed child pane shows its current `Agent.description`, normalized and limited to 48 terminal display cells.
+- Starting or reopening a child in a detached pane does not replace the selected child's title.
+- Selecting an unmanaged pane restores tmux's native automatic name.
+- A direct tmux pane switch updates within one second. Side Quests navigation updates immediately.
+- A selected child's accepted continuation updates the title to its new description.
+- A manual rename or window-local automatic-naming override makes the title user-owned until that window is destroyed. Launches, continuations, focus changes, child closure, and parent `/reload` preserve it exactly.
+- A title-update error warns once and retries. It does not block sub-agent work.
 
 When the last managed pane closes:
 

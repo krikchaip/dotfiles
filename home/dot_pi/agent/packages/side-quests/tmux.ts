@@ -1,12 +1,74 @@
 import { spawn, spawnSync } from "node:child_process";
+import { randomInt } from "node:crypto";
 import { existsSync } from "node:fs";
+import { stripVTControlCharacters } from "node:util";
+import { sliceByColumn } from "@earendil-works/pi-tui";
 
+/**
+ * Captures the complete result of one tmux client process.
+ */
 type TmuxCommandResult = Readonly<{
+  /** Contains the process exit status, or null when no status exists. */
   status: number | null;
+
+  /** Contains standard output decoded as UTF-8 text. */
   stdout: string;
+
+  /** Contains standard error decoded as UTF-8 text. */
   stderr: string;
+
+  /** Contains a process start, timeout, or signal error. */
   error?: Error;
 }>;
+
+type WindowTitleMode = "managed" | "native" | "unclaimed";
+
+/**
+ * Reports whether Side Quests can update one window title.
+ */
+type WindowTitleControl =
+  | Readonly<{ state: "side-quests"; mode: WindowTitleMode }>
+  | Readonly<{ state: "user" }>
+  | Readonly<{ state: "error"; error: string }>;
+
+/**
+ * Contains the selected pane or the tmux inspection error.
+ */
+type SelectedPaneResult =
+  Readonly<{ paneId: string }> | Readonly<{ error: string }>;
+
+/** Stores permanent title ownership on the tmux window. */
+const TITLE_OWNER_OPTION = "@side_quests_title_owner";
+
+/** Stores the last automatic rename format that Side Quests applied. */
+const TITLE_FORMAT_OPTION = "@side_quests_title_format";
+
+/** Distinguishes a managed literal from the inherited native format. */
+const TITLE_MODE_OPTION = "@side_quests_title_mode";
+
+/** Stages the next literal without putting it in a tmux command string. */
+const TITLE_DESIRED_FORMAT_OPTION = "@side_quests_title_desired_format";
+
+/** Captures the current effective format before ownership inspection. */
+const TITLE_BASELINE_FORMAT_OPTION = "@side_quests_title_baseline_format";
+
+/** Marks a stored format as one managed child description. */
+const MANAGED_TITLE_MODE = "managed";
+
+/** Marks a window that uses tmux's inherited automatic rename format. */
+const NATIVE_TITLE_MODE = "native";
+
+/** Marks a window whose title Side Quests can update. */
+const SIDE_QUESTS_TITLE_OWNER = "side-quests";
+
+/** Marks a window whose title only the tmux user can update. */
+const USER_TITLE_OWNER = "user";
+
+/** Bounds presentation work so it cannot retain the update slot forever. */
+const TITLE_COMMAND_TIMEOUT_MS = 1_000;
+
+/** Names and initializes the shared window before its first dynamic update. */
+const INITIAL_WINDOW_TITLE = "Side Quests";
 
 /**
  * Describes one tmux pane in the shared Side Quests window.
@@ -189,36 +251,160 @@ export class Tmux {
    * Creates the detached shared window and its first Pi child pane.
    */
   public static async createWindow(params: {
-    name: string;
     cwd: string;
     command: string[];
     environment: Record<string, string>;
   }): Promise<{ windowId: string; paneId: string }> {
+    const hookName = `after-new-window[${randomInt(1_000_000_000, 2_000_000_000)}]`;
+    const initializeTitle = [
+      `set-option -w automatic-rename-format "${INITIAL_WINDOW_TITLE}"`,
+      "set-option -w automatic-rename on",
+      `set-option -w ${TITLE_FORMAT_OPTION} "${INITIAL_WINDOW_TITLE}"`,
+      `set-option -w ${TITLE_MODE_OPTION} ${MANAGED_TITLE_MODE}`,
+      `set-option -w ${TITLE_OWNER_OPTION} ${SIDE_QUESTS_TITLE_OWNER}`,
+      `set-hook -u ${hookName}`,
+    ].join(" ; ");
     const result = await Tmux.runAsync([
+      "set-hook",
+      hookName,
+      initializeTitle,
+      ";",
       "new-window",
       "-d",
       "-P",
       "-F",
       "#{window_id}\t#{pane_id}",
       "-n",
-      params.name,
+      INITIAL_WINDOW_TITLE,
       "-c",
       params.cwd,
       ...Tmux.environmentArguments(params.environment),
       ...params.command,
+      ";",
+      "set-hook",
+      "-u",
+      hookName,
     ]);
 
-    if (result.status !== 0)
+    if (result.status !== 0) {
+      await Tmux.removeWindowCreationHook(hookName);
       throw new Error(
         `Could not create Side Quests window: ${Tmux.error(result)}`,
       );
+    }
 
     const [windowId, paneId] = Tmux.output(result.stdout).trim().split("\t");
 
-    if (!windowId || !paneId)
+    if (!windowId || !paneId) {
+      await Tmux.removeWindowCreationHook(hookName);
       throw new Error("Could not identify Side Quests window.");
+    }
 
     return { windowId, paneId };
+  }
+
+  /**
+   * Removes a failed creation's one-shot hook without blocking indefinitely.
+   */
+  private static async removeWindowCreationHook(
+    hookName: string,
+  ): Promise<void> {
+    await Tmux.runAsync(
+      ["set-hook", "-u", hookName],
+      undefined,
+      undefined,
+      TITLE_COMMAND_TIMEOUT_MS,
+    );
+  }
+
+  /**
+   * Makes tmux derive a window's visible title from one literal label.
+   * Returns an error message instead of blocking child lifecycle work.
+   */
+  public static async setAutomaticWindowTitle(
+    windowId: string,
+    title: string,
+  ): Promise<string | undefined> {
+    const format = Tmux.literalWindowTitleFormat(
+      Tmux.normalizeWindowTitle(title),
+    );
+    const staged = await Tmux.runTitleCommand([
+      "set-option",
+      "-Fw",
+      "-t",
+      windowId,
+      TITLE_BASELINE_FORMAT_OPTION,
+      "#{automatic-rename-format}",
+      ";",
+      "set-option",
+      "-w",
+      "-t",
+      windowId,
+      TITLE_DESIRED_FORMAT_OPTION,
+      format,
+    ]);
+    if (staged.status !== 0) return Tmux.error(staged);
+
+    const control = await Tmux.windowTitleControl(windowId);
+    if (control.state === "error") return control.error;
+    if (control.state === "user") return undefined;
+
+    const result = await Tmux.runTitleCommand([
+      "if-shell",
+      "-F",
+      "-t",
+      windowId,
+      Tmux.windowTitlePrecondition(control.mode),
+      Tmux.managedTitleCommands(windowId),
+      Tmux.userTitleCommands(windowId),
+    ]);
+
+    return result.status === 0 ? undefined : Tmux.error(result);
+  }
+
+  /**
+   * Restores the inherited tmux automatic title for an unmanaged pane.
+   * Returns an error message instead of blocking child lifecycle work.
+   */
+  public static async restoreAutomaticWindowTitle(
+    windowId: string,
+  ): Promise<string | undefined> {
+    const control = await Tmux.windowTitleControl(windowId);
+    if (control.state === "error") return control.error;
+    if (control.state === "user" || control.mode === NATIVE_TITLE_MODE)
+      return undefined;
+
+    const result = await Tmux.runTitleCommand([
+      "if-shell",
+      "-F",
+      "-t",
+      windowId,
+      Tmux.windowTitlePrecondition(control.mode),
+      Tmux.nativeTitleCommands(windowId),
+      Tmux.userTitleCommands(windowId),
+    ]);
+
+    return result.status === 0 ? undefined : Tmux.error(result);
+  }
+
+  /**
+   * Returns the pane that tmux currently selects in one window.
+   */
+  public static async selectedPaneId(
+    windowId: string,
+  ): Promise<SelectedPaneResult> {
+    const result = await Tmux.runAsync(
+      ["display-message", "-p", "-t", windowId, "#{pane_id}"],
+      undefined,
+      undefined,
+      TITLE_COMMAND_TIMEOUT_MS,
+    );
+    if (result.status !== 0) return { error: Tmux.error(result) };
+
+    const paneId = Tmux.output(result.stdout).trim();
+    return paneId
+      ? { paneId }
+      : { error: "tmux produced an empty selected pane ID." };
   }
 
   /**
@@ -416,6 +602,7 @@ export class Tmux {
     args: string[],
     cwd?: string,
     environment?: Record<string, string>,
+    timeoutMs?: number,
   ): Promise<TmuxCommandResult> {
     return new Promise((resolve) => {
       const child = spawn("tmux", args, {
@@ -425,6 +612,27 @@ export class Tmux {
       let stdout = "";
       let stderr = "";
       let settled = false;
+      const timeout = timeoutMs
+        ? setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            child.kill("SIGKILL");
+            resolve({
+              status: null,
+              stdout,
+              stderr,
+              error: new Error(`tmux timed out after ${timeoutMs} ms`),
+            });
+          }, timeoutMs)
+        : undefined;
+      timeout?.unref();
+
+      const finish = (result: TmuxCommandResult): void => {
+        if (settled) return;
+        settled = true;
+        if (timeout) clearTimeout(timeout);
+        resolve(result);
+      };
 
       child.stdout.setEncoding("utf8");
       child.stderr.setEncoding("utf8");
@@ -436,14 +644,10 @@ export class Tmux {
       });
 
       child.once("error", (error) => {
-        if (settled) return;
-        settled = true;
-        resolve({ status: null, stdout, stderr, error });
+        finish({ status: null, stdout, stderr, error });
       });
       child.once("close", (status) => {
-        if (settled) return;
-        settled = true;
-        resolve({ status, stdout, stderr });
+        finish({ status, stdout, stderr });
       });
     });
   }
@@ -458,6 +662,139 @@ export class Tmux {
       "-e",
       `${key}=${value}`,
     ]);
+  }
+
+  /**
+   * Runs one bounded tmux process for title presentation work.
+   */
+  private static runTitleCommand(args: string[]): Promise<TmuxCommandResult> {
+    return Tmux.runAsync(args, undefined, undefined, TITLE_COMMAND_TIMEOUT_MS);
+  }
+
+  /**
+   * Builds the server-side ownership precondition for one title change.
+   */
+  private static windowTitlePrecondition(mode: WindowTitleMode): string {
+    if (mode === "unclaimed") return `#{==:#{${TITLE_OWNER_OPTION}},}`;
+
+    const expectedOption =
+      mode === NATIVE_TITLE_MODE
+        ? TITLE_BASELINE_FORMAT_OPTION
+        : TITLE_FORMAT_OPTION;
+    return `#{&&:#{==:#{${TITLE_OWNER_OPTION}},${SIDE_QUESTS_TITLE_OWNER}},#{==:#{automatic-rename},1},#{==:#{automatic-rename-format},#{${expectedOption}}}}`;
+  }
+
+  /**
+   * Builds the atomic command list for one managed literal title.
+   */
+  private static managedTitleCommands(windowId: string): string {
+    return [
+      `set-option -Fw -t ${windowId} automatic-rename-format "#{${TITLE_DESIRED_FORMAT_OPTION}}"`,
+      `rename-window -t ${windowId} "#{E:automatic-rename-format}"`,
+      `set-option -w -t ${windowId} automatic-rename on`,
+      `set-option -Fw -t ${windowId} ${TITLE_FORMAT_OPTION} "#{${TITLE_DESIRED_FORMAT_OPTION}}"`,
+      `set-option -w -t ${windowId} ${TITLE_MODE_OPTION} ${MANAGED_TITLE_MODE}`,
+      `set-option -w -t ${windowId} ${TITLE_OWNER_OPTION} ${SIDE_QUESTS_TITLE_OWNER}`,
+    ].join(" ; ");
+  }
+
+  /**
+   * Builds the atomic command list for tmux's inherited native title.
+   */
+  private static nativeTitleCommands(windowId: string): string {
+    return [
+      `set-option -uw -t ${windowId} automatic-rename-format`,
+      `rename-window -t ${windowId} "#{E:automatic-rename-format}"`,
+      `set-option -w -t ${windowId} automatic-rename on`,
+      `set-option -uw -t ${windowId} ${TITLE_FORMAT_OPTION}`,
+      `set-option -w -t ${windowId} ${TITLE_MODE_OPTION} ${NATIVE_TITLE_MODE}`,
+      `set-option -w -t ${windowId} ${TITLE_OWNER_OPTION} ${SIDE_QUESTS_TITLE_OWNER}`,
+    ].join(" ; ");
+  }
+
+  /**
+   * Builds the atomic fallback that transfers ownership to the user.
+   */
+  private static userTitleCommands(windowId: string): string {
+    return `set-option -w -t ${windowId} ${TITLE_OWNER_OPTION} ${USER_TITLE_OWNER}`;
+  }
+
+  /**
+   * Detects and persists transfer of title ownership to the tmux user.
+   */
+  private static async windowTitleControl(
+    windowId: string,
+  ): Promise<WindowTitleControl> {
+    const inspected = await Tmux.runTitleCommand([
+      "display-message",
+      "-p",
+      "-t",
+      windowId,
+      `#{automatic-rename}\t#{${TITLE_OWNER_OPTION}}\t#{${TITLE_FORMAT_OPTION}}\t#{${TITLE_MODE_OPTION}}`,
+      ";",
+      "show-options",
+      "-wqv",
+      "-t",
+      windowId,
+      "automatic-rename-format",
+    ]);
+    if (inspected.status !== 0)
+      return { state: "error", error: Tmux.error(inspected) };
+
+    const lines = Tmux.output(inspected.stdout).split("\n");
+    const [automaticRename, owner, expectedFormat, mode] = (
+      lines.shift() ?? ""
+    ).split("\t");
+    const localFormat = lines.join("\n").replace(/\n$/u, "");
+
+    if (owner === USER_TITLE_OWNER) return { state: "user" };
+    if (owner !== SIDE_QUESTS_TITLE_OWNER)
+      return { state: "side-quests", mode: "unclaimed" };
+
+    const resolvedMode: WindowTitleMode =
+      mode === NATIVE_TITLE_MODE
+        ? "native"
+        : mode === MANAGED_TITLE_MODE || localFormat
+          ? "managed"
+          : "native";
+    const expectedLocalFormat = resolvedMode === "native" ? "" : expectedFormat;
+    if (automaticRename === "1" && localFormat === expectedLocalFormat)
+      return { state: "side-quests", mode: resolvedMode };
+
+    const transferred = await Tmux.runTitleCommand([
+      "set-option",
+      "-w",
+      "-t",
+      windowId,
+      TITLE_OWNER_OPTION,
+      USER_TITLE_OWNER,
+    ]);
+
+    return transferred.status === 0
+      ? { state: "user" }
+      : { state: "error", error: Tmux.error(transferred) };
+  }
+
+  /**
+   * Encodes one title as literal tmux format text and avoids command tokens.
+   */
+  private static literalWindowTitleFormat(title: string): string {
+    const escaped = title.replaceAll("#", "##");
+    return escaped === ";" || escaped === "{" || escaped === "}"
+      ? `${escaped}#{?0,,}`
+      : escaped;
+  }
+
+  /**
+   * Produces one safe literal title no wider than 48 terminal cells.
+   */
+  private static normalizeWindowTitle(title: string): string {
+    const collapsed = stripVTControlCharacters(title)
+      .replace(/\s+/gu, " ")
+      .replace(/\p{Cc}/gu, "")
+      .trim();
+
+    return sliceByColumn(collapsed || "Side Quests", 0, 48, true);
   }
 
   /**

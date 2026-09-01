@@ -80,6 +80,18 @@ export class ParentRuntime {
   /** Serializes tmux mutations for the one shared child window. */
   private launchTail: Promise<void> = Promise.resolve();
 
+  /** Holds the one active best-effort title update. */
+  private titleSyncActive: Promise<void> | undefined;
+
+  /** Requests one coalesced update after the active title update. */
+  private titleSyncRequested = false;
+
+  /** Reports the first title failure through the current Pi session UI. */
+  private notifyTitleFailure: ((message: string) => void) | undefined;
+
+  /** Prevents repeated title warnings while retries continue. */
+  private titleFailureWarned = false;
+
   private constructor(private readonly pi: ExtensionAPI) {}
 
   /**
@@ -113,6 +125,8 @@ export class ParentRuntime {
         child.manifest.childId,
       ),
     );
+
+    void this.syncWindowTitle();
 
     return child.manifest;
   }
@@ -161,6 +175,8 @@ export class ParentRuntime {
       prompt,
       createdAt: Date.now(),
     });
+
+    void this.syncWindowTitle();
 
     const stopped = !!RuntimeStore.readTerminal(
       manifest.parentId,
@@ -245,6 +261,7 @@ export class ParentRuntime {
     this.activityByChildId.delete(childId);
     this.replyPendingByChildId.delete(childId);
     this.missingPanes.delete(childId);
+    void this.syncWindowTitle();
   }
 
   /**
@@ -252,7 +269,10 @@ export class ParentRuntime {
    */
   focus(childId: string): void {
     const child = this.childrenById.get(childId);
-    if (child && Tmux.paneExists(child.paneId)) Tmux.focusPane(child.paneId);
+    if (!child || !Tmux.paneExists(child.paneId)) return;
+
+    Tmux.focusPane(child.paneId);
+    void this.syncWindowTitle();
   }
 
   /**
@@ -291,6 +311,8 @@ export class ParentRuntime {
     this.pi.on("session_start", (_event, context) => {
       if (this.poller) clearInterval(this.poller);
 
+      this.notifyTitleFailure = (message) =>
+        context.ui.notify(message, "warning");
       this.writeOwner(context);
 
       this.poller = setInterval(() => {
@@ -355,6 +377,8 @@ export class ParentRuntime {
    * Polls managed children for parent requests and terminal outcomes.
    */
   private poll(): void {
+    void this.syncWindowTitle();
+
     const processStates = Tmux.paneProcessStates(
       [...this.childrenById.values()].map((child) => child.paneId),
     );
@@ -473,6 +497,75 @@ export class ParentRuntime {
   }
 
   /**
+   * Starts or coalesces one best-effort title update.
+   */
+  private syncWindowTitle(): Promise<void> {
+    this.titleSyncRequested = true;
+    if (this.titleSyncActive) return this.titleSyncActive;
+
+    const operation = this.drainWindowTitleUpdates().finally(() => {
+      this.titleSyncActive = undefined;
+      if (this.titleSyncRequested) void this.syncWindowTitle();
+    });
+    this.titleSyncActive = operation;
+    return operation;
+  }
+
+  /**
+   * Runs at most one follow-up after requests received during active work.
+   */
+  private async drainWindowTitleUpdates(): Promise<void> {
+    while (this.titleSyncRequested) {
+      this.titleSyncRequested = false;
+      await this.updateWindowTitle();
+    }
+  }
+
+  /**
+   * Makes the visible window title follow tmux's selected pane.
+   */
+  private async updateWindowTitle(): Promise<void> {
+    try {
+      const windowId = this.windowId;
+      if (!windowId) return;
+
+      const selection = await Tmux.selectedPaneId(windowId);
+      if ("error" in selection) {
+        this.warnTitleFailure(selection.error);
+        return;
+      }
+
+      const selectedChild = [...this.childrenById.values()].find(
+        (child) => child.paneId === selection.paneId,
+      );
+      const error = selectedChild
+        ? await Tmux.setAutomaticWindowTitle(
+            windowId,
+            selectedChild.manifest.description,
+          )
+        : await Tmux.restoreAutomaticWindowTitle(windowId);
+
+      if (error) this.warnTitleFailure(error);
+    } catch (cause) {
+      this.warnTitleFailure(
+        cause instanceof Error ? cause.message : String(cause),
+      );
+    }
+  }
+
+  /**
+   * Shows only the first title failure while later polls keep retrying.
+   */
+  private warnTitleFailure(error: string): void {
+    if (this.titleFailureWarned || !this.notifyTitleFailure) return;
+
+    this.titleFailureWarned = true;
+    this.notifyTitleFailure(
+      `Side Quests could not update the tmux window title: ${error}`,
+    );
+  }
+
+  /**
    * Starts one child process in the shared managed tmux window.
    */
   private async open(
@@ -503,7 +596,6 @@ export class ParentRuntime {
 
     if (!this.windowId) {
       const created = await Tmux.createWindow({
-        name: `side-quests-${manifest.parentId.split("-")[0]}`,
         cwd: manifest.cwd,
         command,
         environment,
