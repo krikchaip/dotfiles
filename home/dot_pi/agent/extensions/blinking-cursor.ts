@@ -26,7 +26,7 @@ const DISABLE_FOCUS_REPORTING = "\x1b[?1004l";
 const BEGIN_SYNCHRONIZED_OUTPUT = "\x1b[?2026h";
 const END_SYNCHRONIZED_OUTPUT = "\x1b[?2026l";
 const FOCUS_EVENT_PATTERN = /\x1b\[([IO])/g;
-const MOUSE_WHEEL_EVENT_PATTERN = /\x1b\[<6[45];\d+;\d+[Mm]/g;
+const MOUSE_WHEEL_EVENT_PATTERN = /\x1b\[<6[45];\d+;\d+[Mm]/;
 
 type EditorRender = (width: number) => string[];
 type EditorFactory = NonNullable<
@@ -43,10 +43,13 @@ type PatchableTerminal = Pick<Terminal, "write"> & {
   [TERMINAL_PATCH_STATE]?: TerminalPatchState;
 };
 type CursorTUI = Parameters<EditorFactory>[0] & {
-  showHardwareCursor: boolean;
   terminal: PatchableTerminal;
+  getShowHardwareCursor(): boolean;
+  setShowHardwareCursor(enabled: boolean): void;
+  requestRender(force?: boolean): void;
 };
 type RegisterCursorTUI = (tui: CursorTUI) => void;
+type ShouldUseHardwareCursor = () => boolean;
 
 type PatchableEditor = {
   render: EditorRender;
@@ -86,8 +89,12 @@ function removeSoftwareCursor(line: string): string {
  * Patches an editor so its rendered cursor uses only the hardware cursor.
  *
  * @param target - The editor instance to patch once.
+ * @param shouldUseHardwareCursor - Reports which cursor mode is active.
  */
-function patchEditorRender(target: PatchableEditor): void {
+function patchEditorRender(
+  target: PatchableEditor,
+  shouldUseHardwareCursor: ShouldUseHardwareCursor,
+): void {
   if (target[PATCH_STATE]) return;
 
   const originalRender = target.render;
@@ -105,7 +112,8 @@ function patchEditorRender(target: PatchableEditor): void {
     this: PatchableEditor,
     width: number,
   ): string[] {
-    return originalRender.call(this, width).map(removeSoftwareCursor);
+    const lines = originalRender.call(this, width);
+    return shouldUseHardwareCursor() ? lines.map(removeSoftwareCursor) : lines;
   };
 
   target[PATCH_STATE] = { originalRender };
@@ -238,13 +246,14 @@ function removeTerminalWritePatch(terminal: PatchableTerminal): void {
 function wrapEditorFactory(
   factory: EditorFactory | undefined,
   registerTUI: RegisterCursorTUI,
+  shouldUseHardwareCursor: ShouldUseHardwareCursor,
 ): EditorFactory {
   const wrappedFactory: EditorFactory = (tui, theme, keybindings) => {
     registerTUI(tui as CursorTUI);
     const editor = factory
       ? factory(tui, theme, keybindings)
       : new CustomEditor(tui, theme, keybindings);
-    patchEditorRender(editor as PatchableEditor);
+    patchEditorRender(editor as PatchableEditor, shouldUseHardwareCursor);
     return editor;
   };
 
@@ -256,10 +265,12 @@ function wrapEditorFactory(
  *
  * @param ui - Pi's editor component API.
  * @param registerTUI - Registers each TUI that creates an editor.
+ * @param shouldUseHardwareCursor - Reports which cursor mode is active.
  */
 function installEditorComponentPatch(
   ui: PatchableEditorUI,
   registerTUI: RegisterCursorTUI,
+  shouldUseHardwareCursor: ShouldUseHardwareCursor,
 ): void {
   if (ui[UI_PATCH_STATE]) return;
 
@@ -271,7 +282,9 @@ function installEditorComponentPatch(
    * @param factory - The editor factory to install, when one exists.
    */
   const patchedSetEditorComponent: SetEditorComponent = (factory) => {
-    originalSetEditorComponent(wrapEditorFactory(factory, registerTUI));
+    originalSetEditorComponent(
+      wrapEditorFactory(factory, registerTUI, shouldUseHardwareCursor),
+    );
   };
 
   ui[UI_PATCH_STATE] = {
@@ -307,7 +320,9 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   let terminalFocused = true;
   let blinkVisible = true;
   let blinkTimer: ReturnType<typeof setTimeout> | undefined;
+  let scrollIdleTimer: ReturnType<typeof setTimeout> | undefined;
   let nextBlinkAt = 0;
+  let scrolling = false;
   let focusInputRemainder = "";
   let patchedUI: PatchableEditorUI | undefined;
   const cursorTuis = new Set<CursorTUI>();
@@ -325,6 +340,13 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
    * @returns `true` during the visible half of the blink cycle.
    */
   const isBlinkVisible = (): boolean => blinkVisible;
+
+  /**
+   * Reports whether editor rendering should use the hardware cursor.
+   *
+   * The software cursor is visible only while scrolling in a focused terminal.
+   */
+  const shouldUseHardwareCursor = (): boolean => !scrolling || !terminalFocused;
 
   /**
    * Applies the current focus, component, and blink state to each terminal.
@@ -364,6 +386,33 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
     blinkVisible = true;
     nextBlinkAt = performance.now() + BLINK_INTERVAL_MS;
     refreshCursorVisibility();
+  };
+
+  /**
+   * Switches between hardware and software cursor rendering.
+   *
+   * @param active - Whether scrolling owns a solid software cursor.
+   */
+  const setScrolling = (active: boolean): void => {
+    if (scrolling === active) return;
+    scrolling = active;
+    for (const tui of cursorTuis) {
+      tui.setShowHardwareCursor(!active);
+    }
+  };
+
+  /**
+   * Shows a solid software cursor until wheel input is idle for 500 ms.
+   */
+  const holdSoftwareCursorDuringScroll = (): void => {
+    holdCursorVisible();
+    setScrolling(true);
+    if (scrollIdleTimer) clearTimeout(scrollIdleTimer);
+    scrollIdleTimer = setTimeout(() => {
+      scrollIdleTimer = undefined;
+      setScrolling(false);
+    }, BLINK_INTERVAL_MS);
+    scrollIdleTimer.unref();
   };
 
   /**
@@ -429,6 +478,9 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   const setTerminalFocused = (focused: boolean): void => {
     if (terminalFocused === focused) return;
     terminalFocused = focused;
+    if (scrolling) {
+      for (const tui of cursorTuis) tui.requestRender();
+    }
     if (focused) {
       holdCursorVisible();
       return;
@@ -444,9 +496,9 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   const registerTUI: RegisterCursorTUI = (tui) => {
     patchTerminalWrite(tui.terminal, isTerminalFocused, isBlinkVisible);
     cursorTuis.add(tui);
-    // Keep Pi's cursor-marker behavior active. The terminal patch masks cursor
-    // movement during repaints and owns the final visibility command.
-    tui.showHardwareCursor = true;
+    // Keep Pi's cursor-marker behavior active outside scroll bursts. The
+    // terminal patch masks cursor movement and owns hardware visibility.
+    tui.setShowHardwareCursor(!scrolling);
     refreshCursorVisibility();
   };
 
@@ -465,7 +517,11 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
     const completeInput = focusInputRemainder
       ? input.slice(0, -focusInputRemainder.length)
       : input;
-    if (containsKeyboardActivity(completeInput)) holdCursorVisible();
+    if (MOUSE_WHEEL_EVENT_PATTERN.test(completeInput)) {
+      holdSoftwareCursorDuringScroll();
+    } else if (containsKeyboardActivity(completeInput)) {
+      holdCursorVisible();
+    }
 
     FOCUS_EVENT_PATTERN.lastIndex = 0;
     for (
@@ -488,10 +544,15 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
 
     try {
       patchedUI = ctx.ui as PatchableEditorUI;
-      installEditorComponentPatch(patchedUI, registerTUI);
+      installEditorComponentPatch(
+        patchedUI,
+        registerTUI,
+        shouldUseHardwareCursor,
+      );
 
-      // Focus reporting gives both tmux pane focus and terminal window focus.
-      process.stdin.on("data", handleTerminalInput);
+      // Run before Pi's input listener so cursor mode changes before the
+      // wheel-triggered repaint. Focus reporting covers panes and windows.
+      process.stdin.prependListener("data", handleTerminalInput);
       process.stdout.write(
         ENABLE_FOCUS_REPORTING + STEADY_BLOCK_CURSOR + SHOW_CURSOR,
       );
@@ -512,7 +573,11 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
     }
     process.stdin.removeListener("data", handleTerminalInput);
     stopBlinkClock();
+    if (scrollIdleTimer) clearTimeout(scrollIdleTimer);
+    scrollIdleTimer = undefined;
+    scrolling = false;
     for (const tui of cursorTuis) {
+      tui.setShowHardwareCursor(true);
       removeTerminalWritePatch(tui.terminal);
     }
     cursorTuis.clear();

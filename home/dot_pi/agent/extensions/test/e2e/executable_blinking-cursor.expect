@@ -16,6 +16,7 @@ set focus_in_log "$temp_root/focus-in.ansi"
 set dialog_log "$temp_root/dialog.ansi"
 set dialog_focus_log "$temp_root/dialog-focus.ansi"
 set scroll_log "$temp_root/scroll.ansi"
+set scroll_restore_log "$temp_root/scroll-restore.ansi"
 set shutdown_log "$temp_root/shutdown.ansi"
 set columns 80
 set rows 24
@@ -25,6 +26,7 @@ set begin_sync "\x1b\[?2026h"
 set end_sync "\x1b\[?2026l"
 set hide_cursor "\x1b\[?25l"
 set show_cursor "\x1b\[?25h"
+set software_cursor_style "\x1b\[48;2;58;58;74m"
 
 proc cleanup {} {
   global active_spawn temp_root
@@ -148,11 +150,10 @@ proc assert_typing_frames_restore_cursor {content} {
   }
 }
 
-proc assert_scroll_frames_mask_cursor {content} {
-  global begin_sync end_sync hide_cursor show_cursor
+proc assert_scroll_frames_use_software_cursor {content} {
+  global begin_sync end_sync hide_cursor show_cursor software_cursor_style
   set checked 0
-  set visible_frames 0
-  set hidden_frames 0
+  set software_cursor_frames 0
   set search_from 0
 
   while {1} {
@@ -164,33 +165,28 @@ proc assert_scroll_frames_mask_cursor {content} {
     set frame [string range $content $frame_start [expr {$end_at - 1}]]
     set search_from [expr {$end_at + [string length $end_sync]}]
 
-    set move_count [regexp -all {\x1b\[[0-9]+;[0-9]+H} $frame]
-    if {$move_count < 2} continue
+    set moves [regexp -all -inline -indices {\x1b\[[0-9]+;[0-9]+H} $frame]
+    if {[llength $moves] < 2} continue
 
     incr checked
-    set moves [regexp -all -inline -indices {\x1b\[[0-9]+;[0-9]+H} $frame]
     set first_move_at [lindex [lindex $moves 0] 0]
-    set last_move_end [lindex [lindex $moves end] 1]
     set hide_at [string first $hide_cursor $frame]
     if {$hide_at < 0 || $hide_at > $first_move_at} {
       failure "rapid-scroll repaint exposed the hardware cursor over transcript rows" $frame
     }
-    set show_at [string first $show_cursor $frame]
-    if {$show_at >= 0 && $show_at < $last_move_end} {
-      failure "rapid-scroll repaint restored the cursor before transcript movement ended" $frame
+    if {[string first $show_cursor $frame] >= 0} {
+      failure "rapid scrolling restored the hardware cursor during software-cursor mode" $frame
     }
-    if {$show_at >= 0} {
-      incr visible_frames
-    } else {
-      incr hidden_frames
+    if {[string first $software_cursor_style $frame] >= 0} {
+      incr software_cursor_frames
     }
   }
 
   if {$checked < 5} {
     failure "rapid scrolling produced fewer than five cursor-bearing repaint frames" $content
   }
-  if {$visible_frames < 1 || $hidden_frames < 1} {
-    failure "wheel scrolling reset the independent blink phase" $content
+  if {$software_cursor_frames < 5} {
+    failure "rapid scrolling did not render a stable software cursor" $content
   }
 }
 
@@ -351,9 +347,29 @@ for {set wheel 0} {$wheel < 26} {incr wheel} {
   after 50
   drain_ready
 }
-drain_for 0.5 {CURSOR_SCROLL_FIXTURE}
 set scroll [read_binary $scroll_log]
-assert_scroll_frames_mask_cursor $scroll
+assert_scroll_frames_use_software_cursor $scroll
+
+# Wait past the 500 ms deadline, then discard wheel output that was buffered
+# by the PTY before testing the restored hardware-cursor mode.
+after 700
+drain_ready
+rotate_log $scroll_restore_log
+send -i $active_spawn -- "Y"
+if {![drain_until 3 {Y}]} {
+  failure "editor did not repaint after scroll idle" [read_binary $scroll_restore_log]
+}
+drain_for 0.25 {Y}
+set scroll_restore [read_binary $scroll_restore_log]
+set restored_editor_at [string last "Y" $scroll_restore]
+if {$restored_editor_at < 0} {
+  failure "restored editor marker missing after scroll idle" $scroll_restore
+}
+set restored_editor [string range $scroll_restore $restored_editor_at end]
+require_bytes $restored_editor $show_cursor \
+  "hardware cursor restore after scroll idle"
+forbid_bytes $restored_editor "\x1b\[7m" \
+  "software cursor after scroll idle"
 
 rotate_log $shutdown_log
 send -i $active_spawn -- "\025/quit\r"
@@ -366,6 +382,6 @@ set active_spawn ""
 set shutdown [read_binary $shutdown_log]
 assert_shutdown_final_state $shutdown
 
-puts "PASS blinking-cursor real-PTY E2E: fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, masked fullscreen scrolling, and shutdown restore"
+puts "PASS blinking-cursor real-PTY E2E: fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, solid software cursor during fullscreen scrolling, and shutdown restore"
 cleanup
 exit 0
