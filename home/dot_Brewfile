@@ -75,3 +75,5 @@ cask "zen"
 
 # App Store applications
 brew "mas"
+
+mas "Amphetamine", id: 937984704
