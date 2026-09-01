@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "test": "bun test test/*.test.ts",
     "test:e2e": "expect test/e2e/slash-command-image-path.expect"
   },
   "pi": {

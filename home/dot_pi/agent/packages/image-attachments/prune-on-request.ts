@@ -4,6 +4,8 @@
  * Removes historical managed image bytes from provider context while
  * keeping the session file and visible transcript unchanged. The current request
  * keeps only the managed image bytes it references, deduped per provider call.
+ * During a tool loop, it moves those images after the tool results so the next
+ * provider request does not depend on stale visual context.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -204,12 +206,19 @@ export function pruneManagedImagesForRequest<T extends MessageLike>(
   const targets = collectCurrentTargets(messages, currentGroup);
   if (targets.size === 0 && sources.size === 0) return messages;
 
+  const activeImageIds = [...targets.keys()].filter((id) => sources.has(id));
+  const latestCurrentUserIndex = Math.max(...currentGroup);
+  const moveImagesAfterActiveTail =
+    activeImageIds.length > 0 && latestCurrentUserIndex < messages.length - 1;
+
   const imagesByTarget = new Map<number, number[]>();
-  for (const [id, index] of targets) {
-    if (!sources.has(id)) continue;
-    const ids = imagesByTarget.get(index) ?? [];
-    ids.push(id);
-    imagesByTarget.set(index, ids);
+  if (!moveImagesAfterActiveTail) {
+    for (const [id, index] of targets) {
+      if (!sources.has(id)) continue;
+      const ids = imagesByTarget.get(index) ?? [];
+      ids.push(id);
+      imagesByTarget.set(index, ids);
+    }
   }
 
   let changed = false;
@@ -241,6 +250,16 @@ export function pruneManagedImagesForRequest<T extends MessageLike>(
 
     return { ...message, content: nextContent } as T;
   });
+
+  if (moveImagesAfterActiveTail) {
+    return [
+      ...result,
+      {
+        role: "user",
+        content: appendImages([], activeImageIds, sources),
+      } as T,
+    ];
+  }
 
   return changed ? result : messages;
 }
