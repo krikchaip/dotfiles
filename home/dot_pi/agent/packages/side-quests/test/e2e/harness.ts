@@ -1,6 +1,7 @@
 import {
   type Dirent,
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -414,6 +415,22 @@ export class E2EHarness {
       SIDE_QUESTS_E2E_SCENARIO: this.name,
       TERM: "xterm-256color",
     };
+
+    if (process.tmuxFixture) {
+      const realTmux = Bun.which("tmux");
+      if (!realTmux) throw new Error("Could not locate tmux for E2E fixture.");
+
+      const fixtureBin = join(this.stateDirectory, "fixture-bin");
+      const fixtureTmux = join(fixtureBin, "tmux");
+      mkdirSync(fixtureBin, { recursive: true });
+      copyFileSync(
+        resolve(this.options.root, process.tmuxFixture),
+        fixtureTmux,
+      );
+      chmodSync(fixtureTmux, 0o700);
+      environment.PATH = `${fixtureBin}:${Bun.env.PATH ?? ""}`;
+      environment.SIDE_QUESTS_E2E_REAL_TMUX = realTmux;
+    }
 
     if (!process.managed) environment.PI_OFFLINE = "1";
     if (process.child) environment.PI_SIDE_QUESTS_CHILD_ID = "e2e-child";

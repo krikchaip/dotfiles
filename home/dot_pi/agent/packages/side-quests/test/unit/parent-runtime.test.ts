@@ -352,6 +352,32 @@ test("missing managed window quietly stops later title updates", async () => {
   expect(setTitle).not.toHaveBeenCalled();
 });
 
+test("window disappearing during a title write quietly stops updates", async () => {
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  const selectedPane = vi
+    .spyOn(Tmux, "selectedPaneId")
+    .mockResolvedValueOnce({ paneId: child.paneId })
+    .mockResolvedValue({ missing: true });
+  const setTitle = vi
+    .spyOn(Tmux, "setAutomaticWindowTitle")
+    .mockResolvedValue("no such window: @1");
+  vi.spyOn(Tmux, "paneExists").mockReturnValue(true);
+
+  await runtime().launch(child.manifest);
+  await vi.waitFor(() => expect(selectedPane).toHaveBeenCalledTimes(2));
+
+  expect(setTitle).toHaveBeenCalledTimes(1);
+
+  await runtime().continue(child.manifest, "Continue after window removal.");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(selectedPane).toHaveBeenCalledTimes(2);
+});
+
 test("title update failures warn once, retry, and do not block launch", async () => {
   vi.useFakeTimers();
   const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));

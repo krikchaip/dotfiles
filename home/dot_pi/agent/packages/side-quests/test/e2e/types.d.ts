@@ -23,6 +23,7 @@ declare global {
     readonly positionalPrompt?: string;
     readonly providerTokensPerSecond?: number;
     readonly settings?: Readonly<Record<string, unknown>>;
+    readonly tmuxFixture?: string;
   }
 
   interface Scenario {

@@ -549,7 +549,15 @@ export class ParentRuntime {
           )
         : await Tmux.restoreAutomaticWindowTitle(windowId);
 
-      if (error) this.warnTitleFailure(error);
+      if (error) {
+        const latestSelection = await Tmux.selectedPaneId(windowId);
+        if ("missing" in latestSelection) {
+          if (this.windowId === windowId) this.windowId = undefined;
+          return;
+        }
+
+        this.warnTitleFailure(error);
+      }
     } catch (cause) {
       this.warnTitleFailure(
         cause instanceof Error ? cause.message : String(cause),
