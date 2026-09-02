@@ -603,6 +603,7 @@ export class ParentRuntime {
         cwd: manifest.cwd,
         command,
         environment,
+        parentPaneId: environment[PARENT_PANE_ENV],
       });
 
       this.windowId = created.windowId;

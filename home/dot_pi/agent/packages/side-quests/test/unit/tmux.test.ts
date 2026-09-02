@@ -48,6 +48,7 @@ function expectCleanupAfter(
     cwd: "/tmp",
     command: ["/usr/bin/true"],
     environment: {},
+    parentPaneId: "",
   });
 }
 
@@ -75,4 +76,130 @@ test("unidentified shared-window creation removes its one-shot title hook", asyn
     "Could not identify Side Quests window",
   );
   expectCreationHookWasRemoved();
+});
+
+test("inserts a shared window directly after the parent window", async () => {
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "%9\t@4\n"));
+  childProcess.spawn.mockImplementationOnce(() =>
+    processResult(0, "@5\t%10\n"),
+  );
+
+  await expect(
+    Tmux.createWindow({
+      cwd: "/tmp",
+      command: ["/usr/bin/true"],
+      environment: {},
+      parentPaneId: "%9",
+    }),
+  ).resolves.toEqual({ windowId: "@5", paneId: "%10" });
+
+  const createArgs = childProcess.spawn.mock.calls[1]?.[1] as string[];
+  const newWindow = createArgs.indexOf("new-window");
+  expect(createArgs.slice(newWindow + 1, newWindow + 4)).toEqual([
+    "-a",
+    "-t",
+    "@4",
+  ]);
+});
+
+test("uses normal placement when the parent pane is already missing", async () => {
+  childProcess.spawn.mockImplementationOnce(() =>
+    processResult(1, "", "can't find pane: %9"),
+  );
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "%8\n"));
+  childProcess.spawn.mockImplementationOnce(() =>
+    processResult(0, "@5\t%10\n"),
+  );
+
+  await Tmux.createWindow({
+    cwd: "/tmp",
+    command: ["/usr/bin/true"],
+    environment: {},
+    parentPaneId: "%9",
+  });
+
+  const createArgs = childProcess.spawn.mock.calls[2]?.[1] as string[];
+  const newWindow = createArgs.indexOf("new-window");
+  expect(createArgs.slice(newWindow + 1, newWindow + 4)).toEqual([
+    "-d",
+    "-P",
+    "-F",
+  ]);
+});
+
+test("uses normal placement when the parent disappears during creation", async () => {
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "%9\t@4\n"));
+  childProcess.spawn.mockImplementationOnce(() =>
+    processResult(1, "", "can't find window: @4"),
+  );
+  childProcess.spawn.mockImplementationOnce(() => processResult(0));
+  childProcess.spawn.mockImplementationOnce(() =>
+    processResult(1, "", "can't find pane: %9"),
+  );
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "%8\n"));
+  childProcess.spawn.mockImplementationOnce(() =>
+    processResult(0, "@5\t%10\n"),
+  );
+
+  await Tmux.createWindow({
+    cwd: "/tmp",
+    command: ["/usr/bin/true"],
+    environment: {},
+    parentPaneId: "%9",
+  });
+
+  const fallbackArgs = childProcess.spawn.mock.calls[5]?.[1] as string[];
+  const newWindow = fallbackArgs.indexOf("new-window");
+  expect(fallbackArgs.slice(newWindow + 1, newWindow + 4)).toEqual([
+    "-d",
+    "-P",
+    "-F",
+  ]);
+});
+
+test("does not hide a parent-window inspection error", async () => {
+  childProcess.spawn.mockImplementationOnce(() =>
+    processResult(1, "", "forced inspection failure"),
+  );
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "%9\n"));
+
+  await expect(
+    Tmux.createWindow({
+      cwd: "/tmp",
+      command: ["/usr/bin/true"],
+      environment: {},
+      parentPaneId: "%9",
+    }),
+  ).rejects.toThrow(
+    "Could not inspect parent tmux window: forced inspection failure",
+  );
+  expect(childProcess.spawn).toHaveBeenCalledTimes(2);
+});
+
+test("parents in one window each insert after their common parent", async () => {
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "%1\t@0\n"));
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "@1\t%3\n"));
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "%2\t@0\n"));
+  childProcess.spawn.mockImplementationOnce(() => processResult(0, "@2\t%4\n"));
+
+  for (const parentPaneId of ["%1", "%2"]) {
+    await Tmux.createWindow({
+      cwd: "/tmp",
+      command: ["/usr/bin/true"],
+      environment: {},
+      parentPaneId,
+    });
+  }
+
+  for (const callIndex of [1, 3]) {
+    const createArgs = childProcess.spawn.mock.calls[
+      callIndex
+    ]?.[1] as string[];
+    const newWindow = createArgs.indexOf("new-window");
+    expect(createArgs.slice(newWindow + 1, newWindow + 4)).toEqual([
+      "-a",
+      "-t",
+      "@0",
+    ]);
+  }
 });

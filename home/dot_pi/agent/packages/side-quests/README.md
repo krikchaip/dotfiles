@@ -321,7 +321,10 @@ Every child inherits the parent's loaded extensions. Side Quests remains child-s
 
 Each parent agent session owns one shared sub-agent window.
 
-- Side Quests creates the window on the first launch.
+- Side Quests creates the window on the first launch and inserts it directly after the tmux window that contains the parent Pi process.
+- Window placement happens only at creation. Side Quests does not undo later manual window moves.
+- Parent agents that share one tmux window still own separate sub-agent windows. Each new sub-agent window becomes the nearest one after their common parent, so older sub-agent windows shift right.
+- If the parent target disappears during creation, Side Quests uses tmux's normal placement. Other creation errors remain visible.
 - The window title shows the current description of the selected sub-agent pane.
 - Side Quests records the complete parent session ID and canonical tmux window ID. This makes sure it manages only that session's window and panes.
 - Each live child gets one pane in that window.

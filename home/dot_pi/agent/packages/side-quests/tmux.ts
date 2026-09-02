@@ -39,6 +39,14 @@ type SelectedPaneResult =
   | Readonly<{ missing: true }>
   | Readonly<{ error: string }>;
 
+/**
+ * Contains the parent window target, expected pane absence, or inspection error.
+ */
+type ParentWindowResult =
+  | Readonly<{ windowId: string }>
+  | Readonly<{ missing: true }>
+  | Readonly<{ error: string }>;
+
 /** Stores permanent title ownership on the tmux window. */
 const TITLE_OWNER_OPTION = "@side_quests_title_owner";
 
@@ -256,7 +264,79 @@ export class Tmux {
     cwd: string;
     command: string[];
     environment: Record<string, string>;
+    parentPaneId: string;
   }): Promise<{ windowId: string; paneId: string }> {
+    const parent = await Tmux.parentWindow(params.parentPaneId);
+    if ("error" in parent)
+      throw new Error(`Could not inspect parent tmux window: ${parent.error}`);
+
+    const targetWindowId = "windowId" in parent ? parent.windowId : undefined;
+    let result = await Tmux.createWindowAt(params, targetWindowId);
+
+    if (result.status !== 0 && targetWindowId) {
+      const currentParent = await Tmux.parentWindow(params.parentPaneId);
+      if (!("error" in currentParent)) {
+        const currentWindowId =
+          "windowId" in currentParent ? currentParent.windowId : undefined;
+        if (currentWindowId !== targetWindowId)
+          result = await Tmux.createWindowAt(params, currentWindowId);
+      }
+    }
+
+    if (result.status !== 0)
+      throw new Error(
+        `Could not create Side Quests window: ${Tmux.error(result)}`,
+      );
+
+    const [windowId, paneId] = Tmux.output(result.stdout).trim().split("\t");
+    if (!windowId || !paneId)
+      throw new Error("Could not identify Side Quests window.");
+
+    return { windowId, paneId };
+  }
+
+  /**
+   * Resolves the canonical parent pane to its current stable window ID.
+   */
+  private static async parentWindow(
+    paneId: string,
+  ): Promise<ParentWindowResult> {
+    if (!paneId) return { missing: true };
+
+    const result = await Tmux.runAsync([
+      "display-message",
+      "-p",
+      "-t",
+      paneId,
+      "#{pane_id}\t#{window_id}",
+    ]);
+    if (result.status === 0) {
+      const [reportedPaneId, windowId] = Tmux.output(result.stdout)
+        .trim()
+        .split("\t");
+      return reportedPaneId === paneId && windowId
+        ? { windowId }
+        : { error: "tmux returned an invalid parent window target." };
+    }
+
+    const panes = await Tmux.runAsync(["list-panes", "-a", "-F", "#{pane_id}"]);
+    if (panes.status !== 0) return { error: Tmux.error(result) };
+
+    const exists = Tmux.output(panes.stdout).split("\n").includes(paneId);
+    return exists ? { error: Tmux.error(result) } : { missing: true };
+  }
+
+  /**
+   * Attempts one detached creation after a target, or with normal placement.
+   */
+  private static async createWindowAt(
+    params: {
+      cwd: string;
+      command: string[];
+      environment: Record<string, string>;
+    },
+    targetWindowId?: string,
+  ): Promise<TmuxCommandResult> {
     const hookName = `after-new-window[${randomInt(1_000_000_000, 2_000_000_000)}]`;
     const initializeTitle = [
       `set-option -w automatic-rename-format "${INITIAL_WINDOW_TITLE}"`,
@@ -272,6 +352,7 @@ export class Tmux {
       initializeTitle,
       ";",
       "new-window",
+      ...(targetWindowId ? ["-a", "-t", targetWindowId] : []),
       "-d",
       "-P",
       "-F",
@@ -288,21 +369,10 @@ export class Tmux {
       hookName,
     ]);
 
-    if (result.status !== 0) {
-      await Tmux.removeWindowCreationHook(hookName);
-      throw new Error(
-        `Could not create Side Quests window: ${Tmux.error(result)}`,
-      );
-    }
-
     const [windowId, paneId] = Tmux.output(result.stdout).trim().split("\t");
-
-    if (!windowId || !paneId) {
+    if (result.status !== 0 || !windowId || !paneId)
       await Tmux.removeWindowCreationHook(hookName);
-      throw new Error("Could not identify Side Quests window.");
-    }
-
-    return { windowId, paneId };
+    return result;
   }
 
   /**

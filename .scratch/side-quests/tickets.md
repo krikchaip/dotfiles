@@ -34,6 +34,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 - [x] Register exactly one public `Agent` tool with the specified strict request schema, reserved `general-purpose` choice, asynchronous acknowledgements, and canonical session paths.
 - [x] Launch only Pi, directly in detached panes of one shared sub-agent window, from the parent agent's invocation-time working directory without an intermediate shell or focus change.
+- [x] Insert each created or replacement shared window directly after the parent Pi process's current tmux window. Keep separate windows for parents sharing one tmux window, leave later user moves unchanged, and use normal placement only if the parent target disappears.
 - [x] Support concurrent new launches, live-idle continuation, live-active steering after the current tool batch, stopped-session reopen, and duplicate-process prevention.
 - [x] Clone the parent runtime for the standard general-purpose child, copy context once by default, preserve a fresh-context option, hard-deny every spawning tool, and force-enable `ask_parent`.
 - [x] Persist the session, resolved manifest, owner state, activity state, terminal state, and request/response mailboxes under the managed Side Quests storage root.
@@ -46,7 +47,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [x] Include the explicit `subagent_done.result` for success, current-run assistant output only as valid failure or closure diagnostics, the canonical session path, pending-request state where relevant, and no full transcript or stale-response substitution.
 - [x] Keep interactive provider or agent-loop turn failures local while treating autonomous exhausted failures and fatal process exits as terminal according to the README.
 - [x] Preserve unmanaged panes and use a safe basic tmux arrangement until the deterministic layout ticket replaces geometry policy.
-- [x] E2E-demo explicit autonomous and command-driven completion, completion-tool removal on promotion, live and persisted tool-owned `WRAP UP` banners, failed command-turn recovery, terminal takeover, parent questions, continuation, reopen, `Shift+Up` and command navigation, closure outcomes, narrow widgets, focus, and retained sessions.
+- [x] E2E-demo explicit autonomous and command-driven completion, completion-tool removal on promotion, live and persisted tool-owned `WRAP UP` banners, failed command-turn recovery, terminal takeover, parent questions, continuation, reopen, `Shift+Up` and command navigation, closure outcomes, narrow widgets, focus, retained sessions, and shared-window insertion beside the parent while preserving existing windows.
 
 ## 3. Configure general-purpose and named agents
 
