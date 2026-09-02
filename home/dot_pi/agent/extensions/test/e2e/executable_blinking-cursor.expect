@@ -18,6 +18,8 @@ set dialog_focus_log "$temp_root/dialog-focus.ansi"
 set resume_log "$temp_root/resume.ansi"
 set scroll_log "$temp_root/scroll.ansi"
 set scroll_restore_log "$temp_root/scroll-restore.ansi"
+set hotkey_scroll_log "$temp_root/hotkey-scroll.ansi"
+set hotkey_scroll_restore_log "$temp_root/hotkey-scroll-restore.ansi"
 set shutdown_log "$temp_root/shutdown.ansi"
 set columns 80
 set rows 24
@@ -225,6 +227,9 @@ file mkdir $state_dir
 set settings [open "$state_dir/settings.json" w]
 puts $settings { {"showHardwareCursor":true,"tuiMode":"fullscreen"} }
 close $settings
+set keybindings [open "$state_dir/keybindings.json" w]
+puts $keybindings { {"tui.altScreen.halfPageUp":["ctrl+up"],"tui.altScreen.halfPageDown":["ctrl+down"]} }
+close $keybindings
 
 set fixture [open $fixture_path w]
 puts $fixture {
@@ -417,6 +422,44 @@ require_bytes $restored_editor $show_cursor \
 forbid_bytes $restored_editor "\x1b\[7m" \
   "software cursor after scroll idle"
 
+rotate_log $hotkey_scroll_log
+set hotkey_sequences [list "\033\[5~" "\033\[6~" "\033\[1;5A" "\033\[1;5B"]
+for {set key 0} {$key < 28} {incr key} {
+  send -i $active_spawn -- [lindex $hotkey_sequences [expr {$key % 4}]]
+  after 50
+  drain_ready
+}
+set hotkey_scroll [read_binary $hotkey_scroll_log]
+assert_scroll_frames_use_software_cursor $hotkey_scroll
+
+# Verify that the final configured hotkey keeps software-cursor mode active for
+# 500 ms and that hardware-cursor mode returns after the idle deadline.
+after 400
+drain_ready
+forbid_bytes [read_binary $hotkey_scroll_log] $show_cursor \
+  "hardware cursor restore before hotkey scroll idle"
+after 300
+drain_ready
+rotate_log $hotkey_scroll_restore_log
+send -i $active_spawn -- "Z"
+if {![drain_until 3 {Z}]} {
+  failure "editor did not repaint after hotkey scroll idle" \
+    [read_binary $hotkey_scroll_restore_log]
+}
+drain_for 0.25 {Z}
+set hotkey_scroll_restore [read_binary $hotkey_scroll_restore_log]
+set hotkey_restored_editor_at [string last "Z" $hotkey_scroll_restore]
+if {$hotkey_restored_editor_at < 0} {
+  failure "restored editor marker missing after hotkey scroll idle" \
+    $hotkey_scroll_restore
+}
+set hotkey_restored_editor \
+  [string range $hotkey_scroll_restore $hotkey_restored_editor_at end]
+require_bytes $hotkey_restored_editor $show_cursor \
+  "hardware cursor restore after hotkey scroll idle"
+forbid_bytes $hotkey_restored_editor "\x1b\[7m" \
+  "software cursor after hotkey scroll idle"
+
 rotate_log $shutdown_log
 send -i $active_spawn -- "\025/quit\r"
 if {![drain_until 8 {\x1b\[0 q\x1b\[\?25h}]} {
@@ -428,6 +471,6 @@ set active_spawn ""
 set shutdown [read_binary $shutdown_log]
 assert_shutdown_final_state $shutdown
 
-puts "PASS blinking-cursor real-PTY E2E: cadence [join $cadence_durations /] ms; fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, solid software cursor during fullscreen scrolling, and shutdown restore"
+puts "PASS blinking-cursor real-PTY E2E: cadence [join $cadence_durations /] ms; fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, solid software cursor during wheel and configured-hotkey scrolling, and shutdown restore"
 cleanup
 exit 0

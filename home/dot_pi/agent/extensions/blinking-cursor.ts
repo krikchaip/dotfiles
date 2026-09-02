@@ -10,7 +10,13 @@ import {
   type ExtensionAPI,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
-import { CURSOR_MARKER, type Terminal } from "@earendil-works/pi-tui";
+import {
+  CURSOR_MARKER,
+  getKeybindings,
+  isKeyRelease,
+  type Keybinding,
+  type Terminal,
+} from "@earendil-works/pi-tui";
 
 const PATCH_STATE = Symbol.for("blinking-cursor.editor-render.patch");
 const UI_PATCH_STATE = Symbol.for("blinking-cursor.editor-component.patch");
@@ -27,6 +33,18 @@ const BEGIN_SYNCHRONIZED_OUTPUT = "\x1b[?2026h";
 const END_SYNCHRONIZED_OUTPUT = "\x1b[?2026l";
 const FOCUS_EVENT_PATTERN = /\x1b\[([IO])/g;
 const MOUSE_WHEEL_EVENT_PATTERN = /\x1b\[<6[45];\d+;\d+[Mm]/;
+const TRANSCRIPT_SCROLL_KEYBINDINGS = [
+  "tui.altScreen.pageUp",
+  "tui.altScreen.pageDown",
+  "tui.altScreen.halfPageUp",
+  "tui.altScreen.halfPageDown",
+  "tui.altScreen.lineUp",
+  "tui.altScreen.lineDown",
+  "tui.altScreen.previousPrompt",
+  "tui.altScreen.nextPrompt",
+  "tui.altScreen.top",
+  "tui.altScreen.bottom",
+] as const satisfies readonly Keybinding[];
 
 type EditorRender = (width: number) => string[];
 type EditorFactory = NonNullable<
@@ -470,7 +488,7 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   };
 
   /**
-   * Shows a solid software cursor until wheel input is idle for 500 ms.
+   * Shows a solid software cursor until scroll input is idle for 500 ms.
    */
   const holdSoftwareCursorDuringScroll = (): void => {
     holdCursorVisible();
@@ -481,6 +499,20 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
       setScrolling(false);
     }, BLINK_INTERVAL_MS);
     scrollIdleTimer.unref();
+  };
+
+  /**
+   * Reports whether input matches a configured transcript scroll hotkey.
+   *
+   * @param input - One complete terminal key event.
+   * @returns `true` for a press or repeat of a transcript scroll binding.
+   */
+  const isTranscriptScrollHotkey = (input: string): boolean => {
+    if (input.length === 0 || isKeyRelease(input)) return false;
+    const keybindings = getKeybindings();
+    return TRANSCRIPT_SCROLL_KEYBINDINGS.some((action) =>
+      keybindings.matches(input, action),
+    );
   };
 
   /**
@@ -585,7 +617,10 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
     const completeInput = focusInputRemainder
       ? input.slice(0, -focusInputRemainder.length)
       : input;
-    if (MOUSE_WHEEL_EVENT_PATTERN.test(completeInput)) {
+    if (
+      MOUSE_WHEEL_EVENT_PATTERN.test(completeInput) ||
+      isTranscriptScrollHotkey(completeInput)
+    ) {
       holdSoftwareCursorDuringScroll();
     } else if (containsKeyboardActivity(completeInput)) {
       holdCursorVisible();
