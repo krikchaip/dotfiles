@@ -20,7 +20,7 @@ import {
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteProvider, KeyId } from "@earendil-works/pi-tui";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   closeSync,
   openSync,
@@ -275,6 +275,28 @@ function tmuxEnvironmentArgs() {
   return args;
 }
 
+type TmuxWindowTarget = { windowId: string } | { error: string };
+
+function currentTmuxWindowTarget(): TmuxWindowTarget {
+  const paneId = process.env.TMUX_PANE;
+  if (!paneId) return { error: "Current tmux pane is unavailable" };
+
+  const result = spawnSync(
+    "tmux",
+    ["display-message", "-p", "-t", paneId, "#{window_id}"],
+    { encoding: "utf8", env: process.env },
+  );
+  const windowId = result.stdout?.trim();
+  if (result.status === 0 && windowId) return { windowId };
+
+  const detail = result.error?.message || result.stderr?.trim();
+  return {
+    error: detail
+      ? `Cannot identify current tmux window: ${detail.split("\n")[0]}`
+      : "Cannot identify current tmux window",
+  };
+}
+
 async function spawnTmuxTarget(
   ctx: ExtensionContext,
   target: TmuxTarget,
@@ -291,6 +313,13 @@ async function spawnTmuxTarget(
       "Current session has no valid session file; cannot create a child session",
       "warning",
     );
+    return;
+  }
+
+  const windowTarget =
+    target === "window" ? currentTmuxWindowTarget() : undefined;
+  if (windowTarget && "error" in windowTarget) {
+    ctx.ui.notify(windowTarget.error, "warning");
     return;
   }
 
@@ -333,6 +362,7 @@ async function spawnTmuxTarget(
   const command = piCommand(piArgs);
   const tmuxArgs = [
     target === "window" ? "new-window" : "split-window",
+    ...(windowTarget ? ["-a", "-t", windowTarget.windowId] : []),
     ...(target === "h" ? ["-h"] : target === "v" ? ["-v"] : []),
     "-c",
     cwd,

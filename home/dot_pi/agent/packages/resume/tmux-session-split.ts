@@ -202,14 +202,35 @@ function tmuxEnvironmentArgs() {
   return args;
 }
 
-function openSession(
-  session: any,
-  interactiveMode: any,
-  target: TmuxTarget,
-) {
+type TmuxWindowTarget = { windowId: string } | { error: string };
+
+function currentTmuxWindowTarget(): TmuxWindowTarget {
+  const paneId = tmuxPaneId();
+  if (!paneId) return { error: "Current tmux pane is unavailable" };
+
+  const result = runTmux([
+    "display-message",
+    "-p",
+    "-t",
+    paneId,
+    "#{window_id}",
+  ]);
+  const windowId = result.stdout.trim();
+  return result.status === 0 && windowId
+    ? { windowId }
+    : { error: `Cannot identify current tmux window: ${resultError(result)}` };
+}
+
+function openSession(session: any, interactiveMode: any, target: TmuxTarget) {
   const cwd = session.cwd || interactiveMode.sessionManager?.getCwd?.();
   if (!cwd) {
     return { ok: false, error: "Selected session has no working directory" };
+  }
+
+  const windowTarget =
+    target === "window" ? currentTmuxWindowTarget() : undefined;
+  if (windowTarget && "error" in windowTarget) {
+    return { ok: false as const, error: windowTarget.error };
   }
 
   const command = piCommand(
@@ -218,6 +239,7 @@ function openSession(
   );
   const result = runTmux([
     target === "window" ? "new-window" : "split-window",
+    ...(windowTarget ? ["-a", "-t", windowTarget.windowId] : []),
     ...(target === "right" ? ["-h"] : target === "down" ? ["-v"] : []),
     "-c",
     cwd,

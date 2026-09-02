@@ -98,7 +98,7 @@ import {
   type KeyId,
   type TUI,
 } from "@earendil-works/pi-tui";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -294,6 +294,28 @@ const POST_MERGE_TMUX_ITEMS: readonly PostMergeItem[] = [
 
 function isInTmux(): boolean {
   return Boolean(process.env.TMUX);
+}
+
+type TmuxWindowTarget = { windowId: string } | { error: string };
+
+function currentTmuxWindowTarget(): TmuxWindowTarget {
+  const paneId = process.env.TMUX_PANE;
+  if (!paneId) return { error: "Current tmux pane is unavailable" };
+
+  const result = spawnSync(
+    "tmux",
+    ["display-message", "-p", "-t", paneId, "#{window_id}"],
+    { encoding: "utf8", env: process.env },
+  );
+  const windowId = result.stdout?.trim();
+  if (result.status === 0 && windowId) return { windowId };
+
+  const detail = result.error?.message || result.stderr?.trim();
+  return {
+    error: detail
+      ? `Cannot identify current tmux window: ${detail.split("\n")[0]}`
+      : "Cannot identify current tmux window",
+  };
 }
 
 function postMergeItems(inTmux: boolean): {
@@ -1658,6 +1680,13 @@ async function branchIntoPane(
     return;
   }
 
+  const windowTarget =
+    target === "window" ? currentTmuxWindowTarget() : undefined;
+  if (windowTarget && "error" in windowTarget) {
+    notify(ctx, windowTarget.error, "warning");
+    return;
+  }
+
   const sessionDir = ctx.sessionManager.getSessionDir();
   let branchFile: string | undefined;
   try {
@@ -1716,6 +1745,7 @@ async function branchIntoPane(
     "tmux",
     [
       target === "window" ? "new-window" : "split-window",
+      ...(windowTarget ? ["-a", "-t", windowTarget.windowId] : []),
       ...(target === "h" ? ["-h"] : target === "v" ? ["-v"] : []),
       "-c",
       ctx.cwd,
