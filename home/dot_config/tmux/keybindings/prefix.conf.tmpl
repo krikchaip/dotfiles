@@ -21,8 +21,8 @@ bind -N "[Session] Goto next"           -r C-n switch-client -n
 bind -N "[Session] Goto previous"       -r p   switch-client -p
 bind -N "[Session] Goto previous"       -r C-p switch-client -p
 
-bind -N "[Window] Split new"                 t     new-window -c "#{pane_current_path}"
-bind -N "[Window] Split new"                 C-t   new-window -c "#{pane_current_path}"
+bind -N "[Window] Split new"                 t     new-window -a -c "#{pane_current_path}"
+bind -N "[Window] Split new"                 C-t   new-window -a -c "#{pane_current_path}"
 bind -N "[Window] Split horizontally"        s     split-window -v -c "#{pane_current_path}"
 bind -N "[Window] Split horizontally"        C-s   split-window -v -c "#{pane_current_path}"
 bind -N "[Window] Split vertically"          v     split-window -h -c "#{pane_current_path}"
