@@ -1,5 +1,6 @@
 {
   "toolBackground": "outlines",
   "mcpOutputMode": "preview",
-  "extraToolOutputExpanded": false
+  "extraToolOutputExpanded": false,
+  "clickExpansion": true
 }
