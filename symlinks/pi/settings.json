@@ -25,7 +25,7 @@
   "externalEditor": "env NVIM_APPNAME=nvchad nvim",
   "shellPath": "/opt/homebrew/bin/bash",
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.6-sol",
+  "defaultModel": "gpt-5.6-terra",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": true,
   "enabledModels": [
