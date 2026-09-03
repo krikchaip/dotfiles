@@ -102,13 +102,10 @@ Completion: `/skill:resolving-merge-conflicts` finishes the rebase, and the fina
 
 ## 6. Regression-test personal customizations
 
-Before the final report:
+1. Find the canonical repository-owned E2E command in package scripts, tests, CI, or contributor docs. It must run Pi in a real TUI and fail closed. Apply the uncertainty gate if several candidates exist.
+2. Audit its coverage against the personal regression checklist. Every user-visible personal commit must map to a named E2E case; map non-behavioral commits to an applicable project check.
+3. If the suite exists, add any missing cases to it. If no suite exists, use `/skill:pi-extension-e2e` to add one reusable suite and one stable command. Keep all test logic in the repository; use temporary files only for runtime state and captures.
+4. Run all project checks and the complete E2E suite. Fix failures, then rerun the affected checks without weakening the suite.
+5. Record the commit-to-test mapping and clean generated runtime artifacts before the final report.
 
-1. Run every scenario in the personal regression checklist.
-2. Use `/skill:pi-extension-e2e` for user-visible Pi extension behavior. Test added and changed behavior in the real TUI. Test removed behavior by proving it stays absent.
-3. Fix each regression, then rerun its scenario and all applicable project checks.
-4. Record pass evidence for every checklist item.
-
-Send the final report only after every personal customization passes or the uncertainty gate resolves a blocker.
-
-Completion: every personal commit is accounted for, every customized behavior has regression evidence, and all applicable project checks pass.
+Completion: every personal commit has regression coverage, and the repository-owned E2E suite and all applicable project checks pass.
