@@ -8,7 +8,10 @@ set work_dir "$temp_root/work"
 set state_dir "$temp_root/state"
 set fixture_path "$temp_root/fixture.ts"
 set startup_log "$temp_root/startup.ansi"
+set reload_log "$temp_root/reload.ansi"
 set editor_log "$temp_root/editor.ansi"
+set subprocess_log "$temp_root/subprocess.ansi"
+set subprocess_idle_log "$temp_root/subprocess-idle.ansi"
 set typing_log "$temp_root/typing.ansi"
 set blink_log "$temp_root/blink.ansi"
 set focus_out_log "$temp_root/focus-out.ansi"
@@ -19,6 +22,7 @@ set resume_log "$temp_root/resume.ansi"
 set scroll_log "$temp_root/scroll.ansi"
 set scroll_restore_log "$temp_root/scroll-restore.ansi"
 set hotkey_scroll_log "$temp_root/hotkey-scroll.ansi"
+set hotkey_scroll_hold_log "$temp_root/hotkey-scroll-hold.ansi"
 set hotkey_scroll_restore_log "$temp_root/hotkey-scroll-restore.ansi"
 set shutdown_log "$temp_root/shutdown.ansi"
 set columns 80
@@ -168,15 +172,6 @@ proc assert_scroll_frames_use_software_cursor {content} {
   set checked 0
   set software_cursor_frames 0
   set search_from 0
-  set first_move [regexp -inline -indices {\x1b\[[0-9]+;[0-9]+H} $content]
-  if {[llength $first_move] == 0} {
-    failure "rapid scrolling produced no cursor movement" $content
-  }
-  set first_move_at [lindex $first_move 0]
-  set hide_at [string first $hide_cursor $content]
-  if {$hide_at < 0 || $hide_at > $first_move_at} {
-    failure "hardware cursor was not hidden before the first scroll movement" $content
-  }
 
   while {1} {
     set begin_at [string first $begin_sync $content $search_from]
@@ -191,6 +186,11 @@ proc assert_scroll_frames_use_software_cursor {content} {
     if {[llength $moves] < 2} continue
 
     incr checked
+    set first_move_at [lindex [lindex $moves 0] 0]
+    set hide_at [string first $hide_cursor $frame]
+    if {$hide_at < 0 || $hide_at > $first_move_at} {
+      failure "hardware cursor was not hidden before scroll-frame movement" $frame
+    }
     if {[string first $show_cursor $frame] >= 0} {
       failure "rapid scrolling restored the hardware cursor during software-cursor mode" $frame
     }
@@ -224,11 +224,15 @@ proc assert_shutdown_final_state {content} {
 
 file mkdir $work_dir
 file mkdir $state_dir
+set nvim_path [auto_execok nvim]
+if {$nvim_path eq ""} {
+  failure "nvim is required for the external-editor cursor test"
+}
 set settings [open "$state_dir/settings.json" w]
-puts $settings { {"showHardwareCursor":true,"tuiMode":"fullscreen"} }
+puts $settings " {\"showHardwareCursor\":true,\"tuiMode\":\"fullscreen\",\"externalEditor\":\"$nvim_path --clean -n\"} "
 close $settings
 set keybindings [open "$state_dir/keybindings.json" w]
-puts $keybindings { {"tui.altScreen.halfPageUp":["ctrl+up"],"tui.altScreen.halfPageDown":["ctrl+down"]} }
+puts $keybindings { {"app.editor.external":["alt+e"],"tui.altScreen.halfPageUp":["ctrl+up"],"tui.altScreen.halfPageDown":["ctrl+down"]} }
 close $keybindings
 
 set fixture [open $fixture_path w]
@@ -285,6 +289,13 @@ require_bytes $startup "\x1b\[2 q" "steady block cursor mode"
 forbid_bytes $startup "\x1b\[1 q" "terminal-managed blinking cursor mode"
 require_bytes $startup $show_cursor "hardware cursor show"
 
+rotate_log $reload_log
+send -i $active_spawn -- "/reload\r"
+if {![drain_until 15 {Reloaded keybindings, extensions}]} {
+  failure "Pi did not complete /reload" [read_binary $reload_log]
+}
+drain_for 1 {Reloaded keybindings, extensions}
+
 rotate_log $editor_log
 send -i $active_spawn -- "X"
 if {![drain_until 5 {X}]} {
@@ -293,6 +304,29 @@ if {![drain_until 5 {X}]} {
 drain_for 0.25 {X}
 set editor [read_binary $editor_log]
 forbid_bytes $editor "\x1b\[7m" "inverse-video software cursor"
+
+rotate_log $subprocess_log
+send -i $active_spawn -- "\033e"
+if {![drain_until 5 {prompt\.md}]} {
+  failure "Alt+E did not open the external Neovim editor" \
+    [read_binary $subprocess_log]
+}
+drain_for 0.5 {prompt\.md}
+set subprocess_launch [read_binary $subprocess_log]
+forbid_bytes $subprocess_launch "\x1b\[0 q" \
+  "default blinking cursor mode before Neovim owns the terminal"
+rotate_log $subprocess_idle_log
+drain_for 1.2 {.}
+set subprocess_idle [read_binary $subprocess_idle_log]
+forbid_bytes $subprocess_idle $hide_cursor \
+  "Pi cursor blink hide while Neovim owns the terminal"
+forbid_bytes $subprocess_idle $show_cursor \
+  "Pi cursor blink show while Neovim owns the terminal"
+send -i $active_spawn -- "\033:q!\r"
+if {![drain_until 5 {CURSOR_E2E_READY}]} {
+  failure "Pi did not resume after Neovim exited" [read_binary $subprocess_log]
+}
+drain_for 0.25 {CURSOR_E2E_READY}
 
 rotate_log $typing_log
 for {set key 0} {$key < 14} {incr key} {
@@ -432,11 +466,12 @@ for {set key 0} {$key < 28} {incr key} {
 set hotkey_scroll [read_binary $hotkey_scroll_log]
 assert_scroll_frames_use_software_cursor $hotkey_scroll
 
-# Verify that the final configured hotkey keeps software-cursor mode active for
-# 500 ms and that hardware-cursor mode returns after the idle deadline.
-after 400
+# Verify that the final configured hotkey keeps software-cursor mode active
+# before the 500 ms deadline and restores hardware mode after the deadline.
+rotate_log $hotkey_scroll_hold_log
+after 250
 drain_ready
-forbid_bytes [read_binary $hotkey_scroll_log] $show_cursor \
+forbid_bytes [read_binary $hotkey_scroll_hold_log] $show_cursor \
   "hardware cursor restore before hotkey scroll idle"
 after 300
 drain_ready

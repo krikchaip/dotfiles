@@ -20,6 +20,9 @@ import {
 
 const PATCH_STATE = Symbol.for("blinking-cursor.editor-render.patch");
 const UI_PATCH_STATE = Symbol.for("blinking-cursor.editor-component.patch");
+const TUI_LIFECYCLE_PATCH_STATE = Symbol.for(
+  "blinking-cursor.tui-lifecycle.patch",
+);
 const TERMINAL_PATCH_STATE = Symbol.for("blinking-cursor.terminal-write.patch");
 const INVERSE_VIDEO = "\x1b[7m";
 const STEADY_BLOCK_CURSOR = "\x1b[2 q";
@@ -50,6 +53,9 @@ type EditorRender = (width: number) => string[];
 type EditorFactory = NonNullable<
   ReturnType<ExtensionUIContext["getEditorComponent"]>
 >;
+type EditorTUI = Parameters<EditorFactory>[0];
+type TUIStart = EditorTUI["start"];
+type TUIStop = EditorTUI["stop"];
 type TerminalWrite = Terminal["write"];
 type TerminalPatchState = {
   originalWrite: TerminalWrite;
@@ -61,11 +67,16 @@ type TerminalPatchState = {
 type PatchableTerminal = Pick<Terminal, "write"> & {
   [TERMINAL_PATCH_STATE]?: TerminalPatchState;
 };
-type CursorTUI = Parameters<EditorFactory>[0] & {
+type CursorTUI = EditorTUI & {
   terminal: PatchableTerminal;
-  getShowHardwareCursor(): boolean;
-  setShowHardwareCursor(enabled: boolean): void;
-  requestRender(force?: boolean): void;
+  [TUI_LIFECYCLE_PATCH_STATE]?: {
+    originalStart: TUIStart;
+    originalStop: TUIStop;
+    patchedStart: TUIStart;
+    patchedStop: TUIStop;
+    onStart?: () => void;
+    onStop?: () => void;
+  };
 };
 type RegisterCursorTUI = (tui: CursorTUI) => void;
 type ShouldUseHardwareCursor = () => boolean;
@@ -320,6 +331,73 @@ function removeTerminalWritePatch(terminal: PatchableTerminal): void {
     terminal.write = state.originalWrite;
   }
   delete terminal[TERMINAL_PATCH_STATE];
+}
+
+/**
+ * Pauses cursor ownership when Pi stops its TUI for an external process.
+ *
+ * @param tui - The TUI whose lifecycle must be observed.
+ * @param onStart - Restores Pi's cursor controls after the TUI starts.
+ * @param onStop - Releases cursor controls before the TUI stops.
+ */
+function installTUILifecyclePatch(
+  tui: CursorTUI,
+  onStart: () => void,
+  onStop: () => void,
+): void {
+  const existingState = tui[TUI_LIFECYCLE_PATCH_STATE];
+  if (existingState) {
+    existingState.onStart = onStart;
+    existingState.onStop = onStop;
+    return;
+  }
+
+  const originalStart = tui.start;
+  const originalStop = tui.stop;
+  let state: NonNullable<CursorTUI[typeof TUI_LIFECYCLE_PATCH_STATE]>;
+  const patchedStart: TUIStart = function cursorAwareStart(
+    this: CursorTUI,
+  ): void {
+    originalStart.call(this);
+    state.onStart?.();
+  };
+  const patchedStop: TUIStop = function cursorAwareStop(
+    this: CursorTUI,
+    options,
+  ): void {
+    state.onStop?.();
+    originalStop.call(this, options);
+  };
+
+  state = {
+    originalStart,
+    originalStop,
+    patchedStart,
+    patchedStop,
+    onStart,
+    onStop,
+  };
+  tui[TUI_LIFECYCLE_PATCH_STATE] = state;
+  tui.start = patchedStart;
+  tui.stop = patchedStop;
+}
+
+/**
+ * Makes the persistent lifecycle hook inert between extension runtimes.
+ *
+ * Pi gives editor factories a stable TUI proxy. Method reads from that proxy
+ * return new forwarding functions, so function identity cannot safely restore
+ * the original methods. The dormant hook keeps the originals and lets the next
+ * extension runtime replace only its callbacks.
+ *
+ * @param tui - The TUI that contains the lifecycle hook.
+ */
+function deactivateTUILifecyclePatch(tui: CursorTUI): void {
+  const state = tui[TUI_LIFECYCLE_PATCH_STATE];
+  if (!state) return;
+
+  state.onStart = undefined;
+  state.onStop = undefined;
 }
 
 /**
@@ -594,6 +672,7 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
    * @param tui - The TUI instance to register.
    */
   const registerTUI: RegisterCursorTUI = (tui) => {
+    installTUILifecyclePatch(tui, resumeCursorControls, suspendCursorControls);
     patchTerminalWrite(tui.terminal, isTerminalFocused, isBlinkVisible);
     cursorTuis.add(tui);
     // Keep Pi's cursor-marker behavior active outside scroll bursts. The
@@ -637,6 +716,63 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   };
 
   /**
+   * Releases terminal cursor ownership while Pi's TUI is stopped.
+   *
+   * External editors and other inherited-stdio subprocesses own the terminal
+   * until Pi starts its TUI again. Temporary suspension leaves Pi's steady
+   * cursor mode in place for subprocesses that do not set their own mode.
+   *
+   * @param restoreDefaultCursor - Whether Pi is shutting down permanently.
+   */
+  function suspendCursorControls(restoreDefaultCursor = false): void {
+    const wasEnabled = cursorControlsEnabled;
+    if (wasEnabled) {
+      process.stdin.removeListener("data", handleTerminalInput);
+      stopBlinkClock();
+      if (scrollIdleTimer) clearTimeout(scrollIdleTimer);
+      scrollIdleTimer = undefined;
+      scrolling = false;
+      for (const tui of cursorTuis) {
+        tui.setShowHardwareCursor(true);
+        removeTerminalWritePatch(tui.terminal);
+      }
+      focusInputRemainder = "";
+      cursorControlsEnabled = false;
+    }
+
+    if (restoreDefaultCursor) {
+      process.stdout.write(
+        DISABLE_FOCUS_REPORTING + DEFAULT_CURSOR + SHOW_CURSOR,
+      );
+    } else if (wasEnabled) {
+      process.stdout.write(DISABLE_FOCUS_REPORTING + SHOW_CURSOR);
+    }
+  }
+
+  /**
+   * Restores cursor ownership after Pi's TUI starts again.
+   */
+  function resumeCursorControls(): void {
+    if (cursorControlsEnabled) return;
+
+    terminalFocused = true;
+    focusInputRemainder = "";
+    for (const tui of cursorTuis) {
+      patchTerminalWrite(tui.terminal, isTerminalFocused, isBlinkVisible);
+      tui.setShowHardwareCursor(true);
+    }
+    // Run before Pi's input listener so cursor mode changes before the
+    // wheel-triggered repaint. Focus reporting covers panes and windows.
+    process.stdin.prependListener("data", handleTerminalInput);
+    process.stdout.write(
+      ENABLE_FOCUS_REPORTING + STEADY_BLOCK_CURSOR + SHOW_CURSOR,
+    );
+    startBlinkClock();
+    cursorControlsEnabled = true;
+    refreshCursorVisibility();
+  }
+
+  /**
    * Installs cursor patches and terminal controls for a TUI session.
    *
    * @param _event - Pi's session start event.
@@ -652,15 +788,7 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
         registerTUI,
         shouldUseHardwareCursor,
       );
-
-      // Run before Pi's input listener so cursor mode changes before the
-      // wheel-triggered repaint. Focus reporting covers panes and windows.
-      process.stdin.prependListener("data", handleTerminalInput);
-      process.stdout.write(
-        ENABLE_FOCUS_REPORTING + STEADY_BLOCK_CURSOR + SHOW_CURSOR,
-      );
-      startBlinkClock();
-      cursorControlsEnabled = true;
+      resumeCursorControls();
     } catch (error) {
       console.error("blinking-cursor: failed to patch editor", error);
     }
@@ -674,11 +802,8 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
       removeEditorComponentPatch(patchedUI);
       patchedUI = undefined;
     }
-    process.stdin.removeListener("data", handleTerminalInput);
-    stopBlinkClock();
-    if (scrollIdleTimer) clearTimeout(scrollIdleTimer);
-    scrollIdleTimer = undefined;
-    scrolling = false;
+    for (const tui of cursorTuis) deactivateTUILifecyclePatch(tui);
+    suspendCursorControls(true);
     for (const tui of cursorTuis) {
       tui.setShowHardwareCursor(true);
       removeTerminalWritePatch(tui.terminal);
@@ -686,10 +811,5 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
     cursorTuis.clear();
     focusInputRemainder = "";
     terminalFocused = true;
-    if (!cursorControlsEnabled) return;
-    process.stdout.write(
-      DISABLE_FOCUS_REPORTING + DEFAULT_CURSOR + SHOW_CURSOR,
-    );
-    cursorControlsEnabled = false;
   });
 }
