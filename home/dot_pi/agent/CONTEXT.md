@@ -36,6 +36,30 @@ _Avoid_: Title, chat name
 The current path through a Pi session tree, from first relevant entry to the current leaf.
 _Avoid_: Full session, chat history
 
+**Retrospective review**:
+An analysis of selected agent-harness sessions that proposes durable agent guidance without applying it.
+_Avoid_: Session summary, automatic self-improvement, transcript compaction
+
+**Retrospective source**:
+An agent-harness session selected by the user as evidence for a Retrospective review.
+_Avoid_: Current context window, compaction summary, review session
+
+**Harness reference**:
+Harness-specific guidance for locating and reading Retrospective sources and for recognizing that harness's context files, skills, and prompt templates.
+_Avoid_: Generic retrospective workflow, copied harness documentation
+
+**Context candidate**:
+A transcript observation that can improve a context file, such as a workspace rule, FYI, useful access fact, or durable user preference.
+_Avoid_: Retrospective proposal, transcript summary
+
+**Reusable prompt candidate**:
+A user message whose intent, constraints, or output structure can be used as a prompt template in another session.
+_Avoid_: Skill workflow, context rule, copied session detail
+
+**Artifact placement choice**:
+The user's decision to place a proposed new skill or prompt template in global or workspace-local scope.
+_Avoid_: Inferred scope, target file path
+
 **Turn-boundary compaction**:
 Early context compaction requested after a completed assistant turn reaches the configured threshold and no user input is queued. A tool-bearing turn resumes automatically after compaction; queued user input runs first and receives another threshold check at its turn boundary; a final-answer turn stops after compaction.
 _Avoid_: Per-tool compaction, idle compaction, built-in compaction
