@@ -27,6 +27,7 @@ const TOOL_RESULT_PATCH_STATE = Symbol.for(
 const ESC = "\x1b";
 const BEL = "\x07";
 const ST = "\x9c";
+const TAB_WIDTH = 4;
 
 type ApplyLineResets = (lines: string[]) => string[];
 type Render = (width: number) => string[];
@@ -171,6 +172,8 @@ function sanitizeTerminalText(
   }
 
   let safe = "";
+  let displayChunk = "";
+  let displayColumn = 0;
   let i = 0;
   while (i < text.length) {
     const code = text.charCodeAt(i);
@@ -181,7 +184,9 @@ function sanitizeTerminalText(
       if (kind === "[") {
         const end = csiEnd(text, i + 2);
         if (end > i + 2 && text[end - 1] === "m") {
-          safe += sanitizeSgr(text.slice(i, end), preserveBackgrounds);
+          const sgr = sanitizeSgr(text.slice(i, end), preserveBackgrounds);
+          safe += sgr;
+          displayChunk += sgr;
         }
         i = Math.max(i + 2, end);
         continue;
@@ -190,7 +195,9 @@ function sanitizeTerminalText(
       if (kind === "]") {
         const sequence = stringSequenceEnd(text, i + 2);
         if (text.startsWith("8;", i + 2) && sequence.terminated) {
-          safe += text.slice(i, sequence.end);
+          const hyperlink = text.slice(i, sequence.end);
+          safe += hyperlink;
+          displayChunk += hyperlink;
         }
         i = sequence.end;
         continue;
@@ -224,18 +231,31 @@ function sanitizeTerminalText(
 
     if (code === 0x0a && preserveLineFeeds) {
       safe += text[i];
+      displayChunk = "";
+      displayColumn = 0;
       i += 1;
       continue;
     }
 
-    // Rendered lines must not contain carriage returns, backspaces, tabs,
-    // DEL, or other C0/C1 terminal controls.
+    if (code === 0x09) {
+      displayColumn += visibleWidth(displayChunk);
+      displayChunk = "";
+      const spaces = TAB_WIDTH - (displayColumn % TAB_WIDTH);
+      safe += " ".repeat(spaces);
+      displayColumn += spaces;
+      i += 1;
+      continue;
+    }
+
+    // Rendered lines must not contain carriage returns, backspaces, DEL, or
+    // other C0/C1 terminal controls. Tabs become fixed-width spaces above.
     if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) {
       i += 1;
       continue;
     }
 
     safe += text[i];
+    displayChunk += text[i];
     i += 1;
   }
 
@@ -271,13 +291,13 @@ function installTextRendererPatch(
 ): void {
   const patchable = prototype as TextRenderer &
     Record<symbol, RenderPatchState | undefined>;
-  if (patchable[marker]) return;
-
-  const originalRender = patchable.render;
+  const originalRender = patchable[marker]?.originalRender ?? patchable.render;
   if (typeof originalRender !== "function") {
     throw new Error("Text renderer unavailable");
   }
 
+  // Extension reload creates new module closures but keeps these prototypes.
+  // Replace the old wrapper so it uses the current sanitizer implementation.
   const state: RenderPatchState = { originalRender };
   patchable[marker] = state;
   patchable.render = function patchedRender(
@@ -293,9 +313,9 @@ function installToolResultPatch(): void {
   const prototype =
     ToolExecutionComponent.prototype as unknown as ToolResultRenderer &
       Record<symbol, ToolResultPatchState | undefined>;
-  if (prototype[TOOL_RESULT_PATCH_STATE]) return;
-
-  const originalUpdateResult = prototype.updateResult;
+  const originalUpdateResult =
+    prototype[TOOL_RESULT_PATCH_STATE]?.originalUpdateResult ??
+    prototype.updateResult;
   if (typeof originalUpdateResult !== "function") {
     throw new Error("ToolExecutionComponent.updateResult unavailable");
   }
@@ -321,9 +341,9 @@ function installTuiPatch(): void {
   const prototype = Object.getPrototypeOf(
     TuiMainScreen.prototype,
   ) as TuiPrototype;
-  if (prototype[TUI_PATCH_STATE]) return;
-
-  const originalApplyLineResets = prototype.applyLineResets;
+  const originalApplyLineResets =
+    prototype[TUI_PATCH_STATE]?.originalApplyLineResets ??
+    prototype.applyLineResets;
   if (typeof originalApplyLineResets !== "function") {
     throw new Error("TUI.applyLineResets unavailable");
   }
