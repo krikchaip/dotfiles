@@ -26,20 +26,22 @@ Investigate available facts first. If uncertainty remains at any step, use `/ski
 
 Completion: one local repository, one upstream ref, one primary branch, and one personal branch are identified with evidence. Keep all branches unchanged during this step.
 
-## 2. Capture the personal regression scope
+## 2. Capture and prove the personal regression scope
 
-Before changing branches, inspect every commit that the personal branch has on top of the primary branch. Map each commit to the behavior it adds, changes, or removes.
+1. Record the exact personal-branch tip as the immutable baseline SHA. Keep a detached baseline worktree until the final regression gate. Do not depend on a moving local branch or remote-tracking ref.
+2. Inspect every commit that the personal branch has on top of the primary branch. Map each commit to the behavior it adds, changes, or removes.
+3. Build a visible regression evidence table with these columns:
+   - Personal commit.
+   - User-visible invariant or verified non-behavioral change.
+   - Named E2E case or project check.
+   - Command.
+   - Baseline result.
+4. For each user-visible invariant, record the trigger, first visible state, state transition, final result, and required absence. For startup, lifecycle, cache, or background work, include a bounded timing assertion and test the state while optional asynchronous work is blocked.
+5. Find the canonical repository-owned real-TUI E2E command. Add missing cases before the branch update and preserve them in the personal commit stack. Run the complete suite against the baseline.
 
-Build a regression checklist that covers:
+One E2E case can cover several commits, but every personal commit must have its own table row. An aggregate statement such as “all commits are mapped” is not evidence.
 
-- Added personal features.
-- Changed upstream behavior.
-- Removed or disabled features, with a check that they stay absent.
-- Personal configuration and integration behavior.
-
-One test scenario can cover several commits, but every personal commit must map to a scenario or a verified non-behavioral change.
-
-Completion: the regression checklist accounts for every personal commit on top of the primary branch.
+Completion: the immutable baseline exists, every personal commit has a visible evidence row, and every baseline E2E case passes before any primary-branch update or rebase.
 
 ## 3. Review the unsynced upstream changes
 
@@ -68,6 +70,8 @@ Completion: every relevant changelog bullet, or every relevant README change whe
 ## 4. Gate the sync
 
 Give one clear result: `safe to sync`, `decision required`, or `do not sync`.
+
+`safe to sync` describes the pre-rebase compatibility decision only. It does not mean `regression-clean`. Reserve `regression-clean` and “no regression found” for successful completion of Section 6.
 
 A verified personal feature decision overrides conflicting upstream behavior. Apply the uncertainty gate when personal intent is unclear or no existing personal decision settles an incompatible feature choice.
 
@@ -100,12 +104,14 @@ Example: if the review says `/idea` must stay removed, confirm that `/idea` is a
 
 Completion: `/skill:resolving-merge-conflicts` finishes the rebase, and the final source satisfies every reviewed feature action, including actions with no code conflict.
 
-## 6. Regression-test personal customizations
+## 6. Prove personal customizations against the baseline
 
-1. Find the canonical repository-owned E2E command in package scripts, tests, CI, or contributor docs. It must run Pi in a real TUI and fail closed. Apply the uncertainty gate if several candidates exist.
-2. Audit its coverage against the personal regression checklist. Every user-visible personal commit must map to a named E2E case; map non-behavioral commits to an applicable project check.
-3. If the suite exists, add any missing cases to it. If no suite exists, use `/skill:pi-extension-e2e` to add one reusable suite and one stable command. Keep all test logic in the repository; use temporary files only for runtime state and captures.
-4. Run all project checks and the complete E2E suite. Fix failures, then rerun the affected checks without weakening the suite.
-5. Record the commit-to-test mapping and clean generated runtime artifacts before the final report.
+1. Run `git range-diff` between the original personal stack and the rebased stack. Identify every changed patch and every file touched by conflict resolution.
+2. Audit these changes against the regression evidence table. Any conflict or changed patch that touches a user-visible invariant must have a direct named E2E case.
+3. Run the unchanged baseline E2E cases against the rebased branch. Do not weaken an assertion unless an approved upstream decision changed that behavior.
+4. Run all project checks and the complete real-TUI E2E suite. Add the E2E command to required CI when CI exists.
+5. Present the complete evidence table with candidate results, then clean generated runtime artifacts and remove the detached baseline worktree.
 
-Completion: every personal commit has regression coverage, and the repository-owned E2E suite and all applicable project checks pass.
+Until every evidence row passes, report `regression status: unverified`. Do not claim “no regression found,” report `regression-clean`, or ask to push the personal branch.
+
+Completion: every personal commit has passing baseline and candidate evidence, every conflict-touched invariant has direct coverage, required CI includes the real-TUI suite, and all applicable checks pass.
