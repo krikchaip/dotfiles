@@ -10,6 +10,7 @@ const question =
   "Should inherited child sessions use the approved question banner?";
 const sourceDescription = "Inherited question source";
 const viewerDescription = "Inherited question viewer";
+const launchViewerPrompt = "Launch the inherited question viewer.";
 
 export const inheritedParentRequestRenderer: Scenario = {
   name: "inherited-parent-request-renderer",
@@ -44,15 +45,16 @@ export const inheritedParentRequestRenderer: Scenario = {
 
     faux.setResponses([
       fauxAssistantMessage(
-        [
-          fauxToolCall("Agent", {
-            description: sourceDescription,
-            prompt: "Ask the renderer question, then remain available.",
-            interactive: true,
-          }),
-          fauxToolCall("bash", { command: "sleep 3" }),
-        ],
+        fauxToolCall("Agent", {
+          description: sourceDescription,
+          prompt: "Ask the renderer question, then remain available.",
+          interactive: true,
+        }),
         { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("The question source is available.")),
+      fauxAssistantMessage(
+        fauxText("The parent received the source question."),
       ),
       (context: { messages: unknown }) => {
         const inheritedRequest = JSON.stringify(context.messages).includes(
@@ -80,6 +82,8 @@ export const inheritedParentRequestRenderer: Scenario = {
   },
   async run(harness: E2EHarness) {
     await harness.waitFor(question, 20_000);
+    await harness.waitFor("The parent received the source question.", 20_000);
+    await harness.sendParent(launchViewerPrompt, true);
 
     let viewerPane = "";
     await harness.waitUntil(

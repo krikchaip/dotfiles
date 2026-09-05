@@ -50,7 +50,7 @@ export const widgetSpacing: Scenario = {
 
     await harness.waitFor("Spacing fixture");
     await harness.waitFor("Side Quests · 1 live");
-    await harness.waitFor("Working...", 10_000, childPane);
+    await harness.waitFor(/── .* Working ──/, 10_000, childPane);
     await harness.waitFor("[general-purpose]", 10_000, childPane);
 
     const parentLines = terminalLines(await harness.capture());
@@ -69,10 +69,11 @@ export const widgetSpacing: Scenario = {
     const childWidget = lastLineContaining(childLines, "[general-purpose]");
 
     harness.assert(
-      childWidget > 1 &&
+      childWidget > 0 &&
         childLines[childWidget - 1]?.trim() === "" &&
-        childLines[childWidget - 2]?.includes("Working..."),
-      `The top Side Quests widget did not keep exactly one top margin row.\n${childLines.join("\n")}`,
+        childLines[childWidget + 2]?.startsWith("╰") &&
+        /^── .* Working ──/.test(childLines[childWidget + 3] ?? ""),
+      `The top Side Quests widget or embedded working border has incorrect spacing.\n${childLines.join("\n")}`,
     );
 
     await harness.waitForStoredText("Spacing child settled.");

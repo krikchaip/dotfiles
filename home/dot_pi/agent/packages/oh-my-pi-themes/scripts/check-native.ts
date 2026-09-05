@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import { assertRecord } from "./theme-contract.ts";
 import { readUpstreamManifest } from "./upstream-config.ts";
 
-const SUPPORTED_PI_VERSIONS = new Set(["0.84.1", "0.84.2"]);
+const SUPPORTED_PI_VERSIONS = new Set(["0.84.1", "0.84.2", "0.85.0"]);
 const packageDir = join(import.meta.dir, "..");
 const manifest = await readUpstreamManifest(join(packageDir, "upstream.json"));
 

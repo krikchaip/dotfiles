@@ -5,7 +5,7 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { type ParentChild, ParentRuntime } from "../../parent/runtime.ts";
 import { RuntimeStore } from "../../store/runtime.ts";
@@ -14,6 +14,10 @@ import { Tmux } from "../../tmux.ts";
 
 const originalRoot = process.env.PI_CODING_AGENT_DIR;
 const temporaryRoots: string[] = [];
+
+beforeEach(() => {
+  vi.spyOn(Tmux, "selectedPaneId").mockResolvedValue({ missing: true });
+});
 
 const child = {
   manifest: {

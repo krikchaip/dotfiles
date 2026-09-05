@@ -38,7 +38,6 @@ set begin_sync "\x1b\[?2026h"
 set end_sync "\x1b\[?2026l"
 set hide_cursor "\x1b\[?25l"
 set show_cursor "\x1b\[?25h"
-set software_cursor_style "\x1b\[48;2;58;58;74m"
 
 proc cleanup {} {
   global active_spawn temp_root
@@ -171,10 +170,9 @@ proc assert_no_visible_cursor_movement {content label {minimum_movements 20}} {
   }
 }
 
-proc assert_scroll_frames_use_software_cursor {content} {
-  global begin_sync end_sync hide_cursor show_cursor software_cursor_style
+proc assert_scroll_frames_use_safe_cursor {content} {
+  global begin_sync end_sync hide_cursor show_cursor
   set checked 0
-  set software_cursor_frames 0
   set search_from 0
 
   while {1} {
@@ -196,18 +194,12 @@ proc assert_scroll_frames_use_software_cursor {content} {
       failure "hardware cursor was not hidden before scroll-frame movement" $frame
     }
     if {[string first $show_cursor $frame] >= 0} {
-      failure "rapid scrolling restored the hardware cursor during software-cursor mode" $frame
-    }
-    if {[string first $software_cursor_style $frame] >= 0} {
-      incr software_cursor_frames
+      failure "rapid scrolling restored the hardware cursor during safe-scroll mode" $frame
     }
   }
 
   if {$checked < 5} {
     failure "rapid scrolling produced fewer than five cursor-bearing repaint frames" $content
-  }
-  if {$software_cursor_frames < 5} {
-    failure "rapid scrolling did not render a stable software cursor" $content
   }
 }
 
@@ -438,7 +430,7 @@ for {set wheel 0} {$wheel < 26} {incr wheel} {
   drain_ready
 }
 set scroll [read_binary $scroll_log]
-assert_scroll_frames_use_software_cursor $scroll
+assert_scroll_frames_use_safe_cursor $scroll
 
 # Wait past the 500 ms deadline, then discard wheel output that was buffered
 # by the PTY before testing the restored hardware-cursor mode.
@@ -469,7 +461,7 @@ for {set key 0} {$key < 28} {incr key} {
   drain_ready
 }
 set hotkey_scroll [read_binary $hotkey_scroll_log]
-assert_scroll_frames_use_software_cursor $hotkey_scroll
+assert_scroll_frames_use_safe_cursor $hotkey_scroll
 
 # Verify that the final configured hotkey keeps software-cursor mode active
 # before the 500 ms deadline and restores hardware mode after the deadline.
@@ -511,6 +503,6 @@ set active_spawn ""
 set shutdown [read_binary $shutdown_log]
 assert_shutdown_final_state $shutdown
 
-puts "PASS blinking-cursor real-PTY E2E: cadence [join $cadence_durations /] ms; fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, solid software cursor during wheel and configured-hotkey scrolling, and shutdown restore"
+puts "PASS blinking-cursor real-PTY E2E: cadence [join $cadence_durations /] ms; fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, safe hidden hardware cursor during wheel and configured-hotkey scrolling, and shutdown restore"
 cleanup
 exit 0

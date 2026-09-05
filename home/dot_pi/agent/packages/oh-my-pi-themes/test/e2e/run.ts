@@ -142,12 +142,13 @@ try {
   switchHarness.assert(switched[1].styledText === expectedSwitched, "Live theme switch did not update extension context theme");
   await switchHarness.submitCommand("reload");
   await switchHarness.waitFor("Reloaded keybindings, extensions, skills, prompts, themes, and context files");
+  const capturesAfterReload = JSON.parse(readFileSync(switchCapture, "utf8")).length;
   await switchHarness.submitCommand("theme-probe-capture");
   await switchHarness.waitUntil("theme capture after reload", () =>
-    JSON.parse(readFileSync(switchCapture, "utf8")).length === 3,
+    JSON.parse(readFileSync(switchCapture, "utf8")).length > capturesAfterReload,
   );
   const afterReload = JSON.parse(readFileSync(switchCapture, "utf8"));
-  switchHarness.assert(afterReload[2].styledText === expectedSwitched, "Extension reload lost the live-selected package theme");
+  switchHarness.assert(afterReload.at(-1).styledText === expectedSwitched, "Extension reload lost the live-selected package theme");
   await switchHarness.finish();
 
   console.log(

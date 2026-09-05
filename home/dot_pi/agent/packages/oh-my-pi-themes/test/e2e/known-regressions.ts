@@ -9,12 +9,6 @@ const regressions = [
     marker:
       "[KNOWN RED] post-theme README install failure leaves a mixed package snapshot",
   },
-  {
-    name: "native-version-allowlist",
-    command: [process.execPath, "scripts/check-native.ts"],
-    environment: {},
-    marker: "has not been validated by this snapshot; supported versions:",
-  },
 ] as const;
 
 const invalid: string[] = [];

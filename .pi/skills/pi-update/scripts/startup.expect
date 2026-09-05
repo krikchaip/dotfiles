@@ -8,6 +8,14 @@ if (( $# > 2 )); then
 fi
 
 expected_version=${1-}
+if [[ -n $expected_version ]]; then
+  actual_version=$(mise exec -- pi --version)
+  if [[ $actual_version != "$expected_version" ]]; then
+    printf 'expected Pi %s, got %s\n' "$expected_version" "$actual_version" >&2
+    exit 1
+  fi
+fi
+
 owns_work_dir=0
 if (( $# < 2 )); then
   work_dir=$(mktemp -d /tmp/pi-update-startup.XXXXXX)
@@ -64,9 +72,22 @@ for source in "$source_agent_dir"/*; do
 done
 mkdir -p "$agent_dir/sessions"
 
+probe_path="$agent_dir/pi-update-startup-probe.ts"
+cat > "$probe_path" <<'EOF'
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+
+export default function startupProbe(pi: ExtensionAPI): void {
+  pi.on("session_start", (_event, context) => {
+    if (context.mode === "tui") {
+      context.ui.setWidget("pi-update-startup", ["PI_UPDATE_STARTUP_READY"]);
+    }
+  });
+}
+EOF
+
 printf -v pi_command \
-  'exec env TERM=xterm-256color COLORTERM=truecolor COLUMNS=90 LINES=32 PI_CODING_AGENT_DIR=%q PI_OFFLINE=1 mise exec -- pi --no-session' \
-  "$agent_dir"
+  'exec env TERM=xterm-256color COLORTERM=truecolor COLUMNS=90 LINES=32 PI_CODING_AGENT_DIR=%q PI_OFFLINE=1 mise exec -- pi --no-session -e %q' \
+  "$agent_dir" "$probe_path"
 
 tmux -L "$socket" -f /dev/null new-session -d -x 90 -y 32 -s "$session" -c "$work_dir" "$pi_command"
 
@@ -79,7 +100,7 @@ for _ in {1..150}; do
     break
   fi
 
-  pane=$(tmux -L "$socket" capture-pane -p -J -t "$session":0.0 2>/dev/null || true)
+  pane=$(tmux -L "$socket" capture-pane -p -J -S - -t "$session":0.0 2>/dev/null || true)
   printf '%s\n' "$pane" > "$log_path"
 
   if grep -Eq 'Failed to load extension|\[Extension errors\]|exiting due to uncaughtException' <<<"$pane"; then
@@ -92,11 +113,7 @@ for _ in {1..150}; do
     trust_answered=1
   fi
 
-  version_ready=1
-  if [[ -n $expected_version ]] && ! grep -Fq "v$expected_version" <<<"$pane"; then
-    version_ready=0
-  fi
-  if (( version_ready )) && grep -Eq -- '- [1-9][0-9]* extensions|\[Extensions\]' <<<"$pane"; then
+  if grep -Fq 'PI_UPDATE_STARTUP_READY' <<<"$pane" && grep -Eq '^> *$' <<<"$pane"; then
     ready=1
     break
   fi
