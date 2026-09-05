@@ -3,6 +3,7 @@
 set timeout 1
 set root "/tmp/pi-image-attachments-tmux-thumbnail-e2e"
 set config_dir "$root/config"
+set home_dir "$root/home"
 set work_dir "$root/cwd"
 set image_path "$root/pi-clipboard-00000000-0000-4000-8000-000000000001.png"
 set startup_log "$root/startup.ansi"
@@ -13,9 +14,15 @@ set tmux_image_extension [file normalize [file join $package_root ../../extensio
 set clipboard_fixture "$root/clipboard-fixture.ts"
 set columns 90
 set rows 32
+set expected_version [expr {[info exists env(PI_E2E_EXPECT_VERSION)] ? $env(PI_E2E_EXPECT_VERSION) : "0.84.4"}]
+set actual_version [string trim [exec pi --version]]
+if {$actual_version ne $expected_version} {
+  puts stderr "FAIL: expected Pi $expected_version, got $actual_version"
+  exit 1
+}
 
 file delete -force $root
-file mkdir $config_dir $work_dir
+file mkdir $config_dir $home_dir $work_dir
 
 set fixture_file [open $clipboard_fixture w]
 puts $fixture_file {
@@ -115,7 +122,7 @@ log_user 0
 log_file -a -noappend $startup_log
 spawn env TERM=tmux-256color TERM_PROGRAM=kitty KITTY_WINDOW_ID=1 \
   TMUX=/tmp/pi-image-attachments-e2e-tmux,1,0 \
-  COLORTERM=truecolor COLUMNS=$columns LINES=$rows PI_OFFLINE=1 \
+  COLORTERM=truecolor COLUMNS=$columns LINES=$rows HOME=$home_dir PI_OFFLINE=1 \
   PI_CODING_AGENT_DIR=$config_dir E2E_IMAGE_PATH=$image_path \
   pi --no-session --no-context-files --no-prompt-templates --no-themes \
   --no-extensions --no-skills -e $tmux_image_extension \

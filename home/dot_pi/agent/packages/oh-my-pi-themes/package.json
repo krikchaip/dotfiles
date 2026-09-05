@@ -5,10 +5,13 @@
   "license": "MIT",
   "scripts": {
     "sync": "bun run ./scripts/sync.ts",
+    "test": "bun run test:e2e",
     "check": "bun run check:structural && bun run check:native && bun run check:upstream",
     "check:structural": "bun run ./scripts/check.ts",
     "check:native": "bun run ./scripts/check-native.ts",
-    "check:upstream": "bun run ./scripts/check-upstream.ts"
+    "check:upstream": "bun run ./scripts/check-upstream.ts",
+    "test:e2e": "bun test/e2e/all.ts",
+    "test:known-red": "bun test/e2e/known-regressions.ts"
   },
   "pi": {
     "themes": [

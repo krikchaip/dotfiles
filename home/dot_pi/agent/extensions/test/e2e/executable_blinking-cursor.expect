@@ -2,7 +2,11 @@
 
 set timeout 1
 log_user 0
-set extension_path "/Users/asol/.pi/agent/extensions/blinking-cursor.ts"
+set extension_path [file normalize [file join [file dirname [info script]] ../.. blinking-cursor.ts]]
+set expected_version "0.84.4"
+if {[info exists env(PI_E2E_EXPECT_VERSION)]} {
+  set expected_version $env(PI_E2E_EXPECT_VERSION)
+}
 set temp_root "/tmp/blinking-cursor-e2e-[pid]"
 set work_dir "$temp_root/work"
 set state_dir "$temp_root/state"
@@ -284,6 +288,7 @@ if {![drain_until 10 {CURSOR_E2E_READY}]} {
 }
 drain_for 1 {CURSOR_E2E_READY}
 set startup [read_binary $startup_log]
+require_bytes $startup "v$expected_version" "exact Pi version"
 require_bytes $startup "\x1b\[?1004h" "focus reporting enable"
 require_bytes $startup "\x1b\[2 q" "steady block cursor mode"
 forbid_bytes $startup "\x1b\[1 q" "terminal-managed blinking cursor mode"

@@ -2,7 +2,11 @@
 
 set timeout 1
 log_user 0
-set extension_path "/Users/asol/.pi/agent/extensions/color-highlight.ts"
+set extension_path [file normalize [file join [file dirname [info script]] ../.. color-highlight.ts]]
+set expected_version "0.84.4"
+if {[info exists env(PI_E2E_EXPECT_VERSION)]} {
+  set expected_version $env(PI_E2E_EXPECT_VERSION)
+}
 set temp_root "/tmp/color-highlight-e2e-[pid]"
 set work_dir "$temp_root/work"
 set state_dir "$temp_root/state"
@@ -10,6 +14,7 @@ set fixture_path "$temp_root/fixture.ts"
 set startup_log "$temp_root/startup.ansi"
 set editor_log "$temp_root/editor.ansi"
 set cursor_log "$temp_root/cursor.ansi"
+set reload_log "$temp_root/reload.ansi"
 set color256_log "$temp_root/256color.ansi"
 set fullscreen_log "$temp_root/fullscreen.ansi"
 set columns 100
@@ -153,6 +158,9 @@ export default function (pi: ExtensionAPI) {
       "INCOMPLETE #12345",
       "SEVEN #1234567",
       "EIGHT #12345678",
+      "KITTY \x1b_Ga=T,f=100,t=d,s=1,v=1;AAAA\x1b\\ #A1B2C3",
+      "TMUX \x1bPtmux;\x1b\x1b_Ga=T,f=100,t=d,s=1,v=1;AAAA\x1b\x1b\\\x1b\\ #B2C3D4",
+      "ITERM \x1b]1337;File=name=#C3D4E5;width=1px;height=1px:AAAA\x07",
     ]);
     pi.sendMessage({
       customType: "color-e2e-transcript",
@@ -172,6 +180,7 @@ if {![file exists $extension_path]} {
 cd $work_dir
 spawn_pi $startup_log truecolor regular
 set startup [read_binary $startup_log]
+require_bytes $startup "v$expected_version" "exact Pi version"
 require_bytes $startup "TRANSCRIPT" "transcript marker"
 require_bytes $startup "WIDGET" "widget marker"
 require_bytes $startup "\x1b\[38;2;255;255;255m\x1b\[48;2;51;102;153m#" \
@@ -184,6 +193,18 @@ require_bytes $startup "INCOMPLETE #12345" "plain incomplete token"
 require_bytes $startup "SEVEN #1234567" "plain seven-digit token"
 require_bytes $startup "EIGHT #12345678" "plain eight-digit token"
 forbid_bytes $startup "\x1b\[48;2;18;52;86m" "partial #123456 highlight"
+
+# Image-wire safety: real Kitty, tmux-wrapped Kitty, and iTerm2 payload lines
+# must pass through as one exact byte sequence. No SGR bytes may enter them.
+require_bytes $startup "KITTY \x1b_Ga=T,f=100,t=d,s=1,v=1;AAAA\x1b\\ #A1B2C3" \
+  "unmodified Kitty graphics payload"
+require_bytes $startup "TMUX \x1bPtmux;\x1b\x1b_Ga=T,f=100,t=d,s=1,v=1;AAAA\x1b\x1b\\\x1b\\ #B2C3D4" \
+  "unmodified tmux-wrapped Kitty graphics payload"
+require_bytes $startup "ITERM \x1b]1337;File=name=#C3D4E5;width=1px;height=1px:AAAA\x07" \
+  "unmodified iTerm2 inline-image payload"
+forbid_bytes $startup "\x1b\[48;2;161;178;195m" "SGR inserted into Kitty image line"
+forbid_bytes $startup "\x1b\[48;2;178;195;212m" "SGR inserted into tmux Kitty image line"
+forbid_bytes $startup "\x1b\[48;2;195;212;229m" "SGR inserted into iTerm2 image line"
 
 # Live editor: exact token highlights, invalid lengths stay plain.
 log_file
@@ -231,6 +252,24 @@ for token in ("#FF0000", "#12345", "#1234567"):
 if {[catch {exec python3 -c $python_check $editor_log} python_error]} {
   failure "visible editor source changed: $python_error" $editor
 }
+
+# Reload must restore the original renderer once, then install one fresh patch.
+send -i $active_spawn -- "\003"
+after 250
+send -i $active_spawn -- "/reload\r"
+if {![drain_until 15 {Reloaded}]} {
+  failure "Pi did not complete color-highlight reload" [read_binary $cursor_log]
+}
+log_file
+log_file -a -noappend $reload_log
+send -i $active_spawn -- "RELOADED #112233"
+if {![drain_until 5 {RELOADED}]} {
+  failure "editor did not render after reload" [read_binary $reload_log]
+}
+drain_for 1 {RELOADED}
+set reloaded [read_binary $reload_log]
+require_bytes $reloaded "\x1b\[38;2;255;255;255m\x1b\[48;2;17;34;51m#" \
+  "single color highlight after reload"
 stop_pi
 log_file
 
@@ -265,6 +304,6 @@ require_bytes $color256 "\x1b\[38;5;231m\x1b\[48;5;21m#" \
   "nearest 256-color #0000FF highlight"
 stop_pi
 
-puts "PASS color-highlight real-PTY E2E: transcript, widget, editor, fullscreen, cursor priority, boundaries, width/source preservation, truecolor, and 256-color fallback"
+puts "PASS color-highlight real-PTY E2E: transcript, widget, editor, image-wire safety, reload, fullscreen, cursor priority, boundaries, width/source preservation, truecolor, and 256-color fallback"
 cleanup
 exit 0

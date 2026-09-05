@@ -2,6 +2,10 @@
   "name": "provider-payload-debug",
   "private": true,
   "version": "0.0.0",
+  "scripts": {
+    "test:e2e": "bun test/e2e/run-all.ts",
+    "test:known-red": "bun test/e2e/run-known-red.ts"
+  },
   "pi": {
     "extensions": [
       "./index.ts"

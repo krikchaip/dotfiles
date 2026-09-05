@@ -2,6 +2,12 @@
   "name": "resume",
   "private": true,
   "version": "0.0.0",
+  "scripts": {
+    "test": "bun run test:e2e",
+    "test:e2e": "bun test/e2e/all.ts",
+    "test:known-red": "bun test/e2e/known-regressions.ts",
+    "test:unit:known-red": "bun test test/unit/regressions.test.ts"
+  },
   "pi": {
     "extensions": [
       "./index.ts"

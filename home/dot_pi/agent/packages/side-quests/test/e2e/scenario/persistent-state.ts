@@ -158,6 +158,16 @@ export const persistentState: Scenario = {
         "the parent response to persist while the child is paused",
         () => harness.filesNamed("response.json").length === 1,
       );
+      await harness.waitUntil(
+        "the owner runtime snapshot to include its tmux window",
+        () =>
+          harness.filesNamed("owner.json").some((path) => {
+            const owner = JSON.parse(harness.read(path)) as {
+              windowId?: unknown;
+            };
+            return typeof owner.windowId === "string";
+          }),
+      );
 
       assertManagedStorage("response", harness.stateDirectory, childPane);
     } finally {

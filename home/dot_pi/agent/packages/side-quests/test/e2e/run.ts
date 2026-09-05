@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 
 import { E2EHarness, cleanupHarnessRun } from "./harness.ts";
 import { scenarioByName, scenarios } from "./scenarios.ts";
+import "./version-contract.ts";
 
 async function applyRuntime(runtimeDirectory: string): Promise<void> {
   const process = Bun.spawn(["chezmoi", "apply", runtimeDirectory], {
