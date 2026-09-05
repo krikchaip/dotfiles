@@ -25,6 +25,7 @@ set dialog_focus_log "$temp_root/dialog-focus.ansi"
 set resume_log "$temp_root/resume.ansi"
 set scroll_log "$temp_root/scroll.ansi"
 set scroll_restore_log "$temp_root/scroll-restore.ansi"
+set alt_scroll_log "$temp_root/alt-scroll.ansi"
 set coalesced_hotkey_scroll_log "$temp_root/coalesced-hotkey-scroll.ansi"
 set hotkey_scroll_log "$temp_root/hotkey-scroll.ansi"
 set hotkey_scroll_hold_log "$temp_root/hotkey-scroll-hold.ansi"
@@ -473,9 +474,23 @@ require_bytes $restored_editor $show_cursor \
 forbid_bytes $restored_editor "\x1b\[7m" \
   "software cursor after scroll idle"
 
+rotate_log $alt_scroll_log
+for {set wheel 0} {$wheel < 26} {incr wheel} {
+  # SGR mouse bit 3 marks Alt, so modified wheel codes are 72 and 73.
+  set button [expr {$wheel % 2 == 0 ? 72 : 73}]
+  send -i $active_spawn -- "\033\[<$button;40;10M"
+  after 50
+  drain_ready
+}
+set alt_scroll [read_binary $alt_scroll_log]
+require_bytes $alt_scroll $hide_cursor "Alt-wheel safe cursor entry"
+assert_scroll_frames_use_safe_cursor $alt_scroll
+
+# Isolate the following deadline test from the Alt-wheel idle restore.
+after 700
 if {![drain_until_quiet 100 3]} {
   failure "terminal output did not become quiet before coalesced hotkey test" \
-    [read_binary $scroll_restore_log]
+    [read_binary $alt_scroll_log]
 }
 
 set hotkey_sequences [list "\033\[5~" "\033\[6~" "\033\[1;5A" "\033\[1;5B"]

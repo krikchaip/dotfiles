@@ -128,9 +128,14 @@ try {
   await switchHarness.sendKeys("Down");
   await switchHarness.waitFor(switchedThemeName);
   await switchHarness.sendKeys("Enter", "Escape");
-  await switchHarness.waitUntil("settings close after theme switch", async () =>
-    !(await switchHarness.capture()).includes("Color theme for the interface"),
-  );
+  let stableClosedFrames = 0;
+  await switchHarness.waitUntil("settings close after theme switch", async () => {
+    const closed = !(await switchHarness.capture()).includes(
+      "Color theme for the interface",
+    );
+    stableClosedFrames = closed ? stableClosedFrames + 1 : 0;
+    return stableClosedFrames >= 3;
+  });
   await switchHarness.submitCommand("theme-probe-capture");
   await switchHarness.waitUntil("second theme capture", () =>
     JSON.parse(readFileSync(switchCapture, "utf8")).length === 2,
