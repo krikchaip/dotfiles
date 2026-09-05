@@ -6,38 +6,13 @@
       "apiKey": "google-antigravity",
       "models": [
         {
-          "id": "gemini-3.7-flash-tiered",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "off": null,
-            "minimal": null,
-            "low": "low",
-            "medium": "medium",
-            "high": "high",
-            "xhigh": null,
-            "max": null
-          },
-          "compat": {
-            "supportsReasoningEffort": true
-          },
+          "id": "gemini-3.8-flash-low",
           "input": ["text", "image"],
           "contextWindow": 1048576,
           "maxTokens": 65536
         },
         {
-          "id": "gemini-3.6-flash-low",
-          "input": ["text", "image"],
-          "contextWindow": 1048576,
-          "maxTokens": 65536
-        },
-        {
-          "id": "gemini-3.6-flash-medium",
-          "input": ["text", "image"],
-          "contextWindow": 1048576,
-          "maxTokens": 65536
-        },
-        {
-          "id": "gemini-3.6-flash-high",
+          "id": "gemini-3.8-flash-high",
           "input": ["text", "image"],
           "contextWindow": 1048576,
           "maxTokens": 65536

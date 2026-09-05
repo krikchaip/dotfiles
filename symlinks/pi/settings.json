@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.84.4",
+  "lastChangelogVersion": "0.85.0",
   "quietStartup": true,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -29,7 +29,7 @@
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": true,
   "enabledModels": [
-    "antigravity/gemini-3.7-flash-tiered",
+    "antigravity/gemini-3.8-flash-high",
     "antigravity/claude-opus-4-6-thinking",
     "openai-codex/gpt-5.6-luna",
     "openai-codex/gpt-5.6-terra",
@@ -38,7 +38,7 @@
   ],
   "compaction": {
     "enabled": true,
-    "model": "antigravity/gemini-3.6-flash-high",
+    "model": "antigravity/gemini-3.8-flash-high",
     "autoTrigger": {
       "enabled": true,
       "absoluteTokens": "100k",
@@ -51,12 +51,12 @@
   },
   "branchSummary": {
     "skipPrompt": true,
-    "model": "antigravity/gemini-3.6-flash-high",
-    "generateLabelModel": "antigravity/gemini-3.6-flash-medium"
+    "model": "antigravity/gemini-3.8-flash-high",
+    "generateLabelModel": "antigravity/gemini-3.8-flash-low"
   },
   "autoRename": {
     "enabled": true,
-    "model": "antigravity/gemini-3.6-flash-medium"
+    "model": "antigravity/gemini-3.8-flash-high"
   },
   "skills": [],
   "extensions": [
