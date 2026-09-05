@@ -55,6 +55,7 @@ const suites: Suite[] = [
   { file: "skill-autocomplete.ts" },
   { file: "skill-expansion.ts" },
   { file: "slash-highlight.ts" },
+  { file: "stable-scroll-indicator.ts" },
   { file: "themed-dialog-borders.ts" },
   { file: "thinking-summary.ts" },
   { file: "tmux-kitty-images.ts" },
