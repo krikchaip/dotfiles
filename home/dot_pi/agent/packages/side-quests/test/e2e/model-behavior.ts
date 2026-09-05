@@ -131,6 +131,7 @@ async function runCase(testCase: PromptCase, attempt = 1): Promise<Json> {
   );
   const resultPath = join(runDirectory, "model-decision.json");
   const launchPath = join(runDirectory, "launch.sh");
+  const tmuxConfigPath = join(runDirectory, "tmux.conf");
   const workDirectory = join(runDirectory, "cwd");
   const sessionName = `sq-model-${process.pid}-${attempt}`;
   const extensionArguments = testCase.extensions
@@ -152,6 +153,10 @@ async function runCase(testCase: PromptCase, attempt = 1): Promise<Json> {
     ].join("\n"),
   );
   chmodSync(launchPath, 0o700);
+  writeFileSync(
+    tmuxConfigPath,
+    "set -g extended-keys on\nset -g extended-keys-format csi-u\n",
+  );
 
   try {
     paneId = (
@@ -160,7 +165,7 @@ async function runCase(testCase: PromptCase, attempt = 1): Promise<Json> {
         "-S",
         socket,
         "-f",
-        "/dev/null",
+        tmuxConfigPath,
         "new-session",
         "-d",
         "-P",
@@ -178,14 +183,16 @@ async function runCase(testCase: PromptCase, attempt = 1): Promise<Json> {
       ])
     ).trim();
 
-    await waitUntil("Pi startup", async () =>
-      (
-        await execute(
-          ["tmux", "-S", socket, "capture-pane", "-p", "-J", "-t", paneId],
-          true,
-        )
-      ).includes(MODEL_ID),
-    );
+    await waitUntil("Pi startup", async () => {
+      const pane = await execute(
+        ["tmux", "-S", socket, "capture-pane", "-p", "-J", "-t", paneId],
+        true,
+      );
+      return (
+        pane.includes(MODEL_ID) &&
+        !pane.includes("Startup is still in progress")
+      );
+    });
 
     await execute([
       "tmux",
@@ -197,6 +204,7 @@ async function runCase(testCase: PromptCase, attempt = 1): Promise<Json> {
       paneId,
       testCase.prompt,
     ]);
+    await Bun.sleep(POLL_MS);
     await execute(["tmux", "-S", socket, "send-keys", "-t", paneId, "Enter"]);
 
     await waitUntil("a model decision", () => existsSync(resultPath));

@@ -25,6 +25,7 @@ set dialog_focus_log "$temp_root/dialog-focus.ansi"
 set resume_log "$temp_root/resume.ansi"
 set scroll_log "$temp_root/scroll.ansi"
 set scroll_restore_log "$temp_root/scroll-restore.ansi"
+set coalesced_hotkey_scroll_log "$temp_root/coalesced-hotkey-scroll.ansi"
 set hotkey_scroll_log "$temp_root/hotkey-scroll.ansi"
 set hotkey_scroll_hold_log "$temp_root/hotkey-scroll-hold.ansi"
 set hotkey_scroll_restore_log "$temp_root/hotkey-scroll-restore.ansi"
@@ -126,6 +127,32 @@ proc drain_ready {} {
   }
 }
 
+proc drain_until_quiet {quiet_ms max_seconds} {
+  global active_spawn
+  set quiet_since [clock milliseconds]
+  set deadline [expr {$quiet_since + ($max_seconds * 1000)}]
+
+  while {[clock milliseconds] < $deadline} {
+    set saw_output 0
+    expect -i $active_spawn -timeout 0 \
+      "\033\[c" { send -i $active_spawn -- "\033\[?1;2c"; set saw_output 1 } \
+      "\033\[?u" { send -i $active_spawn -- "\033\[?0u"; set saw_output 1 } \
+      -re {(.|\n)+} { set saw_output 1 } \
+      timeout {} \
+      eof { return 0 }
+
+    set now [clock milliseconds]
+    if {$saw_output} {
+      set quiet_since $now
+    } elseif {$now - $quiet_since >= $quiet_ms} {
+      return 1
+    }
+    after 10
+  }
+
+  return 0
+}
+
 proc rotate_log {path} {
   catch {log_file}
   log_file -a -noappend $path
@@ -171,7 +198,7 @@ proc assert_no_visible_cursor_movement {content label {minimum_movements 20}} {
 }
 
 proc assert_scroll_frames_use_safe_cursor {content} {
-  global begin_sync end_sync hide_cursor show_cursor
+  global begin_sync end_sync
   set checked 0
   set search_from 0
 
@@ -188,14 +215,7 @@ proc assert_scroll_frames_use_safe_cursor {content} {
     if {[llength $moves] < 2} continue
 
     incr checked
-    set first_move_at [lindex [lindex $moves 0] 0]
-    set hide_at [string first $hide_cursor $frame]
-    if {$hide_at < 0 || $hide_at > $first_move_at} {
-      failure "hardware cursor was not hidden before scroll-frame movement" $frame
-    }
-    if {[string first $show_cursor $frame] >= 0} {
-      failure "rapid scrolling restored the hardware cursor during safe-scroll mode" $frame
-    }
+    assert_no_visible_cursor_movement $frame "scroll frame" 2
   }
 
   if {$checked < 5} {
@@ -453,8 +473,36 @@ require_bytes $restored_editor $show_cursor \
 forbid_bytes $restored_editor "\x1b\[7m" \
   "software cursor after scroll idle"
 
-rotate_log $hotkey_scroll_log
+if {![drain_until_quiet 100 3]} {
+  failure "terminal output did not become quiet before coalesced hotkey test" \
+    [read_binary $scroll_restore_log]
+}
+
 set hotkey_sequences [list "\033\[5~" "\033\[6~" "\033\[1;5A" "\033\[1;5B"]
+# Start one known scroll-idle deadline and consume its initial repaint.
+set initial_scroll_started_at [clock milliseconds]
+send -i $active_spawn -- [lindex $hotkey_sequences 0]
+if {![drain_until_quiet 50 0.25]} {
+  failure "initial hotkey repaint did not become quiet before deadline probe" \
+    [read_binary $scroll_restore_log]
+}
+set burst_delay_ms \
+  [expr {$initial_scroll_started_at + 350 - [clock milliseconds]}]
+if {$burst_delay_ms < 0} {
+  failure "initial hotkey repaint exceeded the deadline probe window" \
+    [read_binary $scroll_restore_log]
+}
+after $burst_delay_ms
+
+# The coalesced burst must reset the first deadline. Without per-event matching,
+# that deadline restores the hardware cursor during this observation window.
+rotate_log $coalesced_hotkey_scroll_log
+send -i $active_spawn -- [join $hotkey_sequences ""]
+drain_for 0.3 {CURSOR_SCROLL_FIXTURE|Y}
+forbid_bytes [read_binary $coalesced_hotkey_scroll_log] $show_cursor \
+  "hardware cursor restore before coalesced hotkey scroll idle"
+
+rotate_log $hotkey_scroll_log
 for {set key 0} {$key < 28} {incr key} {
   send -i $active_spawn -- [lindex $hotkey_sequences [expr {$key % 4}]]
   after 50
@@ -503,6 +551,6 @@ set active_spawn ""
 set shutdown [read_binary $shutdown_log]
 assert_shutdown_final_state $shutdown
 
-puts "PASS blinking-cursor real-PTY E2E: cadence [join $cadence_durations /] ms; fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, safe hidden hardware cursor during wheel and configured-hotkey scrolling, and shutdown restore"
+puts "PASS blinking-cursor real-PTY E2E: cadence [join $cadence_durations /] ms; fixed-clock hardware blink, software-cursor removal, editor and dialog focus transitions, no visible hardware-cursor movement during wheel and configured-hotkey scrolling, and shutdown restore"
 cleanup
 exit 0

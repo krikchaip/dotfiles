@@ -14,6 +14,7 @@ import {
   CURSOR_MARKER,
   getKeybindings,
   isKeyRelease,
+  StdinBuffer,
   type Keybinding,
   type Terminal,
 } from "@earendil-works/pi-tui";
@@ -487,9 +488,9 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   let scrollIdleTimer: ReturnType<typeof setTimeout> | undefined;
   let nextBlinkAt = 0;
   let scrolling = false;
-  let focusInputRemainder = "";
   let patchedUI: PatchableEditorUI | undefined;
   const cursorTuis = new Set<CursorTUI>();
+  const inputBuffer = new StdinBuffer();
 
   /**
    * Reports the current terminal focus state to the terminal write patch.
@@ -682,26 +683,17 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
   };
 
   /**
-   * Reads terminal input and applies all complete focus events in the data.
+   * Applies one complete terminal event to cursor state.
    *
-   * @param data - Raw terminal input from standard input.
+   * @param input - One complete key, mouse, or focus event.
    */
-  const handleTerminalInput = (data: Buffer | string): void => {
-    const input = focusInputRemainder + data.toString();
-    focusInputRemainder = input.endsWith("\x1b[")
-      ? "\x1b["
-      : input.endsWith("\x1b")
-        ? "\x1b"
-        : "";
-    const completeInput = focusInputRemainder
-      ? input.slice(0, -focusInputRemainder.length)
-      : input;
+  const handleCompleteTerminalInput = (input: string): void => {
     if (
-      MOUSE_WHEEL_EVENT_PATTERN.test(completeInput) ||
-      isTranscriptScrollHotkey(completeInput)
+      MOUSE_WHEEL_EVENT_PATTERN.test(input) ||
+      isTranscriptScrollHotkey(input)
     ) {
       holdSoftwareCursorDuringScroll();
-    } else if (containsKeyboardActivity(completeInput)) {
+    } else if (containsKeyboardActivity(input)) {
       holdCursorVisible();
     }
 
@@ -714,6 +706,18 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
       setTerminalFocused(match[1] === "I");
     }
   };
+
+  /**
+   * Reads raw standard input through Pi's terminal event buffer.
+   *
+   * @param data - Raw terminal input from standard input.
+   */
+  const handleTerminalInput = (data: Buffer | string): void => {
+    inputBuffer.process(data);
+  };
+
+  inputBuffer.on("data", handleCompleteTerminalInput);
+  inputBuffer.on("paste", holdCursorVisible);
 
   /**
    * Releases terminal cursor ownership while Pi's TUI is stopped.
@@ -736,7 +740,7 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
         tui.setShowHardwareCursor(true);
         removeTerminalWritePatch(tui.terminal);
       }
-      focusInputRemainder = "";
+      inputBuffer.clear();
       cursorControlsEnabled = false;
     }
 
@@ -756,7 +760,7 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
     if (cursorControlsEnabled) return;
 
     terminalFocused = true;
-    focusInputRemainder = "";
+    inputBuffer.clear();
     for (const tui of cursorTuis) {
       patchTerminalWrite(tui.terminal, isTerminalFocused, isBlinkVisible);
       tui.setShowHardwareCursor(true);
@@ -809,7 +813,8 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
       removeTerminalWritePatch(tui.terminal);
     }
     cursorTuis.clear();
-    focusInputRemainder = "";
+    inputBuffer.destroy();
+    inputBuffer.removeAllListeners();
     terminalFocused = true;
   });
 }
