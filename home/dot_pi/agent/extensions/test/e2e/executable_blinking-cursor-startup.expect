@@ -1,0 +1,125 @@
+#!/usr/bin/expect -f
+
+set timeout 1
+log_user 0
+set extension_path [file normalize [file join [file dirname [info script]] ../.. blinking-cursor.ts]]
+set powerline_path "$env(HOME)/.pi/agent/git/github.com/krikchaip/pi-powerline-footer/index.ts"
+if {[info exists env(PI_E2E_POWERLINE_PATH)]} {
+  set powerline_path $env(PI_E2E_POWERLINE_PATH)
+}
+set temp_root "/tmp/blinking-cursor-startup-e2e-[pid]"
+set work_dir "$temp_root/work"
+set state_dir "$temp_root/state"
+set startup_log "$temp_root/startup.ansi"
+set active_spawn ""
+set begin_sync "\x1b\[?2026h"
+set hide_cursor "\x1b\[?25l"
+set show_cursor "\x1b\[?25h"
+set home_cursor "\x1b\[H"
+
+proc readable {text} {
+  return [string map [list "\x1b" "<ESC>" "\x07" "<BEL>"] $text]
+}
+
+proc read_binary {path} {
+  set channel [open $path r]
+  fconfigure $channel -translation binary -encoding binary
+  set content [read $channel]
+  close $channel
+  return $content
+}
+
+proc cleanup {} {
+  global active_spawn temp_root
+  if {$active_spawn ne ""} {
+    catch {send -i $active_spawn "\003\003"}
+    after 100
+    catch {close -i $active_spawn}
+    catch {wait -i $active_spawn}
+    set active_spawn ""
+  }
+  catch {log_file}
+  catch {file delete -force $temp_root}
+}
+
+proc failure {message {content ""}} {
+  puts stderr "FAIL: $message"
+  if {$content ne ""} {
+    puts stderr [readable $content]
+  }
+  cleanup
+  exit 1
+}
+
+proc drain_until {milliseconds pattern} {
+  global active_spawn
+  set deadline [expr {[clock milliseconds] + $milliseconds}]
+  while {[clock milliseconds] < $deadline} {
+    expect -i $active_spawn -timeout 0 \
+      "\033\[c" { send -i $active_spawn -- "\033\[?1;2c" } \
+      "\033\[?u" { send -i $active_spawn -- "\033\[?0u" } \
+      "Trust project folder?" { failure "unexpected project trust prompt" } \
+      -re $pattern { return 1 } \
+      timeout {} \
+      eof { return 0 }
+    after 5
+  }
+  return 0
+}
+
+if {![file exists $extension_path]} {
+  failure "cursor extension not found: $extension_path"
+}
+if {![file exists $powerline_path]} {
+  failure "Powerline extension not found: $powerline_path"
+}
+
+file mkdir $work_dir
+file mkdir $state_dir
+set settings [open "$state_dir/settings.json" w]
+puts $settings {{"quietStartup":true,"showHardwareCursor":true,"tuiMode":"fullscreen","powerline":{"welcome":true,"placement":"below"}}}
+close $settings
+
+cd $work_dir
+log_file -a -noappend $startup_log
+spawn env TERM=xterm-256color COLORTERM=truecolor COLUMNS=80 LINES=24 PI_OFFLINE=1 \
+  PI_CODING_AGENT_DIR=$state_dir pi --tui-mode fullscreen --no-session \
+  --no-context-files --no-prompt-templates --no-themes --no-extensions --no-skills --no-tools \
+  -e $powerline_path -e $extension_path
+set active_spawn $spawn_id
+stty columns 80 rows 24
+
+if {![drain_until 10000 {Welcome back!}]} {
+  failure "Powerline welcome banner did not render" [read_binary $startup_log]
+}
+after 100
+set startup [read_binary $startup_log]
+set first_frame_at [string first $begin_sync $startup]
+set welcome_at [string first "Welcome back!" $startup]
+if {$first_frame_at < 0 || $welcome_at < $first_frame_at} {
+  failure "welcome banner did not render in a synchronized startup frame" $startup
+}
+
+set before_first_frame [string range $startup 0 [expr {$first_frame_at - 1}]]
+set home_at [string last $home_cursor $before_first_frame]
+set hide_at [string first $hide_cursor $before_first_frame $home_at]
+set show_at [string first $show_cursor $before_first_frame $hide_at]
+if {$home_at < 0 || $hide_at < $home_at} {
+  failure "Pi did not establish a hidden cursor at terminal home before startup repaint" \
+    $before_first_frame
+}
+if {$show_at >= 0} {
+  set evidence [string range $startup $home_at \
+    [expr {$first_frame_at + [string length $begin_sync] + [string length $hide_cursor] - 1}]]
+  failure "hardware cursor became visible at row 1, column 1 before the first Powerline welcome frame" \
+    $evidence
+}
+
+send -i $active_spawn -- "\025/quit\r"
+drain_until 3000 {\x1b\[0 q\x1b\[\?25h}
+catch {close -i $active_spawn}
+catch {wait -i $active_spawn}
+set active_spawn ""
+puts "PASS blinking-cursor startup real-PTY E2E: cursor remains hidden until the first Powerline welcome frame"
+cleanup
+exit 0

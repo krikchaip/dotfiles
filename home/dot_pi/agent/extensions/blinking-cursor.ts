@@ -482,6 +482,7 @@ function removeEditorComponentPatch(ui: PatchableEditorUI): void {
  */
 export default function blinkingCursor(pi: ExtensionAPI): void {
   let cursorControlsEnabled = false;
+  let cursorControlsActivated = false;
   let terminalFocused = true;
   let blinkVisible = true;
   let blinkTimer: ReturnType<typeof setTimeout> | undefined;
@@ -768,9 +769,15 @@ export default function blinkingCursor(pi: ExtensionAPI): void {
     // Run before Pi's input listener so cursor mode changes before the
     // wheel-triggered repaint. Focus reporting covers panes and windows.
     process.stdin.prependListener("data", handleTerminalInput);
+    // Pi starts with a hidden cursor at terminal home. Keep it hidden until
+    // the first synchronized repaint places it in the editor. Later TUI
+    // resumes must show it immediately for inherited-stdio subprocesses.
     process.stdout.write(
-      ENABLE_FOCUS_REPORTING + STEADY_BLOCK_CURSOR + SHOW_CURSOR,
+      ENABLE_FOCUS_REPORTING +
+        STEADY_BLOCK_CURSOR +
+        (cursorControlsActivated ? SHOW_CURSOR : HIDE_CURSOR),
     );
+    cursorControlsActivated = true;
     startBlinkClock();
     cursorControlsEnabled = true;
     refreshCursorVisibility();
