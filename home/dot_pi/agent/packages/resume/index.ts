@@ -32,6 +32,7 @@ import {
   primeResumeSessionCatalog,
   releaseResumeSelector,
   scheduleResumeSessionSync,
+  setResumeActiveSessionManager,
   setResumeSessionScope,
 } from "./optimize-startup";
 import {
@@ -146,6 +147,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     activeSessionManager = ctx.sessionManager;
+    setResumeActiveSessionManager(activeSessionManager);
     const cwd = ctx.sessionManager.getCwd();
     const sessionDir = ctx.sessionManager.getSessionDir();
     setResumeSessionScope(
@@ -214,6 +216,7 @@ export default function (pi: ExtensionAPI) {
     stopWatchingSessionDir?.();
     stopWatchingSessionDir = undefined;
     activeSessionManager = undefined;
+    setResumeActiveSessionManager(undefined);
     setResumeSessionScope(undefined, undefined);
     void catalog.close();
   });
@@ -238,6 +241,7 @@ export default function (pi: ExtensionAPI) {
     }
 
     proto.showSessionSelector = function (this: PatchedInteractiveMode) {
+      setResumeActiveSessionManager(this.sessionManager);
       setResumeSessionScope(
         this.sessionManager?.getCwd?.(),
         this.sessionManager?.getSessionDir?.(),

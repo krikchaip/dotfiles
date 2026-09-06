@@ -245,6 +245,54 @@ async function activeRenameRefreshScenario(): Promise<void> {
   console.log("PASS resume active rename refreshes the live session manager");
 }
 
+async function newSessionVisibilityScenario(): Promise<void> {
+  const sessions = join(runDirectory, "new-session-visibility-sessions");
+  const source = join(sessions, "source.jsonl");
+  writeSession(
+    source,
+    "75000000-0000-7000-8000-000000000001",
+    "New Session Source",
+    ["NEW SESSION SOURCE BODY"],
+    1,
+  );
+  const harness = await PiTuiHarness.start({
+    name: "resume-new-session-visibility",
+    root: agentRoot,
+    runDirectory,
+    persistSession: true,
+    cliArguments: ["--session-dir", sessions, "--session", source],
+    extensions: [extension],
+  });
+
+  try {
+    await harness.submitCommand("new");
+    await harness.waitFor("New session started");
+    await harness.submit("/name New Current Session");
+    await harness.waitFor("Session name set: New Current Session");
+
+    const openedAt = performance.now();
+    await harness.submitCommand("resume");
+    let view = "";
+    await harness.waitUntil(
+      "new current session to appear selected",
+      async () => {
+        view = await harness.capture();
+        return /›\s+New Current Session/.test(view);
+      },
+      1_000,
+    );
+    assert(
+      performance.now() - openedAt < 1_000,
+      "New current session took at least one second to appear selected",
+    );
+    await closeSelector(harness);
+    await harness.finish();
+  } finally {
+    await harness.abort().catch(() => undefined);
+  }
+  console.log("PASS resume shows and selects a new session within one second");
+}
+
 async function staleSessionContextScenario(): Promise<void> {
   const sessions = join(runDirectory, "stale-context-sessions");
   const source = join(sessions, "source.jsonl");
@@ -316,6 +364,7 @@ try {
     hiddenThinkingPreviewScenario(),
     parentAlignedTreeGuideScenario(),
     activeRenameRefreshScenario(),
+    newSessionVisibilityScenario(),
     staleSessionContextScenario(),
   ]);
 } finally {

@@ -16,7 +16,7 @@ import { assert, writeSession } from "./support.ts";
 
 const agentRoot = resolve(import.meta.dir, "../../../..");
 const runDirectory = makeRunDirectory(agentRoot);
-const extension = "packages/resume";
+const extension = process.env.RESUME_E2E_EXTENSION ?? "packages/resume";
 
 async function closeSelector(harness: PiTuiHarness): Promise<void> {
   let stableFrames = 0;
@@ -71,7 +71,9 @@ async function mutationScenario(): Promise<void> {
     await harness.sendKeys("Escape");
     await harness.waitUntil("delete cancellation to close", async () => {
       const view = await harness.capture();
-      return !view.includes("Delete session?") && view.includes("Ctrl+R expand");
+      return (
+        !view.includes("Delete session?") && view.includes("Ctrl+R expand")
+      );
     });
     assert(
       existsSync(current),
@@ -119,6 +121,110 @@ async function mutationScenario(): Promise<void> {
   } finally {
     await harness.abort().catch(() => undefined);
   }
+}
+
+async function pickerDeleteOnlySessionScenario(): Promise<void> {
+  const sessions = join(runDirectory, "picker-delete-only-sessions");
+  const current = join(sessions, "current.jsonl");
+  writeSession(
+    current,
+    "10500000-0000-7000-8000-000000000001",
+    "Picker Delete Only",
+    ["PICKER DELETE ONLY BODY"],
+    1,
+  );
+  const harness = await PiTuiHarness.start({
+    name: "resume-picker-delete-only",
+    root: agentRoot,
+    runDirectory,
+    persistSession: true,
+    cliArguments: ["--session-dir", sessions, "--session", current],
+    extensions: [extension],
+  });
+
+  try {
+    await harness.submitCommand("resume");
+    await harness.waitFor("Picker Delete Only");
+    await harness.sendKeys("C-d");
+    await harness.waitFor("Delete session?");
+    await harness.sendKeys("Enter");
+    await harness.waitFor("New session started");
+    await harness.waitUntil(
+      "replacement session to appear in the open picker",
+      async () => /›\s+\(no messages\)/.test(await harness.capture()),
+      1_000,
+    );
+    await closeSelector(harness);
+    await harness.finish();
+  } finally {
+    await harness.abort().catch(() => undefined);
+  }
+  console.log("PASS resume shows replacement after deleting its only session");
+}
+
+async function dropThenResumeScenario(
+  trigger: "command" | "shortcut",
+): Promise<void> {
+  const sessions = join(runDirectory, `drop-resume-${trigger}-sessions`);
+  const current = join(sessions, "current.jsonl");
+  writeSession(
+    current,
+    "11000000-0000-7000-8000-000000000001",
+    "Drop Current",
+    ["DROP CURRENT BODY"],
+    20,
+  );
+  const harness = await PiTuiHarness.start({
+    name: `resume-after-drop-${trigger}`,
+    root: agentRoot,
+    runDirectory,
+    persistSession: true,
+    cliArguments: ["--session-dir", sessions, "--session", current],
+    extensions: [extension, "extensions/drop-session.ts"],
+  });
+
+  try {
+    await harness.submitCommand("resume");
+    await harness.waitFor("Drop Current");
+    await closeSelector(harness);
+
+    if (trigger === "command") await harness.submitCommand("drop");
+    else await harness.sendLiteral("\u001bq");
+    await harness.waitFor("Session dropped");
+    assert(!existsSync(current), "Drop did not remove the active session");
+
+    const openedAt = performance.now();
+    await harness.submitCommand("resume");
+    let view = "";
+    await harness.waitUntil(
+      "replacement session to appear selected after drop",
+      async () => {
+        view = await harness.capture();
+        return /›\s+\(no messages\)/.test(view);
+      },
+      1_000,
+    );
+    assert(
+      performance.now() - openedAt < 1_000,
+      "Replacement session took at least one second to appear after drop",
+    );
+    assert(
+      !view.includes("No sessions in current folder"),
+      "Resume showed an empty catalog after drop",
+    );
+    await closeSelector(harness);
+    await harness.finish();
+  } finally {
+    await harness.abort().catch(() => undefined);
+  }
+  console.log(
+    `PASS resume shows replacement immediately after drop ${trigger}`,
+  );
+}
+
+async function dropThenResumeScenarios(): Promise<void> {
+  await dropThenResumeScenario("command");
+  await dropThenResumeScenario("shortcut");
 }
 
 async function cacheAndWatcherScenario(): Promise<void> {
@@ -327,6 +433,8 @@ try {
   mkdirSync(runDirectory, { recursive: true });
   await Promise.all([
     mutationScenario(),
+    pickerDeleteOnlySessionScenario(),
+    dropThenResumeScenarios(),
     cacheAndWatcherScenario(),
     reloadAndMalformedSessionScenario(),
     narrowAndNonTmuxScenario(),

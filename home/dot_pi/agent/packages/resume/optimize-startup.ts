@@ -19,6 +19,7 @@ type ResumeSessionScope = {
 type PatchState = {
   catalog?: ResumeCatalog;
   scope?: ResumeSessionScope;
+  activeSessionManager?: any;
 };
 
 function state(): PatchState {
@@ -33,6 +34,69 @@ export function setResumeSessionScope(
 ) {
   state().scope =
     cwd && sessionDir ? { cwd, sessionDir, usesDefaultSessionDir } : undefined;
+}
+
+export function setResumeActiveSessionManager(sessionManager: any) {
+  state().activeSessionManager = sessionManager;
+}
+
+function entryText(entry: any): string {
+  const content = entry?.message?.content;
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter(
+      (part: any) => part?.type === "text" && typeof part.text === "string",
+    )
+    .map((part: any) => part.text)
+    .join("\n");
+}
+
+function activeSessionInfo(): any | undefined {
+  const manager = state().activeSessionManager;
+  const path = manager?.getSessionFile?.();
+  const header = manager?.getHeader?.();
+  if (!path || !header || typeof header.id !== "string") return undefined;
+
+  const entries = manager.getEntries?.() ?? [];
+  const messages = entries.filter((entry: any) => entry?.type === "message");
+  const searchable = messages.filter(
+    (entry: any) =>
+      entry.message?.role === "user" || entry.message?.role === "assistant",
+  );
+  const firstMessage = searchable.find(
+    (entry: any) => entry.message?.role === "user" && entryText(entry),
+  );
+  const timestamps = [header, ...entries]
+    .map((entry: any) => Date.parse(entry?.timestamp ?? ""))
+    .filter(Number.isFinite);
+  const created = new Date(header.timestamp);
+
+  return {
+    path,
+    id: header.id,
+    cwd:
+      typeof header.cwd === "string" ? header.cwd : (manager.getCwd?.() ?? ""),
+    name: manager.getSessionName?.(),
+    parentSessionPath: header.parentSession,
+    created,
+    modified: new Date(
+      timestamps.length ? Math.max(...timestamps) : created.getTime(),
+    ),
+    messageCount: messages.length,
+    firstMessage: firstMessage ? entryText(firstMessage) : "(no messages)",
+    allMessagesText: searchable.map(entryText).filter(Boolean).join(" "),
+  };
+}
+
+function withActiveSession(sessions: any[]): any[] {
+  const active = activeSessionInfo();
+  if (!active) return sessions;
+  const existing = sessions.find((session) => session.path === active.path);
+  return [
+    ...sessions.filter((session) => session.path !== active.path),
+    { ...existing, ...active },
+  ].sort((left, right) => right.modified.getTime() - left.modified.getTime());
 }
 
 function currentCatalogScope(scope: ResumeSessionScope) {
@@ -105,7 +169,10 @@ export function guardResumeSelection(selector: any) {
   const originalSelect = sessionList?.onSelect;
   if (typeof originalSelect !== "function") return;
   sessionList.onSelect = (sessionPath: string) => {
-    if (existsSync(sessionPath)) {
+    if (
+      sessionList.isCurrentSessionPath?.(sessionPath) ||
+      existsSync(sessionPath)
+    ) {
       return originalSelect.call(sessionList, sessionPath);
     }
     selector.currentSessions = selector.currentSessions?.filter(
@@ -133,6 +200,7 @@ function publishSessions(
   scope: "current" | "all",
   sessions: any[],
 ) {
+  sessions = withActiveSession(sessions);
   setIndexingStatus(selector, sessions);
   if (scope === "current") selector.currentSessions = sessions;
   else selector.allSessions = sessions;
@@ -188,9 +256,13 @@ export function installOptimizeStartup(
         )
         .then((sessions) => {
           const provisional = activeCatalog.isProvisional(sessions);
-          setIndexingStatus(this, sessions, provisional);
-          onProgress?.(provisional ? 0 : sessions.length, sessions.length);
-          return provisional ? [] : sessions;
+          const visibleSessions = withActiveSession(sessions);
+          setIndexingStatus(this, visibleSessions, provisional);
+          onProgress?.(
+            provisional ? 0 : visibleSessions.length,
+            visibleSessions.length,
+          );
+          return provisional ? [] : visibleSessions;
         });
 
     this.currentSessionsLoader = (
@@ -211,8 +283,9 @@ export function installOptimizeStartup(
       );
 
     const catalogScope = currentCatalogScope(scope);
-    const immediate = activeCatalog.peek(catalogScope);
-    if (!immediate) return originalLoadCurrentSessions.call(this);
+    const cached = activeCatalog.peek(catalogScope);
+    if (!cached) return originalLoadCurrentSessions.call(this);
+    const immediate = withActiveSession(cached);
 
     this.currentSessions = immediate;
     this.currentLoading = false;

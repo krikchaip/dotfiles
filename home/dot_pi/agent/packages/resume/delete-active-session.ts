@@ -32,6 +32,7 @@ export function patchDeleteActiveSession(selector: any, interactiveMode: any) {
     if (isCurrent) {
       await interactiveMode.handleClearCommand();
       await originalOnDeleteSession.call(this, sessionPath);
+      interactiveMode.showSessionSelector?.();
     } else {
       await originalOnDeleteSession.call(this, sessionPath);
     }
