@@ -128,6 +128,59 @@ describe("ResumeCatalog", () => {
     await secondProcess.close();
   });
 
+  test("a fresh process publishes reconciliation after exposing persisted rows", async () => {
+    const fixture = makeFixture();
+    const scope = { cwd: fixture.cwd, sessionDir: fixture.sessionDir };
+    const firstProcess = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    await openExact(firstProcess, scope);
+    await firstProcess.close();
+
+    writeFileSync(
+      join(fixture.sessionDir, "clone.jsonl"),
+      `${JSON.stringify({
+        type: "session",
+        version: 3,
+        id: "10000000-0000-7000-8000-000000000002",
+        timestamp: "2026-01-01T00:00:20.000Z",
+        cwd: fixture.cwd,
+        parentSession: fixture.sessionPath,
+      })}\n${JSON.stringify({
+        type: "session_info",
+        id: "clone-name",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:21.000Z",
+        name: "Indexed Clone",
+      })}\n`,
+    );
+
+    const secondProcess = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    const reconciliation = secondProcess.prime(scope);
+    expect(secondProcess.peek(scope)?.map((session) => session.name)).toEqual([
+      "Before restart",
+    ]);
+
+    let published: any[] | undefined;
+    const immediate = await secondProcess.open(
+      { ...scope, subscription: {} },
+      (sessions) => {
+        published = sessions;
+      },
+    );
+    expect(immediate.map((session) => session.name)).toEqual([
+      "Before restart",
+    ]);
+
+    await reconciliation;
+    expect(published?.map((session) => session.name)).toContain(
+      "Indexed Clone",
+    );
+    await secondProcess.close();
+  });
+
   test("a missing catalog renders no rows before exact repair", async () => {
     const fixture = makeFixture();
     const catalog = new ResumeCatalog({

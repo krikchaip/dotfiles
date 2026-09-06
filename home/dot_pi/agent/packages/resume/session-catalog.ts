@@ -423,6 +423,7 @@ export class ResumeCatalog {
     { rerun: boolean; promise: Promise<ReconcileResult> }
   >();
   readonly #primes = new Map<string, Promise<void>>();
+  readonly #failedPrimes = new Set<string>();
   readonly #searchCache = new Map<string, Record<string, string>>();
   readonly #provisionalResults = new WeakSet<any[]>();
   readonly #snapshots = new Map<
@@ -457,7 +458,12 @@ export class ResumeCatalog {
   async prime(scope: ResumeCatalogScope): Promise<void> {
     if (this.#closed || scope.allDirectories) return;
     const directory = resolve(scope.sessionDir);
-    if (this.#snapshots.has(directory)) return;
+    if (
+      this.#snapshots.has(directory) &&
+      !this.#failedPrimes.has(directory)
+    ) {
+      return;
+    }
     const existing = this.#primes.get(directory);
     if (existing) return existing;
     const operation = this.#primeDirectory(directory).finally(() => {
@@ -470,13 +476,18 @@ export class ResumeCatalog {
   async #primeDirectory(directory: string) {
     const persisted = this.#readManifest(directory);
     if (persisted) {
-      const { manifest } = await this.#requestReconcile(directory, persisted);
-      if (this.#closed) return;
+      this.#failedPrimes.delete(directory);
       this.#snapshots.set(directory, {
-        manifest,
+        manifest: persisted,
         provisional: false,
         needsFullRepair: false,
       });
+      try {
+        await this.#requestReconcile(directory, persisted);
+      } catch (error) {
+        if (!this.#closed) this.#failedPrimes.add(directory);
+        throw error;
+      }
       return;
     }
     const provisional = await this.#bootstrap(directory);
@@ -633,6 +644,7 @@ export class ResumeCatalog {
     this.#repairs.clear();
     this.#reconciles.clear();
     this.#primes.clear();
+    this.#failedPrimes.clear();
     this.#searchCache.clear();
     this.#snapshots.clear();
   }
@@ -671,17 +683,7 @@ export class ResumeCatalog {
       return;
     }
     const repair = this.#requestReconcile(directory)
-      .then(({ manifest }) => {
-        if (this.#closed) return;
-        this.#snapshots.set(directory, {
-          manifest,
-          provisional: false,
-          needsFullRepair: false,
-        });
-        for (const listener of this.#listeners.get(directory)?.values() ?? []) {
-          listener.publish(this.#sessions(manifest, listener.cwd));
-        }
-      })
+      .then(() => {})
       .catch(() => {})
       .finally(() => this.#repairs.delete(directory));
     this.#repairs.set(directory, repair);
@@ -702,19 +704,40 @@ export class ResumeCatalog {
       promise: undefined as unknown as Promise<ReconcileResult>,
     };
     state.promise = (async () => {
-      let result: ReconcileResult | undefined;
-      let previous = knownManifest;
-      do {
+      state.rerun = false;
+      let result = await this.#reconcile(directory, knownManifest);
+      let changed = result.changed;
+      while (state.rerun && !this.#closed) {
         state.rerun = false;
-        result = await this.#reconcile(directory, previous);
-        previous = undefined;
-      } while (state.rerun && !this.#closed);
-      return result;
-    })().finally(() => {
-      if (this.#reconciles.get(directory) === state) {
-        this.#reconciles.delete(directory);
+        result = await this.#reconcile(directory);
+        changed ||= result.changed;
       }
-    });
+      return { manifest: result.manifest, changed };
+    })()
+      .finally(() => {
+        if (this.#reconciles.get(directory) === state) {
+          this.#reconciles.delete(directory);
+        }
+      })
+      .then((result) => {
+        if (!this.#closed) {
+          this.#failedPrimes.delete(directory);
+          this.#snapshots.set(directory, {
+            manifest: result.manifest,
+            provisional: false,
+            needsFullRepair: false,
+          });
+          if (result.changed) {
+            for (const listener of
+              this.#listeners.get(directory)?.values() ?? []) {
+              listener.publish(
+                this.#sessions(result.manifest, listener.cwd),
+              );
+            }
+          }
+        }
+        return result;
+      });
     this.#reconciles.set(directory, state);
     return state.promise;
   }

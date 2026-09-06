@@ -10,6 +10,7 @@ const largeRecordBytes = Number(
 );
 let observedPath: string | undefined;
 let observeReads = false;
+let failReadPathOnce: string | undefined;
 let reads: Array<{ start: number; bytes: number }> = [];
 const originalCreateReadStream = realFs.createReadStream;
 const originalStat = realFsPromises.stat;
@@ -52,6 +53,10 @@ mock.module("node:fs", () => ({
     path: realFs.PathLike,
     options?: Parameters<typeof realFs.createReadStream>[1],
   ) {
+    if (String(path) === failReadPathOnce) {
+      failReadPathOnce = undefined;
+      throw new Error("Injected concurrent file replacement");
+    }
     const stream = originalCreateReadStream(path, options as any);
     if (observeReads && String(path) === observedPath) {
       const read = {
@@ -146,6 +151,7 @@ async function openExact(
 beforeEach(() => {
   observedPath = undefined;
   observeReads = false;
+  failReadPathOnce = undefined;
   reads = [];
   statBarrier = undefined;
 });
@@ -252,6 +258,147 @@ describe("ResumeCatalog incremental I/O", () => {
     expect(realFs.statSync(searchPath, { bigint: true }).ino).toBe(
       searchStats.ino,
     );
+  });
+
+  test("a failed persisted reconciliation remains retryable", async () => {
+    const fixture = makeFixture();
+    const first = new ResumeCatalog({ cacheDirectory: fixture.cacheDirectory });
+    await openExact(first, fixture.sessionDir);
+    await first.close();
+
+    const clonePath = join(fixture.sessionDir, "clone.jsonl");
+    realFs.writeFileSync(
+      clonePath,
+      `${JSON.stringify({
+        type: "session",
+        version: 3,
+        id: "91000000-0000-7000-8000-000000000002",
+        timestamp: "2026-01-01T00:00:02.000Z",
+        cwd: join(fixture.sessionDir, ".."),
+      })}\n`,
+    );
+    failReadPathOnce = clonePath;
+
+    const second = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    await expect(second.prime({ sessionDir: fixture.sessionDir })).rejects.toThrow(
+      "Injected concurrent file replacement",
+    );
+    expect(second.peek({ sessionDir: fixture.sessionDir })).toHaveLength(1);
+
+    await second.prime({ sessionDir: fixture.sessionDir });
+    expect(second.peek({ sessionDir: fixture.sessionDir })).toHaveLength(2);
+    await second.close();
+  });
+
+  test("a coalesced no-op startup invalidation does not publish", async () => {
+    const fixture = makeFixture();
+    const first = new ResumeCatalog({ cacheDirectory: fixture.cacheDirectory });
+    await openExact(first, fixture.sessionDir);
+    await first.close();
+
+    const barrier = createStatBarrier(fixture.sessionPath);
+    statBarrier = barrier;
+    const second = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    let publications = 0;
+    const opening = second.open({ sessionDir: fixture.sessionDir }, () => {
+      publications++;
+    });
+    await barrier.started;
+    second.invalidate(fixture.sessionDir);
+    barrier.allowFirst();
+    await opening;
+    await Bun.sleep(20);
+
+    expect(publications).toBe(0);
+    await second.close();
+  });
+
+  test("a changed coalesced startup reconciliation publishes once", async () => {
+    const fixture = makeFixture();
+    const first = new ResumeCatalog({ cacheDirectory: fixture.cacheDirectory });
+    await openExact(first, fixture.sessionDir);
+    await first.close();
+    realFs.appendFileSync(
+      fixture.sessionPath,
+      `${JSON.stringify({
+        type: "session_info",
+        id: "coalesced-change",
+        parentId: "large-message",
+        timestamp: "2026-01-01T00:00:02.000Z",
+        name: "Coalesced change",
+      })}\n`,
+    );
+
+    const barrier = createStatBarrier(fixture.sessionPath);
+    statBarrier = barrier;
+    const second = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    const publications: any[][] = [];
+    const opening = second.open(
+      { sessionDir: fixture.sessionDir },
+      (sessions) => {
+        publications.push(sessions);
+      },
+    );
+    await barrier.started;
+    second.invalidate(fixture.sessionDir);
+    barrier.allowFirst();
+    await opening;
+    await Bun.sleep(20);
+
+    expect(publications).toHaveLength(1);
+    expect(publications[0]?.[0]?.name).toBe("Coalesced change");
+    await second.close();
+  });
+
+  test("a repair-first failed-prime retry publishes changed rows once", async () => {
+    const fixture = makeFixture();
+    const first = new ResumeCatalog({ cacheDirectory: fixture.cacheDirectory });
+    await openExact(first, fixture.sessionDir);
+    await first.close();
+
+    const clonePath = join(fixture.sessionDir, "repair-first.jsonl");
+    realFs.writeFileSync(
+      clonePath,
+      `${JSON.stringify({
+        type: "session",
+        version: 3,
+        id: "91000000-0000-7000-8000-000000000003",
+        timestamp: "2026-01-01T00:00:03.000Z",
+        cwd: join(fixture.sessionDir, ".."),
+      })}\n`,
+    );
+    const second = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    failReadPathOnce = clonePath;
+    await expect(second.prime({ sessionDir: fixture.sessionDir })).rejects.toThrow(
+      "Injected concurrent file replacement",
+    );
+
+    const barrier = createStatBarrier(fixture.sessionPath);
+    statBarrier = barrier;
+    second.invalidate(fixture.sessionDir);
+    await barrier.started;
+    const publications: any[][] = [];
+    const opening = second.open(
+      { sessionDir: fixture.sessionDir },
+      (sessions) => {
+        publications.push(sessions);
+      },
+    );
+    barrier.allowFirst();
+    await opening;
+    await Bun.sleep(20);
+
+    expect(publications).toHaveLength(1);
+    expect(publications[0]).toHaveLength(2);
+    await second.close();
   });
 
   test("invalidations during reconcile produce no overlap and one follow-up", async () => {
