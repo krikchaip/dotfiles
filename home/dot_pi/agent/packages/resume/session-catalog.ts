@@ -621,9 +621,9 @@ export class ResumeCatalog {
           snapshot.provisional = true;
         }
       }
-    } else if (snapshot) {
-      snapshot.provisional = true;
     }
+    // A coarse watcher event does not identify a stale row. Keep the last exact
+    // snapshot available while the repair discovers additions and changes.
     this.#scheduleRepair(resolved, true);
   }
 

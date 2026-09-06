@@ -384,6 +384,19 @@ describe("ResumeCatalog", () => {
     await catalog.close();
   });
 
+  test("a directory-wide watcher event keeps the exact snapshot", async () => {
+    const fixture = makeFixture();
+    const scope = { sessionDir: fixture.sessionDir };
+    const catalog = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    await openExact(catalog, scope);
+
+    catalog.invalidate(fixture.sessionDir);
+    expect(catalog.peek(scope)).toHaveLength(1);
+    await catalog.close();
+  });
+
   test("a dirty snapshot marks deleted rows provisional until refresh", async () => {
     const fixture = makeFixture();
     const scope = { sessionDir: fixture.sessionDir };

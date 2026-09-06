@@ -40,62 +40,50 @@ export function setResumeActiveSessionManager(sessionManager: any) {
   state().activeSessionManager = sessionManager;
 }
 
-function entryText(entry: any): string {
-  const content = entry?.message?.content;
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return content
-    .filter(
-      (part: any) => part?.type === "text" && typeof part.text === "string",
-    )
-    .map((part: any) => part.text)
-    .join("\n");
+function parsedTime(value: unknown): number | undefined {
+  const result = typeof value === "string" ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(result) ? result : undefined;
 }
 
-function activeSessionInfo(): any | undefined {
+function activeSessionInfo(existing?: any): any | undefined {
   const manager = state().activeSessionManager;
   const path = manager?.getSessionFile?.();
   const header = manager?.getHeader?.();
   if (!path || !header || typeof header.id !== "string") return undefined;
 
-  const entries = manager.getEntries?.() ?? [];
-  const messages = entries.filter((entry: any) => entry?.type === "message");
-  const searchable = messages.filter(
-    (entry: any) =>
-      entry.message?.role === "user" || entry.message?.role === "assistant",
+  const createdTime =
+    parsedTime(header.timestamp) ??
+    existing?.created?.getTime?.() ??
+    Date.now();
+  const modifiedTime = Math.max(
+    createdTime,
+    parsedTime(manager.getLeafEntry?.()?.timestamp) ?? 0,
+    existing?.modified?.getTime?.() ?? 0,
   );
-  const firstMessage = searchable.find(
-    (entry: any) => entry.message?.role === "user" && entryText(entry),
-  );
-  const timestamps = [header, ...entries]
-    .map((entry: any) => Date.parse(entry?.timestamp ?? ""))
-    .filter(Number.isFinite);
-  const created = new Date(header.timestamp);
 
   return {
     path,
     id: header.id,
     cwd:
       typeof header.cwd === "string" ? header.cwd : (manager.getCwd?.() ?? ""),
-    name: manager.getSessionName?.(),
+    name: manager.getSessionName?.() ?? existing?.name,
     parentSessionPath: header.parentSession,
-    created,
-    modified: new Date(
-      timestamps.length ? Math.max(...timestamps) : created.getTime(),
-    ),
-    messageCount: messages.length,
-    firstMessage: firstMessage ? entryText(firstMessage) : "(no messages)",
-    allMessagesText: searchable.map(entryText).filter(Boolean).join(" "),
+    created: new Date(createdTime),
+    modified: new Date(modifiedTime),
+    messageCount: existing?.messageCount ?? 0,
+    firstMessage: existing?.firstMessage ?? "(no messages)",
+    allMessagesText: existing?.allMessagesText ?? "",
   };
 }
 
 function withActiveSession(sessions: any[]): any[] {
-  const active = activeSessionInfo();
+  const activePath = state().activeSessionManager?.getSessionFile?.();
+  const existing = sessions.find((session) => session.path === activePath);
+  const active = activeSessionInfo(existing);
   if (!active) return sessions;
-  const existing = sessions.find((session) => session.path === active.path);
   return [
     ...sessions.filter((session) => session.path !== active.path),
-    { ...existing, ...active },
+    active,
   ].sort((left, right) => right.modified.getTime() - left.modified.getTime());
 }
 
@@ -284,15 +272,17 @@ export function installOptimizeStartup(
 
     const catalogScope = currentCatalogScope(scope);
     const cached = activeCatalog.peek(catalogScope);
-    if (!cached) return originalLoadCurrentSessions.call(this);
-    const immediate = withActiveSession(cached);
+    const immediate = withActiveSession(cached ?? []);
+    if (immediate.length === 0) {
+      return originalLoadCurrentSessions.call(this);
+    }
 
     this.currentSessions = immediate;
     this.currentLoading = false;
     this.header?.setScope?.("current");
     this.header?.setLoading?.(false);
     this.sessionList?.setSessions?.(immediate, false);
-    setIndexingStatus(this, immediate, false);
+    setIndexingStatus(this, immediate, !cached);
     void catalogLoader(catalogScope, "current").catch(() => {});
   };
 

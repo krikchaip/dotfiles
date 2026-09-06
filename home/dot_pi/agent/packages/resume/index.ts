@@ -136,8 +136,9 @@ function loadPreviewDeps() {
   };
 }
 
+const catalog = new ResumeCatalog();
+
 export default function (pi: ExtensionAPI) {
-  const catalog = new ResumeCatalog();
   applyRenameSessionRecent(SessionManager, catalog);
   installOptimizeStartup(SessionSelectorComponent, catalog);
 
@@ -211,14 +212,16 @@ export default function (pi: ExtensionAPI) {
     scheduleResumeWarm();
   });
 
-  pi.on("session_shutdown", () => {
+  pi.on("session_shutdown", (event) => {
     if (tmuxSplitAvailable) clearTmuxSessionAdvertisement();
     stopWatchingSessionDir?.();
     stopWatchingSessionDir = undefined;
     activeSessionManager = undefined;
     setResumeActiveSessionManager(undefined);
     setResumeSessionScope(undefined, undefined);
-    void catalog.close();
+    if (event.reason === "reload" || event.reason === "quit") {
+      void catalog.close();
+    }
   });
 
   const previewDeps = loadPreviewDeps();

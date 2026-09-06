@@ -293,6 +293,96 @@ async function newSessionVisibilityScenario(): Promise<void> {
   console.log("PASS resume shows and selects a new session within one second");
 }
 
+async function extensionCreatedSessionScenario(
+  kind: "branch" | "child",
+): Promise<void> {
+  const sessions = join(runDirectory, `${kind}-created-session-sessions`);
+  const source = join(sessions, "source.jsonl");
+  const sourceName =
+    kind === "branch" ? "Branch Extension Source" : "Child Extension Source";
+  writeSession(
+    source,
+    kind === "branch"
+      ? "76000000-0000-7000-8000-000000000001"
+      : "77000000-0000-7000-8000-000000000001",
+    sourceName,
+    [`${kind.toUpperCase()} EXTENSION SOURCE BODY`],
+    1,
+  );
+  const creatorExtension =
+    kind === "branch"
+      ? "extensions/branch-merge.ts"
+      : "extensions/new-child-split.ts";
+  const harness = await PiTuiHarness.start({
+    name: `resume-${kind}-created-session`,
+    root: agentRoot,
+    runDirectory,
+    persistSession: true,
+    cliArguments: ["--session-dir", sessions, "--session", source],
+    extensions: [extension, creatorExtension, "extensions/drop-session.ts"],
+  });
+
+  try {
+    if (kind === "branch") {
+      await harness.submitCommand("branch");
+    } else {
+      await harness.sendLiteral("/new child");
+      await Bun.sleep(150);
+      await harness.sendKeys("Escape", "Enter");
+    }
+    await harness.waitFor(
+      kind === "branch" ? "Forked to new session" : "New child session started",
+    );
+
+    const openedAt = performance.now();
+    await harness.submitCommand("resume");
+    let view = "";
+    await harness.waitUntil(
+      `${kind} session to appear selected on first resume`,
+      async () => {
+        view = await harness.capture();
+        return kind === "branch"
+          ? new RegExp(`›[^\\n]*${sourceName}`).test(view)
+          : /›[^\n]*\(no messages\)/.test(view);
+      },
+      1_000,
+    );
+    assert(
+      performance.now() - openedAt < 1_000,
+      `${kind} session took at least one second to appear selected`,
+    );
+    assert(
+      !view.includes("No sessions in current folder"),
+      `Resume showed an empty catalog for the ${kind} session`,
+    );
+    await closeSelector(harness);
+
+    await harness.submitCommand("drop");
+    await harness.waitFor(`• ${sourceName}`);
+    const reopenedAt = performance.now();
+    await harness.sendLiteral("/resume");
+    await Bun.sleep(150);
+    await harness.sendKeys("Escape", "Enter");
+    await harness.waitUntil(
+      `parent session after dropping ${kind} session`,
+      async () =>
+        new RegExp(`›[^\\n]*${sourceName}`).test(await harness.capture()),
+      1_000,
+    );
+    assert(
+      performance.now() - reopenedAt < 1_000,
+      `Replacement session took at least one second after dropping ${kind} session`,
+    );
+    await closeSelector(harness);
+    await harness.finish();
+  } finally {
+    await harness.abort().catch(() => undefined);
+  }
+  console.log(
+    `PASS resume handles ${kind} extension sessions before and after drop`,
+  );
+}
+
 async function staleSessionContextScenario(): Promise<void> {
   const sessions = join(runDirectory, "stale-context-sessions");
   const source = join(sessions, "source.jsonl");
@@ -365,6 +455,8 @@ try {
     parentAlignedTreeGuideScenario(),
     activeRenameRefreshScenario(),
     newSessionVisibilityScenario(),
+    extensionCreatedSessionScenario("branch"),
+    extensionCreatedSessionScenario("child"),
     staleSessionContextScenario(),
   ]);
 } finally {
