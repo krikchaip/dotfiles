@@ -69,7 +69,10 @@ async function mutationScenario(): Promise<void> {
     await harness.sendKeys("C-d");
     await harness.waitFor("Delete session?");
     await harness.sendKeys("Escape");
-    await harness.waitFor("Ctrl+R expand");
+    await harness.waitUntil("delete cancellation to close", async () => {
+      const view = await harness.capture();
+      return !view.includes("Delete session?") && view.includes("Ctrl+R expand");
+    });
     assert(
       existsSync(current),
       "Delete cancellation removed the active session",
@@ -80,7 +83,7 @@ async function mutationScenario(): Promise<void> {
     );
 
     await harness.sendLiteral("Current Mutable");
-    await harness.waitFor("Current Mutable");
+    await harness.waitFor("> Current Mutable");
     await harness.sendKeys("C-d");
     await harness.waitFor("Delete session?");
     await harness.sendKeys("Enter");
@@ -142,6 +145,12 @@ async function cacheAndWatcherScenario(): Promise<void> {
     await harness.waitFor("Cache Current");
     await closeSelector(harness);
 
+    await harness.submit("/name Named Through Command");
+    await harness.waitFor("Session name set: Named Through Command");
+    await harness.submitCommand("resume");
+    await harness.waitFor("Named Through Command");
+    await closeSelector(harness);
+
     writeSession(
       watched,
       "15000000-0000-7000-8000-000000000002",
@@ -166,7 +175,7 @@ async function cacheAndWatcherScenario(): Promise<void> {
     unlinkSync(watched);
     await Bun.sleep(350);
     await harness.submitCommand("resume");
-    const view = await harness.waitFor("Cache Current");
+    const view = await harness.waitFor("Named Through Command");
     assert(
       !view.includes("Watcher Renamed"),
       "Removed session remained in the warm cache",
@@ -176,8 +185,42 @@ async function cacheAndWatcherScenario(): Promise<void> {
   } finally {
     await harness.abort().catch(() => undefined);
   }
+
+  const restarted = await PiTuiHarness.start({
+    name: "resume-cache-restart",
+    root: agentRoot,
+    runDirectory,
+    persistSession: true,
+    cliArguments: ["--session-dir", sessions, "--session", current],
+    extensions: [extension],
+    environment: { PI_CODING_AGENT_DIR: harness.stateDirectory },
+  });
+  try {
+    await restarted.submitCommand("resume");
+    let sawIndexing = false;
+    let sawExactList = false;
+    const deadline = Date.now() + 2_000;
+    while (Date.now() < deadline && !sawExactList) {
+      const frame = await restarted.capture();
+      if (frame.includes("Resume Session (Current Folder)")) {
+        sawIndexing ||= frame.includes("Indexing…");
+        sawExactList = frame.includes("Named Through Command");
+      }
+      if (!sawExactList) await Bun.sleep(10);
+    }
+    assert(sawExactList, "Restarted picker did not render its session list");
+    assert(
+      !sawIndexing,
+      "An unchanged workspace reindexed after restarting Pi",
+    );
+    await closeSelector(restarted);
+    await restarted.finish();
+  } finally {
+    await restarted.abort().catch(() => undefined);
+  }
+
   console.log(
-    "PASS resume cold/warm cache and watcher add/change/remove invalidation",
+    "PASS resume cold/warm/restart cache and watcher add/change/remove invalidation",
   );
 }
 

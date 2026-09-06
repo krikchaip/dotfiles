@@ -1,45 +1,65 @@
-/**
- * Makes /resume open instantly after session metadata is cached.
- *
- * Shows cached sessions immediately, refreshes the list in the background, and
- * preserves sane ordering/selection without loading-progress flicker.
- */
+/** Adapts Pi's private session selector loaders to the durable resume catalog. */
 
-import { readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import type { ResumeCatalog } from "./session-catalog";
 
-const LOAD_PATCHED = "__resumeSnapPatched";
-
-type SessionInfoCache = Map<
-  string,
-  { mtimeMs: number; size: number; info: any }
->;
-
-// Module-level vars set during showSessionSelector so the sync cache path
-// in loadCurrentSessions can locate the session directory without async.
-let _resumeCwd: string | undefined;
-let _resumeSessionDir: string | undefined;
+const LOAD_PATCHED = Symbol.for("resume:catalog-selector-loader");
+const PATCH_STATE = Symbol.for("resume:catalog-patch-state");
+const SELECTOR_SUBSCRIPTIONS = Symbol.for("resume:catalog-subscriptions");
+const INDEXING_MESSAGE = "Indexing full session history…";
 
 type ResumeSessionScope = {
-  cwd: string | undefined;
-  sessionDir: string | undefined;
+  cwd: string;
+  sessionDir: string;
   usesDefaultSessionDir?: boolean;
-  includeAll?: boolean;
 };
 
-let scheduleSyncImpl = (_scope: ResumeSessionScope) => {};
+type PatchState = {
+  catalog?: ResumeCatalog;
+  scope?: ResumeSessionScope;
+};
+
+function state(): PatchState {
+  const root = globalThis as any;
+  return (root[PATCH_STATE] ??= {});
+}
 
 export function setResumeSessionScope(
   cwd: string | undefined,
   sessionDir: string | undefined,
+  usesDefaultSessionDir?: boolean,
 ) {
-  _resumeCwd = cwd;
-  _resumeSessionDir = sessionDir;
+  state().scope =
+    cwd && sessionDir ? { cwd, sessionDir, usesDefaultSessionDir } : undefined;
 }
 
-export function scheduleResumeSessionSync(scope: ResumeSessionScope) {
-  scheduleSyncImpl(scope);
+function currentCatalogScope(scope: ResumeSessionScope) {
+  return scope.usesDefaultSessionDir
+    ? { sessionDir: scope.sessionDir }
+    : { cwd: scope.cwd, sessionDir: scope.sessionDir };
+}
+
+export function primeResumeSessionCatalog() {
+  const current = state();
+  if (!current.catalog || !current.scope) return;
+  void current.catalog
+    .prime(currentCatalogScope(current.scope))
+    .catch(() => {});
+}
+
+export function scheduleResumeSessionSync() {
+  const current = state();
+  if (!current.catalog || !current.scope) return;
+  void current.catalog.open(currentCatalogScope(current.scope)).catch(() => {});
+}
+
+export function invalidateResumeSessionDir(
+  directory: string,
+  filename?: string,
+) {
+  state().catalog?.invalidate(directory, filename);
 }
 
 export function getResumeDefaultSessionDir(cwd: string) {
@@ -48,120 +68,159 @@ export function getResumeDefaultSessionDir(cwd: string) {
   return join(getAgentDir(), "sessions", safePath);
 }
 
+function setIndexingStatus(
+  selector: any,
+  sessions: any[],
+  provisional = sessions.some((session) => session.provisional),
+) {
+  if (provisional) {
+    selector.header?.setStatusMessage?.({
+      type: "info",
+      message: INDEXING_MESSAGE,
+    });
+  } else if (selector.header?.statusMessage?.message === INDEXING_MESSAGE) {
+    selector.header.setStatusMessage(null);
+  }
+}
+
+function selectorSubscriptions(selector: any) {
+  return (selector[SELECTOR_SUBSCRIPTIONS] ??= {
+    current: {},
+    all: {},
+  }) as { current: object; all: object };
+}
+
+export function releaseResumeSelector(selector: any) {
+  const subscriptions = selector?.[SELECTOR_SUBSCRIPTIONS] as
+    { current: object; all: object } | undefined;
+  const catalog = state().catalog;
+  if (!subscriptions || !catalog) return;
+  catalog.unsubscribe(subscriptions.current);
+  catalog.unsubscribe(subscriptions.all);
+  delete selector[SELECTOR_SUBSCRIPTIONS];
+}
+
+export function guardResumeSelection(selector: any) {
+  const sessionList = selector?.sessionList;
+  const originalSelect = sessionList?.onSelect;
+  if (typeof originalSelect !== "function") return;
+  sessionList.onSelect = (sessionPath: string) => {
+    if (existsSync(sessionPath)) {
+      return originalSelect.call(sessionList, sessionPath);
+    }
+    selector.currentSessions = selector.currentSessions?.filter(
+      (session: any) => session.path !== sessionPath,
+    );
+    selector.allSessions = selector.allSessions?.filter(
+      (session: any) => session.path !== sessionPath,
+    );
+    const sessions =
+      selector.scope === "all"
+        ? (selector.allSessions ?? [])
+        : (selector.currentSessions ?? []);
+    sessionList.setSessions?.(sessions, selector.scope === "all");
+    selector.header?.setStatusMessage?.(
+      { type: "error", message: "Session no longer exists" },
+      3000,
+    );
+    state().catalog?.invalidate(dirname(sessionPath));
+    selector.requestRender?.();
+  };
+}
+
+function publishSessions(
+  selector: any,
+  scope: "current" | "all",
+  sessions: any[],
+) {
+  setIndexingStatus(selector, sessions);
+  if (scope === "current") selector.currentSessions = sessions;
+  else selector.allSessions = sessions;
+  if (selector.scope !== scope) return;
+
+  const sessionList =
+    typeof selector.getSessionList === "function"
+      ? selector.getSessionList()
+      : selector.sessionList;
+  const selectedPath =
+    sessionList?.filteredSessions?.[sessionList.selectedIndex]?.session?.path;
+  sessionList?.setSessions?.(sessions, scope === "all");
+  const selectedIndex = sessionList?.filteredSessions?.findIndex(
+    (node: any) => node.session?.path === selectedPath,
+  );
+  if (selectedIndex >= 0) sessionList.selectedIndex = selectedIndex;
+  selector.requestRender?.();
+}
+
 export function installOptimizeStartup(
   SessionSelectorComponent: any,
-  SessionManager: any,
-  sessionInfoCache: SessionInfoCache,
+  catalog: ResumeCatalog,
 ) {
+  const patchState = state();
+  patchState.catalog = catalog;
+
   const selectorProto = SessionSelectorComponent.prototype as any;
-  const syncInFlight = new Map<string, Promise<unknown>>();
-  const currentSyncKey = (cwd: string, sessionDir: string | undefined) =>
-    `current\0${cwd}\0${sessionDir ?? ""}`;
-
-  const scheduleOne = (key: string, load: () => Promise<unknown>) => {
-    if (syncInFlight.has(key)) return;
-    const promise = new Promise<void>((resolve) => {
-      setImmediate(resolve);
-    })
-      .then(load)
-      .catch(() => {})
-      .finally(() => syncInFlight.delete(key));
-    syncInFlight.set(key, promise);
-  };
-
-  scheduleSyncImpl = (scope: ResumeSessionScope) => {
-    const cwd = scope.cwd;
-    const sessionDir = scope.sessionDir;
-    if (!cwd) return;
-
-    scheduleOne(currentSyncKey(cwd, sessionDir), () =>
-      SessionManager.list(cwd, sessionDir),
-    );
-
-    if (!scope.includeAll) return;
-    if (scope.usesDefaultSessionDir || !sessionDir) {
-      scheduleOne("all\0default", () => SessionManager.listAll());
-    } else {
-      scheduleOne(`all\0${sessionDir}`, () =>
-        SessionManager.listAll(sessionDir),
-      );
-    }
-  };
-
   if (selectorProto[LOAD_PATCHED]) return;
 
   const originalLoadCurrentSessions = selectorProto.loadCurrentSessions;
-
   selectorProto.loadCurrentSessions = function (this: any) {
-    // Fast path: if we have cached SessionInfo for files in this dir,
-    // show them immediately. Refresh cache in the background for next open,
-    // but do not mutate the visible selector after it renders.
-    if (_resumeCwd) {
-      try {
-        const dir =
-          _resumeSessionDir ?? getResumeDefaultSessionDir(_resumeCwd);
-        const dirEntries: string[] = readdirSync(dir);
-        const files = dirEntries
-          .filter((f: string) => f.endsWith(".jsonl"))
-          .map((f: string) => join(dir, f));
-
-        if (files.length > 0) {
-          const cachedSessions: any[] = [];
-          let hitCount = 0;
-
-          for (const filePath of files) {
-            const cached = sessionInfoCache.get(filePath);
-            if (cached?.info) {
-              cachedSessions.push(cached.info);
-              hitCount++;
-            }
-          }
-
-          // Show cached results if we have most files cached (>50%)
-          if (hitCount > files.length / 2) {
-            cachedSessions.sort(
-              (a, b) => b.modified.getTime() - a.modified.getTime(),
-            );
-            this.currentSessions = cachedSessions;
-            this.currentLoading = false;
-            this.header?.setLoading(false);
-            this.sessionList?.setSessions(cachedSessions, false);
-
-            // Position cursor on current session
-            const sl = this.sessionList;
-            if (sl?.currentSessionCanonicalPath && sl.filteredSessions) {
-              const idx = sl.filteredSessions.findIndex((node: any) =>
-                sl.isCurrentSessionPath(node.session.path),
-              );
-              if (idx >= 0) sl.selectedIndex = idx;
-            }
-
-            this.requestRender?.();
-            scheduleResumeSessionSync({
-              cwd: _resumeCwd,
-              sessionDir: _resumeSessionDir,
-            });
-            return;
-          }
-        }
-      } catch {
-        // fall through to normal async load
-      }
+    const current = state();
+    const scope = current.scope;
+    const activeCatalog = current.catalog;
+    if (!scope || !activeCatalog) {
+      return originalLoadCurrentSessions.call(this);
     }
 
-    this.currentLoading = true;
-    this.header?.setLoading(true);
-    this.requestRender?.();
-    const pendingSync = _resumeCwd
-      ? syncInFlight.get(currentSyncKey(_resumeCwd, _resumeSessionDir))
-      : undefined;
-    if (pendingSync) {
-      void pendingSync.finally(() => originalLoadCurrentSessions.call(this));
-      return;
-    }
-    setImmediate(() => {
-      void originalLoadCurrentSessions.call(this);
-    });
+    const subscriptions = selectorSubscriptions(this);
+    const catalogLoader = (
+      catalogScope: Parameters<ResumeCatalog["open"]>[0],
+      target: "current" | "all",
+      onProgress?: (loaded: number, total: number) => void,
+    ) =>
+      activeCatalog
+        .open(
+          { ...catalogScope, subscription: subscriptions[target] },
+          (sessions) => {
+            if (state().catalog === activeCatalog) {
+              publishSessions(this, target, sessions);
+            }
+          },
+        )
+        .then((sessions) => {
+          const provisional = activeCatalog.isProvisional(sessions);
+          setIndexingStatus(this, sessions, provisional);
+          onProgress?.(provisional ? 0 : sessions.length, sessions.length);
+          return provisional ? [] : sessions;
+        });
+
+    this.currentSessionsLoader = (
+      onProgress?: (loaded: number, total: number) => void,
+    ) => catalogLoader(currentCatalogScope(scope), "current", onProgress);
+    this.allSessionsLoader = (
+      onProgress?: (loaded: number, total: number) => void,
+    ) =>
+      catalogLoader(
+        scope.usesDefaultSessionDir
+          ? {
+              sessionDir: join(getAgentDir(), "sessions"),
+              allDirectories: true,
+            }
+          : { sessionDir: scope.sessionDir },
+        "all",
+        onProgress,
+      );
+
+    const catalogScope = currentCatalogScope(scope);
+    const immediate = activeCatalog.peek(catalogScope);
+    if (!immediate) return originalLoadCurrentSessions.call(this);
+
+    this.currentSessions = immediate;
+    this.currentLoading = false;
+    this.header?.setScope?.("current");
+    this.header?.setLoading?.(false);
+    this.sessionList?.setSessions?.(immediate, false);
+    setIndexingStatus(this, immediate, false);
+    void catalogLoader(catalogScope, "current").catch(() => {});
   };
 
   selectorProto[LOAD_PATCHED] = true;

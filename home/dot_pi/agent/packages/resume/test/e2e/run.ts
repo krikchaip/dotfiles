@@ -94,6 +94,15 @@ async function waitForPane(
   return view;
 }
 
+async function captureFrames(pane: string, durationMs: number) {
+  const frames: string[] = [];
+  const deadline = performance.now() + durationMs;
+  while (performance.now() < deadline) {
+    frames.push(await capture(pane));
+  }
+  return frames;
+}
+
 async function sendText(
   pane: string,
   text: string,
@@ -296,6 +305,33 @@ async function main(): Promise<void> {
     "Collapsed preview exposed full session content.",
   );
 
+  for (let index = 0; index < 3; index++) {
+    await tmux("send-keys", "-H", "-t", pane, "1b", "72");
+    await waitUntil(
+      "Alt+R to close the picker",
+      async () =>
+        !(await capture(pane)).includes("Resume Session (Current Folder)"),
+    );
+    const framesPromise = captureFrames(pane, 300);
+    await tmux("send-keys", "-H", "-t", pane, "1b", "72");
+    const frames = await framesPromise;
+    view = await waitForPane(pane, "Resume Session (Current Folder)");
+    const selectorFrames = frames.filter((frame) =>
+      frame.includes("Resume Session (Current Folder)"),
+    );
+    const loadingFrame = selectorFrames.find(
+      (frame) => frame.includes("Loading ...") || !frame.includes("Current Session"),
+    );
+    assert(
+      !loadingFrame,
+      `Alt+R reopen ${index + 1} showed a blank loading frame\n${loadingFrame}`,
+    );
+    assert(
+      !view.includes("Indexing…"),
+      `Alt+R reopen ${index + 1} showed an indexing frame`,
+    );
+  }
+
   await sendText(pane, "Target");
   view = await waitForPane(pane, "Target Session");
   assert(
@@ -337,6 +373,19 @@ async function main(): Promise<void> {
   assert(
     readFileSync(targetSession, "utf8").includes("Target Session"),
     "Selecting the session changed its stored name.",
+  );
+
+  await tmux("send-keys", "-H", "-t", pane, "1b", "72");
+  view = await waitForPane(pane, "Resume Session (Current Folder)");
+  assert(
+    !view.includes("Indexing…"),
+    "Reopening after a session switch showed an indexing frame",
+  );
+  await tmux("send-keys", "-H", "-t", pane, "1b", "72");
+  await waitUntil(
+    "Alt+R to close after session switch",
+    async () =>
+      !(await capture(pane)).includes("Resume Session (Current Folder)"),
   );
 
   await tmux("send-keys", "-t", pane, "C-d");

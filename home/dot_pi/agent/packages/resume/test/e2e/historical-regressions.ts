@@ -216,8 +216,8 @@ async function activeRenameRefreshScenario(): Promise<void> {
   try {
     await harness.submitCommand("resume");
     await harness.sendLiteral("Rename Active Before");
-    await harness.waitFor("Rename Active Before");
-    await harness.sendKeys("M-r");
+    await harness.waitFor("> Rename Active Before");
+    await harness.sendLiteral("\u001br");
     await harness.waitFor("Rename Session");
     await harness.sendKeys("C-a", "C-k");
     await harness.sendLiteral("Rename Active After");
@@ -289,6 +289,11 @@ async function staleSessionContextScenario(): Promise<void> {
     await harness.sendKeys("C-u");
 
     await harness.submitCommand("resume");
+    const reopenedPicker = await harness.capture();
+    assert(
+      !reopenedPicker.includes("Indexing…"),
+      "Resume reindexed after switching sessions",
+    );
     await harness.waitFor("Stale Context Target");
     await closeSelector(harness);
     await harness.finish();

@@ -6,6 +6,7 @@
  */
 
 import { readFileSync, watch, type FSWatcher } from "node:fs";
+import { resolve } from "node:path";
 import {
   AssistantMessageComponent,
   BashExecutionComponent,
@@ -24,7 +25,12 @@ import { patchDeleteActiveSession } from "./delete-active-session";
 import { patchHighlightCurrentSession } from "./highlight-current-session";
 import { patchSessionTreeFirstIndent } from "./session-tree-indent";
 import {
+  getResumeDefaultSessionDir,
+  guardResumeSelection,
   installOptimizeStartup,
+  invalidateResumeSessionDir,
+  primeResumeSessionCatalog,
+  releaseResumeSelector,
   scheduleResumeSessionSync,
   setResumeSessionScope,
 } from "./optimize-startup";
@@ -32,6 +38,7 @@ import {
   applyRenameSessionRecent,
   patchRenameSelection,
 } from "./rename-session-recent";
+import { ResumeCatalog } from "./session-catalog";
 import { wrapWithSessionPreview } from "./session-preview";
 import {
   advertiseTmuxSession,
@@ -42,11 +49,6 @@ import {
 
 const RESUME_PATCHED = "__resumePreviewPatched";
 const RESUME_INPUT_ACTIVE = "__resumeInputActive";
-
-const sessionInfoCache = new Map<
-  string,
-  { mtimeMs: number; size: number; info: any }
->();
 
 interface PatchedInteractiveMode {
   showSessionSelector(): void;
@@ -60,13 +62,8 @@ function hasSessionList(selector: any) {
   );
 }
 
-function scheduleResumeWarm(sessionManager: any, includeAll = true) {
-  scheduleResumeSessionSync({
-    cwd: sessionManager?.getCwd?.(),
-    sessionDir: sessionManager?.getSessionDir?.(),
-    usesDefaultSessionDir: sessionManager?.usesDefaultSessionDir?.(),
-    includeAll,
-  });
+function scheduleResumeWarm() {
+  scheduleResumeSessionSync();
 }
 
 function watchSessionDir(sessionManager: any) {
@@ -74,20 +71,14 @@ function watchSessionDir(sessionManager: any) {
   if (!sessionDir) return undefined;
 
   let watcher: FSWatcher | undefined;
-  let pending = false;
-  const schedule = () => {
-    if (pending) return;
-    pending = true;
-    setImmediate(() => {
-      pending = false;
-      scheduleResumeWarm(sessionManager, false);
-    });
-  };
 
   try {
     watcher = watch(sessionDir, { persistent: false }, (_event, filename) => {
       if (filename && !String(filename).endsWith(".jsonl")) return;
-      schedule();
+      invalidateResumeSessionDir(
+        sessionDir,
+        filename ? String(filename) : undefined,
+      );
     });
     watcher.on("error", () => {});
   } catch {
@@ -145,18 +136,9 @@ function loadPreviewDeps() {
 }
 
 export default function (pi: ExtensionAPI) {
-  applyRenameSessionRecent(
-    SessionManager,
-    sessionInfoCache,
-    (sessionManager) => {
-      scheduleResumeWarm(sessionManager, false);
-    },
-  );
-  installOptimizeStartup(
-    SessionSelectorComponent,
-    SessionManager,
-    sessionInfoCache,
-  );
+  const catalog = new ResumeCatalog();
+  applyRenameSessionRecent(SessionManager, catalog);
+  installOptimizeStartup(SessionSelectorComponent, catalog);
 
   const tmuxSplitAvailable = isTmuxResumeSplitAvailable();
   let stopWatchingSessionDir: (() => void) | undefined;
@@ -164,17 +146,22 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     activeSessionManager = ctx.sessionManager;
+    const cwd = ctx.sessionManager.getCwd();
+    const sessionDir = ctx.sessionManager.getSessionDir();
+    setResumeSessionScope(
+      cwd,
+      sessionDir,
+      resolve(sessionDir) === resolve(getResumeDefaultSessionDir(cwd)),
+    );
     if (tmuxSplitAvailable && ctx.mode === "tui") {
       advertiseTmuxSession(ctx.sessionManager.getSessionFile());
     }
     const warm = () => {
-      if (activeSessionManager) {
-        scheduleResumeWarm(activeSessionManager, false);
-      }
+      if (activeSessionManager) scheduleResumeWarm();
     };
     stopWatchingSessionDir?.();
     stopWatchingSessionDir = watchSessionDir(activeSessionManager);
-    warm();
+    primeResumeSessionCatalog();
     ctx.ui.addAutocompleteProvider((current: any) => ({
       triggerCharacters: [
         ...new Set([...(current.triggerCharacters ?? []), "/"]),
@@ -218,8 +205,8 @@ export default function (pi: ExtensionAPI) {
     }));
   });
 
-  pi.on("agent_end", (_event, ctx) => {
-    scheduleResumeWarm(ctx.sessionManager, false);
+  pi.on("agent_end", () => {
+    scheduleResumeWarm();
   });
 
   pi.on("session_shutdown", () => {
@@ -227,6 +214,8 @@ export default function (pi: ExtensionAPI) {
     stopWatchingSessionDir?.();
     stopWatchingSessionDir = undefined;
     activeSessionManager = undefined;
+    setResumeSessionScope(undefined, undefined);
+    void catalog.close();
   });
 
   const previewDeps = loadPreviewDeps();
@@ -252,6 +241,7 @@ export default function (pi: ExtensionAPI) {
       setResumeSessionScope(
         this.sessionManager?.getCwd?.(),
         this.sessionManager?.getSessionDir?.(),
+        this.sessionManager?.usesDefaultSessionDir?.(),
       );
 
       const originalShowSelector = this.showSelector;
@@ -262,17 +252,19 @@ export default function (pi: ExtensionAPI) {
       ) {
         return originalShowSelector.call(this, (done: any) => {
           let restoreResumeLayout: (() => void) | undefined;
+          let selector: any;
           const doneWithSync = () => {
             try {
               restoreResumeLayout?.();
               done();
             } finally {
+              releaseResumeSelector(selector);
               this[RESUME_INPUT_ACTIVE] = false;
-              scheduleResumeWarm(this.sessionManager, false);
+              scheduleResumeWarm();
             }
           };
           const result = factory(doneWithSync);
-          const selector = result.component;
+          selector = result.component;
 
           if (!hasSessionList(selector)) return result;
 
@@ -280,6 +272,7 @@ export default function (pi: ExtensionAPI) {
           try {
             patchHighlightCurrentSession(selector, this, doneWithSync);
             patchSessionTreeFirstIndent(selector);
+            guardResumeSelection(selector);
             patchRenameSelection(selector, this);
             patchDeleteActiveSession(selector, this);
             if (tmuxSplitAvailable) {
@@ -308,7 +301,6 @@ export default function (pi: ExtensionAPI) {
       try {
         return originalShow.call(this);
       } finally {
-        setResumeSessionScope(undefined, undefined);
         if (Object.prototype.hasOwnProperty.call(this, "showSelector")) {
           delete (this as any).showSelector;
         }
