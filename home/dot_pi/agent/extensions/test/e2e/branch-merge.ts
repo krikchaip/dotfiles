@@ -742,6 +742,73 @@ try {
     await samePaneHarness.abort().catch(() => undefined);
   }
 
+  for (const [name, command] of [
+    ["plain", "/branch"],
+    ["prompt", "/branch BLOCKED_BRANCH_PROMPT"],
+  ] as const) {
+    const streamingSamePanePair = createPair(`streamsame-${name}`, {
+      parent: false,
+    });
+    const streamingSamePaneToolActive = join(
+      runDirectory,
+      `streaming-same-pane-${name}-tool-active`,
+    );
+    const streamingSamePaneHarness = await PiTuiHarness.start({
+      name: `branch-streaming-same-pane-${name}`,
+      root,
+      runDirectory,
+      persistSession: true,
+      cliArguments: [
+        "--session-dir",
+        sessions,
+        "--session",
+        streamingSamePanePair.source,
+      ],
+      model: "branch-merge-e2e/fake",
+      extensions: [
+        "extensions/branch-merge.ts",
+        "extensions/test/e2e/fixture/branch-merge-provider.ts",
+      ],
+      environment: {
+        PI_E2E_BRANCH_MERGE_TOOL_ACTIVE: streamingSamePaneToolActive,
+      },
+    });
+    try {
+      await streamingSamePaneHarness.submit("STREAMING_SAME_PANE_USER");
+      await streamingSamePaneHarness.waitUntil(
+        `${name} same-pane active tool call`,
+        () => existsSync(streamingSamePaneToolActive),
+        8_000,
+      );
+      await submitCommand(streamingSamePaneHarness, command);
+      await streamingSamePaneHarness.waitFor(
+        "Branch while streaming requires --sp, --vsp, or --win",
+        8_000,
+      );
+      const branchFiles = [...new Bun.Glob("*.jsonl").scanSync(sessions)]
+        .map((entry) => join(sessions, entry))
+        .filter((path) => {
+          if (path === streamingSamePanePair.source) return false;
+          const [header] = readFileSync(path, "utf8").trim().split("\n");
+          return header
+            ? JSON.parse(header).parentSession === streamingSamePanePair.source
+            : false;
+        });
+      streamingSamePaneHarness.assert(
+        branchFiles.length === 0,
+        `${command} created a child session while a tool was active`,
+      );
+      const pane = await streamingSamePaneHarness.capture();
+      streamingSamePaneHarness.assert(
+        pane.includes("Working"),
+        `${command} aborted the source response`,
+      );
+      await streamingSamePaneHarness.finish();
+    } finally {
+      await streamingSamePaneHarness.abort().catch(() => undefined);
+    }
+  }
+
   const streamingPair = createPair("streambr", { parent: false });
   const streamingCapture = join(
     runDirectory,

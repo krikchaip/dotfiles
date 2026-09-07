@@ -1,10 +1,15 @@
 import { appendFileSync, existsSync, writeFileSync } from "node:fs";
-import { fauxAssistantMessage } from "@earendil-works/pi-ai";
+import {
+  Type,
+  fauxAssistantMessage,
+  fauxToolCall,
+} from "@earendil-works/pi-ai";
 import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const PROVIDER = "branch-merge-e2e";
-const SUMMARY = "## Goal\nMerged exact goal\n\n## Constraints & Preferences\nKeep baseline\n\n## Progress\n- Done: delta\n\n## Key Decisions\n- Preserve provenance\n\n## Next Steps\n1. Continue\n\n## Critical Context\nBASELINE_COMPACTION and NEW_DELTA";
+const SUMMARY =
+  "## Goal\nMerged exact goal\n\n## Constraints & Preferences\nKeep baseline\n\n## Progress\n- Done: delta\n\n## Key Decisions\n- Preserve provenance\n\n## Next Steps\n1. Continue\n\n## Critical Context\nBASELINE_COMPACTION and NEW_DELTA";
 
 export default function branchMergeProvider(pi: ExtensionAPI): void {
   const delay = Number(process.env.PI_E2E_BRANCH_MERGE_DELAY ?? "0");
@@ -35,28 +40,58 @@ export default function branchMergeProvider(pi: ExtensionAPI): void {
       );
     }
 
+    if (callCount === 1 && process.env.PI_E2E_BRANCH_MERGE_TOOL_ACTIVE) {
+      return fauxAssistantMessage(fauxToolCall("branch_merge_wait", {}), {
+        stopReason: "toolUse",
+      });
+    }
     if (callCount === 2) {
       if (process.env.PI_E2E_BRANCH_MERGE_FAIL_LABEL === "1") {
         throw new Error("E2E label generation failure");
       }
       return fauxAssistantMessage("Generated Feature Label");
     }
-    return fauxAssistantMessage(delay > 0 ? `${SUMMARY}\n${"slow ".repeat(100)}` : SUMMARY);
+    return fauxAssistantMessage(
+      delay > 0 ? `${SUMMARY}\n${"slow ".repeat(100)}` : SUMMARY,
+    );
   };
   faux.setResponses([response, response]);
+  pi.registerTool({
+    name: "branch_merge_wait",
+    label: "Branch merge wait",
+    description: "Waits until the E2E harness aborts the active tool call.",
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, signal) {
+      const activePath = process.env.PI_E2E_BRANCH_MERGE_TOOL_ACTIVE;
+      if (activePath) writeFileSync(activePath, "active\n");
+      await new Promise<void>((resolve) => {
+        if (signal.aborted) {
+          resolve();
+          return;
+        }
+        signal.addEventListener("abort", () => resolve(), { once: true });
+      });
+      return {
+        content: [{ type: "text" as const, text: "Tool call aborted" }],
+        details: undefined,
+      };
+    },
+  });
   pi.registerProvider(PROVIDER, {
     name: "Branch Merge E2E",
     baseUrl: `faux://${PROVIDER}`,
     apiKey: "test",
     api: faux.api,
-    models: [{
-      id: "fake",
-      name: "Fake",
-      reasoning: false,
-      input: ["text"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 16_384,
-      maxTokens: 2_048,
-    }],
+    models: [
+      {
+        id: "fake",
+        name: "Fake",
+        reasoning: false,
+        input: ["text"],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 16_384,
+        maxTokens: 2_048,
+      },
+    ],
   });
 }
