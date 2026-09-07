@@ -181,10 +181,10 @@ function publishSessions(
   sessions: any[],
 ) {
   sessions = withActiveSession(sessions);
-  clearIndexingStatus(selector);
   if (scope === "current") selector.currentSessions = sessions;
   else selector.allSessions = sessions;
   if (selector.scope !== scope) return;
+  clearIndexingStatus(selector);
 
   const sessionList =
     typeof selector.getSessionList === "function"
@@ -224,9 +224,18 @@ export function installOptimizeStartup(
       catalogScope: Parameters<ResumeCatalog["open"]>[0],
       target: "current" | "all",
       onProgress?: (loaded: number, total: number) => void,
-    ) =>
-      activeCatalog
-        .open(
+      requireExact = false,
+    ) => {
+      const finish = (sessions: any[]) => {
+        const visibleSessions = withActiveSession(sessions);
+        if (this.scope === target) clearIndexingStatus(this);
+        onProgress?.(visibleSessions.length, visibleSessions.length);
+        return visibleSessions;
+      };
+      const open = requireExact ? activeCatalog.openExact : activeCatalog.open;
+      return open
+        .call(
+          activeCatalog,
           { ...catalogScope, subscription: subscriptions[target] },
           (sessions) => {
             if (state().catalog === activeCatalog) {
@@ -236,18 +245,24 @@ export function installOptimizeStartup(
         )
         .then((sessions) => {
           const provisional = activeCatalog.isProvisional(sessions);
-          const visibleSessions = withActiveSession(sessions);
-          clearIndexingStatus(this);
+          const visibleSessions = finish(sessions);
           if (provisional && state().catalog === activeCatalog) {
             publishSessions(this, target, sessions);
           }
-          onProgress?.(visibleSessions.length, visibleSessions.length);
           return visibleSessions;
         });
+    };
 
+    let requireInitialExact = false;
     this.currentSessionsLoader = (
       onProgress?: (loaded: number, total: number) => void,
-    ) => catalogLoader(currentCatalogScope(scope), "current", onProgress);
+    ) =>
+      catalogLoader(
+        currentCatalogScope(scope),
+        "current",
+        onProgress,
+        requireInitialExact,
+      );
     this.allSessionsLoader = (
       onProgress?: (loaded: number, total: number) => void,
     ) =>
@@ -260,16 +275,49 @@ export function installOptimizeStartup(
           : { sessionDir: scope.sessionDir },
         "all",
         onProgress,
+        requireInitialExact,
       );
 
     const catalogScope = currentCatalogScope(scope);
-    activeCatalog.beginInteractiveRead(subscriptions.current);
     const cached = activeCatalog.peek(catalogScope);
-    const immediate = withActiveSession(cached ?? []);
-    if (immediate.length === 0) {
-      return originalLoadCurrentSessions.call(this);
+    requireInitialExact = !activeCatalog.hasPersistedCatalog(catalogScope);
+    if (requireInitialExact) {
+      this.currentSessions = [];
+      this.currentLoading = false;
+      this.header?.setScope?.("current");
+      this.header?.setLoading?.(false);
+      this.header?.setStatusMessage?.({
+        type: "info",
+        message: INDEXING_MESSAGE,
+      });
+      this.sessionList?.setSessions?.([], false);
+      void catalogLoader(
+        catalogScope,
+        "current",
+        undefined,
+        requireInitialExact,
+      )
+        .then((sessions) => {
+          if (state().catalog === activeCatalog) {
+            publishSessions(this, "current", sessions);
+          }
+        })
+        .catch((error) => {
+          if (state().catalog !== activeCatalog || this.scope !== "current") {
+            return;
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          this.header?.setStatusMessage?.({
+            type: "error",
+            message: `Failed to load sessions: ${message}`,
+          });
+          this.requestRender?.();
+        });
+      return;
     }
 
+    activeCatalog.beginInteractiveRead(subscriptions.current);
+    const immediate = withActiveSession(cached ?? []);
     this.currentSessions = immediate;
     this.currentLoading = false;
     this.header?.setScope?.("current");

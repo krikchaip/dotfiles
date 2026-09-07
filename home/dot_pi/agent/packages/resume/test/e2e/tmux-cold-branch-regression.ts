@@ -138,18 +138,36 @@ try {
     return view.includes("Resume Session (Current Folder)");
   });
 
+  const picker = view.slice(view.lastIndexOf("Resume Session (Current Folder)"));
+  const [pickerBody = picker] = picker.split(/\n─{20,}/);
   assert(
-    view.includes("Cold Persisted Target"),
-    `Cold branch showed only its active session.\n${view}`,
+    view.includes("Indexing full session history…"),
+    `Cold branch did not show the indexing message.\n${view}`,
   );
   assert(
-    !view.includes("Indexing full session history…"),
-    `Cold branch showed the indexing message.\n${view}`,
+    !pickerBody.includes("Cold Current") &&
+      !pickerBody.includes("Cold Persisted Target"),
+    `Cold branch showed session rows while indexing.\n${view}`,
   );
 
-  console.log(
-    "PASS cold /branch --sp child shows existing sessions without indexing status",
+  await tmux("send-keys", "-t", childPane, "Tab");
+  await harness.waitUntil("cold branch All scope", async () => {
+    view = await capture(childPane);
+    return view.includes("Resume Session (All)");
+  }, 2_000);
+  const allPicker = view.slice(view.lastIndexOf("Resume Session (All)"));
+  const [allPickerBody = allPicker] = allPicker.split(/\n─{20,}/);
+  assert(
+    view.includes("Indexing full session history…"),
+    `Cold All scope cleared the indexing message.\n${view}`,
   );
+  assert(
+    !allPickerBody.includes("Cold Current") &&
+      !allPickerBody.includes("Cold Persisted Target"),
+    `Cold All scope showed session rows while indexing.\n${view}`,
+  );
+
+  console.log("PASS cold /branch --sp keeps both scopes empty while indexing");
 } finally {
   await harness?.abort().catch(() => undefined);
   await cleanupRun(runDirectory);

@@ -580,6 +580,7 @@ export class ResumeCatalog {
     string,
     {
       manifest: CatalogManifest;
+      persisted: boolean;
       provisional: boolean;
       needsFullRepair: boolean;
     }
@@ -594,6 +595,11 @@ export class ResumeCatalog {
 
   isProvisional(sessions: any[]) {
     return this.#provisionalResults.has(sessions);
+  }
+
+  hasPersistedCatalog(scope: ResumeCatalogScope) {
+    if (this.#closed || scope.allDirectories) return false;
+    return this.#snapshots.get(resolve(scope.sessionDir))?.persisted ?? false;
   }
 
   beginInteractiveRead(reader: object) {
@@ -615,11 +621,25 @@ export class ResumeCatalog {
       const persisted = this.#readManifest(directory);
       snapshot = {
         manifest: persisted ?? this.#bootstrap(directory),
+        persisted: Boolean(persisted),
         provisional: !persisted,
         needsFullRepair: !persisted,
       };
       this.#snapshots.set(directory, snapshot);
       this.#scheduleRepair(directory);
+    } else if (!snapshot.persisted) {
+      const persisted = this.#readManifest(directory);
+      if (persisted) {
+        snapshot = {
+          manifest: persisted,
+          persisted: true,
+          provisional: false,
+          needsFullRepair: false,
+        };
+        this.#failedPrimes.delete(directory);
+        this.#snapshots.set(directory, snapshot);
+        this.#scheduleRepair(directory);
+      }
     }
     return this.#sessions(
       snapshot.manifest,
@@ -652,6 +672,7 @@ export class ResumeCatalog {
       this.#failedPrimes.delete(directory);
       this.#snapshots.set(directory, {
         manifest: persisted,
+        persisted: true,
         provisional: false,
         needsFullRepair: false,
       });
@@ -667,6 +688,7 @@ export class ResumeCatalog {
     if (this.#closed) return;
     this.#snapshots.set(directory, {
       manifest: provisional,
+      persisted: false,
       provisional: true,
       needsFullRepair: true,
     });
@@ -701,6 +723,25 @@ export class ResumeCatalog {
     return this.#sessions(snapshot.manifest, scope.cwd, snapshot.provisional);
   }
 
+  async openExact(
+    scope: ResumeCatalogScope,
+    onUpdate?: (sessions: any[]) => void,
+  ): Promise<any[]> {
+    if (this.#closed) return [];
+    if (scope.allDirectories) return this.#openAll(scope, onUpdate, true);
+    const initial = await this.open(scope, onUpdate);
+    if (!this.isProvisional(initial)) return initial;
+    const directory = resolve(scope.sessionDir);
+    const reconciliation =
+      this.#reconciles.get(directory)?.promise ??
+      this.#requestReconcile(directory);
+    await reconciliation;
+    const snapshot = this.#snapshots.get(directory);
+    return snapshot
+      ? this.#sessions(snapshot.manifest, scope.cwd, snapshot.provisional)
+      : [];
+  }
+
   unsubscribe(subscription: object) {
     for (const listeners of this.#listeners.values()) {
       listeners.delete(subscription);
@@ -710,6 +751,7 @@ export class ResumeCatalog {
   async #openAll(
     scope: ResumeCatalogScope,
     onUpdate?: (sessions: any[]) => void,
+    exact = false,
   ): Promise<any[]> {
     const root = resolve(scope.sessionDir);
     let directories: string[] = [];
@@ -760,7 +802,8 @@ export class ResumeCatalog {
       onUpdate(combine());
     };
     await mapLimit(directories, 10, async (directory) => {
-      const sessions = await this.open(
+      const sessions = await (exact ? this.openExact : this.open).call(
+        this,
         { sessionDir: directory, subscription: scope.subscription },
         onUpdate
           ? (updated) => {
@@ -940,6 +983,7 @@ export class ResumeCatalog {
           this.#failedPrimes.delete(directory);
           this.#snapshots.set(directory, {
             manifest: result.manifest,
+            persisted: true,
             provisional: false,
             needsFullRepair: false,
           });
@@ -1092,13 +1136,17 @@ export class ResumeCatalog {
       const parsed = JSON.parse(
         readFileSync(this.#manifestPath(directory), "utf8"),
       );
-      return parsed?.version === CATALOG_VERSION &&
-        parsed.directory === directory &&
-        typeof parsed.searchGeneration === "string" &&
-        isCatalogRecords(parsed.records) &&
-        existsSync(this.#searchPath(directory, parsed.searchGeneration))
-        ? (parsed as CatalogManifest)
-        : undefined;
+      if (
+        parsed?.version !== CATALOG_VERSION ||
+        parsed.directory !== directory ||
+        typeof parsed.searchGeneration !== "string" ||
+        !isCatalogRecords(parsed.records) ||
+        !existsSync(this.#searchPath(directory, parsed.searchGeneration))
+      ) {
+        return undefined;
+      }
+      const manifest = parsed as CatalogManifest;
+      return this.#readSearch(manifest) ? manifest : undefined;
     } catch {
       return undefined;
     }

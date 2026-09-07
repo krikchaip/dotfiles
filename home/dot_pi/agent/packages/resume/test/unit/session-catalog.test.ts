@@ -5,6 +5,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -13,7 +14,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { ResumeCatalog } from "../../session-catalog.ts";
 
 const temporaryDirectories: string[] = [];
@@ -332,6 +333,8 @@ describe("ResumeCatalog", () => {
     const second = new ResumeCatalog({
       cacheDirectory: fixture.cacheDirectory,
     });
+    second.peek(scope);
+    expect(second.hasPersistedCatalog(scope)).toBe(false);
     const sessions = await openExact(second, scope);
     expect(sessions.map((session) => session.allMessagesText).sort()).toEqual([
       "CATALOG BODY",
@@ -441,6 +444,57 @@ describe("ResumeCatalog", () => {
     expect(second.isProvisional(reopened)).toBe(false);
     expect(reopened).toHaveLength(1);
     await second.close();
+  });
+
+  test("exact indexing completes for a missing session directory", async () => {
+    const fixture = makeFixture();
+    const missing = join(dirname(fixture.sessionDir), "missing-sessions");
+    const catalog = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    const reader = {};
+    catalog.beginInteractiveRead(reader);
+
+    const sessions = await catalog.openExact({ sessionDir: missing });
+
+    expect(sessions).toEqual([]);
+    expect(catalog.hasPersistedCatalog({ sessionDir: missing })).toBe(true);
+    catalog.endInteractiveRead(reader);
+    await catalog.close();
+  });
+
+  test("a cold process adopts a cache that appears before the picker opens", async () => {
+    const fixture = makeFixture();
+    const scope = { sessionDir: fixture.sessionDir };
+    const writer = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    await openExact(writer, scope);
+    await writer.close();
+
+    const savedCache = `${fixture.cacheDirectory}-saved`;
+    renameSync(fixture.cacheDirectory, savedCache);
+    mkdirSync(fixture.cacheDirectory, { recursive: true });
+    const catalog = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    const reader = {};
+    catalog.beginInteractiveRead(reader);
+    const cold = catalog.peek(scope);
+    expect(catalog.hasPersistedCatalog(scope)).toBe(false);
+    expect(catalog.isProvisional(cold!)).toBe(true);
+
+    rmSync(fixture.cacheDirectory, { recursive: true, force: true });
+    renameSync(savedCache, fixture.cacheDirectory);
+    const adopted = catalog.peek(scope);
+
+    expect(catalog.hasPersistedCatalog(scope)).toBe(true);
+    expect(catalog.isProvisional(adopted!)).toBe(false);
+    expect(adopted?.map((session) => session.id)).toEqual([
+      "10000000-0000-7000-8000-000000000001",
+    ]);
+    catalog.endInteractiveRead(reader);
+    await catalog.close();
   });
 
   test("a no-op watcher event does not make the catalog provisional", async () => {

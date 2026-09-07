@@ -5,6 +5,10 @@ await runFiles(import.meta.dir, [
   "tmux-actions.ts",
   "tmux-prime-regression.ts",
   "tmux-cold-branch-regression.ts",
+  "tmux-warm-cache-adoption.ts",
+  "cold-indexing-lifecycle.ts",
+  "cold-all-directories.ts",
+  "partial-cache.ts",
   "general.ts",
   "historical-regressions.ts",
 ]);

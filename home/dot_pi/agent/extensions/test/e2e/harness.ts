@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -54,6 +55,56 @@ async function execute(
     );
   }
   return stdout;
+}
+
+async function terminateTestPaneProcesses(
+  socket: string,
+  runDirectory: string,
+): Promise<void> {
+  const roots = (
+    await execute(
+      ["tmux", "-S", socket, "list-panes", "-a", "-F", "#{pane_pid}"],
+      true,
+    )
+  )
+    .trim()
+    .split("\n")
+    .map(Number)
+    .filter(Number.isFinite);
+  if (roots.length === 0) return;
+
+  const table = await execute(["ps", "-axo", "pid=,ppid="], true);
+  const children = new Map<number, number[]>();
+  for (const line of table.trim().split("\n")) {
+    const [pid, parent] = line.trim().split(/\s+/).map(Number);
+    if (!Number.isFinite(pid) || !Number.isFinite(parent)) continue;
+    const siblings = children.get(parent) ?? [];
+    siblings.push(pid);
+    children.set(parent, siblings);
+  }
+  const descendants: number[] = [];
+  const visit = (pid: number) => {
+    for (const child of children.get(pid) ?? []) visit(child);
+    descendants.push(pid);
+  };
+  for (const root of roots) visit(root);
+
+  const testRoot = realpathSync(runDirectory);
+  for (const pid of new Set(descendants)) {
+    if (pid === process.pid) continue;
+    const cwdOutput = await execute(
+      ["lsof", "-a", "-p", String(pid), "-d", "cwd", "-Fn"],
+      true,
+    );
+    const cwd = cwdOutput
+      .split("\n")
+      .find((line) => line.startsWith("n"))
+      ?.slice(1);
+    if (cwd !== testRoot && !cwd?.startsWith(`${testRoot}/`)) continue;
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {}
+  }
 }
 
 export interface HarnessOptions {
@@ -175,6 +226,11 @@ export class PiTuiHarness {
 
     const paneId = (
       await execute([
+        "env",
+        "-u",
+        "TMUX",
+        "-u",
+        "TMUX_PANE",
         "tmux",
         "-S",
         socket,
@@ -363,6 +419,7 @@ export class PiTuiHarness {
   }
 
   async abort(): Promise<void> {
+    await terminateTestPaneProcesses(this.#socket, this.options.runDirectory);
     await execute(["tmux", "-S", this.#socket, "kill-server"], true);
   }
 }
@@ -378,10 +435,9 @@ export function makeRunDirectory(root: string): string {
 export async function cleanupRun(runDirectory: string): Promise<void> {
   for (const entry of readdirSync(runDirectory)) {
     if (!entry.endsWith(".tmux.sock")) continue;
-    await execute(
-      ["tmux", "-S", join(runDirectory, entry), "kill-server"],
-      true,
-    );
+    const socket = join(runDirectory, entry);
+    await terminateTestPaneProcesses(socket, runDirectory);
+    await execute(["tmux", "-S", socket, "kill-server"], true);
   }
   if (process.env.PI_E2E_KEEP !== "1")
     rmSync(runDirectory, { force: true, recursive: true });
