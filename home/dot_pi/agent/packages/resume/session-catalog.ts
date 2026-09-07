@@ -20,7 +20,7 @@ import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
-const CATALOG_VERSION = 1;
+const CATALOG_VERSION = 3;
 const BOUNDARY_HASH_BYTES = 4096;
 const HISTORY_HASH_BYTES = 1024;
 const HISTORY_HASH_SAMPLES = 16;
@@ -78,6 +78,7 @@ interface ReducedSession {
   latestSessionInfoTime?: number;
   lastActivityTime?: number;
   messageCount: number;
+  hasDisplayableEntry: boolean;
   firstMessage: string;
   allMessagesText?: string;
 }
@@ -178,6 +179,7 @@ function isCatalogRecord(value: unknown): value is CatalogRecord {
         typeof session.messageCount === "number" &&
         Number.isFinite(session.messageCount) &&
         session.messageCount >= 0 &&
+        typeof session.hasDisplayableEntry === "boolean" &&
         typeof session.firstMessage === "string" &&
         isOptionalString(session.name) &&
         isOptionalString(session.parentSessionPath) &&
@@ -221,6 +223,15 @@ function extractTextContent(message: any): string {
     .join(" ");
 }
 
+export function isDisplayableSessionEntry(entry: any) {
+  return (
+    entry &&
+    entry.type !== "model_change" &&
+    entry.type !== "thinking_level_change" &&
+    !(entry.type === "custom_message" && entry.display === false)
+  );
+}
+
 function reduceEntry(
   reduced: ReducedSession | undefined,
   entry: any,
@@ -236,11 +247,15 @@ function reduceEntry(
           : undefined,
       created: entry.timestamp,
       messageCount: 0,
+      hasDisplayableEntry: false,
       firstMessage: "",
       allMessagesText: "",
     };
   }
 
+  if (isDisplayableSessionEntry(entry)) {
+    reduced.hasDisplayableEntry = true;
+  }
   if (entry?.type === "session_info") {
     reduced.name = entry.name?.trim() || undefined;
     const timestamp = Date.parse(entry.timestamp);
@@ -530,7 +545,7 @@ function toSessionInfo(
   loadSearchText?: () => string,
 ) {
   const session = record.session;
-  if (!session) return undefined;
+  if (!session?.hasDisplayableEntry) return undefined;
   const headerTime = Date.parse(session.created);
   const baseModified =
     session.lastActivityTime ??

@@ -20,18 +20,22 @@ export function patchHighlightCurrentSession(
   const sessionList = getSessionList(selector);
   if (!sessionList) return;
 
-  const selectCurrent = (list: any) => {
+  const selectInitial = (list: any) => {
     if (list.searchInput.getValue()) return false;
     const idx = list.filteredSessions.findIndex((entry: any) =>
       list.isCurrentSessionPath?.(entry.session.path),
     );
-    if (idx === -1) return false;
-    list.selectedIndex = idx;
+    if (idx >= 0) {
+      list.selectedIndex = idx;
+      return true;
+    }
+    if (list.filteredSessions.length === 0) return false;
+    list.selectedIndex = 0;
     return true;
   };
 
   const originalSetSessions = sessionList.setSessions;
-  let hasInitialSelected = selectCurrent(sessionList);
+  let hasInitialSelected = selectInitial(sessionList);
 
   sessionList.setSessions = function (
     this: any,
@@ -40,7 +44,7 @@ export function patchHighlightCurrentSession(
   ) {
     originalSetSessions.call(this, sessions, showCwd);
 
-    if (!hasInitialSelected) hasInitialSelected = selectCurrent(this);
+    if (!hasInitialSelected) hasInitialSelected = selectInitial(this);
   };
 
   const originalFilterSessions = sessionList.filterSessions;

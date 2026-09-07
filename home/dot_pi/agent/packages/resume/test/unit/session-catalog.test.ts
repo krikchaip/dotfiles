@@ -225,6 +225,100 @@ describe("ResumeCatalog", () => {
     await catalog.close();
   });
 
+  test("hides setup-only sessions but keeps named metadata-only sessions", async () => {
+    const fixture = makeFixture();
+    writeFileSync(
+      fixture.sessionPath,
+      `${JSON.stringify({
+        type: "session",
+        version: 3,
+        id: "10000000-0000-7000-8000-000000000010",
+        timestamp: "2026-01-01T00:00:01.000Z",
+        cwd: fixture.cwd,
+      })}\n${JSON.stringify({
+        type: "model_change",
+        id: "setup-model",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:02.000Z",
+        provider: "google",
+        modelId: "test-model",
+      })}\n${JSON.stringify({
+        type: "thinking_level_change",
+        id: "setup-thinking",
+        parentId: "setup-model",
+        timestamp: "2026-01-01T00:00:03.000Z",
+        thinkingLevel: "high",
+      })}\n${JSON.stringify({
+        type: "custom_message",
+        customType: "hidden-startup-rules",
+        content: "Injected startup rules",
+        display: false,
+        id: "setup-rules",
+        parentId: "setup-thinking",
+        timestamp: "2026-01-01T00:00:04.000Z",
+      })}\n`,
+    );
+    writeFileSync(
+      join(fixture.sessionDir, "metadata.jsonl"),
+      `${JSON.stringify({
+        type: "session",
+        version: 3,
+        id: "10000000-0000-7000-8000-000000000011",
+        timestamp: "2026-01-01T00:00:02.000Z",
+        cwd: fixture.cwd,
+      })}\n${JSON.stringify({
+        type: "session_info",
+        id: "metadata-name",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:03.000Z",
+        name: "Metadata only",
+      })}\n`,
+    );
+
+    const catalog = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    const scope = { cwd: fixture.cwd, sessionDir: fixture.sessionDir };
+
+    expect(catalog.peek(scope)?.map((session) => session.name)).toEqual([
+      "Metadata only",
+    ]);
+    expect(
+      (await openExact(catalog, scope)).map((session) => session.name),
+    ).toEqual(["Metadata only"]);
+    await catalog.close();
+  });
+
+  test("hides a session whose only content is a hidden custom message", async () => {
+    const fixture = makeFixture();
+    writeFileSync(
+      fixture.sessionPath,
+      `${JSON.stringify({
+        type: "session",
+        version: 3,
+        id: "10000000-0000-7000-8000-000000000012",
+        timestamp: "2026-01-01T00:00:01.000Z",
+        cwd: fixture.cwd,
+      })}\n${JSON.stringify({
+        type: "custom_message",
+        customType: "hidden-startup-rules",
+        content: "Injected startup rules",
+        display: false,
+        id: "setup-rules",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:02.000Z",
+      })}\n`,
+    );
+    const catalog = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    const scope = { cwd: fixture.cwd, sessionDir: fixture.sessionDir };
+
+    expect(catalog.peek(scope)).toEqual([]);
+    expect(await openExact(catalog, scope)).toEqual([]);
+    await catalog.close();
+  });
+
   test("a persisted catalog validates before returning exact rows", async () => {
     const fixture = makeFixture();
     const scope = { cwd: fixture.cwd, sessionDir: fixture.sessionDir };
@@ -407,7 +501,7 @@ describe("ResumeCatalog", () => {
     await second.close();
   });
 
-  test("exact parsing includes a valid final record without a newline", async () => {
+  test("exact parsing hides a header-only final record without a newline", async () => {
     const fixture = makeFixture();
     writeFileSync(
       fixture.sessionPath,
@@ -425,8 +519,7 @@ describe("ResumeCatalog", () => {
     const sessions = await openExact(catalog, {
       sessionDir: fixture.sessionDir,
     });
-    expect(sessions).toHaveLength(1);
-    expect(sessions[0]?.id).toBe("10000000-0000-7000-8000-000000000001");
+    expect(sessions).toEqual([]);
     await catalog.close();
   });
 

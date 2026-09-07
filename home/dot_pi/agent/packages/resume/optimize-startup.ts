@@ -3,7 +3,10 @@
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
-import type { ResumeCatalog } from "./session-catalog";
+import {
+  isDisplayableSessionEntry,
+  type ResumeCatalog,
+} from "./session-catalog";
 
 const LOAD_PATCHED = Symbol.for("resume:catalog-selector-loader");
 const PATCH_STATE = Symbol.for("resume:catalog-patch-state");
@@ -51,13 +54,20 @@ function activeSessionInfo(existing?: any): any | undefined {
   const header = manager?.getHeader?.();
   if (!path || !header || typeof header.id !== "string") return undefined;
 
+  const sessionName = manager.getSessionName?.() ?? existing?.name;
+  const leaf = manager.getLeafEntry?.();
+  const hasDisplayableEntry = Boolean(
+    existing || sessionName || isDisplayableSessionEntry(leaf),
+  );
+  if (!hasDisplayableEntry) return undefined;
+
   const createdTime =
     parsedTime(header.timestamp) ??
     existing?.created?.getTime?.() ??
     Date.now();
   const modifiedTime = Math.max(
     createdTime,
-    parsedTime(manager.getLeafEntry?.()?.timestamp) ?? 0,
+    parsedTime(leaf?.timestamp) ?? 0,
     existing?.modified?.getTime?.() ?? 0,
   );
 
@@ -66,7 +76,7 @@ function activeSessionInfo(existing?: any): any | undefined {
     id: header.id,
     cwd:
       typeof header.cwd === "string" ? header.cwd : (manager.getCwd?.() ?? ""),
-    name: manager.getSessionName?.() ?? existing?.name,
+    name: sessionName,
     parentSessionPath: header.parentSession,
     created: new Date(createdTime),
     modified: new Date(modifiedTime),

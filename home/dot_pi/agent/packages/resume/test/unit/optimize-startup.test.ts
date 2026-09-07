@@ -102,7 +102,7 @@ describe("resume selector cold startup", () => {
     resolveExact(exact);
     await Bun.sleep(0);
     expect(selector.sessionList.sessions.map((session) => session.path)).toEqual(
-      ["/tmp/sessions/active.jsonl", "/tmp/sessions/existing.jsonl"],
+      ["/tmp/sessions/existing.jsonl"],
     );
     expect(selector.indexingStatus).toBeNull();
   });
@@ -201,7 +201,7 @@ describe("resume selector cold startup", () => {
     await Bun.sleep(0);
 
     expect(selector.sessionList.sessions.map((session) => session.path)).toEqual(
-      ["/tmp/sessions/active.jsonl", "/tmp/sessions/existing.jsonl"],
+      ["/tmp/sessions/existing.jsonl"],
     );
     expect(selector.indexingStatus).toBeUndefined();
     expect(interactiveReads).toBe(1);

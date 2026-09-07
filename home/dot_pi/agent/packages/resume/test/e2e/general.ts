@@ -93,7 +93,16 @@ async function mutationScenario(): Promise<void> {
       "active session deletion",
       () => !existsSync(current),
     );
-    await harness.waitFor("New session started");
+    await harness.waitUntil(
+      "preserved no-match picker after active deletion",
+      async () => {
+        const view = await harness.capture();
+        return (
+          /^> Current Mutable\s*$/m.test(view) &&
+          view.includes("No sessions in current folder")
+        );
+      },
+    );
     assert(existsSync(target), "Active deletion removed an unrelated session");
     const remaining = [...new Bun.Glob("*.jsonl").scanSync(sessions)];
     assert(
@@ -148,18 +157,24 @@ async function pickerDeleteOnlySessionScenario(): Promise<void> {
     await harness.sendKeys("C-d");
     await harness.waitFor("Delete session?");
     await harness.sendKeys("Enter");
-    await harness.waitFor("New session started");
     await harness.waitUntil(
-      "replacement session to appear in the open picker",
-      async () => /›\s+\(no messages\)/.test(await harness.capture()),
+      "open picker to hide the empty replacement session",
+      async () => {
+        const view = await harness.capture();
+        return (
+          view.includes("No sessions in current folder") &&
+          !view.includes("(no messages)")
+        );
+      },
       1_000,
     );
+    assert(!existsSync(current), "Picker did not delete its only session");
     await closeSelector(harness);
     await harness.finish();
   } finally {
     await harness.abort().catch(() => undefined);
   }
-  console.log("PASS resume shows replacement after deleting its only session");
+  console.log("PASS resume hides replacement after deleting its only session");
 }
 
 async function dropThenResumeScenario(
@@ -197,20 +212,19 @@ async function dropThenResumeScenario(
     await harness.submitCommand("resume");
     let view = "";
     await harness.waitUntil(
-      "replacement session to appear selected after drop",
+      "empty replacement session to stay hidden after drop",
       async () => {
         view = await harness.capture();
-        return /›\s+\(no messages\)/.test(view);
+        return (
+          view.includes("No sessions in current folder") &&
+          !view.includes("(no messages)")
+        );
       },
       1_000,
     );
     assert(
       performance.now() - openedAt < 1_000,
-      "Replacement session took at least one second to appear after drop",
-    );
-    assert(
-      !view.includes("No sessions in current folder"),
-      "Resume showed an empty catalog after drop",
+      "Empty picker took at least one second to appear after drop",
     );
     await closeSelector(harness);
     await harness.finish();
@@ -218,7 +232,7 @@ async function dropThenResumeScenario(
     await harness.abort().catch(() => undefined);
   }
   console.log(
-    `PASS resume shows replacement immediately after drop ${trigger}`,
+    `PASS resume hides empty replacement immediately after drop ${trigger}`,
   );
 }
 

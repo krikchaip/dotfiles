@@ -32,6 +32,10 @@ _Avoid_: Dependency, plugin
 A short display label for a Pi session, shown in session selection instead of relying on the first prompt.
 _Avoid_: Title, chat name
 
+**Empty session**:
+A Pi session that contains only its session header, automatic `model_change` or `thinking_level_change` entries, and hidden `custom_message` setup entries. A later displayable entry, including a Session name or other metadata entry, makes the session non-empty.
+_Avoid_: Unnamed session, session with no conversation messages
+
 **Active session branch**:
 The current path through a Pi session tree, from first relevant entry to the current leaf.
 _Avoid_: Full session, chat history
