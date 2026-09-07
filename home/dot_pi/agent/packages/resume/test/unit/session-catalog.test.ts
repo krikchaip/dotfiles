@@ -181,7 +181,7 @@ describe("ResumeCatalog", () => {
     await secondProcess.close();
   });
 
-  test("a missing catalog renders no rows before exact repair", async () => {
+  test("a missing catalog renders provisional rows before exact repair", async () => {
     const fixture = makeFixture();
     const catalog = new ResumeCatalog({
       cacheDirectory: fixture.cacheDirectory,
@@ -194,12 +194,33 @@ describe("ResumeCatalog", () => {
       { cwd: fixture.cwd, sessionDir: fixture.sessionDir },
       publishExact,
     );
-    expect(firstFrame).toHaveLength(0);
+    expect(firstFrame).toHaveLength(1);
+    expect(firstFrame[0]?.id).toBe("10000000-0000-7000-8000-000000000001");
+    expect(firstFrame[0]?.messageCount).toBe(0);
     expect(catalog.isProvisional(firstFrame)).toBe(true);
 
     const exact = await exactUpdate;
     expect(exact[0]?.provisional).toBe(false);
     expect(exact[0]?.messageCount).toBe(1);
+    await catalog.close();
+  });
+
+  test("a cold peek builds provisional rows before its first frame", async () => {
+    const fixture = makeFixture();
+    const catalog = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+
+    const firstFrame = catalog.peek({
+      cwd: fixture.cwd,
+      sessionDir: fixture.sessionDir,
+    });
+
+    expect(firstFrame).toHaveLength(1);
+    expect(firstFrame?.[0]?.id).toBe(
+      "10000000-0000-7000-8000-000000000001",
+    );
+    expect(catalog.isProvisional(firstFrame!)).toBe(true);
     await catalog.close();
   });
 
@@ -714,6 +735,47 @@ describe("ResumeCatalog", () => {
       "Second directory",
     ]);
     await catalog.close();
+  });
+
+  test("All scope returns persisted rows during an interactive read", async () => {
+    const fixture = makeFixture();
+    const root = join(fixture.sessionDir, "..");
+    const secondDirectory = join(root, "other-sessions");
+    const secondPath = join(secondDirectory, "second.jsonl");
+    mkdirSync(secondDirectory);
+    writeFileSync(
+      secondPath,
+      readFileSync(fixture.sessionPath, "utf8").replaceAll(
+        "10000000-0000-7000-8000-000000000001",
+        "30000000-0000-7000-8000-000000000003",
+      ),
+    );
+    const first = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    await openExact(first, { sessionDir: fixture.sessionDir });
+    await openExact(first, { sessionDir: secondDirectory });
+    await first.close();
+    appendFileSync(
+      secondPath,
+      `${JSON.stringify({ type: "session_info", timestamp: "2026-01-07T00:00:00.000Z", name: "Changed while paused" })}\n`,
+    );
+
+    const second = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    const reader = {};
+    second.beginInteractiveRead(reader);
+    const timeout = Symbol("timeout");
+    const result = await Promise.race([
+      second.open({ sessionDir: root, allDirectories: true }),
+      Bun.sleep(100).then(() => timeout),
+    ]);
+    second.endInteractiveRead(reader);
+
+    expect(result).not.toBe(timeout);
+    expect(result).toHaveLength(2);
+    await second.close();
   });
 
   test("live updates keep the current-directory cwd filter", async () => {

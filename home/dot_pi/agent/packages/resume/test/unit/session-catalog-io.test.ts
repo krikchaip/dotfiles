@@ -162,6 +162,192 @@ afterAll(() => {
 });
 
 describe("ResumeCatalog incremental I/O", () => {
+  test("cold bootstrap exposes rows before exact parsing", async () => {
+    const fixture = makeFixture();
+    const catalog = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+
+    const first = await catalog.open({ sessionDir: fixture.sessionDir }, () => {});
+
+    expect(catalog.isProvisional(first)).toBe(true);
+    expect(first).toHaveLength(1);
+    expect(first[0]?.id).toBe("91000000-0000-7000-8000-000000000001");
+    expect(first[0]?.path).toBe(fixture.sessionPath);
+    await catalog.close();
+  });
+
+  test("cold bootstrap finds a title between large records", async () => {
+    const fixtureRoot = realFs.mkdtempSync(join(root, "middle-title-"));
+    const sessionDir = join(fixtureRoot, "sessions");
+    const sessionPath = join(sessionDir, "middle-title.jsonl");
+    realFs.mkdirSync(sessionDir);
+    const entries = [
+      {
+        type: "session",
+        id: "92000000-0000-7000-8000-000000000001",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        cwd: fixtureRoot,
+      },
+      {
+        type: "message",
+        timestamp: "2026-01-01T00:00:01.000Z",
+        message: { role: "user", content: "WRONG COLD TITLE" },
+      },
+      {
+        type: "message",
+        timestamp: "2026-01-01T00:00:02.000Z",
+        message: { role: "user", content: "x".repeat(24 * 1024) },
+      },
+      {
+        type: "session_info",
+        timestamp: "2026-01-01T00:00:03.000Z",
+        name: "Correct Middle Title",
+      },
+      {
+        type: "message",
+        timestamp: "2026-01-01T00:00:04.000Z",
+        message: { role: "user", content: "y".repeat(24 * 1024) },
+      },
+    ];
+    realFs.writeFileSync(
+      sessionPath,
+      `${entries.map((entry) => JSON.stringify(entry)).join("\n")}\n`,
+    );
+    const catalog = new ResumeCatalog({
+      cacheDirectory: join(fixtureRoot, "cache"),
+    });
+
+    const first = catalog.peek({ sessionDir });
+
+    expect(first).toHaveLength(1);
+    expect(first?.[0]?.name).toBe("Correct Middle Title");
+    await catalog.close();
+  });
+
+  test("cold bootstrap accepts a final title without a newline", async () => {
+    const fixtureRoot = realFs.mkdtempSync(join(root, "final-title-"));
+    const sessionDir = join(fixtureRoot, "sessions");
+    const sessionPath = join(sessionDir, "final-title.jsonl");
+    realFs.mkdirSync(sessionDir);
+    const entries = [
+      {
+        type: "session",
+        id: "92000000-0000-7000-8000-000000000002",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        cwd: fixtureRoot,
+      },
+      {
+        type: "message",
+        timestamp: "2026-01-01T00:00:01.000Z",
+        message: { role: "user", content: "WRONG FINAL TITLE" },
+      },
+      {
+        type: "message",
+        timestamp: "2026-01-01T00:00:02.000Z",
+        message: { role: "user", content: "x".repeat(24 * 1024) },
+      },
+      {
+        type: "session_info",
+        timestamp: "2026-01-01T00:00:03.000Z",
+        name: "Correct Final Title",
+      },
+    ];
+    realFs.writeFileSync(
+      sessionPath,
+      entries.map((entry) => JSON.stringify(entry)).join("\n"),
+    );
+    const catalog = new ResumeCatalog({
+      cacheDirectory: join(fixtureRoot, "cache"),
+    });
+
+    const first = catalog.peek({ sessionDir });
+
+    expect(first?.[0]?.name).toBe("Correct Final Title");
+    await catalog.close();
+  });
+
+  test("cold bootstrap stitches the latest title across chunks", async () => {
+    const fixtureRoot = realFs.mkdtempSync(join(root, "boundary-title-"));
+    const sessionDir = join(fixtureRoot, "sessions");
+    const sessionPath = join(sessionDir, "boundary-title.jsonl");
+    realFs.mkdirSync(sessionDir);
+    const prefix = [
+      {
+        type: "session",
+        id: "92000000-0000-7000-8000-000000000003",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        cwd: fixtureRoot,
+      },
+      {
+        type: "message",
+        timestamp: "2026-01-01T00:00:01.000Z",
+        message: { role: "user", content: "WRONG BOUNDARY TITLE" },
+      },
+      {
+        type: "session_info",
+        timestamp: "2026-01-01T00:00:02.000Z",
+        name: "Older Title",
+      },
+    ]
+      .map((entry) => JSON.stringify(entry))
+      .join("\n");
+    const latest = JSON.stringify({
+      type: "session_info",
+      timestamp: "2026-01-01T00:00:03.000Z",
+      name: "Latest Boundary Title",
+    });
+    const tailTemplate = JSON.stringify({
+      type: "message",
+      timestamp: "2026-01-01T00:00:04.000Z",
+      message: { role: "user", content: "" },
+    });
+    const tailLength =
+      64 * 1024 + 10 - Buffer.byteLength(latest) - 1;
+    const tail = tailTemplate.replace(
+      '"content":""',
+      `"content":"${"y".repeat(tailLength - Buffer.byteLength(tailTemplate) - 1)}"`,
+    );
+    realFs.writeFileSync(sessionPath, `${prefix}\n${latest}\n${tail}\n`);
+    const catalog = new ResumeCatalog({
+      cacheDirectory: join(fixtureRoot, "cache"),
+    });
+
+    const first = catalog.peek({ sessionDir });
+
+    expect(first?.[0]?.name).toBe("Latest Boundary Title");
+    await catalog.close();
+  });
+
+  test("interactive reads pause exact reconciliation", async () => {
+    const fixture = makeFixture();
+    const catalog = new ResumeCatalog({
+      cacheDirectory: fixture.cacheDirectory,
+    });
+    const reader = {};
+    catalog.beginInteractiveRead(reader);
+    let publishExact!: (sessions: any[]) => void;
+    let exactPublished = false;
+    const exact = new Promise<any[]>((resolve) => {
+      publishExact = (sessions) => {
+        exactPublished = true;
+        resolve(sessions);
+      };
+    });
+
+    const first = await catalog.open(
+      { sessionDir: fixture.sessionDir },
+      publishExact,
+    );
+    expect(catalog.isProvisional(first)).toBe(true);
+    await Bun.sleep(25);
+    expect(exactPublished).toBe(false);
+
+    catalog.endInteractiveRead(reader);
+    expect(await exact).toHaveLength(1);
+    await catalog.close();
+  });
+
   test("a tiny append reads only the appended session range", async () => {
     const fixture = makeFixture();
     const first = new ResumeCatalog({ cacheDirectory: fixture.cacheDirectory });

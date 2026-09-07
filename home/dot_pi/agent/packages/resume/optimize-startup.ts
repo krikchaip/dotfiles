@@ -120,17 +120,8 @@ export function getResumeDefaultSessionDir(cwd: string) {
   return join(getAgentDir(), "sessions", safePath);
 }
 
-function setIndexingStatus(
-  selector: any,
-  sessions: any[],
-  provisional = sessions.some((session) => session.provisional),
-) {
-  if (provisional) {
-    selector.header?.setStatusMessage?.({
-      type: "info",
-      message: INDEXING_MESSAGE,
-    });
-  } else if (selector.header?.statusMessage?.message === INDEXING_MESSAGE) {
+function clearIndexingStatus(selector: any) {
+  if (selector.header?.statusMessage?.message === INDEXING_MESSAGE) {
     selector.header.setStatusMessage(null);
   }
 }
@@ -149,6 +140,7 @@ export function releaseResumeSelector(selector: any) {
   if (!subscriptions || !catalog) return;
   catalog.unsubscribe(subscriptions.current);
   catalog.unsubscribe(subscriptions.all);
+  catalog.endInteractiveRead(subscriptions.current);
   delete selector[SELECTOR_SUBSCRIPTIONS];
 }
 
@@ -189,7 +181,7 @@ function publishSessions(
   sessions: any[],
 ) {
   sessions = withActiveSession(sessions);
-  setIndexingStatus(selector, sessions);
+  clearIndexingStatus(selector);
   if (scope === "current") selector.currentSessions = sessions;
   else selector.allSessions = sessions;
   if (selector.scope !== scope) return;
@@ -245,12 +237,12 @@ export function installOptimizeStartup(
         .then((sessions) => {
           const provisional = activeCatalog.isProvisional(sessions);
           const visibleSessions = withActiveSession(sessions);
-          setIndexingStatus(this, visibleSessions, provisional);
-          onProgress?.(
-            provisional ? 0 : visibleSessions.length,
-            visibleSessions.length,
-          );
-          return provisional ? [] : visibleSessions;
+          clearIndexingStatus(this);
+          if (provisional && state().catalog === activeCatalog) {
+            publishSessions(this, target, sessions);
+          }
+          onProgress?.(visibleSessions.length, visibleSessions.length);
+          return visibleSessions;
         });
 
     this.currentSessionsLoader = (
@@ -271,6 +263,7 @@ export function installOptimizeStartup(
       );
 
     const catalogScope = currentCatalogScope(scope);
+    activeCatalog.beginInteractiveRead(subscriptions.current);
     const cached = activeCatalog.peek(catalogScope);
     const immediate = withActiveSession(cached ?? []);
     if (immediate.length === 0) {
@@ -282,7 +275,7 @@ export function installOptimizeStartup(
     this.header?.setScope?.("current");
     this.header?.setLoading?.(false);
     this.sessionList?.setSessions?.(immediate, false);
-    setIndexingStatus(this, immediate, !cached);
+    clearIndexingStatus(this);
     void catalogLoader(catalogScope, "current").catch(() => {});
   };
 

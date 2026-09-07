@@ -24,6 +24,12 @@ const CATALOG_VERSION = 1;
 const BOUNDARY_HASH_BYTES = 4096;
 const HISTORY_HASH_BYTES = 1024;
 const HISTORY_HASH_SAMPLES = 16;
+const BOOTSTRAP_SLICE_BYTES = 16 * 1024;
+const BOOTSTRAP_TITLE_CHUNK_BYTES = 64 * 1024;
+const BOOTSTRAP_TITLE_LINE_BYTES = 16 * 1024;
+const BOOTSTRAP_TITLE_FILE_BYTES = 4 * 1024 * 1024;
+const BOOTSTRAP_TITLE_TOTAL_BYTES = 64 * 1024 * 1024;
+const SESSION_INFO_MARKER = Buffer.from('"type":"session_info"');
 const MAX_FILE_OPERATIONS = 10;
 
 let activeFileOperations = 0;
@@ -266,6 +272,146 @@ function reduceEntry(
   return reduced;
 }
 
+function parseBootstrapLines(
+  buffer: Buffer,
+  start: number,
+  fileSize: number,
+): any[] {
+  let text = buffer.toString("utf8");
+  if (start > 0) {
+    const firstNewline = text.indexOf("\n");
+    if (firstNewline < 0) return [];
+    text = text.slice(firstNewline + 1);
+  }
+  if (start + buffer.length < fileSize) {
+    const lastNewline = text.lastIndexOf("\n");
+    if (lastNewline < 0) return [];
+    text = text.slice(0, lastNewline);
+  }
+  return text.split("\n").flatMap((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return [];
+    try {
+      return [JSON.parse(trimmed)];
+    } catch {
+      return [];
+    }
+  });
+}
+
+type BootstrapTitleBudget = { remaining: number };
+
+function latestBootstrapSessionInfo(
+  descriptor: number,
+  fileSize: number,
+  budget: BootstrapTitleBudget,
+): any | undefined {
+  let end = fileSize;
+  let scanned = 0;
+  let suffix = Buffer.alloc(0);
+  while (
+    end > 0 &&
+    scanned < BOOTSTRAP_TITLE_FILE_BYTES &&
+    budget.remaining > 0
+  ) {
+    const length = Math.min(
+      end,
+      BOOTSTRAP_TITLE_CHUNK_BYTES,
+      BOOTSTRAP_TITLE_FILE_BYTES - scanned,
+      budget.remaining,
+    );
+    const start = end - length;
+    const chunk = Buffer.allocUnsafe(length);
+    const bytesRead = readSync(descriptor, chunk, 0, length, start);
+    if (bytesRead <= 0) break;
+    const readChunk = chunk.subarray(0, bytesRead);
+    scanned += bytesRead;
+    budget.remaining -= bytesRead;
+    const searchable = suffix.length
+      ? Buffer.concat([readChunk, suffix])
+      : readChunk;
+    let before = searchable.length;
+    while (before > 0) {
+      const marker = searchable.lastIndexOf(SESSION_INFO_MARKER, before - 1);
+      if (marker < 0) break;
+      const previousNewline = searchable.lastIndexOf(0x0a, marker);
+      const nextNewline = searchable.indexOf(0x0a, marker);
+      const lineEnd =
+        nextNewline >= 0
+          ? nextNewline
+          : end === fileSize
+            ? searchable.length
+            : -1;
+      if ((previousNewline >= 0 || start === 0) && lineEnd >= 0) {
+        const line = searchable
+          .subarray(previousNewline + 1, lineEnd)
+          .toString("utf8")
+          .trim();
+        try {
+          const entry = JSON.parse(line);
+          if (entry?.type === "session_info") return entry;
+        } catch {
+          // Continue to an earlier valid session_info entry.
+        }
+      }
+      before = marker;
+    }
+    suffix = Buffer.from(
+      readChunk.subarray(0, Math.min(bytesRead, BOOTSTRAP_TITLE_LINE_BYTES)),
+    );
+    end = start;
+  }
+  return undefined;
+}
+
+function bootstrapRecord(
+  path: string,
+  stats: BigIntStats,
+  titleBudget: BootstrapTitleBudget,
+): CatalogRecord | undefined {
+  const fileSize = Number(stats.size);
+  if (!Number.isSafeInteger(fileSize) || fileSize <= 0) return undefined;
+
+  const descriptor = openSync(path, "r");
+  try {
+    const headLength = Math.min(fileSize, BOOTSTRAP_SLICE_BYTES);
+    const head = Buffer.allocUnsafe(headLength);
+    const headBytesRead = readSync(descriptor, head, 0, headLength, 0);
+    const headEntries = parseBootstrapLines(
+      head.subarray(0, headBytesRead),
+      0,
+      fileSize,
+    );
+    let reduced: ReducedSession | null | undefined;
+    for (const entry of headEntries) {
+      reduced = reduceEntry(reduced ?? undefined, entry);
+      if (reduced === null) return undefined;
+    }
+    if (!reduced || !Number.isFinite(Date.parse(reduced.created))) {
+      return undefined;
+    }
+
+    const latestSessionInfo = latestBootstrapSessionInfo(
+      descriptor,
+      fileSize,
+      titleBudget,
+    );
+    if (latestSessionInfo) reduceEntry(reduced, latestSessionInfo);
+
+    reduced.messageCount = 0;
+    reduced.allMessagesText = undefined;
+    reduced.lastActivityTime = Number(stats.mtimeNs) / 1e6;
+    return {
+      fingerprint: fingerprint(stats),
+      completeOffset: 0,
+      boundaryHash: "",
+      session: reduced,
+    };
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
 function boundaryHash(path: string, completeOffset: number): string {
   const length = Math.min(completeOffset, BOUNDARY_HASH_BYTES);
   if (length <= 0) return createHash("sha256").digest("hex");
@@ -315,6 +461,7 @@ async function parseFile(
   path: string,
   startOffset: number,
   initial: ReducedSession | undefined,
+  beforeChunk?: () => Promise<void>,
 ): Promise<{ completeOffset: number; session: ReducedSession | null }> {
   let reduced: ReducedSession | null | undefined = initial;
   let pending: Buffer[] = [];
@@ -323,6 +470,7 @@ async function parseFile(
   const stream = createReadStream(path, { start: startOffset });
 
   for await (const value of stream) {
+    await beforeChunk?.();
     const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
     let lineStart = 0;
     for (;;) {
@@ -426,6 +574,8 @@ export class ResumeCatalog {
   readonly #failedPrimes = new Set<string>();
   readonly #searchCache = new Map<string, Record<string, string>>();
   readonly #provisionalResults = new WeakSet<any[]>();
+  readonly #interactiveReaders = new Set<object>();
+  readonly #interactiveReadWaiters = new Set<() => void>();
   readonly #snapshots = new Map<
     string,
     {
@@ -446,13 +596,36 @@ export class ResumeCatalog {
     return this.#provisionalResults.has(sessions);
   }
 
+  beginInteractiveRead(reader: object) {
+    if (!this.#closed) this.#interactiveReaders.add(reader);
+  }
+
+  endInteractiveRead(reader: object) {
+    this.#interactiveReaders.delete(reader);
+    if (this.#interactiveReaders.size > 0) return;
+    for (const resume of this.#interactiveReadWaiters) resume();
+    this.#interactiveReadWaiters.clear();
+  }
+
   peek(scope: ResumeCatalogScope): any[] | undefined {
     if (this.#closed || scope.allDirectories) return undefined;
-    const snapshot = this.#snapshots.get(resolve(scope.sessionDir));
-    if (!snapshot || snapshot.provisional || snapshot.needsFullRepair) {
-      return undefined;
+    const directory = resolve(scope.sessionDir);
+    let snapshot = this.#snapshots.get(directory);
+    if (!snapshot) {
+      const persisted = this.#readManifest(directory);
+      snapshot = {
+        manifest: persisted ?? this.#bootstrap(directory),
+        provisional: !persisted,
+        needsFullRepair: !persisted,
+      };
+      this.#snapshots.set(directory, snapshot);
+      this.#scheduleRepair(directory);
     }
-    return this.#sessions(snapshot.manifest, scope.cwd);
+    return this.#sessions(
+      snapshot.manifest,
+      scope.cwd,
+      snapshot.provisional,
+    );
   }
 
   async prime(scope: ResumeCatalogScope): Promise<void> {
@@ -490,7 +663,7 @@ export class ResumeCatalog {
       }
       return;
     }
-    const provisional = await this.#bootstrap(directory);
+    const provisional = this.#bootstrap(directory);
     if (this.#closed) return;
     this.#snapshots.set(directory, {
       manifest: provisional,
@@ -515,8 +688,14 @@ export class ResumeCatalog {
         publish: onUpdate,
       });
     }
-    await this.prime(scope);
-    const snapshot = this.#snapshots.get(directory);
+    const priming = this.prime(scope);
+    let snapshot = this.#snapshots.get(directory);
+    if (!snapshot || this.#interactiveReaders.size === 0) {
+      await priming;
+      snapshot = this.#snapshots.get(directory);
+    } else {
+      void priming.catch(() => {});
+    }
     if (!snapshot) return [];
     if (snapshot.needsFullRepair) this.#scheduleRepair(directory);
     return this.#sessions(snapshot.manifest, scope.cwd, snapshot.provisional);
@@ -640,6 +819,9 @@ export class ResumeCatalog {
 
   async close() {
     this.#closed = true;
+    this.#interactiveReaders.clear();
+    for (const resume of this.#interactiveReadWaiters) resume();
+    this.#interactiveReadWaiters.clear();
     this.#listeners.clear();
     this.#repairs.clear();
     this.#reconciles.clear();
@@ -672,8 +854,42 @@ export class ResumeCatalog {
     return sessions;
   }
 
-  async #bootstrap(directory: string): Promise<CatalogManifest> {
-    return { version: CATALOG_VERSION, directory, records: {} };
+  #bootstrap(directory: string): CatalogManifest {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return { version: CATALOG_VERSION, directory, records: {} };
+    }
+
+    const records: Record<string, CatalogRecord> = {};
+    const titleBudget = { remaining: BOOTSTRAP_TITLE_TOTAL_BYTES };
+    for (const entry of entries) {
+      if (
+        !entry.name.endsWith(".jsonl") ||
+        (!entry.isFile() && !entry.isSymbolicLink())
+      ) {
+        continue;
+      }
+      const path = join(directory, entry.name);
+      try {
+        const stats = statSync(path, { bigint: true });
+        if (!stats.isFile()) continue;
+        const record = bootstrapRecord(path, stats, titleBudget);
+        if (record) records[entry.name] = record;
+      } catch {
+        // A concurrent replacement will be handled by exact reconciliation.
+      }
+    }
+    return { version: CATALOG_VERSION, directory, records };
+  }
+
+  async #waitForInteractiveReads() {
+    while (!this.#closed && this.#interactiveReaders.size > 0) {
+      await new Promise<void>((resolve) =>
+        this.#interactiveReadWaiters.add(resolve),
+      );
+    }
   }
 
   #scheduleRepair(directory: string, rerun = false) {
@@ -830,7 +1046,9 @@ export class ResumeCatalog {
       }
 
       const parsed = await withFilePermit(() =>
-        parseFile(path, startOffset, initial),
+        parseFile(path, startOffset, initial, () =>
+          this.#waitForInteractiveReads(),
+        ),
       );
       records[state.name] = {
         fingerprint: currentFingerprint,
