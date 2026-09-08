@@ -7,6 +7,17 @@ description: E2E-test Pi extensions in the real interactive TUI. Use when changi
 
 A Pi extension is only proven when it runs inside the real interactive TUI. Prefer a tight pty harness over screenshots, print mode, or typecheck-only checks.
 
+## Acceptance matrix
+
+Before changing a user-visible Pi behavior, define one row for each reported path:
+
+| Entry path | Required runtime stack | User action or native event | Expected observable result | Evidence |
+| ---------- | ---------------------- | --------------------------- | -------------------------- | -------- |
+
+- Keep the reported trigger. Do not replace an automatic event with a manual command.
+- Include each named extension, theme, terminal, or configuration that affects the claim. A clean run is a baseline, not proof of a named integration.
+- In the final report, name each exercised row. Mark every unrun in-scope row as `unverified`.
+
 ## Harness loop
 
 1. Apply the extension source if it lives in chezmoi.
@@ -17,6 +28,8 @@ A Pi extension is only proven when it runs inside the real interactive TUI. Pref
    - Use an empty temporary cwd so unrelated project `.pi` resources do not trigger trust prompts or alter the root viewport.
    - Use a temporary `PI_CODING_AGENT_DIR` when testing settings or when user settings would affect the scenario. Write only the minimum required `settings.json`.
    - If project resources are required, handle `Trust project folder?` explicitly. Do not silently persist a trust decision.
+   - When testing tmux behavior, use a test-owned tmux server and pane. Clear inherited `TMUX` and `TMUX_PANE` before creating it. Never select, close, type into, or otherwise target the user's tmux pane.
+   - Give every spawned terminal, tmux server, pane, window, log, and fixture a test ID. The test must not take focus; abort if focus changes outside that ID. Ask for approval before testing in the user's live terminal stack.
    - Record `pi --version`. Check which local packages the extension resolves before blaming the extension for a host-version mismatch; do not silently replace `node_modules` to make a test pass.
 
 3. Start Pi inside `expect` with a real pty and explicit extension loading.
@@ -274,6 +287,7 @@ If Expect reports `missing close-bracket`, an arrow key likely used raw `send "\
 
 Use this before calling E2E done:
 
+- Acceptance matrix covers every in-scope reported path; each unrun row is marked `unverified`.
 - Extension/runtime source applied if needed.
 - Pi and resolved dependency versions are known.
 - Empty cwd or explicit project-trust handling prevents surprise startup UI.
@@ -291,3 +305,4 @@ Use this before calling E2E done:
 - Shell/Python assertions fail closed, including Unicode-safe byte checks.
 - Narrow viewport run exists for wrapping/truncation/ellipsis/keyhint changes.
 - Failure prints a readable slice and exits nonzero.
+- Test-owned terminals, tmux servers, panes, logs, and fixtures are removed.
