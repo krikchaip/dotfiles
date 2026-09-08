@@ -311,7 +311,6 @@ export function patchTmuxSessionSplit(
   }
 
   const originalHandleInput = selector.handleInput;
-  const openSessionPanes = advertisedPanes();
   let pendingJump: PendingJump | undefined;
 
   const clearPendingJump = () => {
@@ -356,7 +355,7 @@ export function patchTmuxSessionSplit(
       return;
     }
 
-    const existingPane = paneRunningSession(session.path, openSessionPanes);
+    const existingPane = paneRunningSession(session.path, advertisedPanes());
     const key = isConfirm
       ? "tui.select.confirm"
       : target === "down"

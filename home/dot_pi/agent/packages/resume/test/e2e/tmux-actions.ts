@@ -328,6 +328,171 @@ async function splitFailureScenario(): Promise<void> {
   );
 }
 
+async function releasedSessionScenario(
+  action: "confirm" | "down" | "right" | "window",
+): Promise<void> {
+  const actionIndex = ["confirm", "down", "right", "window"].indexOf(action);
+  const name = `resume-tmux-released-${action}`;
+  const sessions = join(runDirectory, `${name}-sessions`);
+  const current = join(sessions, "current.jsonl");
+  const target = join(sessions, "target.jsonl");
+  writeSession(
+    current,
+    `46000000-0000-7000-8000-00000000000${actionIndex * 2 + 1}`,
+    "Released Current",
+    ["CURRENT"],
+    1,
+  );
+  writeSession(
+    target,
+    `46000000-0000-7000-8000-00000000000${actionIndex * 2 + 2}`,
+    "Released Target",
+    ["TARGET"],
+    20,
+  );
+  const harness = await PiTuiHarness.start({
+    name,
+    root: agentRoot,
+    runDirectory,
+    persistSession: true,
+    cliArguments: ["--session-dir", sessions, "--session", current],
+    extensions: ["packages/resume"],
+  });
+  const socket = join(runDirectory, `${name}.tmux.sock`);
+  let holder = "";
+  let opened = "";
+  const input =
+    action === "confirm"
+      ? undefined
+      : action === "down"
+        ? "\x1bs"
+        : action === "right"
+          ? "\x1bv"
+          : "\x1bw";
+  try {
+    holder = (
+      await tmux(
+        socket,
+        "split-window",
+        "-d",
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "-t",
+        harness.paneId,
+        "sleep",
+        "30",
+      )
+    ).trim();
+    const holderPid = Number.parseInt(
+      (
+        await tmux(
+          socket,
+          "display-message",
+          "-p",
+          "-t",
+          holder,
+          "#{pane_pid}",
+        )
+      ).trim(),
+      10,
+    );
+    await tmux(
+      socket,
+      "set-option",
+      "-p",
+      "-t",
+      holder,
+      "@pi_resume_session",
+      JSON.stringify({ pid: holderPid, path: target }),
+    );
+
+    await harness.submitCommand("resume");
+    await harness.waitFor("Released Current");
+    await harness.sendLiteral("Released Target");
+    await harness.waitFor("Released Target");
+    const before = await paneIds(socket);
+    if (input) await harness.sendLiteral(input);
+    else await harness.sendKeys("Enter");
+    await harness.waitFor("Session already open; press again to jump");
+    assert(
+      (await paneIds(socket)).length === before.length,
+      `${action} created a duplicate writer before the holder released the session`,
+    );
+
+    await tmux(
+      socket,
+      "set-option",
+      "-p",
+      "-u",
+      "-t",
+      holder,
+      "@pi_resume_session",
+    );
+    await Bun.sleep(1_650);
+    if (input) await harness.sendLiteral(input);
+    else await harness.sendKeys("Enter");
+
+    if (action === "confirm") {
+      await harness.waitUntil(
+        "released session to resume in the current pane",
+        async () => {
+          const view = await harness.capture();
+          const advertisement = await execute(
+            [
+              "tmux",
+              "-S",
+              socket,
+              "show-options",
+              "-p",
+              "-v",
+              "-t",
+              harness.paneId,
+              "@pi_resume_session",
+            ],
+            true,
+          );
+          return (
+            !view.includes("Ctrl+R expand") && advertisement.includes(target)
+          );
+        },
+      );
+    } else {
+      await harness.waitUntil(
+        `released session to open via ${action}`,
+        async () => (await paneIds(socket)).length > before.length,
+      );
+      opened =
+        (await paneIds(socket)).find((pane) => !before.includes(pane)) ?? "";
+      assert(opened, `${action} did not open the released session`);
+      const command = await tmux(
+        socket,
+        "display-message",
+        "-p",
+        "-t",
+        opened,
+        "#{pane_start_command}",
+      );
+      assert(
+        command.includes(target),
+        `${action} opened a pane without the released session`,
+      );
+    }
+    await harness.finish();
+  } finally {
+    if (opened) {
+      await tmux(socket, "kill-pane", "-t", opened).catch(() => undefined);
+    }
+    if (holder) {
+      await tmux(socket, "kill-pane", "-t", holder).catch(() => undefined);
+    }
+    await harness.abort().catch(() => undefined);
+  }
+  console.log(
+    `PASS resume ${action} rechecks a session released while picker is open`,
+  );
+}
+
 async function concurrentWriterScenario(): Promise<void> {
   const name = "resume-tmux-concurrent";
   const sessions = join(runDirectory, `${name}-sessions`);
@@ -593,6 +758,10 @@ try {
     splitScenario("right"),
     splitScenario("window"),
     splitFailureScenario(),
+    releasedSessionScenario("confirm"),
+    releasedSessionScenario("down"),
+    releasedSessionScenario("right"),
+    releasedSessionScenario("window"),
     concurrentWriterScenario(),
   ]);
 } finally {
