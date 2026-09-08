@@ -26,22 +26,44 @@ Investigate available facts first. If uncertainty remains at any step, use `/ski
 
 Completion: one local repository, one upstream ref, one primary branch, and one personal branch are identified with evidence. Keep all branches unchanged during this step.
 
-## 2. Capture and prove the personal regression scope
+## 2. Freeze the baseline, create the candidate, and prove the personal scope
 
-1. Record the exact personal-branch tip as the immutable baseline SHA. Keep a detached baseline worktree until the final regression gate. Do not depend on a moving local branch or remote-tracking ref.
-2. Inspect every commit that the personal branch has on top of the primary branch. Map each commit to the behavior it adds, changes, or removes.
-3. Build a visible regression evidence table with these columns:
-   - Personal commit.
-   - User-visible invariant or verified non-behavioral change.
-   - Named E2E case or project check.
-   - Command.
-   - Baseline result.
-4. For each user-visible invariant, record the trigger, first visible state, state transition, final result, and required absence. For startup, lifecycle, cache, or background work, include a bounded timing assertion and test the state while optional asynchronous work is blocked.
-5. Find the canonical repository-owned real-TUI E2E command. Add missing cases before the branch update and preserve them in the personal commit stack. Run the complete suite against the baseline.
+1. Require a clean repository. Record:
+   - The exact `personal` tip as the immutable baseline SHA.
+   - The exact primary-branch tip before synchronization.
+   - The current local calendar date as `YYYYMMDD`.
+2. Create and switch to `personal-YYYYMMDD` at the exact `personal` tip before making test, source, documentation, or configuration changes.
+3. Keep `personal` unchanged for the complete workflow. Make every test commit, approved fix, and rebase only on the dated candidate.
+4. If `personal-YYYYMMDD` already exists, stop and ask whether to resume it. Report its tip and worktree state. Never reset, delete, or overwrite it.
+5. Keep a detached worktree at the immutable baseline SHA until the final regression gate.
+6. Resolve the user's verified Git author identity or identities from the GitHub login, local Git configuration, and repository history. Apply the uncertainty gate when an identity is ambiguous.
+7. Define the **personal commit corpus** as every commit reachable from the baseline SHA whose author matches a verified user identity. Include commits that are already reachable from the primary or upstream branch.
+8. Classify each corpus commit as:
+   - Branch-only.
+   - Shared with the pre-sync primary branch.
+9. Show all three counts and prove:
 
-One E2E case can cover several commits, but every personal commit must have its own table row. An aggregate statement such as “all commits are mapped” is not evidence.
+   ```
+   personal corpus = branch-only personal commits + shared personal commits
+   ```
 
-Completion: the immutable baseline exists, every personal commit has a visible evidence row, and every baseline E2E case passes before any primary-branch update or rebase.
+   Keep branch divergence as a separate metric. Never label `primary..personal` alone as the personal commit count.
+
+10. Map every personal corpus commit to the behavior it adds, changes, or removes.
+11. Build a visible regression evidence table with these columns:
+    - Personal commit.
+    - Branch-only or shared.
+    - User-visible invariant or verified non-behavioral change.
+    - Named E2E case or project check.
+    - Command.
+    - Baseline result.
+12. For each user-visible invariant, record the trigger, first visible state, state transition, final result, and required absence. For startup, lifecycle, cache, or background work, include a bounded timing assertion and test the state while optional asynchronous work is blocked.
+13. Find the canonical repository-owned real-TUI E2E command. Add missing cases on the dated candidate. Run those cases against the detached baseline and preserve the tests in the candidate stack.
+14. If coverage reveals a baseline production defect, show the known-red evidence and get separate approval before changing production source.
+
+One E2E case can cover several commits, but every personal corpus commit must have its own table row.
+
+Completion: `personal` is frozen, the dated candidate exists at its original tip, every verified user-authored commit reachable from the baseline has an evidence row, all counts reconcile, and every baseline case passes before primary synchronization or rebase.
 
 ## 3. Review the unsynced upstream changes
 
@@ -75,7 +97,7 @@ Give one clear result: `safe to sync`, `decision required`, or `do not sync`.
 
 A verified personal feature decision overrides conflicting upstream behavior. Apply the uncertainty gate when personal intent is unclear or no existing personal decision settles an incompatible feature choice.
 
-When the result is `safe to sync`, offer to perform the sync. Ask for explicit approval to update the remote fork primary branch, fast-forward the local primary branch, and start the rebase.
+When the result is `safe to sync`, offer to perform the sync. Ask for explicit approval to update the remote fork primary branch, fast-forward the local primary branch, and rebase the dated candidate. State that `personal` will remain at the immutable baseline SHA.
 
 After approval:
 
@@ -88,30 +110,62 @@ Use fast-forward updates only. If GitHub reports divergence, a conflict, or a di
 
 Completion: required product decisions are settled, the remote and local primary branches contain the reviewed upstream commits, and the user has approved the rebase.
 
-## 5. Rebase the personal branch
+## 5. Rebase the dated candidate
 
-After approval, verify that the primary branch contains the reviewed upstream commits. Then use `/skill:resolving-merge-conflicts` to rebase the personal branch onto the primary branch.
+After approval, verify that the primary branch contains the reviewed upstream commits. Record the pre-rebase candidate SHA. Then use `/skill:resolving-merge-conflicts` to rebase only `personal-YYYYMMDD` onto the primary branch.
 
-A **code conflict** is a Git merge collision. A **feature conflict** is incompatible behavior. A feature conflict can exist even when Git completes the rebase without a code conflict. Apply every feature decision from the comparison review whether or not Git reports a conflict.
+A **code conflict** is a Git merge collision. A **feature conflict** is incompatible behavior. A feature conflict can exist even when Git completes the rebase without a code conflict.
+
+Apply feature decisions that the user approved during the comparison review. Do not move `personal`.
 
 After the rebase:
 
-1. Check the final code against each decision from the review.
-2. If a decision says personal behavior wins, make sure the final code keeps that behavior.
-3. Fix any mismatch, even if Git reported no conflicts.
+1. Verify that the candidate is based on the updated primary branch.
+2. Verify that `personal` still equals the immutable baseline SHA.
+3. Record every conflict-touched file and changed patch.
+4. Continue to the preservation review before making corrective changes for newly discovered omissions.
 
-Example: if the review says `/idea` must stay removed, confirm that `/idea` is absent from the final code.
+Completion: the dated candidate is rebased, `personal` is unchanged, and the candidate is ready for the preservation review.
 
-Completion: `/skill:resolving-merge-conflicts` finishes the rebase, and the final source satisfies every reviewed feature action, including actions with no code conflict.
+## 6. Review preservation and gate corrective changes
 
-## 6. Prove personal customizations against the baseline
+1. Run `git range-diff` between the pre-rebase candidate stack and the rebased candidate stack. Identify every changed patch and every file touched during conflict resolution.
+2. Compare the rebased candidate with the frozen baseline across every invariant in the personal commit corpus. This review includes shared personal commits that do not appear in the branch-only range-diff.
+3. Inspect the related source, documentation, tests, configuration, registrations, conflict-touched files, and changed patches.
+4. Present a preservation report. Give each invariant one status:
+   - `preserved`
+   - `intentionally changed by an approved upstream decision`
+   - `missing`
+   - `uncertain`
+5. For every `missing` or `uncertain` item, show:
+   - The personal commit and invariant.
+   - The exact observed difference.
+   - The relevant files or symbols.
+   - The proposed correction.
+   - The tests that will prove the correction.
+6. Report `decision required` and wait for the user to review the gaps and approve specific corrections.
+7. Apply only approved corrections, only on the dated candidate. Then rerun the complete preservation report.
+8. Do not weaken an assertion unless an approved upstream decision changed that behavior.
+9. When no item is missing or uncertain, run:
+   - Every unchanged baseline E2E case against the candidate.
+   - All project checks.
+   - The complete real-TUI E2E suite.
+10. Present the complete evidence table with candidate results. Clean generated runtime artifacts and remove the detached baseline worktree.
 
-1. Run `git range-diff` between the original personal stack and the rebased stack. Identify every changed patch and every file touched by conflict resolution.
-2. Audit these changes against the regression evidence table. Any conflict or changed patch that touches a user-visible invariant must have a direct named E2E case.
-3. Run the unchanged baseline E2E cases against the rebased branch. Do not weaken an assertion unless an approved upstream decision changed that behavior.
-4. Run all project checks and the complete real-TUI E2E suite. Add the E2E command to required CI when CI exists.
-5. Present the complete evidence table with candidate results, then clean generated runtime artifacts and remove the detached baseline worktree.
+Until every evidence row passes, report `regression status: unverified`.
 
-Until every evidence row passes, report `regression status: unverified`. Do not claim “no regression found,” report `regression-clean`, or ask to push the personal branch.
+Completion: every personal corpus invariant is preserved or intentionally changed by an approved decision, every evidence row passes, and all applicable checks pass.
 
-Completion: every personal commit has passing baseline and candidate evidence, every conflict-touched invariant has direct coverage, required CI includes the real-TUI suite, and all applicable checks pass.
+## 7. Hand the dated candidate to the user
+
+1. Leave the clean repository checked out on `personal-YYYYMMDD`.
+2. Report:
+   - The candidate branch and SHA.
+   - The unchanged `personal` SHA.
+   - The automated gate results.
+   - Any approved intentional behavior changes.
+3. Ask the user to test the dated candidate.
+4. Stop the sync workflow at this handoff. Do not push, delete the candidate, or move `personal`.
+5. After the user reports successful testing, treat fast-forwarding `personal` as a separate risky action. Verify that it is a fast-forward and ask for explicit approval before doing it.
+
+Completion: the user can test the exact verified dated candidate while `personal` remains unchanged.
