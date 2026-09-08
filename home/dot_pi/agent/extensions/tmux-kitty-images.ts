@@ -88,9 +88,25 @@ interface TuiInstance {
   ): string;
 }
 
+interface ScrollIndicatorRect {
+  row: number;
+  column: number;
+  width: number;
+}
+
+interface FullscreenTuiInstance {
+  compositeScrollToEndIndicator(
+    screen: string[],
+    layout: unknown,
+    width: number,
+  ): string[];
+  scrollToEndIndicatorRect?: ScrollIndicatorRect;
+}
+
 interface PiTuiModule {
   Image: ImageCtor;
   TuiMainScreen: { prototype: object };
+  TuiAltScreen: { prototype: object };
   getCapabilities(): Capabilities;
   setCapabilities(caps: Capabilities): void;
   getCellDimensions(): CellSize;
@@ -111,6 +127,9 @@ const SCROLL_REGION = /\x1b\[\d+;\d+r/;
 const graphemeSegmenter = new Intl.Segmenter(undefined, {
   granularity: "grapheme",
 });
+const U1_SCROLL_INDICATOR_PATCH = Symbol.for(
+  "tmux-kitty-images.u1-scroll-indicator",
+);
 
 // Byte-exact ordered list: index N → diacritic encoding row/column number N.
 // Source: kitty tools/utils/images/rowcolumn_diacritics.go (297 entries).
@@ -320,16 +339,25 @@ function sliceAnsiColumns(
   if (length <= 0) return "";
 
   const endCol = startCol + length;
-  const tokens = text.split(/(\x1b\[[0-9;?]*[ -/]*[@-~])/g);
+  const tokens = text.split(
+    /(\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\))/g,
+  );
   let col = 0;
   let result = "";
   let pendingAnsi = "";
 
   tokenLoop: for (const token of tokens) {
     if (!token) continue;
-    if (token.startsWith("\x1b[")) {
-      if (col >= startCol && col < endCol) result += token;
-      else if (col < startCol) pendingAnsi += token;
+    if (token.startsWith("\x1b[") || token.startsWith("\x1b]")) {
+      if (col >= startCol && col < endCol) {
+        if (pendingAnsi) {
+          result += pendingAnsi;
+          pendingAnsi = "";
+        }
+        result += token;
+      } else if (col < startCol) {
+        pendingAnsi += token;
+      }
       continue;
     }
 
@@ -350,9 +378,40 @@ function sliceAnsiColumns(
   return result;
 }
 
+function compositeU1Line(
+  mod: PiTuiModule,
+  baseLine: string,
+  overlayLine: string,
+  startCol: number,
+  overlayWidth: number,
+  totalWidth: number,
+): string {
+  const afterStart = startCol + overlayWidth;
+  const before = sliceAnsiColumns(mod, baseLine, 0, startCol);
+  const after = sliceAnsiColumns(
+    mod,
+    baseLine,
+    afterStart,
+    Math.max(0, totalWidth - afterStart),
+  );
+  const beforePad = " ".repeat(
+    Math.max(0, startCol - mod.visibleWidth(before)),
+  );
+  const overlay = mod.truncateToWidth(overlayLine, overlayWidth, "", true);
+  const overlayPad = " ".repeat(
+    Math.max(0, overlayWidth - mod.visibleWidth(overlay)),
+  );
+  const composed = `${before}\x1b[0m${beforePad}${overlay}${overlayPad}\x1b[0m${after}\x1b[0m`;
+  const truncated = mod.truncateToWidth(composed, totalWidth, "", true);
+  return (
+    truncated +
+    " ".repeat(Math.max(0, totalWidth - mod.visibleWidth(truncated)))
+  );
+}
+
 function installU1OverlayComposition(mod: PiTuiModule): void {
   // v0.84 split the concrete TUI into regular and fullscreen renderers. Their
-  // overlay compositor remains on the shared base prototype.
+  // modal overlay compositor remains on the shared base prototype.
   const proto = Object.getPrototypeOf(
     mod.TuiMainScreen.prototype,
   ) as TuiInstance;
@@ -379,27 +438,59 @@ function installU1OverlayComposition(mod: PiTuiModule): void {
       );
     }
 
-    const afterStart = startCol + overlayWidth;
-    const before = sliceAnsiColumns(mod, baseLine, 0, startCol);
-    const after = sliceAnsiColumns(
+    return compositeU1Line(
       mod,
       baseLine,
-      afterStart,
-      Math.max(0, totalWidth - afterStart),
+      overlayLine,
+      startCol,
+      overlayWidth,
+      totalWidth,
     );
-    const beforePad = " ".repeat(
-      Math.max(0, startCol - mod.visibleWidth(before)),
+  };
+}
+
+function installU1ScrollIndicatorComposition(mod: PiTuiModule): void {
+  // Fullscreen jump-to-latest composition calls pi-tui's private line helper
+  // directly, so it does not pass through TuiBase.compositeLineAt above.
+  const proto = mod.TuiAltScreen.prototype as FullscreenTuiInstance &
+    Record<symbol, true | undefined>;
+  if (proto[U1_SCROLL_INDICATOR_PATCH]) return;
+
+  const original = proto.compositeScrollToEndIndicator;
+  if (typeof original !== "function") {
+    throw new Error("TuiAltScreen.compositeScrollToEndIndicator unavailable");
+  }
+
+  proto[U1_SCROLL_INDICATOR_PATCH] = true;
+  proto.compositeScrollToEndIndicator = function (
+    screen,
+    layout,
+    width,
+  ) {
+    const result = original.call(this, screen, layout, width);
+    const rect = this.scrollToEndIndicatorRect;
+    if (!rect) return result;
+
+    const baseLine = screen[rect.row];
+    const resultLine = result[rect.row];
+    if (!baseLine?.includes(PLACEHOLDER) || !resultLine) return result;
+
+    const indicatorLine = sliceAnsiColumns(
+      mod,
+      resultLine,
+      rect.column,
+      rect.width,
     );
-    const overlay = mod.truncateToWidth(overlayLine, overlayWidth, "", true);
-    const overlayPad = " ".repeat(
-      Math.max(0, overlayWidth - mod.visibleWidth(overlay)),
+    const repaired = [...result];
+    repaired[rect.row] = compositeU1Line(
+      mod,
+      baseLine,
+      indicatorLine,
+      rect.column,
+      rect.width,
+      width,
     );
-    const composed = `${before}\x1b[0m${beforePad}${overlay}${overlayPad}\x1b[0m${after}\x1b[0m`;
-    const truncated = mod.truncateToWidth(composed, totalWidth, "", true);
-    return (
-      truncated +
-      " ".repeat(Math.max(0, totalWidth - mod.visibleWidth(truncated)))
-    );
+    return repaired;
   };
 }
 
@@ -575,6 +666,7 @@ export default function tmuxKittyImages(pi: ExtensionAPI): void {
       });
 
       installU1OverlayComposition(mod);
+      installU1ScrollIndicatorComposition(mod);
       installU1Renderer(mod);
       patchStdout();
       registerExitCleanup();
