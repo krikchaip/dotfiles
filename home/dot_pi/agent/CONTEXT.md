@@ -159,3 +159,27 @@ _Avoid_: Final assistant response, inferred completion, normal turn end
 **Side-quest review loop**:
 The parent agent's evaluation of a returned side-quest result, followed when needed by resuming the same sub-agent session with corrections or follow-up work.
 _Avoid_: Sub-agent lifecycle, blind result acceptance, unrelated retry, new child session
+
+**Thinking segment**:
+One non-empty thinking content entry from an assistant message. Each segment has its own Thinking summary.
+_Avoid_: Thinking run, clickable thinking block
+
+**Thinking run**:
+One or more consecutive Thinking segments with no visible answer text or tool call between them. A run is one clickable expansion target; its collapsed view keeps each segment summary, and its expanded view shows every segment in the run.
+_Avoid_: Thinking segment, assistant message, all session thinking
+
+**Per-block thinking toggle**:
+A click action that expands or collapses only the selected Thinking run. The global thinking shortcut resets local choices and expands or collapses all Thinking runs.
+_Avoid_: Message-wide click toggle, session-wide click toggle, local choice that survives a global toggle
+
+**Persistent thinking expansion**:
+A user-expanded Thinking run that stays expanded across streaming updates and completion until the user collapses it.
+_Avoid_: Temporary expansion, auto-collapse on completion, streaming reset
+
+**Thinking summary**:
+The first meaningful line of a Thinking segment, shown in the same collapsed style while streaming and after completion.
+_Avoid_: Latest thinking line, duration summary, completed-only summary
+
+**Thinking placeholder**:
+The collapsed `Thinking: …` row shown before a Thinking segment has a meaningful line. The label uses Thinking summary label styling, and the ellipsis uses Thinking summary body styling.
+_Avoid_: Empty Thinking summary, unstyled streaming thought, completed summary

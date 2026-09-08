@@ -2,5 +2,6 @@
   "toolBackground": "outlines",
   "mcpOutputMode": "preview",
   "extraToolOutputExpanded": false,
-  "clickExpansion": true
+  "clickExpansion": true,
+  "thinkingMode": "full"
 }

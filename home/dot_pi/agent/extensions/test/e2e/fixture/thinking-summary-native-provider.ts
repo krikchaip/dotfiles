@@ -40,6 +40,21 @@ export default function thinkingSummaryNativeProvider(pi: ExtensionAPI): void {
       [fauxThinking("Native error summary\nPRIVATE ERROR DETAIL")],
       { stopReason: "error", errorMessage: "NATIVE PROVIDER ERROR" },
     ),
+    fauxAssistantMessage([
+      fauxThinking("   "),
+      fauxText("NATIVE EMPTY THINKING FINISHED"),
+    ]),
+    fauxAssistantMessage([
+      fauxThinking(
+        "Native single-row summary " +
+          "streaming-detail ".repeat(6) +
+          "PRIVATE WRAPPED STREAMING DETAIL " +
+          "tail ".repeat(25),
+      ),
+      fauxText("   "),
+      fauxThinking("Native consecutive second summary"),
+      fauxText("NATIVE CONSECUTIVE THINKING FINISHED"),
+    ]),
   ]);
 
   pi.registerProvider(PROVIDER, {

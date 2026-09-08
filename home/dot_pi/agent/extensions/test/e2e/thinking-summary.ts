@@ -15,6 +15,7 @@ async function nativeStreamingScenario(): Promise<void> {
       "extensions/test/e2e/fixture/thinking-summary-native-provider.ts",
     ],
     model: "thinking-summary-native-e2e/fake",
+    cliArguments: ["--tui-mode", "fullscreen"],
     settings: { hideThinkingBlock: true },
     width: 78,
   });
@@ -25,16 +26,47 @@ async function nativeStreamingScenario(): Promise<void> {
     !streamingPane.includes("PRIVATE NATIVE FIRST DETAIL"),
     "Native streaming pane leaked hidden first detail",
   );
-  const collapsed = await native.waitFor("NATIVE VISIBLE AFTER", 12_000);
-  native.assert(collapsed.includes("Thinking: Native first summary"), "Native first summary missing");
-  native.assert(collapsed.includes("Thinking: Native late summary"), "Native late summary missing");
-  native.assert(collapsed.includes("NATIVE VISIBLE BETWEEN"), "Native interleaved text missing");
-  native.assert(!collapsed.includes("PRIVATE NATIVE FIRST DETAIL"), "Collapsed first detail leaked");
-  native.assert(!collapsed.includes("PRIVATE NATIVE LATE DETAIL"), "Collapsed late detail leaked");
+
+  const paneLines = (await native.capture())
+    .replace(/\n$/, "")
+    .split("\n")
+    .slice(-32);
+  const summaryRowIndex = paneLines.findIndex((line) =>
+    line.includes("Thinking: Native first summary"),
+  );
+  native.assert(summaryRowIndex >= 0, "Clickable Thinking run was not visible");
+  const summaryColumn =
+    paneLines[summaryRowIndex]!.indexOf("Thinking: Native first summary") + 1;
+  const summaryRow = summaryRowIndex + 1;
+  await native.sendLiteral(`\x1b[<0;${summaryColumn};${summaryRow}M`);
+  await native.sendLiteral(`\x1b[<0;${summaryColumn};${summaryRow}m`);
+
+  const expandedByClick = await native.waitFor(
+    "PRIVATE NATIVE FIRST DETAIL",
+    5_000,
+  );
+  native.assert(
+    !expandedByClick.includes("PRIVATE NATIVE LATE DETAIL"),
+    "Click expanded a different Thinking run",
+  );
+
+  const completedExpanded = await native.waitFor("NATIVE VISIBLE AFTER", 12_000);
+  native.assert(
+    completedExpanded.includes("PRIVATE NATIVE FIRST DETAIL"),
+    "Clicked Thinking run did not stay expanded through completion",
+  );
+  native.assert(
+    completedExpanded.includes("Thinking: Native late summary"),
+    "Unclicked Thinking run did not stay collapsed",
+  );
+  native.assert(
+    !completedExpanded.includes("PRIVATE NATIVE LATE DETAIL"),
+    "Unclicked Thinking run expanded",
+  );
 
   await native.sendKeys("C-t");
   const expanded = await native.waitFor("PRIVATE NATIVE LATE DETAIL", 5_000);
-  native.assert(expanded.includes("PRIVATE NATIVE FIRST DETAIL"), "Native first detail did not expand");
+  native.assert(expanded.includes("PRIVATE NATIVE FIRST DETAIL"), "Native first detail did not stay expanded");
   native.assert(!expanded.includes("Thinking: Native first summary"), "Collapsed summary remained expanded");
 
   await native.sendKeys("C-t");
@@ -53,6 +85,45 @@ async function nativeStreamingScenario(): Promise<void> {
   const errorPane = await native.waitFor("Error: NATIVE PROVIDER ERROR", 8_000);
   native.assert(errorPane.includes("Thinking: Native error summary"), "Error response lost thinking summary");
   native.assert(!errorPane.includes("PRIVATE ERROR DETAIL"), "Error response leaked hidden detail");
+
+  await native.submit("NATIVE EMPTY THINKING REQUEST");
+  const emptyThinkingPane = await native.waitFor(
+    "NATIVE EMPTY THINKING FINISHED",
+    8_000,
+  );
+  native.assert(
+    !emptyThinkingPane.includes("Thinking: …"),
+    "Finished empty Thinking run remained visible",
+  );
+
+  await native.submit("NATIVE CONSECUTIVE THINKING REQUEST");
+  await native.waitFor("Thinking: Native single-row summary", 8_000);
+  await Bun.sleep(2_500);
+  const singleRowStreamingPane = await native.capture();
+  native.assert(
+    !singleRowStreamingPane.includes("PRIVATE WRAPPED STREAMING DETAIL"),
+    "Unclicked streaming Thinking summary wrapped into extra rows",
+  );
+
+  const consecutivePane = await native.waitFor(
+    "NATIVE CONSECUTIVE THINKING FINISHED",
+    8_000,
+  );
+  const consecutiveLines = consecutivePane.replace(/\n$/, "").split("\n");
+  const firstThinkingRow = consecutiveLines.findIndex((line) =>
+    line.includes("Thinking: Native single-row summary"),
+  );
+  const secondThinkingRow = consecutiveLines.findIndex((line) =>
+    line.includes("Thinking: Native consecutive second summary"),
+  );
+  native.assert(
+    firstThinkingRow >= 0 && secondThinkingRow === firstThinkingRow + 2,
+    "Consecutive Thinking summaries did not have one empty row between them",
+  );
+  native.assert(
+    consecutiveLines[firstThinkingRow + 1]?.trim() === "",
+    "Row between consecutive Thinking summaries was not empty",
+  );
   await native.finish();
   console.log("PASS thinking-summary native-stream-collapse-toggle");
 }
