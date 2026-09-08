@@ -853,6 +853,44 @@ export class ResumeCatalog {
     this.invalidate(directory, filename);
   }
 
+  recordDelete(path: string) {
+    if (this.#closed) return;
+    const directory = resolve(join(path, ".."));
+    const filename = join(path).split(/[\\/]/).pop() ?? "";
+    const remove = (manifest: CatalogManifest | undefined) => {
+      if (!manifest?.records[filename]) return false;
+      delete manifest.records[filename];
+      return true;
+    };
+
+    const snapshot = this.#snapshots.get(directory);
+    const snapshotChanged = remove(snapshot?.manifest);
+    this.#scheduleRepair(directory, true);
+
+    try {
+      const persisted = this.#readManifest(directory);
+      if (remove(persisted)) this.#writeManifest(persisted!);
+    } catch {
+      // The scheduled reconciliation repairs a failed cache write.
+    }
+
+    if (snapshotChanged) {
+      for (const listener of this.#listeners.get(directory)?.values() ?? []) {
+        try {
+          listener.publish(
+            this.#sessions(
+              snapshot!.manifest,
+              listener.cwd,
+              snapshot!.provisional,
+            ),
+          );
+        } catch {
+          // One stale picker must not prevent other picker updates or repair.
+        }
+      }
+    }
+  }
+
   invalidate(directory: string, filename?: string) {
     if (this.#closed) return;
     const resolved = resolve(directory);

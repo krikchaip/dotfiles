@@ -113,12 +113,30 @@ function restorePickerState(selector: any, sessionList: any) {
   selector.requestRender?.();
 }
 
-export function patchDeleteActiveSession(selector: any, interactiveMode: any) {
+export function patchDeleteActiveSession(
+  selector: any,
+  interactiveMode: any,
+  onSessionDeleted?: (sessionPath: string) => void,
+) {
   const sessionList = getSessionList(selector);
   if (!sessionList) return;
 
   restorePickerState(selector, sessionList);
   const originalOnDeleteSession = sessionList.onDeleteSession;
+  const deleteSession = async (receiver: any, sessionPath: string) => {
+    try {
+      await originalOnDeleteSession.call(receiver, sessionPath);
+    } finally {
+      if (!existsSync(sessionPath)) {
+        try {
+          onSessionDeleted?.(sessionPath);
+        } catch {
+          // The file deletion succeeded. A later reconciliation can repair a
+          // catalog write failure without changing the successful UI action.
+        }
+      }
+    }
+  };
 
   sessionList.startDeleteConfirmationForSelectedSession = function (this: any) {
     const selected = this.filteredSessions[this.selectedIndex];
@@ -131,7 +149,7 @@ export function patchDeleteActiveSession(selector: any, interactiveMode: any) {
     sessionPath: string,
   ) {
     if (!this.isCurrentSessionPath(sessionPath)) {
-      await originalOnDeleteSession.call(this, sessionPath);
+      await deleteSession(this, sessionPath);
       return;
     }
 
@@ -141,7 +159,7 @@ export function patchDeleteActiveSession(selector: any, interactiveMode: any) {
     let deleteAttempted = false;
     const deleteAfterSwitch = async () => {
       deleteAttempted = true;
-      await originalOnDeleteSession.call(this, sessionPath);
+      await deleteSession(this, sessionPath);
     };
 
     let result: any;

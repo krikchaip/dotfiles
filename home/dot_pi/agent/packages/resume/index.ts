@@ -30,6 +30,7 @@ import {
   installOptimizeStartup,
   invalidateResumeSessionDir,
   primeResumeSessionCatalog,
+  recordResumeSessionDelete,
   releaseResumeSelector,
   scheduleResumeSessionSync,
   setResumeActiveSessionManager,
@@ -281,7 +282,11 @@ export default function (pi: ExtensionAPI) {
             patchSessionTreeFirstIndent(selector);
             guardResumeSelection(selector);
             patchRenameSelection(selector, this);
-            patchDeleteActiveSession(selector, this);
+            patchDeleteActiveSession(
+              selector,
+              this,
+              recordResumeSessionDelete,
+            );
             if (tmuxSplitAvailable) {
               patchTmuxSessionSplit(
                 selector,

@@ -124,6 +124,10 @@ export function invalidateResumeSessionDir(
   state().catalog?.invalidate(directory, filename);
 }
 
+export function recordResumeSessionDelete(path: string) {
+  state().catalog?.recordDelete(path);
+}
+
 export function getResumeDefaultSessionDir(cwd: string) {
   const resolvedCwd = resolve(cwd);
   const safePath = `--${resolvedCwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`;
