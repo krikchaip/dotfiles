@@ -11,6 +11,7 @@ await runFiles(
     "cold-indexing-lifecycle.ts",
     "cold-all-directories.ts",
     "partial-cache.ts",
+    "delete-transition-regression.ts",
     "delete-reconciliation-regression.ts",
     "general.ts",
     "historical-regressions.ts",

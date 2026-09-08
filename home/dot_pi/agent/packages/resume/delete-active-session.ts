@@ -6,6 +6,7 @@
  */
 
 import { existsSync } from "node:fs";
+import { getKeybindings } from "@earendil-works/pi-tui";
 
 const PENDING_PICKER_STATE = Symbol.for("resume:pending-picker-state");
 
@@ -143,6 +144,45 @@ export function patchDeleteActiveSession(
     if (!selected) return;
     this.setConfirmingDeletePath(selected.session.path);
   };
+
+  const originalHandleInput = sessionList.handleInput;
+  const header = selector.header;
+  const originalSetStatusMessage = header?.setStatusMessage;
+  if (
+    typeof originalHandleInput === "function" &&
+    typeof originalSetStatusMessage === "function"
+  ) {
+    let deletePending = false;
+
+    header.setStatusMessage = function (
+      this: any,
+      message: any,
+      autoHideMs?: number,
+    ) {
+      if (deletePending && message) {
+        deletePending = false;
+        this.setConfirmingDeletePath?.(null);
+      }
+      return originalSetStatusMessage.call(this, message, autoHideMs);
+    };
+
+    sessionList.handleInput = function (this: any, data: string) {
+      if (deletePending) return;
+
+      if (
+        this.confirmingDeletePath !== null &&
+        getKeybindings().matches(data, "tui.select.confirm")
+      ) {
+        const pathToDelete = this.confirmingDeletePath;
+        deletePending = true;
+        this.confirmingDeletePath = null;
+        void this.onDeleteSession?.(pathToDelete);
+        return;
+      }
+
+      return originalHandleInput.call(this, data);
+    };
+  }
 
   sessionList.onDeleteSession = async function (
     this: any,
