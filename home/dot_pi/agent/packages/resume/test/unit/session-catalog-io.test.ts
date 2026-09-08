@@ -162,7 +162,7 @@ afterAll(() => {
 });
 
 describe("ResumeCatalog incremental I/O", () => {
-  test("cold bootstrap exposes rows before exact parsing", async () => {
+  test("cold bootstrap hides rows before exact parsing", async () => {
     const fixture = makeFixture();
     const catalog = new ResumeCatalog({
       cacheDirectory: fixture.cacheDirectory,
@@ -171,9 +171,7 @@ describe("ResumeCatalog incremental I/O", () => {
     const first = await catalog.open({ sessionDir: fixture.sessionDir }, () => {});
 
     expect(catalog.isProvisional(first)).toBe(true);
-    expect(first).toHaveLength(1);
-    expect(first[0]?.id).toBe("91000000-0000-7000-8000-000000000001");
-    expect(first[0]?.path).toBe(fixture.sessionPath);
+    expect(first).toEqual([]);
     await catalog.close();
   });
 
@@ -461,6 +459,12 @@ describe("ResumeCatalog incremental I/O", () => {
         id: "91000000-0000-7000-8000-000000000002",
         timestamp: "2026-01-01T00:00:02.000Z",
         cwd: join(fixture.sessionDir, ".."),
+      })}\n${JSON.stringify({
+        type: "session_info",
+        id: "retryable-clone-name",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:03.000Z",
+        name: "Retryable clone",
       })}\n`,
     );
     failReadPathOnce = clonePath;
@@ -557,6 +561,12 @@ describe("ResumeCatalog incremental I/O", () => {
         id: "91000000-0000-7000-8000-000000000003",
         timestamp: "2026-01-01T00:00:03.000Z",
         cwd: join(fixture.sessionDir, ".."),
+      })}\n${JSON.stringify({
+        type: "session_info",
+        id: "repair-first-name",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:04.000Z",
+        name: "Repair first",
       })}\n`,
     );
     const second = new ResumeCatalog({

@@ -338,23 +338,29 @@ async function extensionCreatedSessionScenario(
     await harness.submitCommand("resume");
     let view = "";
     await harness.waitUntil(
-      `${kind} session to appear selected on first resume`,
+      kind === "branch"
+        ? "branch session to appear selected on first resume"
+        : "parent session to appear selected while the empty child stays hidden",
       async () => {
         view = await harness.capture();
-        return kind === "branch"
-          ? new RegExp(`›[^\\n]*${sourceName}`).test(view)
-          : /›[^\n]*\(no messages\)/.test(view);
+        return new RegExp(`›[^\\n]*${sourceName}`).test(view);
       },
       1_000,
     );
     assert(
       performance.now() - openedAt < 1_000,
-      `${kind} session took at least one second to appear selected`,
+      `${kind} resume selection took at least one second`,
     );
     assert(
       !view.includes("No sessions in current folder"),
       `Resume showed an empty catalog for the ${kind} session`,
     );
+    if (kind === "child") {
+      assert(
+        !view.includes("(no messages)"),
+        "Resume showed the empty child session",
+      );
+    }
     await closeSelector(harness);
 
     await harness.submitCommand("drop");

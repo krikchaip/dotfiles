@@ -12,12 +12,38 @@ const agentRoot = resolve(import.meta.dir, "../../../..");
 const runDirectory = makeRunDirectory(agentRoot);
 const name = "resume-partial-cache";
 const stateDirectory = join(runDirectory, `${name}-state`);
-const cacheDirectory = join(stateDirectory, "cache", "resume", "v1");
 const sessions = join(runDirectory, "partial-cache-sessions");
 const cachedSession = join(sessions, "cached.jsonl");
 const currentSession = join(sessions, "current.jsonl");
 const uncachedSession = join(sessions, "uncached.jsonl");
 const pendingSession = join(sessions, "pending.jsonl");
+
+async function seedPersistedCatalog(): Promise<void> {
+  const previousAgentDirectory = process.env.PI_CODING_AGENT_DIR;
+  process.env.PI_CODING_AGENT_DIR = stateDirectory;
+  try {
+    const catalog = new ResumeCatalog();
+    try {
+      let resolveExact!: () => void;
+      const exact = new Promise<void>((resolve) => {
+        resolveExact = resolve;
+      });
+      const first = await catalog.open({ sessionDir: sessions }, (rows) => {
+        if (!catalog.isProvisional(rows)) resolveExact();
+      });
+      if (!catalog.isProvisional(first)) resolveExact();
+      await exact;
+    } finally {
+      await catalog.close();
+    }
+  } finally {
+    if (previousAgentDirectory === undefined) {
+      delete process.env.PI_CODING_AGENT_DIR;
+    } else {
+      process.env.PI_CODING_AGENT_DIR = previousAgentDirectory;
+    }
+  }
+}
 
 let harness: PiTuiHarness | undefined;
 try {
@@ -28,17 +54,7 @@ try {
     ["CACHED SESSION BODY"],
     1,
   );
-  const catalog = new ResumeCatalog({ cacheDirectory });
-  let resolveExact!: () => void;
-  const exact = new Promise<void>((resolve) => {
-    resolveExact = resolve;
-  });
-  const first = await catalog.open({ sessionDir: sessions }, (rows) => {
-    if (!catalog.isProvisional(rows)) resolveExact();
-  });
-  if (!catalog.isProvisional(first)) resolveExact();
-  await exact;
-  await catalog.close();
+  await seedPersistedCatalog();
 
   writeSession(
     currentSession,
