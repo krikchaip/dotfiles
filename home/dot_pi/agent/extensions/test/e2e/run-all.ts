@@ -58,6 +58,7 @@ const suites: Suite[] = [
   { file: "stable-scroll-indicator.ts" },
   { file: "themed-dialog-borders.ts" },
   { file: "thinking-summary.ts" },
+  { file: "tool-exclusion.ts" },
   { file: "tmux-kitty-images.ts" },
   { file: "tmux-kitty-scroll-indicator.ts" },
   { file: "tmux-kitty-scroll-indicator-color.ts" },

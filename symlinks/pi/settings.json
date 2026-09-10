@@ -19,6 +19,11 @@
     "find",
     "ls"
   ],
+  "excludeTools": [
+    "mcp__github",
+    "mcp__atlassian",
+    "powershell"
+  ],
   "theme": "dark-cavern",
   "tuiMode": "fullscreen",
   "fullscreenExitOutput": "resume-hint",
@@ -79,7 +84,7 @@
     "git:github.com/krikchaip/pi-treex@personal",
     "npm:@gotgenes/pi-permission-system",
     {
-      "source": "npm:pi-mcp-adapter@2.27.0",
+      "source": "npm:pi-mcp-adapter",
       "skills": []
     },
     "npm:pi-web-access",
