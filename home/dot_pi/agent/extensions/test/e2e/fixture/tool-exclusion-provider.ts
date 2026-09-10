@@ -1,32 +1,19 @@
-import { Type, fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
-import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
-import { writeFileSync } from "node:fs";
+import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const PROVIDER = "tool-exclusion-e2e";
 
 export default function toolExclusionProvider(pi: ExtensionAPI): void {
-  const capturePath = process.env.PI_E2E_TOOL_EXCLUSION_CAPTURE;
-  if (!capturePath) {
-    throw new Error("PI_E2E_TOOL_EXCLUSION_CAPTURE is required.");
+  const baseUrl = process.env.PI_E2E_TOOL_EXCLUSION_BASE_URL;
+  if (!baseUrl) {
+    throw new Error("PI_E2E_TOOL_EXCLUSION_BASE_URL is required.");
   }
-
-  const faux = registerFauxProvider({
-    provider: PROVIDER,
-    models: [{ id: "fake", reasoning: false }],
-  });
-  faux.setResponses([
-    (context: unknown) => {
-      writeFileSync(capturePath, JSON.stringify(context, null, 2));
-      return fauxAssistantMessage(fauxText("TOOL_EXCLUSION_DONE"));
-    },
-  ]);
 
   pi.registerProvider(PROVIDER, {
     name: "Tool Exclusion E2E",
-    baseUrl: `faux://${PROVIDER}`,
+    baseUrl,
     apiKey: "test",
-    api: faux.api,
+    api: "pi-messages",
     models: [
       {
         id: "fake",
@@ -40,7 +27,7 @@ export default function toolExclusionProvider(pi: ExtensionAPI): void {
     ],
   });
 
-  for (const name of ["mcp__github", "mcp__still_available"]) {
+  const registerFixtureTool = (name: string) => {
     pi.registerTool({
       name,
       label: name,
@@ -48,5 +35,26 @@ export default function toolExclusionProvider(pi: ExtensionAPI): void {
       parameters: Type.Object({}),
       execute: async () => ({ content: [], details: undefined }),
     });
+  };
+
+  for (const name of [
+    "mcp__github",
+    "mcp__github__search",
+    "MCP__GITHUB",
+    "literal*",
+    "literalX",
+    "exact_name",
+    "prefix_exact_name",
+    "exact_name_suffix",
+    "still_available",
+  ]) {
+    registerFixtureTool(name);
   }
+
+  let lateToolRegistered = false;
+  pi.on("context", () => {
+    if (lateToolRegistered) return;
+    lateToolRegistered = true;
+    registerFixtureTool("mcp__github__late");
+  });
 }

@@ -1,8 +1,13 @@
-const script = `${import.meta.dir}/executable_color-highlight.expect`;
+import { existsSync } from "node:fs";
+
+const packagedScript = `${import.meta.dir}/color-highlight.expect`;
+const script = existsSync(packagedScript)
+  ? packagedScript
+  : `${import.meta.dir}/executable_color-highlight.expect`;
 const processHandle = Bun.spawn(["expect", script], {
   env: {
     ...process.env,
-    PI_E2E_EXPECT_VERSION: process.env.PI_E2E_EXPECT_VERSION ?? "0.84.4",
+    PI_E2E_EXPECT_VERSION: process.env.PI_E2E_EXPECT_VERSION ?? "0.85.1",
   },
   stdin: "ignore",
   stdout: "inherit",

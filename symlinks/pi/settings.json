@@ -20,8 +20,7 @@
     "ls"
   ],
   "excludeTools": [
-    "mcp__github",
-    "mcp__atlassian",
+    "mcp__*",
     "powershell"
   ],
   "theme": "dark-cavern",

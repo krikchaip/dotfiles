@@ -3,7 +3,7 @@
  *
  * Configure in ~/.pi/agent/settings.json:
  * {
- *   "excludeTools": ["mcp__github", "mcp__atlassian"]
+ *   "excludeTools": ["mcp__*", "powershell"]
  * }
  */
 
@@ -18,34 +18,81 @@ type ToolExclusionSettings = {
   excludeTools?: unknown;
 };
 
-function excludedToolNames(context: ExtensionContext): Set<string> {
+const REGULAR_EXPRESSION_SPECIAL_CHARACTERS = new Set([
+  "\\",
+  "^",
+  "$",
+  ".",
+  "*",
+  "+",
+  "?",
+  "(",
+  ")",
+  "[",
+  "]",
+  "{",
+  "}",
+  "|",
+]);
+
+function compileToolExclusionPattern(pattern: string): RegExp {
+  let expression = "^";
+
+  for (let index = 0; index < pattern.length; index++) {
+    const character = pattern[index];
+    if (character === "\\" && pattern[index + 1] === "*") {
+      expression += "\\*";
+      index++;
+      continue;
+    }
+    if (character === "*") {
+      expression += "[\\s\\S]*";
+      continue;
+    }
+
+    expression += REGULAR_EXPRESSION_SPECIAL_CHARACTERS.has(character)
+      ? `\\${character}`
+      : character;
+  }
+
+  return new RegExp(`${expression}$`);
+}
+
+function configuredToolExclusions(context: ExtensionContext): RegExp[] {
   const settings = SettingsManager.create(
     context.cwd,
     getAgentDir(),
   ).getGlobalSettings() as ToolExclusionSettings;
   const configured = settings.excludeTools;
-  if (!Array.isArray(configured)) return new Set();
+  if (!Array.isArray(configured)) return [];
 
-  return new Set(
-    configured.filter((name): name is string => typeof name === "string"),
-  );
+  return [
+    ...new Set(
+      configured.filter((name): name is string => typeof name === "string"),
+    ),
+  ].map(compileToolExclusionPattern);
 }
 
 function applyToolExclusions(
   pi: ExtensionAPI,
-  context: ExtensionContext,
+  exclusions: readonly RegExp[],
 ): void {
-  const excluded = excludedToolNames(context);
-  if (excluded.size === 0) return;
+  if (exclusions.length === 0) return;
 
   const active = pi.getActiveTools();
-  const filtered = active.filter((name) => !excluded.has(name));
+  const filtered = active.filter(
+    (name) => !exclusions.some((pattern) => pattern.test(name)),
+  );
   if (filtered.length !== active.length) pi.setActiveTools(filtered);
 }
 
 export default function toolExclusion(pi: ExtensionAPI): void {
-  pi.on("session_start", (_event, context) => applyToolExclusions(pi, context));
-  pi.on("before_agent_start", (_event, context) =>
-    applyToolExclusions(pi, context),
-  );
+  let exclusions: RegExp[] = [];
+
+  pi.on("session_start", (_event, context) => {
+    exclusions = configuredToolExclusions(context);
+    applyToolExclusions(pi, exclusions);
+  });
+  pi.on("before_agent_start", () => applyToolExclusions(pi, exclusions));
+  pi.on("context", () => applyToolExclusions(pi, exclusions));
 }

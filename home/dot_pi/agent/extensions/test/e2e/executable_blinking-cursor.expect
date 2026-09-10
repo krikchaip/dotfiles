@@ -3,7 +3,7 @@
 set timeout 1
 log_user 0
 set extension_path [file normalize [file join [file dirname [info script]] ../.. blinking-cursor.ts]]
-set expected_version "0.84.4"
+set expected_version "0.85.1"
 if {[info exists env(PI_E2E_EXPECT_VERSION)]} {
   set expected_version $env(PI_E2E_EXPECT_VERSION)
 }

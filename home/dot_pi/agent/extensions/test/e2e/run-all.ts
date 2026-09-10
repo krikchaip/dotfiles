@@ -163,7 +163,7 @@ async function main() {
       const missing = expected.filter((marker) => !output.includes(marker));
       if (exitCode !== 0 && missing.length === 0) {
         expectedFailed += 1;
-        verdict = `XFAIL ${suite.file}: known Pi 0.84.4 baseline defect(s)`;
+        verdict = `XFAIL ${suite.file}: known Pi 0.85.1 baseline defect(s)`;
       } else if (exitCode === 0) {
         const failure = `${suite.file}: unexpectedly passed; review whether the baseline defect was fixed`;
         unexpected.push(failure);

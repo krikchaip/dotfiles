@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 
-const EXPECTED_VERSION = process.env.PI_E2E_EXPECT_VERSION ?? "0.84.4";
+const EXPECTED_VERSION = process.env.PI_E2E_EXPECT_VERSION ?? "0.85.1";
 const POLL_MS = 100;
 const READY_TIMEOUT_MS = 10_000;
 const COMMAND_TIMEOUT_MS = 10_000;

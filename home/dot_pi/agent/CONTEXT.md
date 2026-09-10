@@ -12,6 +12,14 @@ _Avoid_: Dotfile tweak, random plugin, agent hack
 A TypeScript module loaded by Pi to change behavior through lifecycle events, commands, tools, UI hooks, or runtime patches.
 _Avoid_: Plugin, script
 
+**Tool exclusion**:
+A Pi agent customization that keeps matching registered tools out of the model context by making them inactive for a session. Its settings are fixed when the session starts.
+_Avoid_: Tool removal, disabled provider
+
+**Tool exclusion pattern**:
+A case-sensitive full tool-name selector in `excludeTools`. It is either an exact name or a name containing `*`, which matches zero or more characters; only `\*` is an escape sequence and it matches a literal asterisk.
+_Avoid_: Prefix setting, regular expression
+
 **Hex color token**:
 A color literal that starts with `#` and contains exactly six hexadecimal digits, such as `#FF8800`.
 _Avoid_: Bare hex value, three-digit color, eight-digit color

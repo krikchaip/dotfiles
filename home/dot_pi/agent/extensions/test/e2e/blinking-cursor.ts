@@ -1,8 +1,13 @@
-const script = `${import.meta.dir}/executable_blinking-cursor.expect`;
+import { existsSync } from "node:fs";
+
+const packagedScript = `${import.meta.dir}/blinking-cursor.expect`;
+const script = existsSync(packagedScript)
+  ? packagedScript
+  : `${import.meta.dir}/executable_blinking-cursor.expect`;
 const processHandle = Bun.spawn(["expect", script], {
   env: {
     ...process.env,
-    PI_E2E_EXPECT_VERSION: process.env.PI_E2E_EXPECT_VERSION ?? "0.84.4",
+    PI_E2E_EXPECT_VERSION: process.env.PI_E2E_EXPECT_VERSION ?? "0.85.1",
   },
   stdin: "ignore",
   stdout: "inherit",
