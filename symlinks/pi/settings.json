@@ -82,6 +82,7 @@
     "git:github.com/krikchaip/pi-token-burden@personal",
     "git:github.com/krikchaip/pi-treex@personal",
     "npm:@gotgenes/pi-permission-system",
+    "npm:@joelazar/pi-tuicr",
     {
       "source": "npm:pi-mcp-adapter",
       "skills": []
