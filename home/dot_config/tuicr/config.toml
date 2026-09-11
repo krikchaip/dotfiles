@@ -1,0 +1,15 @@
+theme = "tokyo-night-storm"
+
+diff_view = "side-by-side"
+show_pr_checks = true
+show_reviewed = false
+leader = " "
+editor = "env NVIM_APPNAME=nvchad nvim"
+q_quits = true
+comment_tab_width = 2
+
+[export]
+intro = ""
+scope_line = false
+comments_header = ""
+session_header = false
