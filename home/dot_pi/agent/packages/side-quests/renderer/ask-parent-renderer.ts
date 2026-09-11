@@ -1,7 +1,7 @@
-import { type Theme, keyText } from "@earendil-works/pi-coding-agent";
-import { Box, Text } from "@earendil-works/pi-tui";
+import type { Theme } from "@earendil-works/pi-coding-agent";
+import { Box, Spacer, Text } from "@earendil-works/pi-tui";
 
-const COLLAPSED_QUESTION_CHAR_LIMIT = 240;
+import { expandableMarkdown } from "./expandable-markdown.ts";
 
 type RenderContext = Readonly<{
   args?: unknown;
@@ -61,8 +61,7 @@ export class AskParentRenderer {
   }
 
   /**
-   * Renders one approved ask_parent banner with the parent-question truncation
-   * and color rules.
+   * Renders one ask_parent banner with shared child-message Markdown.
    */
   private static renderBanner(
     question: string,
@@ -70,39 +69,22 @@ export class AskParentRenderer {
     error: string | undefined,
     theme: Theme,
   ): Box {
-    const collapsedQuestion = AskParentRenderer.truncateQuestion(question);
-    const truncated = !expanded && collapsedQuestion !== question;
-    const displayedQuestion = expanded ? question : collapsedQuestion;
-    const truncationSuffix = truncated
-      ? `${theme.fg("muted", "… ")}${theme.fg("dim", keyText("app.tools.expand"))}${theme.fg("muted", " to expand")}`
-      : "";
     const heading = error
       ? theme.fg("error", `${theme.bold("ASK PARENT")} · ERROR`)
       : theme.fg("customMessageLabel", theme.bold("ASK PARENT"));
-    const lines = [
-      heading,
-      "",
-      `${theme.fg("customMessageText", displayedQuestion)}${truncationSuffix}`,
-      ...(error ? ["", theme.fg("error", error)] : []),
-    ];
     const box = new Box(2, 1, (text) => theme.bg("customMessageBg", text));
 
-    box.addChild(new Text(lines.join("\n"), 0, 0));
+    box.addChild(new Text(heading, 0, 0));
+    box.addChild(new Spacer(1));
+    box.addChild(
+      expandableMarkdown(question, expanded, "customMessageText", theme),
+    );
+    if (error) {
+      box.addChild(new Spacer(1));
+      box.addChild(new Text(theme.fg("error", error), 0, 0));
+    }
 
     return box;
-  }
-
-  /**
-   * Truncates a collapsed question before its separately styled ellipsis.
-   */
-  private static truncateQuestion(question: string): string {
-    const characters = Array.from(question);
-    if (characters.length <= COLLAPSED_QUESTION_CHAR_LIMIT) return question;
-
-    return characters
-      .slice(0, COLLAPSED_QUESTION_CHAR_LIMIT)
-      .join("")
-      .trimEnd();
   }
 
   /**

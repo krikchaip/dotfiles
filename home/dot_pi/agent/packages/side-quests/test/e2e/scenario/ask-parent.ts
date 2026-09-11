@@ -8,7 +8,10 @@ import { fauxSubagentDone, sessionPath } from "../provider-support.ts";
 
 const positionalPrompt = "Delegate this E2E task now.";
 const parentQuestion =
-  "Before I update the renderer, should I preserve every explicit field label from the old transcript, or should I use the selected identity-first layout for all new questions? The choice affects narrow terminals, existing saved sessions, Unicode wrapping, continuation prompts, and how quickly the parent can find the decision that blocks the subagent. Please choose the compatibility rule that should be canonical.";
+  "Before I update the **renderer**, should I preserve every explicit field label from the old transcript, or should I use the selected identity-first layout for all new questions? The choice affects narrow terminals, existing saved sessions, Unicode wrapping, continuation prompts, and how quickly the parent can find the decision that blocks the subagent. Please choose the `compatibility rule` that should be canonical.";
+const secondParentQuestion =
+  "Can I ask a **second question** with `inline code` now?";
+const parentAnswer = "Use **blue** with `expandableMarkdown`.";
 
 export const askParent: Scenario = {
   name: "ask-parent",
@@ -44,7 +47,7 @@ export const askParent: Scenario = {
                     prompt: parentQuestion,
                   }),
                   fauxToolCall("ask_parent", {
-                    prompt: "Can I ask a second question now?",
+                    prompt: secondParentQuestion,
                   }),
                 ],
                 { stopReason: "toolUse" },
@@ -83,7 +86,7 @@ export const askParent: Scenario = {
           ? fauxAssistantMessage(
               fauxToolCall("Agent", {
                 description: "Answer the E2E child question",
-                prompt: "Use blue.",
+                prompt: parentAnswer,
                 resume,
               }),
               { stopReason: "toolUse" },
@@ -103,7 +106,7 @@ export const askParent: Scenario = {
     await harness.waitFor("SUBAGENT ASKS");
     await harness.waitFor("general-purpose");
     await harness.waitFor("E2E delegated task");
-    await harness.waitFor("Before I update the renderer");
+    await harness.waitFor("Before I update the **renderer**");
     await harness.waitFor(
       "Agent general-purpose (answered) :: Answer the E2E child question",
     );
@@ -128,7 +131,7 @@ export const askParent: Scenario = {
 
     const styledCollapsedParent = harness.read(harness.logPath);
     const questionStartWithStyle = styledCollapsedParent.lastIndexOf(
-      "Before I update the renderer",
+      "Before I update the **renderer**",
     );
     const hintText = styledCollapsedParent.indexOf(
       "to expand",
@@ -187,6 +190,13 @@ export const askParent: Scenario = {
       .split("\n")
       .find((line) => line.includes(error));
     harness.assert(
+      collapsed.includes("second question") &&
+        collapsed.includes("inline code") &&
+        !collapsed.includes("**second question**") &&
+        !collapsed.includes("`inline code`"),
+      `The ASK PARENT message did not render Markdown.\n${collapsed}`,
+    );
+    harness.assert(
       collapsedError !== undefined && !collapsedError.includes("to expand"),
       "The collapsed ask_parent error showed a redundant expansion hint.",
     );
@@ -240,10 +250,13 @@ export const askParent: Scenario = {
     const answerBanner = collapsedAnswer.slice(Math.max(0, answerStart));
     harness.assert(
       answerBanner.includes("Before I update the renderer") &&
-        answerBanner.includes("Use blue.") &&
+        answerBanner.includes("Use blue with expandableMarkdown.") &&
         answerBanner.includes("to expand") &&
+        !answerBanner.includes("**renderer**") &&
+        !answerBanner.includes("**blue**") &&
+        !answerBanner.includes("`expandableMarkdown`") &&
         !answerBanner.includes("canonical."),
-      `The collapsed parent answer did not show layout A with truncated question context.\n${answerBanner}`,
+      `The collapsed FROM PARENT message did not render Markdown or preserve layout A.\n${answerBanner}`,
     );
 
     await harness.sendKeys(childPane, "C-o");
@@ -264,8 +277,10 @@ export const askParent: Scenario = {
     );
     harness.assert(
       expandedAnswerBanner.includes("canonical.") &&
+        expandedAnswerBanner.includes("compatibility rule") &&
+        !expandedAnswerBanner.includes("`compatibility rule`") &&
         !expandedAnswerBanner.includes("to expand"),
-      `The expanded parent answer did not show the complete question context.\n${expandedAnswerBanner}`,
+      `The expanded FROM PARENT message did not render Markdown or show the complete question context.\n${expandedAnswerBanner}`,
     );
 
     await harness.sendLiteral(childPane, "/subagent-done", true);

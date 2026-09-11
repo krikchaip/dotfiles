@@ -18,11 +18,19 @@ const plainTheme = {
   bold: (text: string) => text,
   fg: (_color: string, text: string) => text,
 } as Theme;
+const transcriptAnsi = {
+  customMessageLabel: 31,
+  customMessageText: 32,
+  muted: 33,
+  dim: 34,
+  error: 35,
+} as const;
 const markedTheme = {
   ...plainTheme,
-  bg: (color: string, text: string) => `<bg:${color}>${text}</bg>`,
-  bold: (text: string) => `<bold>${text}</bold>`,
-  fg: (color: string, text: string) => `<${color}>${text}</${color}>`,
+  bg: (_color: string, text: string) => `\u001b[45m${text}\u001b[49m`,
+  bold: (text: string) => `\u001b[1m${text}\u001b[22m`,
+  fg: (color: string, text: string) =>
+    `\u001b[${transcriptAnsi[color as keyof typeof transcriptAnsi]}m${text}\u001b[39m`,
 } as Theme;
 const widgetAnsi = {
   accent: 31,
@@ -230,18 +238,30 @@ test("collapsed ask_parent banners hide success output and truncate after 240 ch
   expect(rendered).not.toContain("REPLY PENDING");
 });
 
+test("ask_parent questions render Markdown", () => {
+  const rendered = renderAskParent({
+    question: "Use **bold guidance** from `renderer.ts`.",
+  });
+
+  expect(rendered).toContain("bold guidance");
+  expect(rendered).toContain("renderer.ts");
+  expect(rendered).not.toContain("**bold guidance**");
+  expect(rendered).not.toContain("`renderer.ts`");
+});
+
 test("ask_parent uses the approved background and truncation colors", () => {
   const rendered = renderAskParent({
     question: "Q".repeat(241),
     theme: markedTheme,
   });
 
-  expect(rendered).toContain("<bg:customMessageBg>");
+  expect(rendered).toContain("\u001b[45m");
   expect(rendered).toContain(
-    "<customMessageLabel><bold>ASK PARENT</bold></customMessageLabel>",
+    "\u001b[31m\u001b[1mASK PARENT\u001b[22m\u001b[39m",
   );
-  expect(rendered).toContain("<muted>… </muted>");
-  expect(rendered).toMatch(/<dim>[^<]*<\/dim><muted> to expand<\/muted>/);
+  expect(rendered).toContain("\u001b[33m… \u001b[39m");
+  expect(rendered).toContain("\u001b[34m\u001b[39m");
+  expect(rendered).toContain("\u001b[33m to expand\u001b[39m");
 });
 
 test("long ask_parent errors keep their bottom line when collapsed and expanded", () => {
@@ -255,16 +275,17 @@ test("long ask_parent errors keep their bottom line when collapsed and expanded"
     theme: markedTheme,
   });
 
-  expect(collapsed).toContain("<error><bold>ASK PARENT</bold> · ERROR</error>");
   expect(collapsed).toContain(
-    `<customMessageText>${"Q".repeat(240)}</customMessageText><muted>… </muted>`,
+    "\u001b[35m\u001b[1mASK PARENT\u001b[22m · ERROR\u001b[39m",
   );
+  expect(collapsed).toContain(`\u001b[32m${"Q".repeat(240)}`);
+  expect(collapsed).toContain("\u001b[33m… \u001b[39m");
   expect(collapsed).not.toContain("Q".repeat(241));
-  expect(collapsed).toContain(`<error>${error}</error>`);
+  expect(collapsed).toContain(`\u001b[35m${error}\u001b[39m`);
 
   expect(expanded).toContain("Q".repeat(241));
   expect(expanded).not.toContain("to expand");
-  expect(expanded).toContain(`<error>${error}</error>`);
+  expect(expanded).toContain(`\u001b[35m${error}\u001b[39m`);
 });
 
 test("settled ask_parent calls defer their complete banner to the result renderer", () => {
