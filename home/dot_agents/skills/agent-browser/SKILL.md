@@ -28,6 +28,7 @@ Load a specialized skill when the task falls outside browser web pages:
 agent-browser skills get electron          # Electron desktop apps (VS Code, Slack, Discord, Figma, ...)
 agent-browser skills get slack             # Slack workspace automation
 agent-browser skills get dogfood           # Exploratory testing / QA / bug hunts
+agent-browser skills get derive-client     # Record a HAR, derive a standalone API client for a site
 ```
 
 Run `agent-browser skills list` to see everything available on the installed version.
