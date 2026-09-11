@@ -168,6 +168,22 @@ _Avoid_: Final assistant response, inferred completion, normal turn end
 The parent agent's evaluation of a returned side-quest result, followed when needed by resuming the same sub-agent session with corrections or follow-up work.
 _Avoid_: Sub-agent lifecycle, blind result acceptance, unrelated retry, new child session
 
+**Side-quest tool execution**:
+One visible invocation of the parent `Agent` tool or the child `ask_parent` or `subagent_done` tool. The **WRAP UP** block is the visible result of `subagent_done`, not a custom event message.
+_Avoid_: Side-quest event message, wrap-up message
+
+**Side-quest event message**:
+One visible custom transcript message sent between a parent agent and a sub-agent. Parent-facing events report a question or terminal outcome. Child-facing events report a correlated parent answer or direct continuation. Hidden launch and completion-control messages are not Side-quest event messages.
+_Avoid_: Side-quest tool execution, live-child widget, hidden control message
+
+**Side-quest event expansion**:
+A local toggle between the compact and full presentation of one Side-quest event message. The complete visible message block is the expansion target. A hidden session path is full-presentation detail even when all primary message text fits in the compact presentation.
+_Avoid_: Tool expansion, global transcript expansion, widget navigation
+
+**Agent result summary**:
+The compact status row beneath an `Agent` execution summary. Enabled launch statuses can appear on this row. In a click-enabled host, the host supplies the expansion instruction and owns the row's expansion behavior.
+_Avoid_: Agent execution summary, expanded Agent output, Side-quest event message
+
 **Thinking segment**:
 One non-empty thinking content entry from an assistant message. Each segment has its own Thinking summary.
 _Avoid_: Thinking run, clickable thinking block

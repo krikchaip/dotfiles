@@ -11,7 +11,14 @@ import {
   ToolExecutionComponent,
   initTheme,
 } from "@earendil-works/pi-coding-agent";
-import { Container, Text } from "@earendil-works/pi-tui";
+import {
+  Container,
+  KeybindingsManager,
+  TUI_KEYBINDINGS,
+  Text,
+  getKeybindings,
+  setKeybindings,
+} from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { AgentRenderer } from "../../renderer/agent-renderer.ts";
@@ -40,6 +47,7 @@ type Prototype = Record<PropertyKey, unknown>;
 const containerPrototype = Container.prototype as unknown as Prototype;
 const prototype = ToolExecutionComponent.prototype as unknown as Prototype;
 let originalAddChildDescriptor: PropertyDescriptor | undefined;
+let originalKeybindings: KeybindingsManager;
 const originalDescriptors = new Map<
   PropertyKey,
   PropertyDescriptor | undefined
@@ -103,6 +111,7 @@ function renderedComponent(value: unknown): string {
 }
 
 beforeEach(() => {
+  originalKeybindings = getKeybindings();
   originalAddChildDescriptor = Object.getOwnPropertyDescriptor(
     containerPrototype,
     "addChild",
@@ -118,6 +127,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  setKeybindings(originalKeybindings);
   delete globals[PATCH_STATE];
   if (originalAddChildDescriptor)
     Object.defineProperty(
@@ -534,7 +544,8 @@ test("Agent results render independently while other tools stay delegated", () =
     },
   );
   const text = renderedText(rendered);
-  expect(text).toContain("inherit_context: false · interactive: true");
+  expect(text).toContain("└ Spawned [interactive]");
+  expect(text).not.toContain("for details");
   expect(text).toContain(`session path: ${path}`);
   expect(text).toContain("Check both extension modes.");
 
@@ -554,13 +565,25 @@ test("Agent results render independently while other tools stay delegated", () =
       },
     ),
   );
-  expect(styled).toContain(
-    "\u001B[dimminherit_context: false · interactive: true\u001B[39m",
-  );
+  expect(styled).toContain("\u001B[successmSpawned\u001B[39m");
+  expect(styled).toContain("\u001B[mutedm[interactive]\u001B[39m");
   expect(styled).toContain(`\u001B[dimmsession path: ${path}\u001B[39m`);
   expect(styled).toContain("\u001B[dimmCheck both extension modes.\u001B[39m");
+  expect(styled).not.toContain("for details");
 
   initTheme("dark", false);
+  setKeybindings(
+    new KeybindingsManager(
+      {
+        ...TUI_KEYBINDINGS,
+        "app.tools.expand": {
+          defaultKeys: "ctrl+o",
+          description: "Toggle tool output",
+        },
+      } as never,
+      { "app.tools.expand": "f8" } as never,
+    ),
+  );
   const collapsedStyled = renderedText(
     agentRenderer?.(
       { content: [], details: { sessionPath: path } },
@@ -577,10 +600,11 @@ test("Agent results render independently while other tools stay delegated", () =
       },
     ),
   );
-  expect(collapsedStyled).toContain("\u001B[mdHeadingm⌨ interactive\u001B[39m");
-  expect(collapsedStyled).not.toContain(
-    "\u001B[accentm⌨ interactive\u001B[39m",
-  );
+  expect(collapsedStyled).toContain("\u001B[successmSpawned\u001B[39m");
+  expect(collapsedStyled).toContain("\u001B[mutedm[interactive]\u001B[39m");
+  expect(collapsedStyled).toContain("f8");
+  expect(collapsedStyled).toContain("for details");
+  expect(collapsedStyled).not.toContain("ctrl+o");
 
   expect(
     rendererFor("getResultRenderer", {
@@ -589,6 +613,39 @@ test("Agent results render independently while other tools stay delegated", () =
     })?.({ content: [] }),
   ).toEqual({ result: { content: [] }, source: "base", toolName: "read" });
 });
+
+test.each([
+  [{}, "[inherited]"],
+  [{ interactive: true }, "[inherited | interactive]"],
+  [{ inherit_context: false, interactive: true }, "[interactive]"],
+  [{ inherit_context: false }, undefined],
+  [{ resume: "/tmp/resumed/session.jsonl" }, undefined],
+] as const)(
+  "Agent result formats structured statuses for %j",
+  (args, status) => {
+    expect(AgentRenderer.install()).toBe(true);
+    const path = "/tmp/statuses/session.jsonl";
+    const renderer = rendererFor("getResultRenderer", {
+      result: { isError: false },
+      toolName: "Agent",
+    });
+    const rendered = renderedText(
+      renderer?.(
+        { content: [], details: { sessionPath: path } },
+        { expanded: false, isPartial: false },
+        theme,
+        { args, isError: false },
+      ),
+    );
+
+    expect(rendered).toContain("└ Spawned");
+    if (status) expect(rendered).toContain(status);
+    else {
+      expect(rendered).not.toContain("[inherited");
+      expect(rendered).not.toContain("[interactive");
+    }
+  },
+);
 
 test("Agent errors omit the redundant expansion hint", () => {
   expect(AgentRenderer.install()).toBe(true);

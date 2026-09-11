@@ -140,6 +140,7 @@ export class ParentTools {
           return this.acknowledgement(
             continuation.operation,
             continued.sessionPath,
+            [],
             continuation.continuationKind,
           );
         }
@@ -169,7 +170,16 @@ export class ParentTools {
 
         try {
           const launched = await this.runtime.launch(manifest, request.prompt);
-          return this.acknowledgement("launched", launched.sessionPath);
+          const statuses: ("inherited" | "interactive")[] = [];
+          if (launched.inheritContext) statuses.push("inherited");
+          if (launched.lifecycle === "interactive")
+            statuses.push("interactive");
+
+          return this.acknowledgement(
+            "launched",
+            launched.sessionPath,
+            statuses,
+          );
         } catch (cause) {
           const child = await manifest.then(
             (created) => created.sessionPath,
@@ -191,14 +201,29 @@ export class ParentTools {
   private acknowledgement(
     operation: "launched" | "continued" | "reopened",
     sessionPath: string,
+    statuses: ("inherited" | "interactive")[],
     continuationKind?: "answer" | "steer",
   ): AgentToolResult<{
     operation: "launched" | "continued" | "reopened";
     continuationKind?: "answer" | "steer";
     sessionPath: string;
+    sideQuestPresentation: {
+      version: 1;
+      surface: "agent";
+      statuses: ("inherited" | "interactive")[];
+    };
   }> {
     return {
-      details: { operation, continuationKind, sessionPath },
+      details: {
+        operation,
+        continuationKind,
+        sessionPath,
+        sideQuestPresentation: {
+          version: 1,
+          surface: "agent",
+          statuses,
+        },
+      },
       content: [
         {
           type: "text",

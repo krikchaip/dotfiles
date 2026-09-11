@@ -98,19 +98,14 @@ test("collapsed resume status is always hidden", () => {
   ).toEqual([]);
 });
 
-test("expanded launch shows booleans while expanded resume omits them", () => {
+test("expanded output contains only the session path and delegated prompt", () => {
   expect(
     AgentRenderer.expandedResultLines(
       { inherit_context: false, interactive: true },
       "/tmp/fresh/session.jsonl",
       "Review the UI.",
     ),
-  ).toEqual([
-    "inherit_context: false · interactive: true",
-    "session path: /tmp/fresh/session.jsonl",
-    "⠀",
-    "Review the UI.",
-  ]);
+  ).toEqual(["session path: /tmp/fresh/session.jsonl", "⠀", "Review the UI."]);
 
   expect(
     AgentRenderer.expandedResultLines(
@@ -132,7 +127,4 @@ test("persisted manifest values override passed Agent parameters", () => {
   expect(AgentRenderer.collapsedStatuses(args, sessionPath)).toEqual([
     "interactive",
   ]);
-  expect(
-    AgentRenderer.expandedResultLines(args, sessionPath, "Test precedence.")[0],
-  ).toBe("inherit_context: false · interactive: true");
 });

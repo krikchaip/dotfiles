@@ -335,19 +335,11 @@ export class AgentRenderer {
    * Builds the expanded Agent result body.
    */
   public static expandedResultLines(
-    args: unknown,
+    _args: unknown,
     path: string,
     prompt: string,
   ): string[] {
-    const details = [`session path: ${path}`, "\u2800", prompt];
-    if (AgentRenderer.display(args).mode === "resumed") return details;
-
-    const statuses = AgentRenderer.statuses(args, path);
-
-    return [
-      `inherit_context: ${AgentRenderer.statusValue(statuses.inheritContext)} · interactive: ${AgentRenderer.statusValue(statuses.interactive)}`,
-      ...details,
-    ];
+    return [`session path: ${path}`, "\u2800", prompt];
   }
 
   private constructor(private readonly pi: ExtensionAPI) {}
@@ -611,33 +603,31 @@ export class AgentRenderer {
       );
     }
 
+    const statuses = AgentRenderer.collapsedStatuses(args, path);
+    const status = statuses.length
+      ? ` ${theme.fg("muted", `[${statuses.join(" | ")}]`)}`
+      : "";
+    const summary = `${theme.fg("success", "Spawned")}${status}`;
+
     if (renderOptions?.expanded) {
+      const details = AgentRenderer.expandedResultLines(
+        args,
+        path,
+        AgentRenderer.stringArg(args, "prompt") ?? "",
+      ).map((line) => theme.fg("dim", line));
+
       return new Text(
-        AgentRenderer.dimBranchText(
-          AgentRenderer.expandedResultLines(
-            args,
-            path,
-            AgentRenderer.stringArg(args, "prompt") ?? "",
-          ),
-          theme,
-        ),
+        AgentRenderer.branchText([summary, ...details], theme),
         0,
         0,
       );
     }
 
-    const statuses = AgentRenderer.collapsedStatuses(args, path).map((label) =>
-      label === "inherited"
-        ? theme.fg("success", "⧉ inherited")
-        : theme.fg("mdHeading", "⌨ interactive"),
-    );
-    const status = statuses.length
-      ? `${statuses.join(theme.fg("dim", " · "))}${theme.fg("dim", " • ")}`
-      : "";
-
     return new Text(
       AgentRenderer.branchText(
-        [`${status}${keyHint("app.tools.expand", "to expand")}`],
+        [
+          `${summary}${theme.fg("dim", " • ")}${keyHint("app.tools.expand", "for details")}`,
+        ],
         theme,
       ),
       0,
@@ -703,18 +693,6 @@ export class AgentRenderer {
   }
 
   /**
-   * Formats a dim expanded result body under one branch marker.
-   */
-  private static dimBranchText(lines: readonly string[], theme: Theme): string {
-    const [first = "", ...rest] = lines;
-
-    return [
-      `${theme.fg("dim", "└")} ${theme.fg("dim", first)}`,
-      ...rest.map((line) => `  ${theme.fg("dim", line)}`),
-    ].join("\n");
-  }
-
-  /**
    * Reads a non-empty string argument.
    */
   private static stringArg(args: unknown, key: string): string | undefined {
@@ -745,12 +723,5 @@ export class AgentRenderer {
       value !== null &&
       Object.prototype.hasOwnProperty.call(value, key)
     );
-  }
-
-  /**
-   * Formats an optional boolean for expanded output.
-   */
-  private static statusValue(value: boolean | undefined): string {
-    return value === undefined ? "?" : String(value);
   }
 }
