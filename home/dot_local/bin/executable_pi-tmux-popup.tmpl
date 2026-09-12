@@ -39,7 +39,7 @@ exec pi --model antigravity/gemini-3.8-flash-high --no-session \
     -e git:github.com/krikchaip/pi-cc-tools@personal \
     -e git:github.com/krikchaip/pi-powerline-footer@personal \
     -e npm:@gotgenes/pi-permission-system \
-    -e npm:pi-mcp-adapter@2.27.0 \
+    -e npm:pi-mcp-adapter \
     -e npm:pi-web-access \
     -e ~/.pi/agent/extensions/blinking-cursor.ts \
     -e ~/.pi/agent/extensions/clear-copied-selection.ts \
@@ -56,6 +56,7 @@ exec pi --model antigravity/gemini-3.8-flash-high --no-session \
     -e ~/.pi/agent/extensions/stable-scroll-indicator.ts \
     -e ~/.pi/agent/extensions/themed-dialog-borders.ts \
     -e ~/.pi/agent/extensions/thinking-summary.ts \
+    -e ~/.pi/agent/extensions/tool-exclusion.ts \
     -e ~/.pi/agent/extensions/undo-redo.ts \
   --no-skills \
     --skill ~/.agents/skills/grill-me \
