@@ -355,6 +355,21 @@ test("collapsed parent questions keep short questions without an ellipsis", () =
   expect(rendered).not.toContain("to expand");
 });
 
+test("parent questions render Markdown", () => {
+  const rendered = renderParentQuestion({
+    description: "Render the parent transcript question",
+    question:
+      "## Renderer decision\n\nKeep **renderer** and `compatibility rule` formatted.",
+  });
+
+  expect(rendered).toContain("Renderer decision");
+  expect(rendered).toContain("renderer");
+  expect(rendered).toContain("compatibility rule");
+  expect(rendered).not.toContain("## Renderer decision");
+  expect(rendered).not.toContain("**renderer**");
+  expect(rendered).not.toContain("`compatibility rule`");
+});
+
 test("expanded parent questions show the full question and canonical session path", () => {
   const question = "Q".repeat(241);
   const sessionPath = "/tmp/child/canonical-session.jsonl";

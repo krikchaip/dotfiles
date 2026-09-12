@@ -7,8 +7,11 @@ import {
 import { fauxSubagentDone, sessionPath } from "../provider-support.ts";
 
 const positionalPrompt = "Delegate this E2E task now.";
-const parentQuestion =
-  "Before I update the **renderer**, should I preserve every explicit field label from the old transcript, or should I use the selected identity-first layout for all new questions? The choice affects narrow terminals, existing saved sessions, Unicode wrapping, continuation prompts, and how quickly the parent can find the decision that blocks the subagent. Please choose the `compatibility rule` that should be canonical.";
+const parentQuestion = [
+  "## Renderer decision",
+  "",
+  "Before I update the **renderer**, should I preserve every explicit field label from the old transcript, or should I use the selected identity-first layout for all new questions? The choice affects narrow terminals, existing saved sessions, Unicode wrapping, continuation prompts, and how quickly the parent can find the decision that blocks the subagent. Please choose the `compatibility rule` that should be canonical.",
+].join("\n");
 const secondParentQuestion =
   "Can I ask a **second question** with `inline code` now?";
 const parentAnswer = "Use **blue** with `expandableMarkdown`.";
@@ -106,7 +109,7 @@ export const askParent: Scenario = {
     await harness.waitFor("SUBAGENT ASKS");
     await harness.waitFor("general-purpose");
     await harness.waitFor("E2E delegated task");
-    await harness.waitFor("Before I update the **renderer**");
+    await harness.waitFor("Renderer decision");
     await harness.waitFor(
       "Agent general-purpose (answered) :: Answer the E2E child question",
     );
@@ -121,6 +124,13 @@ export const askParent: Scenario = {
 
     const collapsedParent = await harness.capture();
     harness.assert(
+      collapsedParent.includes("Renderer decision") &&
+        collapsedParent.includes("Before I update the renderer") &&
+        !collapsedParent.includes("## Renderer decision") &&
+        !collapsedParent.includes("**renderer**"),
+      `The SUBAGENT ASKS message did not render Markdown.\n${collapsedParent}`,
+    );
+    harness.assert(
       !collapsedParent.includes("session path:"),
       "The collapsed subagent question exposed its session path.",
     );
@@ -130,9 +140,8 @@ export const askParent: Scenario = {
     );
 
     const styledCollapsedParent = harness.read(harness.logPath);
-    const questionStartWithStyle = styledCollapsedParent.lastIndexOf(
-      "Before I update the **renderer**",
-    );
+    const questionStartWithStyle =
+      styledCollapsedParent.lastIndexOf("Renderer decision");
     const hintText = styledCollapsedParent.indexOf(
       "to expand",
       questionStartWithStyle,

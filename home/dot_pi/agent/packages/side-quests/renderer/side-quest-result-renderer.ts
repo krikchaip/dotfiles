@@ -178,26 +178,32 @@ export class SideQuestResultRenderer {
       details.response ??
       content.match(/^Subagent asks:\s*([^\n]*)/)?.[1] ??
       "Subagent has a question.";
-    const collapsedQuestion = SideQuestResultRenderer.truncateText(question);
-    const truncated = !expanded && collapsedQuestion !== question;
-    const displayedQuestion = expanded ? question : collapsedQuestion;
-    const truncationSuffix = truncated
-      ? `${theme.fg("muted", "… ")}${theme.fg("dim", keyText("app.tools.expand"))}${theme.fg("muted", " to expand")}`
-      : "";
-    const lines = [
-      `${theme.fg("customMessageLabel", theme.bold("SUBAGENT ASKS"))}  ${theme.fg("accent", type)}`,
-      theme.fg("muted", description),
-      "",
-      `${theme.fg("customMessageText", displayedQuestion)}${truncationSuffix}`,
-      ...(expanded && details.sessionPath
-        ? ["", theme.fg("muted", `session path: ${details.sessionPath}`)]
-        : []),
-    ];
     const box = new Box(Math.max(1, outputPad + 1), 1, (text) =>
       theme.bg("customMessageBg", text),
     );
 
-    box.addChild(new Text(lines.join("\n"), 0, 0));
+    box.addChild(
+      new Text(
+        `${theme.fg("customMessageLabel", theme.bold("SUBAGENT ASKS"))}  ${theme.fg("accent", type)}\n${theme.fg("muted", description)}`,
+        0,
+        0,
+      ),
+    );
+    box.addChild(new Spacer(1));
+    box.addChild(
+      SideQuestResultRenderer.expandableMarkdown(question, expanded, theme),
+    );
+
+    if (expanded && details.sessionPath) {
+      box.addChild(new Spacer(1));
+      box.addChild(
+        new Text(
+          theme.fg("muted", `session path: ${details.sessionPath}`),
+          0,
+          0,
+        ),
+      );
+    }
 
     return box;
   }
