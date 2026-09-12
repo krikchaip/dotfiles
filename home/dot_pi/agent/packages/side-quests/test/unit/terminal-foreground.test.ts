@@ -13,7 +13,8 @@ import {
 
 test("queries and remembers the terminal default foreground without consuming keyboard input", async () => {
   let sessionStart:
-    ((event: unknown, context: ExtensionContext) => Promise<void>) | undefined;
+    | ((event: unknown, context: ExtensionContext) => Promise<void>)
+    | undefined;
   let terminalInput:
     | ((data: string) => { consume?: boolean; data?: string } | undefined)
     | undefined;
@@ -56,7 +57,8 @@ test("queries and remembers the terminal default foreground without consuming ke
 
 test("fades terminal-default theme text from the queried foreground", async () => {
   let sessionStart:
-    ((event: unknown, context: ExtensionContext) => Promise<void>) | undefined;
+    | ((event: unknown, context: ExtensionContext) => Promise<void>)
+    | undefined;
   let terminalInput:
     | ((data: string) => { consume?: boolean; data?: string } | undefined)
     | undefined;
@@ -101,7 +103,8 @@ test.each([
   ["#abcd1234fedc", { r: 171, g: 18, b: 254 }],
 ])("accepts the OSC 10 hash reply %s", async (reply, expected) => {
   let sessionStart:
-    ((event: unknown, context: ExtensionContext) => Promise<void>) | undefined;
+    | ((event: unknown, context: ExtensionContext) => Promise<void>)
+    | undefined;
   let terminalInput:
     | ((data: string) => { consume?: boolean; data?: string } | undefined)
     | undefined;
@@ -135,7 +138,8 @@ test.each([
 
 test("does not query when custom-message text has an explicit color", async () => {
   let sessionStart:
-    ((event: unknown, context: ExtensionContext) => Promise<void>) | undefined;
+    | ((event: unknown, context: ExtensionContext) => Promise<void>)
+    | undefined;
   let listenerRegistrations = 0;
   const writes: string[] = [];
   const theme = {
@@ -168,7 +172,8 @@ test("does not query when custom-message text has an explicit color", async () =
 
 test("removes the terminal listener when writing the query fails", async () => {
   let sessionStart:
-    ((event: unknown, context: ExtensionContext) => Promise<void>) | undefined;
+    | ((event: unknown, context: ExtensionContext) => Promise<void>)
+    | undefined;
   let terminalInput: ((data: string) => unknown) | undefined;
   const theme = {
     getFgAnsi: () => "\u001b[39m",
