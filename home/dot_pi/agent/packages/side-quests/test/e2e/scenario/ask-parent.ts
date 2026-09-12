@@ -135,41 +135,10 @@ export const askParent: Scenario = {
       "The collapsed subagent question exposed its session path.",
     );
     harness.assert(
-      collapsedParent.includes("to expand"),
-      "The truncated subagent question omitted its expansion hint.",
-    );
-
-    const styledCollapsedParent = harness.read(harness.logPath);
-    const questionStartWithStyle =
-      styledCollapsedParent.lastIndexOf("Renderer decision");
-    const hintText = styledCollapsedParent.indexOf(
-      "to expand",
-      questionStartWithStyle,
-    );
-    const ellipsis = styledCollapsedParent.lastIndexOf("…", hintText);
-    const key = collapsedParent.match(/… (\S+) to expand/)?.[1] ?? "";
-    const keyStart = styledCollapsedParent.indexOf(key, ellipsis);
-    const activeStyleAt = (index: number) => {
-      const styleStart = styledCollapsedParent.lastIndexOf("\u001B[", index);
-      const styleEnd = styledCollapsedParent.indexOf("m", styleStart);
-      return styledCollapsedParent.slice(styleStart, styleEnd + 1);
-    };
-    harness.assert(
-      questionStartWithStyle >= 0 &&
-        ellipsis >= 0 &&
-        key.length > 0 &&
-        keyStart >= 0 &&
-        hintText >= 0,
-      "The styled subagent-question hint could not be located.",
-    );
-    const hintStyle = activeStyleAt(ellipsis);
-    harness.assert(
-      activeStyleAt(hintText) === hintStyle,
-      "The ellipsis and non-key hint text did not use one muted style.",
-    );
-    harness.assert(
-      activeStyleAt(keyStart) !== hintStyle,
-      "The expansion key did not use its separate dim style.",
+      collapsedParent.includes("…") &&
+        !collapsedParent.includes("to expand") &&
+        !collapsedParent.includes("canonical."),
+      `The truncated subagent question did not end with the faded ellipsis.\n${collapsedParent}`,
     );
 
     await harness.sendParentKeys("C-o");
@@ -260,7 +229,8 @@ export const askParent: Scenario = {
     harness.assert(
       answerBanner.includes("Before I update the renderer") &&
         answerBanner.includes("Use blue with expandableMarkdown.") &&
-        answerBanner.includes("to expand") &&
+        answerBanner.includes("…") &&
+        !answerBanner.includes("to expand") &&
         !answerBanner.includes("**renderer**") &&
         !answerBanner.includes("**blue**") &&
         !answerBanner.includes("`expandableMarkdown`") &&

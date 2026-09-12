@@ -1,8 +1,18 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const EXPECTED_VERSION = process.env.PI_E2E_EXPECT_VERSION ?? "0.84.4";
 const packageRoot = resolve(import.meta.dir, "../..");
+const packageJson = JSON.parse(
+  readFileSync(resolve(packageRoot, "package.json"), "utf8"),
+) as { devDependencies?: Record<string, string> };
+const declaredVersion =
+  packageJson.devDependencies?.["@earendil-works/pi-coding-agent"];
+assert(
+  declaredVersion,
+  "package.json does not declare @earendil-works/pi-coding-agent",
+);
+const EXPECTED_VERSION =
+  process.env.PI_E2E_EXPECT_VERSION ?? declaredVersion.replace(/^\D+/, "");
 const piExecutable = Bun.which("pi");
 
 function assert(condition: unknown, message: string): asserts condition {

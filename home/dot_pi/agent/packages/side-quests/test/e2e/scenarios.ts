@@ -32,6 +32,7 @@ import { resumePromotionRejection } from "./scenario/resume-promotion.ts";
 import { staleResponse } from "./scenario/stale-response.ts";
 import { staleTerminalResponse } from "./scenario/stale-terminal-response.ts";
 import { stoppedReopen } from "./scenario/stopped-reopen.ts";
+import { terminalDefaultFade } from "./scenario/terminal-default-fade.ts";
 import { terminalTakeover } from "./scenario/terminal-takeover.ts";
 import { terminatedToolReopen } from "./scenario/terminated-tool-reopen.ts";
 import { threeConcurrentQuestions } from "./scenario/three-concurrent-questions.ts";
@@ -89,6 +90,7 @@ export const scenarios: readonly Scenario[] = [
   narrowWidgets,
   widgetSpacing,
   resultExpansion,
+  terminalDefaultFade,
   inheritedAgentRenderer,
   inheritedParentRequestRenderer,
   focusPreservation,

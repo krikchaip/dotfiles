@@ -23,6 +23,8 @@ declare global {
     readonly positionalPrompt?: string;
     readonly providerTokensPerSecond?: number;
     readonly settings?: Readonly<Record<string, unknown>>;
+    readonly terminalForegroundResponse?: string;
+    readonly themeFixture?: string;
     readonly tmuxFixture?: string;
   }
 

@@ -231,8 +231,8 @@ test("collapsed ask_parent banners hide success output and truncate after 240 ch
   const rendered = renderAskParent({ question });
 
   expect(rendered).toContain("ASK PARENT");
-  expect(rendered).toContain(`${"Q".repeat(240)}… `);
-  expect(rendered).toContain("to expand");
+  expect(rendered).toContain(`${"Q".repeat(240)}…`);
+  expect(rendered).not.toContain("to expand");
   expect(rendered).not.toContain("Q".repeat(241));
   expect(rendered).not.toContain("Your request was sent");
   expect(rendered).not.toContain("REPLY PENDING");
@@ -259,9 +259,8 @@ test("ask_parent uses the approved background and truncation colors", () => {
   expect(rendered).toContain(
     "\u001b[31m\u001b[1mASK PARENT\u001b[22m\u001b[39m",
   );
-  expect(rendered).toContain("\u001b[33m… \u001b[39m");
-  expect(rendered).toContain("\u001b[34m\u001b[39m");
-  expect(rendered).toContain("\u001b[33m to expand\u001b[39m");
+  expect(rendered).toContain("…");
+  expect(rendered).not.toContain("to expand");
 });
 
 test("long ask_parent errors keep their bottom line when collapsed and expanded", () => {
@@ -279,7 +278,8 @@ test("long ask_parent errors keep their bottom line when collapsed and expanded"
     "\u001b[35m\u001b[1mASK PARENT\u001b[22m · ERROR\u001b[39m",
   );
   expect(collapsed).toContain(`\u001b[32m${"Q".repeat(240)}`);
-  expect(collapsed).toContain("\u001b[33m… \u001b[39m");
+  expect(collapsed).toContain("…");
+  expect(collapsed).not.toContain("to expand");
   expect(collapsed).not.toContain("Q".repeat(241));
   expect(collapsed).toContain(`\u001b[35m${error}\u001b[39m`);
 

@@ -70,8 +70,8 @@ export const pendingRequestClosure: Scenario = {
       `The closed result did not label its pending question.\n${collapsed}`,
     );
     harness.assert(
-      collapsed.includes("to expand"),
-      `The closed result did not truncate its pending question.\n${collapsed}`,
+      collapsed.includes("…") && !collapsed.includes("to expand"),
+      `The closed result did not end its pending question with the faded ellipsis.\n${collapsed}`,
     );
     harness.assert(
       !collapsed.includes("pending marker."),

@@ -76,6 +76,16 @@ function foregroundBefore(view: string, label: string): string | undefined {
     ?.at(-1);
 }
 
+function foregroundTransitions(view: string): number {
+  const colors = view
+    .split("\u001B[38;")
+    .slice(1)
+    .map((segment) => segment.match(/^(?:2;\d+;\d+;\d+|5;\d+)m/)?.at(0))
+    .filter((color): color is string => color !== undefined);
+
+  return new Set(colors).size;
+}
+
 function configureParent(context: ProviderContext, description: string): void {
   configureBasicDelegation(context, {
     description,
@@ -339,8 +349,10 @@ export const wrapUpSuccess: Scenario = {
       `The final synthesis rendered ${synthesisCopies.length} times instead of once.`,
     );
     harness.assert(
-      view.includes("to expand") && !view.includes(SYNTHESIS_END),
-      "The final wrap-up banner did not use collapsed transcript rendering.",
+      view.includes("…") &&
+        !view.includes("to expand") &&
+        !view.includes(SYNTHESIS_END),
+      "The final wrap-up banner did not end with the faded ellipsis.",
     );
     harness.assert(
       !view.includes(WRAP_UP_PROMPT),
@@ -359,9 +371,14 @@ export const wrapUpSuccess: Scenario = {
     );
     const headingIndex = ansiView.indexOf("WRAP UP");
     const synthesisIndex = ansiView.indexOf("Synthesized parent handoff");
+    const ellipsisIndex = ansiView.indexOf("…", synthesisIndex);
     const bannerAnsi = ansiView.slice(
       Math.max(0, headingIndex - 120),
       synthesisIndex + SYNTHESIS_START.length + 120,
+    );
+    const fadeAnsi = ansiView.slice(
+      Math.max(synthesisIndex, ellipsisIndex - 500),
+      ellipsisIndex + 1,
     );
     harness.assert(
       headingIndex >= 0 &&
@@ -374,6 +391,10 @@ export const wrapUpSuccess: Scenario = {
         foregroundBefore(ansiView, "FROM PARENT") &&
         foregroundBefore(ansiView, "WRAP UP") !== undefined,
       "WRAP UP did not use the FROM PARENT label color.",
+    );
+    harness.assert(
+      ellipsisIndex >= 0 && foregroundTransitions(fadeAnsi) >= 3,
+      `The final wrap-up ending did not contain a foreground gradient.\n${fadeAnsi}`,
     );
 
     await harness.sendKeys(reopenedPane, "C-o");

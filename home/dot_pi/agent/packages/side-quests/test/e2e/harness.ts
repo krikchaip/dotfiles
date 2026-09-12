@@ -360,6 +360,13 @@ export class E2EHarness {
         JSON.stringify(process.settings),
       );
 
+    if (process.themeFixture) {
+      const themes = join(this.stateDirectory, "themes");
+      const fixturePath = resolve(this.options.root, process.themeFixture);
+      mkdirSync(themes, { recursive: true });
+      copyFileSync(fixturePath, join(themes, basename(fixturePath)));
+    }
+
     if (process.managed) {
       const extensions = join(this.stateDirectory, "extensions");
       mkdirSync(extensions, { recursive: true });
@@ -383,12 +390,9 @@ export class E2EHarness {
 
     const command = ["pi"];
     if (!process.persistSession) command.push("--no-session");
-    command.push(
-      "--no-context-files",
-      "--no-prompt-templates",
-      "--no-themes",
-      "--no-skills",
-    );
+    command.push("--no-context-files", "--no-prompt-templates");
+    if (!process.themeFixture) command.push("--no-themes");
+    command.push("--no-skills");
 
     for (const extension of process.extensionsBefore ?? [])
       command.push("-e", resolve(this.options.root, extension));
@@ -490,6 +494,17 @@ export class E2EHarness {
     );
 
     writeFileSync(gatePath, "go\n");
+
+    if (process.terminalForegroundResponse) {
+      await this.waitUntil(
+        "the terminal foreground query",
+        () =>
+          existsSync(this.logPath) &&
+          this.read(this.logPath).includes("\u001b]10;?\u0007"),
+        1_000,
+      );
+      await this.sendParent(process.terminalForegroundResponse);
+    }
 
     const ready = process.outsideTmux
       ? "Side Quests: tmux is required; extension is inactive."

@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { installParent } from "./parent/index.ts";
+import { registerTerminalForegroundQuery } from "./renderer/terminal-foreground.ts";
 import {
   UNSUPPORTED_TMUX_WARNING,
   currentEnvironment,
@@ -25,6 +26,7 @@ export default function (pi: ExtensionAPI): void {
     case "child":
       return;
     case "parent":
+      registerTerminalForegroundQuery(pi);
       installParent(pi);
   }
 }

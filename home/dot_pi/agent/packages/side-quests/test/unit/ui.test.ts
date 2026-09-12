@@ -325,22 +325,21 @@ test("collapsed parent questions use the identity-first banner and truncate afte
 
   expect(rendered).toContain("SUBAGENT ASKS  general-purpose");
   expect(rendered).toContain(description);
-  expect(rendered).toContain(`${"Q".repeat(240)}… `);
-  expect(rendered).toContain("to expand");
-  expect(rendered).not.toMatch(/… \([^)]*to expand\)/);
+  expect(rendered).toContain(`${"Q".repeat(240)}…`);
+  expect(rendered).not.toContain("to expand");
   expect(rendered).not.toContain("Q".repeat(241));
   expect(rendered).not.toContain("/tmp/child/session.jsonl");
 });
 
-test("collapsed parent questions use one muted hint tone and reserve dim for the key", () => {
+test("collapsed parent questions end with an ellipsis and no key hint", () => {
   const rendered = renderParentQuestion({
     description: "Inspect truncation colors",
     question: "Q".repeat(241),
     theme: markedTheme,
   });
 
-  expect(rendered).toContain("<muted>… </muted>");
-  expect(rendered).toMatch(/<dim>[^<]*<\/dim><muted> to expand<\/muted>/);
+  expect(rendered).toContain("…");
+  expect(rendered).not.toContain("to expand");
 });
 
 test("collapsed parent questions keep short questions without an ellipsis", () => {
@@ -444,8 +443,8 @@ test("collapsed terminal outcomes truncate after 240 Unicode characters", () => 
   const response = "🚀".repeat(241);
   const rendered = renderTerminalEvent({ kind: "completed", response });
 
-  expect(rendered).toContain(`${"🚀".repeat(240)}… `);
-  expect(rendered).toContain("to expand");
+  expect(rendered).toContain(`${"🚀".repeat(240)}…`);
+  expect(rendered).not.toContain("to expand");
   expect(rendered).not.toContain(response);
 });
 
@@ -461,8 +460,8 @@ test.each(["completed", "failed", "cancelled", "closed"] as const)(
     });
 
     expect(rendered).toContain("PENDING QUESTION");
-    expect(rendered).toContain(`${"Q".repeat(240)}… `);
-    expect(rendered).toContain("to expand");
+    expect(rendered).toContain(`${"Q".repeat(240)}…`);
+    expect(rendered).not.toContain("to expand");
     expect(rendered).not.toContain(question);
   },
 );

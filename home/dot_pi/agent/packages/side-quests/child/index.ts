@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
+import { registerTerminalForegroundQuery } from "../renderer/terminal-foreground.ts";
 import { currentEnvironment, detectRole } from "../role.ts";
 import { ChildCommands } from "./command.ts";
 import { ChildRuntime } from "./runtime.ts";
@@ -21,6 +22,7 @@ export default function (pi: ExtensionAPI): void {
   )
     return;
 
+  registerTerminalForegroundQuery(pi);
   const runtime = ChildRuntime.register(pi);
 
   ChildTools.register(pi, runtime);

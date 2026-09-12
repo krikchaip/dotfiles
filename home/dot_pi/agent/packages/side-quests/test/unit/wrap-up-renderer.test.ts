@@ -51,7 +51,8 @@ test("uses shared collapsed and expanded transcript Markdown", () => {
   const result = `${"A".repeat(245)} Expanded marker.`;
 
   const collapsed = renderResult(result);
-  expect(collapsed).toContain("to expand");
+  expect(collapsed).toContain("…");
+  expect(collapsed).not.toContain("to expand");
   expect(collapsed).not.toContain("Expanded marker.");
 
   const expanded = renderResult(result, true);

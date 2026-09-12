@@ -84,8 +84,8 @@ async function assertPendingBanner(
     `The ${outcome} result did not label its pending question.\n${collapsed}`,
   );
   harness.assert(
-    collapsed.includes("to expand"),
-    `The ${outcome} result did not truncate its long pending question.\n${collapsed}`,
+    collapsed.includes("…") && !collapsed.includes("to expand"),
+    `The ${outcome} result did not end its pending question with the faded ellipsis.\n${collapsed}`,
   );
   harness.assert(
     collapsed.includes(`Should the ${outcome} outcome retain`),

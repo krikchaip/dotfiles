@@ -179,16 +179,15 @@ test("collapsed parent answers truncate long questions and replies independently
   expect(rendered).toContain(`<muted>${"問".repeat(240)}`);
   expect(rendered).not.toContain("🤖");
   expect(rendered).toContain(
-    `<customMessageText>${"R".repeat(240)}</customMessageText>`,
+    `<customMessageText>${"R".repeat(240)}…</customMessageText>`,
   );
   expect(rendered).not.toContain(`${"R".repeat(240)}Z`);
-  expect(rendered.match(/to expand/g)).toHaveLength(2);
+  expect(rendered).not.toContain("to expand");
+  expect(rendered.match(/…/g)).toHaveLength(2);
   expect(rendered).toContain("<bg:customMessageBg>");
   expect(rendered).toContain(
     "<customMessageLabel><bold>FROM PARENT</bold></customMessageLabel>",
   );
-  expect(rendered).toContain("… ");
-  expect(rendered).toContain("<dim>");
 });
 
 test("expanded parent answers show complete questions and replies without hints", () => {

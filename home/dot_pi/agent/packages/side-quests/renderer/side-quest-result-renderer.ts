@@ -1,15 +1,10 @@
-import {
-  type ExtensionAPI,
-  type Theme,
-  getMarkdownTheme,
-  keyText,
-} from "@earendil-works/pi-coding-agent";
-import { Box, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
+import { Box, Spacer, Text } from "@earendil-works/pi-tui";
+
+import { expandableMarkdown, expandableText } from "./expandable-markdown.ts";
 
 /** Identifies parent messages that report sub-agent events. */
 export const RESULT_MESSAGE_TYPE = "side-quest-result";
-
-const COLLAPSED_TEXT_CHAR_LIMIT = 240;
 
 type TerminalKind = "completed" | "failed" | "cancelled" | "closed";
 
@@ -122,7 +117,7 @@ export class SideQuestResultRenderer {
     );
     box.addChild(new Spacer(1));
     box.addChild(
-      SideQuestResultRenderer.expandableMarkdown(outcome, expanded, theme),
+      expandableMarkdown(outcome, expanded, "customMessageText", theme),
     );
 
     if (pendingQuestion) {
@@ -130,18 +125,7 @@ export class SideQuestResultRenderer {
       box.addChild(
         new Text(theme.fg("warning", theme.bold("PENDING QUESTION")), 0, 0),
       );
-      box.addChild(
-        new Text(
-          SideQuestResultRenderer.expandableText(
-            pendingQuestion,
-            expanded,
-            "muted",
-            theme,
-          ),
-          0,
-          0,
-        ),
-      );
+      box.addChild(expandableText(pendingQuestion, expanded, "muted", theme));
     }
 
     if (expanded) {
@@ -191,7 +175,7 @@ export class SideQuestResultRenderer {
     );
     box.addChild(new Spacer(1));
     box.addChild(
-      SideQuestResultRenderer.expandableMarkdown(question, expanded, theme),
+      expandableMarkdown(question, expanded, "customMessageText", theme),
     );
 
     if (expanded && details.sessionPath) {
@@ -206,41 +190,6 @@ export class SideQuestResultRenderer {
     }
 
     return box;
-  }
-
-  /** Renders one collapsed or expanded terminal outcome as Markdown. */
-  private static expandableMarkdown(
-    text: string,
-    expanded: boolean,
-    theme: Theme,
-  ): Markdown {
-    const collapsed = SideQuestResultRenderer.truncateText(text);
-    const truncated = !expanded && collapsed !== text;
-    const displayed = expanded ? text : collapsed;
-    const suffix = truncated
-      ? `${theme.fg("muted", "… ")}${theme.fg("dim", keyText("app.tools.expand"))}${theme.fg("muted", " to expand")}`
-      : "";
-
-    return new Markdown(`${displayed}${suffix}`, 0, 0, getMarkdownTheme(), {
-      color: (content) => theme.fg("customMessageText", content),
-    });
-  }
-
-  /** Renders one collapsed or expanded plain-text event value. */
-  private static expandableText(
-    text: string,
-    expanded: boolean,
-    color: "customMessageText" | "muted",
-    theme: Theme,
-  ): string {
-    const collapsed = SideQuestResultRenderer.truncateText(text);
-    const truncated = !expanded && collapsed !== text;
-    const displayed = expanded ? text : collapsed;
-    const suffix = truncated
-      ? `${theme.fg("muted", "… ")}${theme.fg("dim", keyText("app.tools.expand"))}${theme.fg("muted", " to expand")}`
-      : "";
-
-    return `${theme.fg(color, displayed)}${suffix}`;
   }
 
   /** Gets a terminal kind from current details or historical message text. */
@@ -309,14 +258,6 @@ export class SideQuestResultRenderer {
       .find((candidate) => candidate.startsWith(`${label} `));
 
     return line?.slice(label.length + 1);
-  }
-
-  /** Truncates text by Unicode character before its styled suffix. */
-  private static truncateText(text: string): string {
-    const characters = Array.from(text);
-    if (characters.length <= COLLAPSED_TEXT_CHAR_LIMIT) return text;
-
-    return characters.slice(0, COLLAPSED_TEXT_CHAR_LIMIT).join("").trimEnd();
   }
 
   /**
