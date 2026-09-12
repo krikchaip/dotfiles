@@ -251,13 +251,13 @@ test("Agent calls expose canonical text to transcript composers", () => {
 });
 
 test.each([
-  ["answer", "continued", "answered"],
-  ["answer", "reopened", "answered"],
-  ["steer", "reopened", "resumed"],
-  ["steer", "continued", "steered"],
+  ["answer", "continued", "general-purpose :: classified continuation"],
+  ["answer", "reopened", "general-purpose :: classified continuation"],
+  ["steer", "reopened", "general-purpose :: classified continuation"],
+  ["steer", "continued", "general-purpose :: classified continuation"],
 ] as const)(
-  "finished %s/%s Agent calls show %s in the parent header",
-  (continuationKind, operation, label) => {
+  "finished %s/%s Agent call renders the expected parent header",
+  (continuationKind, operation, expectedHeader) => {
     expect(AgentRenderer.install()).toBe(true);
 
     const renderer = rendererFor("getCallRenderer", {
@@ -277,14 +277,14 @@ test.each([
       theme,
       { isPartial: false },
     );
+    const text = renderedText(rendered);
 
-    expect(renderedText(rendered)).toContain(
-      `general-purpose (${label}) :: classified continuation`,
-    );
+    expect(text).toContain(expectedHeader);
+    expect(text).not.toMatch(/\((?:answered|resumed|steered)\)/u);
   },
 );
 
-test("an unclassified in-flight continuation does not flash resumed", () => {
+test("an unclassified in-flight continuation has no header status", () => {
   vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue(undefined);
 
   expect(AgentRenderer.install()).toBe(true);
@@ -307,11 +307,13 @@ test("an unclassified in-flight continuation does not flash resumed", () => {
   expect(renderedText(rendered)).toContain(
     "general-purpose :: Continue delegated task",
   );
-  expect(renderedText(rendered)).not.toContain("(resumed)");
+  expect(renderedText(rendered)).not.toMatch(
+    /\((?:answered|resumed|steered)\)/u,
+  );
 });
 
 test.each([false, true])(
-  "a live-child continuation shows steered when executionStarted=%s",
+  "a live-child continuation has no header status when executionStarted=%s",
   (executionStarted) => {
     const sessionPath = "/tmp/managed/session.jsonl";
 
@@ -356,12 +358,15 @@ test.each([false, true])(
     );
 
     expect(renderedText(rendered)).toContain(
-      "general-purpose (steered) :: Solve math problem",
+      "general-purpose :: Solve math problem",
+    );
+    expect(renderedText(rendered)).not.toMatch(
+      /\((?:answered|resumed|steered)\)/u,
     );
   },
 );
 
-test("a pending-question continuation shows answered before execution starts", () => {
+test("a pending-question continuation has no execution-header status", () => {
   const sessionPath = "/tmp/managed/session.jsonl";
 
   vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue({
@@ -405,7 +410,10 @@ test("a pending-question continuation shows answered before execution starts", (
   );
 
   expect(renderedText(rendered)).toContain(
-    "general-purpose (answered) :: Answer color question",
+    "general-purpose :: Answer color question",
+  );
+  expect(renderedText(rendered)).not.toMatch(
+    /\((?:answered|resumed|steered)\)/u,
   );
 });
 
@@ -461,11 +469,12 @@ test("Agent calls delegate status chrome to the active renderer", () => {
   );
 
   expect(renderedText(answered)).toContain(
-    "\u001B[successm●\u001B[39m Agent general-purpose (answered) :: host answer renderer",
+    "\u001B[successm●\u001B[39m Agent general-purpose :: host answer renderer",
   );
+  expect(renderedText(answered)).not.toContain("(answered)");
 });
 
-test("settled continuation labels replace a host renderer's cached pending summary", () => {
+test("legacy continuation labels are removed from a host renderer's cached summary", () => {
   prototype.getCallRenderer = function cachingHostCallGetter() {
     return (args: unknown, _theme: unknown, context: unknown) => {
       const display = args as { description?: string };
@@ -480,7 +489,9 @@ test("settled continuation labels replace a host renderer's cached pending summa
 
   expect(AgentRenderer.install()).toBe(true);
 
-  const state: { agentSummary?: string } = {};
+  const state: { agentSummary?: string } = {
+    agentSummary: "general-purpose (steered) :: cached continuation",
+  };
   const pendingRenderer = rendererFor("getCallRenderer", {
     isPartial: false,
     toolName: "Agent",
@@ -497,7 +508,9 @@ test("settled continuation labels replace a host renderer's cached pending summa
   expect(renderedText(pending)).toContain(
     "general-purpose :: cached continuation",
   );
-  expect(renderedText(pending)).not.toContain("(resumed)");
+  expect(renderedText(pending)).not.toMatch(
+    /\((?:answered|resumed|steered)\)/u,
+  );
 
   const settledRenderer = rendererFor("getCallRenderer", {
     isPartial: false,
@@ -518,7 +531,10 @@ test("settled continuation labels replace a host renderer's cached pending summa
   );
 
   expect(renderedText(settled)).toContain(
-    "general-purpose (steered) :: cached continuation",
+    "general-purpose :: cached continuation",
+  );
+  expect(renderedText(settled)).not.toMatch(
+    /\((?:answered|resumed|steered)\)/u,
   );
 });
 
@@ -615,30 +631,59 @@ test("Agent results render independently while other tools stay delegated", () =
 });
 
 test.each([
-  [{}, "[inherited]"],
-  [{ interactive: true }, "[inherited | interactive]"],
-  [{ inherit_context: false, interactive: true }, "[interactive]"],
-  [{ inherit_context: false }, undefined],
-  [{ resume: "/tmp/resumed/session.jsonl" }, undefined],
+  [{}, "spawned", "Spawned", "[inherited]"],
+  [{ interactive: true }, "spawned", "Spawned", "[inherited | interactive]"],
+  [
+    { inherit_context: false, interactive: true },
+    "spawned",
+    "Spawned",
+    "[interactive]",
+  ],
+  [{ inherit_context: false }, "spawned", "Spawned", undefined],
+  [{ resume: "/tmp/resumed/session.jsonl" }, "resumed", "Resumed", undefined],
+  [{ resume: "/tmp/steered/session.jsonl" }, "steered", "Steered", undefined],
+  [
+    { resume: "/tmp/answered/session.jsonl" },
+    "answered",
+    "Answered",
+    undefined,
+  ],
 ] as const)(
-  "Agent result formats structured statuses for %j",
-  (args, status) => {
+  "Agent result formats %s status for %j",
+  (args, resultStatus, expectedSummary, status) => {
     expect(AgentRenderer.install()).toBe(true);
     const path = "/tmp/statuses/session.jsonl";
+    const result = {
+      content: [],
+      details: {
+        sessionPath: path,
+        sideQuestPresentation: {
+          version: 1,
+          surface: "agent",
+          resultStatus,
+          statuses: [],
+        },
+      },
+    };
     const renderer = rendererFor("getResultRenderer", {
       result: { isError: false },
       toolName: "Agent",
     });
+    const context = { args, isError: false };
     const rendered = renderedText(
+      renderer?.(result, { expanded: false, isPartial: false }, theme, context),
+    );
+    const styled = renderedText(
       renderer?.(
-        { content: [], details: { sessionPath: path } },
+        result,
         { expanded: false, isPartial: false },
-        theme,
-        { args, isError: false },
+        styledTheme,
+        context,
       ),
     );
 
-    expect(rendered).toContain("└ Spawned");
+    expect(rendered).toContain(`└ ${expectedSummary}`);
+    expect(styled).toContain(`\u001B[successm${expectedSummary}\u001B[39m`);
     if (status) expect(rendered).toContain(status);
     else {
       expect(rendered).not.toContain("[inherited");

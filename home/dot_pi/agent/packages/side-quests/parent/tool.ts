@@ -210,9 +210,19 @@ export class ParentTools {
     sideQuestPresentation: {
       version: 1;
       surface: "agent";
+      resultStatus: "spawned" | "resumed" | "answered" | "steered";
       statuses: ("inherited" | "interactive")[];
     };
   }> {
+    const resultStatus =
+      operation === "launched"
+        ? "spawned"
+        : continuationKind === "answer"
+          ? "answered"
+          : operation === "continued"
+            ? "steered"
+            : "resumed";
+
     return {
       details: {
         operation,
@@ -221,6 +231,7 @@ export class ParentTools {
         sideQuestPresentation: {
           version: 1,
           surface: "agent",
+          resultStatus,
           statuses,
         },
       },

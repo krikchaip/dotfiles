@@ -19,10 +19,12 @@ export const activeContinuation: Scenario = {
     });
   },
   async run(harness: E2EHarness) {
+    await harness.waitFor("└ Spawned [inherited]");
     await harness.waitForWithout(
-      "Agent general-purpose (steered) :: Continue the E2E delegated task",
-      /Agent .*\(resume(?:d)?\) :: Continue the E2E delegated task/u,
+      "Agent general-purpose :: Continue the E2E delegated task",
+      /Agent .*\((?:answered|resumed|steered)\) :: Continue the E2E delegated task/u,
     );
+    await harness.waitFor("└ Steered");
 
     await harness.waitFor("SUBAGENT COMPLETED");
   },

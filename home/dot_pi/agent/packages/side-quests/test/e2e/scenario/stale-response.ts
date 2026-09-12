@@ -57,9 +57,11 @@ export const staleResponse: Scenario = {
     ]);
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor(
-      "Agent general-purpose (steered) :: Continue the E2E delegated task",
+    await harness.waitForWithout(
+      "Agent general-purpose :: Continue the E2E delegated task",
+      /Agent .*\((?:answered|resumed|steered)\) :: Continue the E2E delegated task/u,
     );
+    await harness.waitFor("└ Steered");
     const childPane = await harness.childPane();
 
     await harness.waitForStoredText("Synthetic resumed child failure.");

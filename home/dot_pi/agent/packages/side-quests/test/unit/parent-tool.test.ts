@@ -163,46 +163,54 @@ test.each([
       sideQuestPresentation: {
         version: 1,
         surface: "agent",
+        resultStatus: "spawned",
         statuses,
       },
     });
   },
 );
 
-test("resume result exposes empty presentation statuses and preserves details", async () => {
-  const child = manifest({ lifecycle: "interactive", inheritContext: true });
-  vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
-  vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue(child);
-  vi.spyOn(SessionStore, "updateManifest").mockReturnValue(child);
-  const runtime = {
-    ownerId: "owner-id",
-    continue: vi.fn().mockResolvedValue({
-      continuationKind: "answer",
+test.each([
+  ["answer", "answered"],
+  ["steer", "steered"],
+] as const)(
+  "resume %s result exposes %s presentation status and preserves details",
+  async (continuationKind, resultStatus) => {
+    const child = manifest({ lifecycle: "interactive", inheritContext: true });
+    vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
+    vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue(child);
+    vi.spyOn(SessionStore, "updateManifest").mockReturnValue(child);
+    const runtime = {
+      ownerId: "owner-id",
+      continue: vi.fn().mockResolvedValue({
+        continuationKind,
+        operation: "continued",
+      }),
+      launch: vi.fn(),
+    };
+
+    const result = await executeAgent(
+      {
+        description: "continue contract",
+        prompt: "Continue.",
+        resume: child.sessionPath,
+      },
+      runtime as never,
+    );
+
+    expect(result?.details).toEqual({
       operation: "continued",
-    }),
-    launch: vi.fn(),
-  };
-
-  const result = await executeAgent(
-    {
-      description: "continue contract",
-      prompt: "Continue.",
-      resume: child.sessionPath,
-    },
-    runtime as never,
-  );
-
-  expect(result?.details).toEqual({
-    operation: "continued",
-    continuationKind: "answer",
-    sessionPath: child.sessionPath,
-    sideQuestPresentation: {
-      version: 1,
-      surface: "agent",
-      statuses: [],
-    },
-  });
-});
+      continuationKind,
+      sessionPath: child.sessionPath,
+      sideQuestPresentation: {
+        version: 1,
+        surface: "agent",
+        resultStatus,
+        statuses: [],
+      },
+    });
+  },
+);
 
 test("defines the strict Agent request contract", () => {
   const schema = registerParentTools()[0]

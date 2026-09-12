@@ -64,7 +64,7 @@ test("formats fresh and resumed Agent headers", () => {
         details: { continuationKind: "steer", operation: "reopened" },
       },
     ),
-  ).toBe("general-purpose (resumed) :: continue the review");
+  ).toBe("general-purpose :: continue the review");
 });
 
 test("collapsed launch status shows only effective true values", () => {

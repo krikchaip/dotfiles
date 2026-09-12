@@ -13,8 +13,9 @@ export const staleTerminalResponse: Scenario = {
   },
   async run(harness: E2EHarness) {
     await harness.waitFor(
-      "Agent general-purpose (resumed) :: Reopen the E2E delegated task",
+      "Agent general-purpose :: Reopen the E2E delegated task",
     );
+    await harness.waitFor("└ Resumed");
     await harness.childPane();
     await harness.waitFor("SUBAGENT FAILED");
     await harness.sendParentKeys("C-o");

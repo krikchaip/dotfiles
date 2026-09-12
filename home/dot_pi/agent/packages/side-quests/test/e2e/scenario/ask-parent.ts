@@ -111,15 +111,16 @@ export const askParent: Scenario = {
     await harness.waitFor("E2E delegated task");
     await harness.waitFor("Renderer decision");
     await harness.waitFor(
-      "Agent general-purpose (answered) :: Answer the E2E child question",
+      "Agent general-purpose :: Answer the E2E child question",
     );
+    await harness.waitFor("└ Answered");
 
     const terminalLog = harness.read(harness.logPath);
     harness.assert(
-      !terminalLog.includes(
-        "Agent general-purpose (resumed) :: Answer the E2E child question",
+      !/Agent general-purpose \((?:answered|resumed|steered)\) :: Answer the E2E child question/u.test(
+        terminalLog,
       ),
-      "The parent answer briefly rendered as resumed before answered.",
+      "The parent answer rendered a result status in its execution header.",
     );
 
     const collapsedParent = await harness.capture();

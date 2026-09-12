@@ -181,7 +181,7 @@ A local toggle between the compact and full presentation of one Side-quest event
 _Avoid_: Tool expansion, global transcript expansion, widget navigation
 
 **Agent result summary**:
-The compact status row beneath an `Agent` execution summary. Enabled launch statuses can appear on this row. In a click-enabled host, the host supplies the expansion instruction and owns the row's expansion behavior.
+The compact status row beneath an `Agent` execution summary. Its operation label is `Spawned` for a new side quest, `Answered` for a parent answer, `Resumed` when a terminal subagent is reopened, or `Steered` when the parent sends guidance to a live subagent. Operation labels never appear in the `Agent` execution summary. Enabled launch statuses can appear on this row. In a click-enabled host, the host supplies the expansion instruction and owns the row's expansion behavior.
 _Avoid_: Agent execution summary, expanded Agent output, Side-quest event message
 
 **Thinking segment**:

@@ -6,9 +6,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
 
-import { RuntimeStore } from "../store/runtime.ts";
 import { SessionStore } from "../store/session.ts";
-import { Tmux } from "../tmux.ts";
 import { AskParentRenderer } from "./ask-parent-renderer.ts";
 
 const AGENT_CALL_RENDERER = Symbol.for("side-quests:agent-call-renderer");
@@ -242,11 +240,7 @@ export class AgentRenderer {
 
       return (args: unknown, theme: unknown, context: unknown) => {
         const summary = AgentRenderer.summary(args, result);
-        AgentRenderer.prepareHostSummary(
-          context,
-          summary,
-          result !== undefined,
-        );
+        AgentRenderer.prepareHostSummary(context, summary);
 
         return original(AgentRenderer.hostArgs(args, summary), theme, context);
       };
@@ -302,15 +296,10 @@ export class AgentRenderer {
   /**
    * Formats the stable summary shown in one Agent tool header.
    */
-  public static summary(args: unknown, result?: RendererResult): string {
+  public static summary(args: unknown, _result?: RendererResult): string {
     const agent = AgentRenderer.display(args);
-    const continuationLabel =
-      agent.mode === "resumed"
-        ? AgentRenderer.continuationLabel(args, result)
-        : undefined;
-    const continuation = continuationLabel ? ` (${continuationLabel})` : "";
 
-    return `${agent.type}${continuation} :: ${agent.description}`;
+    return `${agent.type} :: ${agent.description}`;
   }
 
   /**
@@ -397,13 +386,9 @@ export class AgentRenderer {
   }
 
   /**
-   * Invalidates a host renderer's stale pending summary after settlement.
+   * Invalidates a host renderer's cached summary with a legacy status label.
    */
-  private static prepareHostSummary(
-    context: unknown,
-    summary: string,
-    settled: boolean,
-  ): void {
+  private static prepareHostSummary(context: unknown, summary: string): void {
     if (typeof context !== "object" || context === null) return;
 
     const state = (context as { state?: unknown }).state;
@@ -412,14 +397,17 @@ export class AgentRenderer {
     const rendererState = state as Record<PropertyKey, unknown>;
     const previous = rendererState[HOST_CALL_SUMMARY];
     rendererState[HOST_CALL_SUMMARY] = summary;
-    if (!settled) return;
 
     const candidates = new Set<string>();
     if (typeof previous === "string") candidates.add(previous);
-    for (const label of ["answered", "resumed", "steered"]) {
-      candidates.add(
-        summary.replace(/\((?:answered|resumed|steered)\)/u, `(${label})`),
-      );
+
+    const separator = summary.indexOf(" :: ");
+    if (separator >= 0) {
+      for (const label of ["answered", "resumed", "steered"]) {
+        candidates.add(
+          `${summary.slice(0, separator)} (${label})${summary.slice(separator)}`,
+        );
+      }
     }
     candidates.delete(summary);
 
@@ -454,61 +442,6 @@ export class AgentRenderer {
     return (
       prefix !== undefined && prefix.length > 0 && normalized.startsWith(prefix)
     );
-  }
-
-  /**
-   * Resolves the parent-facing label for one continuation.
-   */
-  private static continuationLabel(
-    args: unknown,
-    result?: RendererResult,
-  ): string | undefined {
-    if (result !== undefined) {
-      if (result.isError === true) return "resumed";
-      if (typeof result.details !== "object" || result.details === null)
-        return "resumed";
-
-      const details = result.details as {
-        continuationKind?: unknown;
-        operation?: unknown;
-      };
-
-      if (details.continuationKind === "answer") return "answered";
-      if (details.operation === "reopened") return "resumed";
-      if (details.continuationKind === "steer") return "steered";
-
-      return "resumed";
-    }
-
-    return AgentRenderer.pendingContinuationLabel(args);
-  }
-
-  /**
-   * Classifies an in-flight continuation from managed child process state.
-   */
-  private static pendingContinuationLabel(args: unknown): string | undefined {
-    const path = AgentRenderer.stringArg(args, "resume");
-    if (!path) return undefined;
-
-    const manifest = SessionStore.readResumableManifest(path);
-    if (!manifest) return undefined;
-
-    const request = SessionStore.readRequest(
-      manifest.parentId,
-      manifest.childId,
-    );
-    if (request) return "answered";
-
-    if (RuntimeStore.hasTerminal(manifest.parentId, manifest.childId))
-      return "resumed";
-
-    const pane = Tmux.findManagedPane(manifest.childId);
-    if (!pane) return undefined;
-
-    const processState = Tmux.paneProcessState(pane.paneId);
-    if (!processState) return undefined;
-
-    return processState.dead ? "resumed" : "steered";
   }
 
   /**
@@ -579,6 +512,42 @@ export class AgentRenderer {
   }
 
   /**
+   * Resolves the successful operation label shown in the result summary.
+   */
+  private static resultStatusLabel(
+    result: unknown,
+    args: unknown,
+  ): "Spawned" | "Resumed" | "Answered" | "Steered" {
+    if (typeof result === "object" && result !== null) {
+      const details = (result as { details?: unknown }).details;
+      if (typeof details === "object" && details !== null) {
+        const record = details as {
+          continuationKind?: unknown;
+          operation?: unknown;
+          sideQuestPresentation?: unknown;
+        };
+        const presentation = record.sideQuestPresentation;
+        if (typeof presentation === "object" && presentation !== null) {
+          const resultStatus = (presentation as { resultStatus?: unknown })
+            .resultStatus;
+          if (resultStatus === "answered") return "Answered";
+          if (resultStatus === "resumed") return "Resumed";
+          if (resultStatus === "spawned") return "Spawned";
+          if (resultStatus === "steered") return "Steered";
+        }
+
+        if (record.continuationKind === "answer") return "Answered";
+        if (record.operation === "continued") return "Steered";
+        if (record.operation === "reopened") return "Resumed";
+      }
+    }
+
+    return AgentRenderer.display(args).mode === "resumed"
+      ? "Resumed"
+      : "Spawned";
+  }
+
+  /**
    * Renders settled Agent output in collapsed or expanded form.
    */
   private static renderResult(
@@ -607,7 +576,7 @@ export class AgentRenderer {
     const status = statuses.length
       ? ` ${theme.fg("muted", `[${statuses.join(" | ")}]`)}`
       : "";
-    const summary = `${theme.fg("success", "Spawned")}${status}`;
+    const summary = `${theme.fg("success", AgentRenderer.resultStatusLabel(result, args))}${status}`;
 
     if (renderOptions?.expanded) {
       const details = AgentRenderer.expandedResultLines(

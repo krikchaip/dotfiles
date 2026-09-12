@@ -334,7 +334,10 @@ export const wrapUpSuccess: Scenario = {
       "Successful wrap-up returned the stale pre-synthesis response.",
     );
 
-    await harness.waitFor("Agent general-purpose (resumed)");
+    await harness.waitFor(
+      "Agent general-purpose :: Inspect wrap-up transcript",
+    );
+    await harness.waitFor("└ Resumed");
     const reopenedPane = await harness.childPane();
     const view = await harness.waitFor(REOPENED_RESPONSE, 10_000, reopenedPane);
     const wrapUpHeadings = view.match(/WRAP UP/g) ?? [];

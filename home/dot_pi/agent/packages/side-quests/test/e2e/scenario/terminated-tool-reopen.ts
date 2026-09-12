@@ -25,8 +25,9 @@ export const terminatedToolReopen: Scenario = {
   },
   async run(harness: E2EHarness) {
     await harness.waitFor(
-      "Agent general-purpose (resumed) :: Reopen the E2E delegated task",
+      "Agent general-purpose :: Reopen the E2E delegated task",
     );
+    await harness.waitFor("└ Resumed");
     const childPane = await harness.childPane();
     await harness.waitForStoredText("Terminating tool completed.");
 
