@@ -86,6 +86,8 @@ let postCompactionUsagePending = false;
 let stuckWarningShown = false;
 let earlyFailureCount = 0;
 let earlyBackoffTurnsRemaining = 0;
+let completedAssistantTurn = 0;
+let earlyBackoffBlockedTurn = -1;
 let pendingEarlyReason: string | undefined;
 let lastCompactionNotice: string | undefined;
 
@@ -664,6 +666,7 @@ function hasCompactionCutPoint(
 function resetEarlyBackoff() {
   earlyFailureCount = 0;
   earlyBackoffTurnsRemaining = 0;
+  earlyBackoffBlockedTurn = -1;
 }
 
 function recordEarlyFailure() {
@@ -672,6 +675,7 @@ function recordEarlyFailure() {
     2 ** (earlyFailureCount - 1),
     MAX_EARLY_BACKOFF_TURNS,
   );
+  earlyBackoffBlockedTurn = completedAssistantTurn;
 }
 
 function resetBranchState(ctx: ExtensionContext) {
@@ -702,8 +706,10 @@ async function maybeTriggerEarlyAuto(
   if (!allowEarlyAfterCompaction || branchLastEntry(ctx)?.type === "compaction")
     return;
   if (ctx.hasPendingMessages()) return;
+  if (earlyBackoffBlockedTurn === completedAssistantTurn) return;
   if (earlyBackoffTurnsRemaining > 0) {
     earlyBackoffTurnsRemaining--;
+    earlyBackoffBlockedTurn = completedAssistantTurn;
     return;
   }
 
@@ -870,6 +876,7 @@ export default function (pi: ExtensionAPI) {
     )
       return;
 
+    completedAssistantTurn++;
     const generation = sessionGeneration;
     const shouldResume = event.toolResults.length > 0 && !allToolsTerminate;
     await maybeTriggerEarlyAuto(ctx, shouldResume, () => {

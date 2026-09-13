@@ -444,7 +444,7 @@ async function failureBackoffScenario(): Promise<void> {
 
   const calls = JSON.parse(readFileSync(capturePath, "utf8")) as unknown[];
   harness.assert(
-    calls.length === 5,
+    calls.length === 6,
     `Failure/backoff flow made ${calls.length} calls`,
   );
   harness.assert(
@@ -456,14 +456,14 @@ async function failureBackoffScenario(): Promise<void> {
   console.log("PASS auto-compact failure-backoff-retry");
 }
 
-async function staleSessionScenario(): Promise<void> {
-  const name = "auto-compact-stale-session";
+async function streamingNewGuardScenario(): Promise<void> {
+  const name = "auto-compact-streaming-new-guard";
   const home = isolatedHome(runDirectory, name);
   writeHomeSettings(home, {
     compaction: {
       model: "generated-state-e2e/gemini-fake",
       keepRecentTokens: 1,
-      autoTrigger: { enabled: true, absoluteTokens: 1 },
+      autoTrigger: { enabled: true, absoluteTokens: "100k" },
     },
   });
   const currentCapture = `${runDirectory}/${name}-current.json`;
@@ -476,6 +476,7 @@ async function staleSessionScenario(): Promise<void> {
       "extensions/test/e2e/fixture/auto-compact-native-provider.ts",
       "extensions/test/e2e/fixture/generated-state-provider.ts",
       "extensions/auto-compact.ts",
+      "extensions/new-child-split.ts",
       "extensions/test/e2e/fixture/auto-compact-session-probe.ts",
     ],
     model: "auto-compact-native-e2e/fake",
@@ -483,43 +484,53 @@ async function staleSessionScenario(): Promise<void> {
     settings: { compaction: { reserveTokens: 1_000, keepRecentTokens: 1 } },
     environment: {
       HOME: home,
-      PI_E2E_AUTO_COMPACT_MODE: "tool",
+      PI_E2E_AUTO_COMPACT_MODE: "final",
       PI_E2E_AUTO_COMPACT_CAPTURE: currentCapture,
       PI_E2E_AUTO_COMPACT_SESSION_CAPTURE: sessionCapture,
       PI_E2E_GENERATED_RESPONSES: JSON.stringify([
-        "STALE SUMMARY MUST NOT RESUME",
+        "AUTO NEW GUARD SUMMARY",
+        "AUTO NEW GUARD PREFIX SUMMARY",
       ]),
       PI_E2E_RESPONSE_DELAYS_MS: JSON.stringify([1_500]),
     },
   });
-  await harness.submit("AUTO STALE HISTORY USER");
+
+  await harness.submit("AUTO NEW GUARD HISTORY USER");
   await harness.waitFor("AUTO NATIVE HISTORY RESPONSE");
-  await harness.submit("AUTO STALE TOOL USER");
+  await Bun.sleep(500);
+  writeHomeSettings(home, {
+    compaction: {
+      model: "generated-state-e2e/gemini-fake",
+      keepRecentTokens: 1,
+      autoTrigger: { enabled: true, absoluteTokens: 1 },
+    },
+  });
+  await harness.submit("AUTO NEW GUARD FINAL USER");
+  await harness.waitFor("AUTO NATIVE FINAL RESPONSE");
   await harness.waitFor(
     "compacting with generated-state-e2e/gemini-fake",
     8_000,
   );
   await harness.submit("/new");
-  await harness.waitUntil("new session during compaction", () => {
-    if (!existsSync(sessionCapture)) return false;
-    return (
-      (JSON.parse(readFileSync(sessionCapture, "utf8")) as { starts: number })
-        .starts === 2
-    );
-  });
-  await Bun.sleep(1_700);
-  const pane = await harness.capture();
-  harness.assert(
-    !pane.includes("AUTO NATIVE CONTINUATION RESPONSE"),
-    "Stale compaction resumed the old tool turn",
-  );
+  await harness.waitFor("Cannot run same-pane /new while agent is streaming");
+  await harness.waitFor("auto-compact: compacted with", 8_000);
+  await finish(harness);
+
   harness.assert(
     (JSON.parse(readFileSync(currentCapture, "utf8")) as unknown[]).length ===
       2,
-    "Stale compaction made a continuation provider call",
+    "Blocked /new made an unexpected current-model request",
   );
-  await finish(harness);
-  console.log("PASS auto-compact stale-session");
+  harness.assert(
+    (JSON.parse(readFileSync(sessionCapture, "utf8")) as { starts: number })
+      .starts === 1,
+    "Blocked /new started another session",
+  );
+  harness.assert(
+    sessionFiles(harness).length === 1,
+    "Blocked /new persisted another session",
+  );
+  console.log("PASS auto-compact streaming-new-guard");
 }
 
 async function modelScenario(
@@ -688,10 +699,10 @@ try {
     console.error(`FAIL auto-compact failure-backoff: ${defects.at(-1)}`);
   }
   try {
-    await staleSessionScenario();
+    await streamingNewGuardScenario();
   } catch (error) {
     defects.push(error instanceof Error ? error.message : String(error));
-    console.error(`FAIL auto-compact stale-session: ${defects.at(-1)}`);
+    console.error(`FAIL auto-compact streaming-new-guard: ${defects.at(-1)}`);
   }
   await modelScenario(
     "auto-compact-model-override",

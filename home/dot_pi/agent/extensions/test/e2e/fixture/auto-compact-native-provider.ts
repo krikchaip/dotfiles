@@ -13,15 +13,24 @@ const PROVIDER = "auto-compact-native-e2e";
 function appendCapture(context: unknown): void {
   const path = process.env.PI_E2E_AUTO_COMPACT_CAPTURE;
   if (!path) return;
-  const captures = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : [];
+  const captures = existsSync(path)
+    ? JSON.parse(readFileSync(path, "utf8"))
+    : [];
   captures.push(context);
   writeFileSync(path, JSON.stringify(captures, null, 2));
 }
 
 export default function autoCompactNativeProvider(pi: ExtensionAPI): void {
   const mode = process.env.PI_E2E_AUTO_COMPACT_MODE;
-  if (mode !== "tool" && mode !== "final" && mode !== "queue" && mode !== "failure") {
-    throw new Error("PI_E2E_AUTO_COMPACT_MODE must be tool, final, queue, or failure");
+  if (
+    mode !== "tool" &&
+    mode !== "final" &&
+    mode !== "queue" &&
+    mode !== "failure"
+  ) {
+    throw new Error(
+      "PI_E2E_AUTO_COMPACT_MODE must be tool, final, queue, or failure",
+    );
   }
 
   const faux = registerFauxProvider({
@@ -48,6 +57,7 @@ export default function autoCompactNativeProvider(pi: ExtensionAPI): void {
             fauxAssistantMessage(fauxText("AUTO FAILURE BACKOFF RESPONSE")),
             fauxAssistantMessage(fauxText("AUTO FAILURE RETRY RESPONSE")),
             fauxAssistantMessage(fauxText("AUTO FAILURE SUMMARY")),
+            fauxAssistantMessage(fauxText("AUTO FAILURE PREFIX SUMMARY")),
           ]
         : mode === "queue"
           ? [
@@ -91,9 +101,7 @@ export default function autoCompactNativeProvider(pi: ExtensionAPI): void {
     parameters: Type.Object({}),
     async execute() {
       return {
-        content: [
-          { type: "text" as const, text: "AUTO NATIVE TOOL RESULT" },
-        ],
+        content: [{ type: "text" as const, text: "AUTO NATIVE TOOL RESULT" }],
         details: undefined,
       };
     },
