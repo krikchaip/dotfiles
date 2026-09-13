@@ -48,12 +48,13 @@ const EXTENSION_NAME = "auto-compact";
 const MAX_EARLY_BACKOFF_TURNS = 8;
 const EARLY_CONTINUATION =
   "Continue from the completed tool results without repeating completed work. Follow any newer user instruction first.";
+const EARLY_CONTINUATION_TYPE = `${EXTENSION_NAME}-continuation`;
 const EARLY_COMPACTION_MARKER = "\u0000auto-compact:turn-boundary";
 const EARLY_COMPACTION_CONTINUE_MARKER = `${EARLY_COMPACTION_MARKER}:continue`;
 const EARLY_COMPACTION_BASELINE = ":after-compaction=";
 const NO_COMPACTION_BASELINE = "none";
 const TURN_BOUNDARY_PATCH = Symbol.for(`${EXTENSION_NAME}.turn-boundary`);
-const TURN_BOUNDARY_PATCH_VERSION = 3;
+const TURN_BOUNDARY_PATCH_VERSION = 5;
 
 type PiModel = NonNullable<ExtensionContext["model"]>;
 
@@ -103,6 +104,7 @@ type AgentLike = {
   hasQueuedMessages: () => boolean;
   steeringQueue?: AgentMessageQueue;
   followUpQueue?: AgentMessageQueue;
+  transformContext?: AgentSession["agent"]["transformContext"];
   state: { isStreaming: boolean };
   [TURN_BOUNDARY_PATCH]?: AgentTurnBoundaryState;
 };
@@ -113,7 +115,7 @@ type AgentTurnBoundaryState = {
   stopAfterTurn: boolean;
 };
 
-type RunAgentPrompt = (messages: unknown[]) => Promise<void>;
+type RunAgentPrompt = (messages: unknown) => Promise<void>;
 type HandlePostAgentRun = () => Promise<boolean>;
 
 type CoreAgentSession = {
@@ -214,6 +216,50 @@ function drainNextAgentQueue(agent: AgentLike): unknown[] {
   return agent.followUpQueue?.drain() ?? [];
 }
 
+function isTransientContinuationPrompt(messages: unknown): boolean {
+  const pending = Array.isArray(messages) ? messages : [messages];
+  return (
+    pending.length === 1 &&
+    isRecord(pending[0]) &&
+    pending[0].role === "custom" &&
+    pending[0].customType === EARLY_CONTINUATION_TYPE
+  );
+}
+
+async function runTransientContinuation(
+  session: CoreAgentSession,
+  originalRunAgentPrompt: RunAgentPrompt,
+): Promise<void> {
+  const agent = session.agent as unknown as AgentLike;
+  const originalTransformContext = agent.transformContext;
+  const transientTransformContext: NonNullable<
+    AgentLike["transformContext"]
+  > = async (messages, signal) => {
+    const transformed = originalTransformContext
+      ? await originalTransformContext.call(agent, messages, signal)
+      : messages;
+    return [
+      ...transformed,
+      {
+        role: "custom",
+        customType: EARLY_CONTINUATION_TYPE,
+        content: EARLY_CONTINUATION,
+        display: false,
+        timestamp: Date.now(),
+      },
+    ];
+  };
+
+  agent.transformContext = transientTransformContext;
+  try {
+    await originalRunAgentPrompt.call(session, []);
+  } finally {
+    if (agent.transformContext === transientTransformContext) {
+      agent.transformContext = originalTransformContext;
+    }
+  }
+}
+
 function installTurnBoundaryCompactionPatch() {
   const prototype =
     AgentSession.prototype as unknown as PatchedAgentSessionPrototype;
@@ -226,15 +272,19 @@ function installTurnBoundaryCompactionPatch() {
   const originalHandlePostAgentRun =
     existing?.originalHandlePostAgentRun ?? prototype._handlePostAgentRun;
   const originalCompact = existing?.originalCompact ?? prototype.compact;
-  prototype[TURN_BOUNDARY_PATCH] = {
+  const patch: AgentSessionPatch = {
     version: TURN_BOUNDARY_PATCH_VERSION,
     originalRunAgentPrompt,
     originalHandlePostAgentRun,
     originalCompact,
   };
+  prototype[TURN_BOUNDARY_PATCH] = patch;
 
   prototype._runAgentPrompt = function patchedRunAgentPrompt(...args) {
     installAgentTurnStop(this.agent as unknown as AgentLike);
+    if (isTransientContinuationPrompt(args[0])) {
+      return runTransientContinuation(this, originalRunAgentPrompt);
+    }
     return originalRunAgentPrompt.apply(this, args);
   };
 
@@ -278,7 +328,9 @@ function installTurnBoundaryCompactionPatch() {
     if (!agent.state.isStreaming || !state.canStopCurrentRun) {
       if (continueCurrentWork) {
         return Promise.reject(
-          new Error("turn-boundary compaction unavailable outside an active run"),
+          new Error(
+            "turn-boundary compaction unavailable outside an active run",
+          ),
         );
       }
       return originalCompact.call(this);
@@ -335,8 +387,8 @@ function withoutDeletedHeaders(
 ): Record<string, string> | undefined {
   return headers
     ? Object.fromEntries(
-        Object.entries(headers).filter((entry): entry is [string, string] =>
-          entry[1] !== null,
+        Object.entries(headers).filter(
+          (entry): entry is [string, string] => entry[1] !== null,
         ),
       )
     : undefined;
@@ -527,8 +579,7 @@ async function resolveConfiguredModel(
   }
 
   const model = ctx.modelRegistry.find(ref.provider, ref.id) as
-    | PiModel
-    | undefined;
+    PiModel | undefined;
   if (!model) {
     warnOnce(
       ctx,
@@ -832,7 +883,7 @@ export default function (pi: ExtensionAPI) {
 
         pi.sendMessage(
           {
-            customType: `${EXTENSION_NAME}-continuation`,
+            customType: EARLY_CONTINUATION_TYPE,
             content: EARLY_CONTINUATION,
             display: false,
           },

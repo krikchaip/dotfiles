@@ -56,11 +56,19 @@ function entry(
 function installAutoCompactSentinels(): void {
   const prototype = AgentSession.prototype as unknown as RecordLike;
   const originalCompact = prototype.compact as (...args: unknown[]) => unknown;
-  const originalRun = prototype._runAgentPrompt as (...args: unknown[]) => unknown;
-  const originalPostRun = prototype._handlePostAgentRun as (...args: unknown[]) => unknown;
+  const originalRun = prototype._runAgentPrompt as (
+    ...args: unknown[]
+  ) => unknown;
+  const originalPostRun = prototype._handlePostAgentRun as (
+    ...args: unknown[]
+  ) => unknown;
 
-  prototype.compact = function (this: ProbeAgentSession, instructions?: string) {
-    if (!this.__compactionProbe) return originalCompact.call(this, instructions);
+  prototype.compact = function (
+    this: ProbeAgentSession,
+    instructions?: string,
+  ) {
+    if (!this.__compactionProbe)
+      return originalCompact.call(this, instructions);
     this.compactCalls.push(instructions);
     return Promise.resolve({
       summary: "ORIGINAL COMPACTION",
@@ -68,7 +76,10 @@ function installAutoCompactSentinels(): void {
       tokensBefore: 20,
     });
   };
-  prototype._runAgentPrompt = function (this: ProbeAgentSession, messages: unknown[]) {
+  prototype._runAgentPrompt = function (
+    this: ProbeAgentSession,
+    messages: unknown[],
+  ) {
     if (!this.__compactionProbe) return originalRun.call(this, messages);
     this.runCalls.push(messages);
     return Promise.resolve();
@@ -76,8 +87,7 @@ function installAutoCompactSentinels(): void {
   prototype._handlePostAgentRun = function (this: ProbeAgentSession) {
     if (!this.__compactionProbe) return originalPostRun.call(this);
     const hasQueuedMessages = this.agent.hasQueuedMessages as
-      | (() => boolean)
-      | undefined;
+      (() => boolean) | undefined;
     return Promise.resolve(hasQueuedMessages?.() === true);
   };
 }
@@ -86,7 +96,9 @@ function installContextUsageSentinel(): void {
   const prototype = AgentSession.prototype;
   const original = prototype.getContextUsage;
   prototype.getContextUsage = function () {
-    if ((this as unknown as { __compactionProbe?: boolean }).__compactionProbe) {
+    if (
+      (this as unknown as { __compactionProbe?: boolean }).__compactionProbe
+    ) {
       return { tokens: 777, contextWindow: 999, percent: 77.7 };
     }
     return original.call(this);
@@ -95,11 +107,20 @@ function installContextUsageSentinel(): void {
 
 function installDedupSentinels(): void {
   const prototype = InteractiveMode.prototype as unknown as RecordLike;
-  const originalAdd = prototype.addMessageToChat as (...args: unknown[]) => unknown;
-  const originalInitial = prototype.renderInitialMessages as (...args: unknown[]) => unknown;
-  const originalEntries = prototype.renderSessionEntries as (...args: unknown[]) => unknown;
+  const originalAdd = prototype.addMessageToChat as (
+    ...args: unknown[]
+  ) => unknown;
+  const originalInitial = prototype.renderInitialMessages as (
+    ...args: unknown[]
+  ) => unknown;
+  const originalEntries = prototype.renderSessionEntries as (
+    ...args: unknown[]
+  ) => unknown;
 
-  prototype.addMessageToChat = function (this: ProbeInteractiveMode, message: unknown) {
+  prototype.addMessageToChat = function (
+    this: ProbeInteractiveMode,
+    message: unknown,
+  ) {
     if (!this.__compactionProbe) return originalAdd.call(this, message);
     this.added.push(message);
   };
@@ -123,7 +144,7 @@ if (mode === "dedup-compaction-banner") installDedupSentinels();
 async function testAutoCompact(): Promise<void> {
   const prototype = AgentSession.prototype as unknown as RecordLike;
   const patch = prototype[AUTO_PATCH] as { version?: number } | undefined;
-  check(patch?.version === 3, "turn-boundary patch version is not 3");
+  check(patch?.version === 5, "turn-boundary patch version is not 5");
 
   let branch: SessionEntry[] = [];
   const steering = ["STEERING"];
@@ -148,10 +169,16 @@ async function testAutoCompact(): Promise<void> {
   ) => Promise<{ summary: string }>;
 
   await compact.call(fake, "manual focus");
-  check(fake.compactCalls.at(-1) === "manual focus", "manual focus was not preserved");
+  check(
+    fake.compactCalls.at(-1) === "manual focus",
+    "manual focus was not preserved",
+  );
 
   await compact.call(fake, `${MARKER}:after-compaction=none`);
-  check(fake.compactCalls.at(-1) === undefined, "settled marker did not fall back to normal compact");
+  check(
+    fake.compactCalls.at(-1) === undefined,
+    "settled marker did not fall back to normal compact",
+  );
 
   let rejected = false;
   try {
@@ -178,8 +205,14 @@ async function testAutoCompact(): Promise<void> {
     ];
   };
   const callsBeforeSupersession = fake.compactCalls.length;
-  const superseded = await compact.call(fake, `${MARKER}:after-compaction=old-compaction`);
-  check(superseded.summary === "BUILT IN WON", "built-in compaction result was not reused");
+  const superseded = await compact.call(
+    fake,
+    `${MARKER}:after-compaction=old-compaction`,
+  );
+  check(
+    superseded.summary === "BUILT IN WON",
+    "built-in compaction result was not reused",
+  );
   check(
     fake.compactCalls.length === callsBeforeSupersession,
     "superseded early compaction called core compact again",
@@ -190,10 +223,19 @@ async function testAutoCompact(): Promise<void> {
   (fake.agent.hasQueuedMessages as unknown) = () => true;
   const runCallsBeforeQueue = fake.runCalls.length;
   await compact.call(fake, `${MARKER}:after-compaction=none`);
-  check(fake.runCalls.length === runCallsBeforeQueue + 1, "queued steering was not resumed");
-  check(fake.runCalls.at(-1)?.[0] === "STEERING", "steering queue was not preferred");
+  check(
+    fake.runCalls.length === runCallsBeforeQueue + 1,
+    "queued steering was not resumed",
+  );
+  check(
+    fake.runCalls.at(-1)?.[0] === "STEERING",
+    "steering queue was not preferred",
+  );
   await compact.call(fake, `${MARKER}:after-compaction=none`);
-  check(fake.runCalls.at(-1)?.[0] === "FOLLOW-UP", "follow-up queue was not resumed");
+  check(
+    fake.runCalls.at(-1)?.[0] === "FOLLOW-UP",
+    "follow-up queue was not resumed",
+  );
 }
 
 function compactionEntry(id = "compact"): SessionEntry {
@@ -233,13 +275,20 @@ function assistantEntry(
 
 function testPostCompactionContext(): void {
   const prototype = AgentSession.prototype as unknown as RecordLike;
-  check(Boolean(prototype[CONTEXT_PATCH]), "context usage patch state is absent");
+  check(
+    Boolean(prototype[CONTEXT_PATCH]),
+    "context usage patch state is absent",
+  );
   const getUsage = prototype.getContextUsage as (this: RecordLike) => {
     tokens: number;
     contextWindow: number;
   };
   const messages = [
-    { role: "user", content: [{ type: "text", text: "estimate this message" }], timestamp: 1 },
+    {
+      role: "user",
+      content: [{ type: "text", text: "estimate this message" }],
+      timestamp: 1,
+    },
   ];
   let branch: SessionEntry[] = [compactionEntry()];
   const fake: RecordLike = {
@@ -250,12 +299,21 @@ function testPostCompactionContext(): void {
   };
 
   let usage = getUsage.call(fake);
-  check(usage.tokens === estimateTokens(messages[0] as never), "post-compaction estimate is wrong");
-  check(usage.contextWindow === 8_192, "estimate lost the model context window");
+  check(
+    usage.tokens === estimateTokens(messages[0] as never),
+    "post-compaction estimate is wrong",
+  );
+  check(
+    usage.contextWindow === 8_192,
+    "estimate lost the model context window",
+  );
 
   branch = [compactionEntry(), assistantEntry("aborted", "aborted", 20)];
   usage = getUsage.call(fake);
-  check(usage.tokens !== 777, "aborted usage incorrectly ended the estimate gap");
+  check(
+    usage.tokens !== 777,
+    "aborted usage incorrectly ended the estimate gap",
+  );
 
   branch = [compactionEntry(), assistantEntry("error", "error", 20)];
   usage = getUsage.call(fake);
@@ -263,20 +321,35 @@ function testPostCompactionContext(): void {
 
   branch = [compactionEntry(), assistantEntry("zero", "stop", 0)];
   usage = getUsage.call(fake);
-  check(usage.tokens === 777, "zero-token completed usage did not end the estimate gap");
+  check(
+    usage.tokens === 777,
+    "zero-token completed usage did not end the estimate gap",
+  );
 
   branch = [compactionEntry(), assistantEntry("complete", "stop", 20)];
   const complete = branch[1] as SessionEntry & {
     message: { usage: Parameters<typeof calculateContextTokens>[0] };
   };
-  check(calculateContextTokens(complete.message.usage) > 0, "probe usage is invalid");
+  check(
+    calculateContextTokens(complete.message.usage) > 0,
+    "probe usage is invalid",
+  );
   usage = getUsage.call(fake);
-  check(usage.tokens === 777, "valid post-compaction usage did not restore core result");
+  check(
+    usage.tokens === 777,
+    "valid post-compaction usage did not restore core result",
+  );
 
   branch = [];
-  check(getUsage.call(fake).tokens === 777, "no-compaction path did not use core result");
+  check(
+    getUsage.call(fake).tokens === 777,
+    "no-compaction path did not use core result",
+  );
   fake.model = { contextWindow: 0 };
-  check(getUsage.call(fake).tokens === 777, "zero context window did not use core result");
+  check(
+    getUsage.call(fake).tokens === 777,
+    "zero context window did not use core result",
+  );
 }
 
 function ids(entries: SessionEntry[] | undefined): string[] {
@@ -290,8 +363,13 @@ function testDedupCompactionBanner(): void {
     this: ProbeInteractiveMode,
     entries: SessionEntry[],
   ) => void;
-  const renderInitial = prototype.renderInitialMessages as (this: ProbeInteractiveMode) => void;
-  const add = prototype.addMessageToChat as (this: ProbeInteractiveMode, message: unknown) => void;
+  const renderInitial = prototype.renderInitialMessages as (
+    this: ProbeInteractiveMode,
+  ) => void;
+  const add = prototype.addMessageToChat as (
+    this: ProbeInteractiveMode,
+    message: unknown,
+  ) => void;
 
   const before = entry("message", "before", null, 1);
   const compact = compactionEntry();
@@ -313,7 +391,10 @@ function testDedupCompactionBanner(): void {
   const missingParent = compactionEntry();
   missingParent.parentId = "missing";
   render.call(fake, [before, after, missingParent]);
-  check(ids(fake.renderedEntries).join(",") === "before,compact,after", "child placement failed");
+  check(
+    ids(fake.renderedEntries).join(",") === "before,compact,after",
+    "child placement failed",
+  );
 
   const timeOnly = compactionEntry();
   timeOnly.parentId = "missing";
@@ -326,15 +407,28 @@ function testDedupCompactionBanner(): void {
 
   const originalGetEntries = fake.sessionManager.getEntries;
   renderInitial.call(fake);
-  check(ids(fake.initialEntries).join(",") === "before,after", "initial banner compaction was not hidden");
-  check(fake.sessionManager.getEntries === originalGetEntries, "getEntries was not restored");
+  check(
+    ids(fake.initialEntries).join(",") === "before,after",
+    "initial banner compaction was not hidden",
+  );
+  check(
+    fake.sessionManager.getEntries === originalGetEntries,
+    "getEntries was not restored",
+  );
 
   fake.added = [];
-  const summary = { role: "compactionSummary", summary: "SUMMARY", tokensBefore: 100 };
+  const summary = {
+    role: "compactionSummary",
+    summary: "SUMMARY",
+    tokensBefore: 100,
+  };
   add.call(fake, summary);
   add.call(fake, { ...summary });
   add.call(fake, { ...summary, tokensBefore: 101 });
-  check(fake.added.length === 2, "live duplicate suppression removed the wrong cards");
+  check(
+    fake.added.length === 2,
+    "live duplicate suppression removed the wrong cards",
+  );
 }
 
 export default function compactionProbe(pi: ExtensionAPI): void {
@@ -343,15 +437,19 @@ export default function compactionProbe(pi: ExtensionAPI): void {
     void Promise.resolve()
       .then(async () => {
         if (mode === "auto-compact") await testAutoCompact();
-        else if (mode === "post-compaction-context") testPostCompactionContext();
-        else if (mode === "dedup-compaction-banner") testDedupCompactionBanner();
+        else if (mode === "post-compaction-context")
+          testPostCompactionContext();
+        else if (mode === "dedup-compaction-banner")
+          testDedupCompactionBanner();
         else throw new Error(`unknown compaction probe mode: ${mode}`);
         context.ui.setWidget("compaction-probe", [
           `COMPACTION PROBE PASS ${mode} gemini-ready`,
         ]);
       })
       .catch((error) => {
-        context.ui.setWidget("compaction-probe", [`COMPACTION PROBE FAIL ${String(error)}`]);
+        context.ui.setWidget("compaction-probe", [
+          `COMPACTION PROBE FAIL ${String(error)}`,
+        ]);
       });
   });
 }

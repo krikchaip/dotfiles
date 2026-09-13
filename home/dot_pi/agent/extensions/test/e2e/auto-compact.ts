@@ -13,9 +13,7 @@ import {
 
 const runDirectory = makeRunDirectory(root);
 
-async function nativeThresholdScenario(
-  mode: "tool" | "final",
-): Promise<void> {
+async function nativeThresholdScenario(mode: "tool" | "final"): Promise<void> {
   const name = `auto-compact-native-${mode}`;
   const home = isolatedHome(runDirectory, name);
   writeHomeSettings(home, {
@@ -70,14 +68,21 @@ async function nativeThresholdScenario(
     compactions.length === 1,
     `Native ${mode} threshold persisted ${compactions.length} compactions`,
   );
-  const targetCalls = JSON.parse(readFileSync(targetCapture, "utf8")) as unknown[];
+  const targetCalls = JSON.parse(
+    readFileSync(targetCapture, "utf8"),
+  ) as unknown[];
   harness.assert(
     targetCalls.length === 1,
     `Native ${mode} threshold made ${targetCalls.length} target calls`,
   );
-  const currentCalls = JSON.parse(readFileSync(currentCapture, "utf8")) as unknown[];
+  const currentCalls = JSON.parse(
+    readFileSync(currentCapture, "utf8"),
+  ) as unknown[];
   if (mode === "tool") {
-    harness.assert(currentCalls.length === 3, `Tool flow made ${currentCalls.length} provider calls`);
+    harness.assert(
+      currentCalls.length === 3,
+      `Tool flow made ${currentCalls.length} provider calls`,
+    );
     const continuation = JSON.stringify(currentCalls[2]);
     harness.assert(
       continuation.includes("AUTO NATIVE TOOL RESULT"),
@@ -89,12 +94,71 @@ async function nativeThresholdScenario(
     );
     harness.assert(
       !continuation.includes("Continue from the completed tool results"),
-      "Hidden continuation instruction leaked into provider context",
+      "Transient continuation instruction leaked into an ordinary tool request",
     );
   } else {
-    harness.assert(currentCalls.length === 2, `Final flow made ${currentCalls.length} provider calls`);
+    harness.assert(
+      currentCalls.length === 2,
+      `Final flow made ${currentCalls.length} provider calls`,
+    );
   }
   console.log(`PASS auto-compact native-${mode}-threshold`);
+}
+
+async function transientContinuationScenario(): Promise<void> {
+  const name = "auto-compact-transient-continuation";
+  const home = isolatedHome(runDirectory, name);
+  const capturePath = `${runDirectory}/${name}-provider.json`;
+  const harness = await PiTuiHarness.start({
+    name,
+    root,
+    runDirectory,
+    extensions: [
+      "extensions/test/e2e/fixture/generated-state-provider.ts",
+      "extensions/auto-compact.ts",
+      "extensions/test/e2e/fixture/auto-compact-transient-probe.ts",
+    ],
+    model: "generated-state-e2e/gemini-fake",
+    persistSession: true,
+    environment: {
+      HOME: home,
+      PI_E2E_GENERATED_PROVIDER_CAPTURE: capturePath,
+      PI_E2E_GENERATED_RESPONSES: JSON.stringify([
+        "AUTO TRANSIENT PROVIDER RESPONSE",
+      ]),
+    },
+  });
+
+  await submitCommand(harness, "/e2e-auto-compact-transient");
+  await harness.waitFor("AUTO TRANSIENT PROVIDER RESPONSE");
+  await submitCommand(harness, "/tree");
+  await harness.waitFor("Session Tree");
+  await Bun.sleep(250);
+  const tree = await harness.capture();
+  harness.assert(
+    !tree.includes("[auto-compact-continuation]"),
+    "Transient continuation appeared in /tree",
+  );
+  await harness.sendKeys("Escape");
+  await finish(harness);
+
+  const entries = readEntries(sessionFiles(harness)[0]!);
+  harness.assert(
+    entries.every((entry) => entry.type !== "custom_message"),
+    "Transient continuation persisted in session history",
+  );
+  const calls = JSON.parse(readFileSync(capturePath, "utf8")) as unknown[];
+  harness.assert(
+    calls.length === 1,
+    `Transient continuation flow made ${calls.length} provider calls`,
+  );
+  harness.assert(
+    JSON.stringify(calls[0]).includes(
+      "Continue from the completed tool results without repeating completed work. Follow any newer user instruction first.",
+    ),
+    "Transient continuation instruction was omitted from provider context",
+  );
+  console.log("PASS auto-compact transient-continuation");
 }
 
 async function contextWindowFamilyScenario(): Promise<void> {
@@ -175,7 +239,9 @@ async function contextWindowFamilyScenario(): Promise<void> {
   await harness.waitFor("auto-compact: compacted with", 15_000);
   await finish(harness);
 
-  const targetCalls = JSON.parse(readFileSync(targetCapture, "utf8")) as unknown[];
+  const targetCalls = JSON.parse(
+    readFileSync(targetCapture, "utf8"),
+  ) as unknown[];
   harness.assert(
     targetCalls.length > 0,
     "Context-window floor did not use the configured compaction model",
@@ -299,19 +365,27 @@ async function queuedFinalScenario(): Promise<void> {
     },
   });
   await harness.submit("AUTO NATIVE FINAL USER");
-  await harness.waitFor("compacting with generated-state-e2e/gemini-fake", 8_000);
+  await harness.waitFor(
+    "compacting with generated-state-e2e/gemini-fake",
+    8_000,
+  );
   await harness.submit("AUTO NATIVE QUEUED USER");
   await harness.waitFor("AUTO NATIVE QUEUED RESPONSE", 12_000);
   await finish(harness);
 
   const calls = JSON.parse(readFileSync(capturePath, "utf8")) as unknown[];
-  harness.assert(calls.length === 3, `Queued final flow made ${calls.length} current-model calls`);
+  harness.assert(
+    calls.length === 3,
+    `Queued final flow made ${calls.length} current-model calls`,
+  );
   harness.assert(
     JSON.stringify(calls[2]).includes("AUTO NATIVE QUEUED USER"),
     "Queued user message was not resumed after final-answer compaction",
   );
   harness.assert(
-    readEntries(sessionFiles(harness)[0]!).filter((entry) => entry.type === "compaction").length === 1,
+    readEntries(sessionFiles(harness)[0]!).filter(
+      (entry) => entry.type === "compaction",
+    ).length === 1,
     "Queued final flow did not persist exactly one compaction",
   );
   console.log("PASS auto-compact final-answer-queue");
@@ -350,14 +424,18 @@ async function failureBackoffScenario(): Promise<void> {
   await harness.waitFor("AUTO FAILURE COMPACTION ERROR", 12_000);
   await Bun.sleep(300);
   harness.assert(
-    readEntries(sessionFiles(harness)[0]!).every((entry) => entry.type !== "compaction"),
+    readEntries(sessionFiles(harness)[0]!).every(
+      (entry) => entry.type !== "compaction",
+    ),
     "PRODUCT DEFECT: failed automatic compaction persisted an entry, so failure backoff was not armed",
   );
   await harness.submit("AUTO FAILURE BACKOFF USER");
   await harness.waitFor("AUTO FAILURE BACKOFF RESPONSE");
   await Bun.sleep(300);
   harness.assert(
-    readEntries(sessionFiles(harness)[0]!).every((entry) => entry.type !== "compaction"),
+    readEntries(sessionFiles(harness)[0]!).every(
+      (entry) => entry.type !== "compaction",
+    ),
     "PRODUCT DEFECT: failed automatic compaction did not arm one-turn backoff",
   );
   await harness.submit("AUTO FAILURE RETRY USER");
@@ -365,9 +443,14 @@ async function failureBackoffScenario(): Promise<void> {
   await finish(harness);
 
   const calls = JSON.parse(readFileSync(capturePath, "utf8")) as unknown[];
-  harness.assert(calls.length === 5, `Failure/backoff flow made ${calls.length} calls`);
   harness.assert(
-    readEntries(sessionFiles(harness)[0]!).filter((entry) => entry.type === "compaction").length === 1,
+    calls.length === 5,
+    `Failure/backoff flow made ${calls.length} calls`,
+  );
+  harness.assert(
+    readEntries(sessionFiles(harness)[0]!).filter(
+      (entry) => entry.type === "compaction",
+    ).length === 1,
     "Failure/backoff retry did not persist one compaction",
   );
   console.log("PASS auto-compact failure-backoff-retry");
@@ -403,24 +486,36 @@ async function staleSessionScenario(): Promise<void> {
       PI_E2E_AUTO_COMPACT_MODE: "tool",
       PI_E2E_AUTO_COMPACT_CAPTURE: currentCapture,
       PI_E2E_AUTO_COMPACT_SESSION_CAPTURE: sessionCapture,
-      PI_E2E_GENERATED_RESPONSES: JSON.stringify(["STALE SUMMARY MUST NOT RESUME"]),
+      PI_E2E_GENERATED_RESPONSES: JSON.stringify([
+        "STALE SUMMARY MUST NOT RESUME",
+      ]),
       PI_E2E_RESPONSE_DELAYS_MS: JSON.stringify([1_500]),
     },
   });
   await harness.submit("AUTO STALE HISTORY USER");
   await harness.waitFor("AUTO NATIVE HISTORY RESPONSE");
   await harness.submit("AUTO STALE TOOL USER");
-  await harness.waitFor("compacting with generated-state-e2e/gemini-fake", 8_000);
+  await harness.waitFor(
+    "compacting with generated-state-e2e/gemini-fake",
+    8_000,
+  );
   await harness.submit("/new");
   await harness.waitUntil("new session during compaction", () => {
     if (!existsSync(sessionCapture)) return false;
-    return (JSON.parse(readFileSync(sessionCapture, "utf8")) as { starts: number }).starts === 2;
+    return (
+      (JSON.parse(readFileSync(sessionCapture, "utf8")) as { starts: number })
+        .starts === 2
+    );
   });
   await Bun.sleep(1_700);
   const pane = await harness.capture();
-  harness.assert(!pane.includes("AUTO NATIVE CONTINUATION RESPONSE"), "Stale compaction resumed the old tool turn");
   harness.assert(
-    (JSON.parse(readFileSync(currentCapture, "utf8")) as unknown[]).length === 2,
+    !pane.includes("AUTO NATIVE CONTINUATION RESPONSE"),
+    "Stale compaction resumed the old tool turn",
+  );
+  harness.assert(
+    (JSON.parse(readFileSync(currentCapture, "utf8")) as unknown[]).length ===
+      2,
     "Stale compaction made a continuation provider call",
   );
   await finish(harness);
@@ -483,7 +578,9 @@ async function modelScenario(
   await harness.waitFor("auto-compact: compacted with", 12_000);
   await finish(harness);
 
-  const currentCalls = JSON.parse(readFileSync(currentCapture, "utf8")) as unknown[];
+  const currentCalls = JSON.parse(
+    readFileSync(currentCapture, "utf8"),
+  ) as unknown[];
   harness.assert(
     targetShouldRun && !targetShouldError
       ? currentCalls.length === 2
@@ -507,14 +604,20 @@ async function modelScenario(
   }
 
   const files = sessionFiles(harness);
-  harness.assert(files.length === 1, `Expected one compaction JSONL, got ${files.length}`);
+  harness.assert(
+    files.length === 1,
+    `Expected one compaction JSONL, got ${files.length}`,
+  );
   const entries = readEntries(files[0]!);
   harness.assert(
     entries.filter((entry) => entry.type === "message").length === 4,
     "Compaction scenario JSONL does not contain exactly two turns",
   );
   const compactions = entries.filter((entry) => entry.type === "compaction");
-  harness.assert(compactions.length === 1, "Manual compact did not persist exactly one entry");
+  harness.assert(
+    compactions.length === 1,
+    "Manual compact did not persist exactly one entry",
+  );
   const expectedPersistedSummary =
     `${expectedSummary}\n\n---\n\n` +
     `**Turn Context (split turn):**\n\n${expectedSummary}`;
@@ -574,6 +677,7 @@ try {
 
   await nativeThresholdScenario("tool");
   await nativeThresholdScenario("final");
+  await transientContinuationScenario();
   await contextWindowFamilyScenario();
   await absoluteTokensSuppressionScenario();
   const defects: string[] = [];
@@ -615,7 +719,9 @@ try {
     console.error(`FAIL auto-compact final-answer-queue: ${defects.at(-1)}`);
   }
   if (defects.length > 0) {
-    throw new Error(`auto-compact deterministic product defects:\n${defects.join("\n")}`);
+    throw new Error(
+      `auto-compact deterministic product defects:\n${defects.join("\n")}`,
+    );
   }
   console.log("PASS auto-compact");
 } finally {
