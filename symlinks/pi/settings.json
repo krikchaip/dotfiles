@@ -84,7 +84,7 @@
     "npm:@gotgenes/pi-permission-system",
     "npm:@joelazar/pi-tuicr",
     {
-      "source": "npm:pi-mcp-adapter",
+      "source": "npm:pi-mcp-adapter@2.27.0",
       "skills": []
     },
     "npm:pi-web-access",
