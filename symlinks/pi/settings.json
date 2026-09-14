@@ -61,7 +61,7 @@
   },
   "autoRename": {
     "enabled": true,
-    "model": "antigravity/gemini-3.8-flash-high"
+    "model": "antigravity/gemini-3.8-flash-low"
   },
   "skills": [],
   "extensions": [
