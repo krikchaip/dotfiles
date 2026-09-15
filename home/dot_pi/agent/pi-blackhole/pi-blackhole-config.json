@@ -1,0 +1,34 @@
+{
+  "compaction": "auto",
+  "compactionEngine": "blackhole",
+  "compactionSummaryMode": "default",
+  "tailBehavior": "minimal",
+  "midRunCompaction": "off",
+
+  "retainedToolOutputMaxTokens": 20000,
+
+  "compactAfterPreset": "default",
+  "memory": true,
+  "sessionFallback": true,
+
+  "observeAfterTokens": 15000,
+  "reflectAfterTokens": 25000,
+  "observationsPoolMaxTokens": 20000,
+  "reflectionsPoolMaxTokens": 8000,
+  "observationsPoolTargetTokens": 10000,
+  "reflectorInputMaxTokens": 80000,
+  "dropperInputMaxTokens": 80000,
+  "observerChunkMaxTokens": 40000,
+  "observerPreambleMaxTokens": 0,
+  "dropperPressureThreshold": 0.7,
+  "dropperPoolFullnessThreshold": 0.1,
+  "agentMaxTurns": 16,
+
+  "debug": false,
+  "debugLog": false,
+
+  "skipForProviders": [],
+
+  "fullFoldAlways": true,
+  "recallResponseMaxChars": 48000
+}

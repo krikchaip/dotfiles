@@ -83,6 +83,7 @@
     "git:github.com/krikchaip/pi-treex@personal-20260913",
     "npm:@gotgenes/pi-permission-system",
     "npm:@joelazar/pi-tuicr",
+    "npm:pi-blackhole",
     {
       "source": "npm:pi-mcp-adapter@2.27.0",
       "skills": []
