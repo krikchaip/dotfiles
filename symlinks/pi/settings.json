@@ -65,6 +65,7 @@
   },
   "skills": [],
   "extensions": [
+    "-extensions/auto-compact.ts",
     "-extensions/post-compaction-context.ts"
   ],
   "npmCommand": [
