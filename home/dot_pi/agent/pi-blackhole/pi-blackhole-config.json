@@ -3,32 +3,63 @@
   "compactionEngine": "blackhole",
   "compactionSummaryMode": "default",
   "tailBehavior": "minimal",
-  "midRunCompaction": "off",
-
+  "midRunCompaction": "resume",
+  "compactAfterTokens": 0,
   "retainedToolOutputMaxTokens": 20000,
-
+  "recallResponseMaxChars": 48000,
   "compactAfterPreset": "default",
+  "compactAfterPresets": {
+    "default": [
+      { "window": 32768, "ratio": 0.9 },
+      { "window": 131072, "ratio": 0.8 },
+      { "window": 262144, "ratio": 0.7 },
+      { "window": 1048576, "ratio": 0.4 }
+    ]
+  },
+
   "memory": true,
   "sessionFallback": true,
-
-  "observeAfterTokens": 15000,
-  "reflectAfterTokens": 25000,
-  "observationsPoolMaxTokens": 20000,
-  "reflectionsPoolMaxTokens": 8000,
-  "observationsPoolTargetTokens": 10000,
+  "fullFoldAlways": true,
+  "observeAfterTokens": 30000,
+  "reflectAfterTokens": 50000,
+  "observationsPoolMaxTokens": 40000,
+  "reflectionsPoolMaxTokens": 16000,
+  "observationsPoolTargetTokens": 20000,
   "reflectorInputMaxTokens": 80000,
   "dropperInputMaxTokens": 80000,
   "observerChunkMaxTokens": 40000,
   "observerPreambleMaxTokens": 0,
   "dropperPressureThreshold": 0.7,
-  "dropperPoolFullnessThreshold": 0.1,
+  "dropperPoolFullnessThreshold": 0.5,
   "agentMaxTurns": 16,
 
+  "model": {
+    "provider": "antigravity",
+    "id": "claude-sonnet-4-6"
+  },
+  "observerModel": {
+    "provider": "antigravity",
+    "id": "gemini-3.8-flash-low"
+  },
+  "reflectorModel": {
+    "provider": "antigravity",
+    "id": "gemini-3.8-flash-high"
+  },
+  "dropperModel": {
+    "provider": "opencode",
+    "id": "big-pickle",
+    "thinking": "high"
+  },
+  "observerFallbackModels": [
+    { "provider": "openai-codex", "id": "gpt-5.6-luna", "thinking": "medium" }
+  ],
+  "reflectorFallbackModels": [
+    { "provider": "openai-codex", "id": "gpt-5.6-luna", "thinking": "high" }
+  ],
+  "dropperFallbackModels": [
+    { "provider": "openai-codex", "id": "gpt-5.6-luna", "thinking": "medium" }
+  ],
+
   "debug": false,
-  "debugLog": false,
-
-  "skipForProviders": [],
-
-  "fullFoldAlways": true,
-  "recallResponseMaxChars": 48000
+  "debugLog": false
 }
