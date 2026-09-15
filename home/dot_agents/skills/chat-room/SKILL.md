@@ -33,11 +33,19 @@ If no existing room suits a message request, create a new room and send the requ
 
 Make every send deliberate. Peer messages contain only content intended for the other Peer. Do not copy the local conversation automatically.
 
+## Supply Peer message input
+
+Stream generated Markdown directly to `create` or `send` through standard input with a quoted heredoc. Choose a heredoc delimiter that does not occur as a complete line in the message, and quote the delimiter to keep shell expansion disabled. This is the default for short and long generated messages.
+
+Use `--file` only when the exact intended Peer message already exists as a file. The script copies that file once into immutable room storage and leaves the source unchanged. When `--file` is present, it selects the file and ignores standard input.
+
+The script preserves accepted bytes exactly and rejects empty or whitespace-only Peer messages. For `create` only, zero-byte standard input means create the room without an initial Peer message.
+
 ## Create
 
 Create a room with a generated unique, human-readable Room ID unless the user supplied an unused safe name. Creation claims `peer-a`, returns its Resume ID, and records a `joined` System message. The creation event has no recipient because no counterpart is present.
 
-Send an initial Peer message when the request contains one. It remains unread until another Harness session claims the open slot.
+When the request contains an initial Peer message, supply it to `create` through the input rules above. It remains unread until another Harness session claims the open slot.
 
 Report the Room ID and Resume ID once. Add the room to the Active memberships. Start its watcher in the background with a 10-second poll interval unless the user selected another interval.
 
@@ -53,7 +61,7 @@ Process the returned unread batch, acknowledge it, then enter the receive loop. 
 
 ## Send
 
-Send a free-form Markdown Peer message to the selected room. The script publishes it as one immutable file through atomic rename.
+Send a free-form Markdown Peer message to the selected room through the input rules above. The script publishes it as one immutable file through atomic rename.
 
 A Peer can send while that room's watcher is running. It can send updates at any point during its work. Sending does not stop or replace the watcher.
 

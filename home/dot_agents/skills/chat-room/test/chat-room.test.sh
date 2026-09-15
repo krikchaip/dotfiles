@@ -111,7 +111,7 @@ test_create_without_name_generates_safe_unique_room() {
 
 test_join_receives_initial_message() {
   printf '# Work request\n\nInspect the parser.\n' > "$CASE_DIR/message.md"
-  created=$(bash "$SCRIPT" create --room initial --message-file "$CASE_DIR/message.md") || return 1
+  created=$(bash "$SCRIPT" create --room initial --file "$CASE_DIR/message.md") || return 1
   assert_eq "$(field "$created" MESSAGE_ID)" '00000000000000000002' || return 1
 
   joined=$(bash "$SCRIPT" join --room initial) || return 1
@@ -123,6 +123,61 @@ test_join_receives_initial_message() {
   [ -n "$resume" ] || fail 'join returned no Resume ID' || return 1
   path=$(field "$joined" MESSAGE_PATH)
   assert_eq "$(cat "$path")" "$(cat "$CASE_DIR/message.md")"
+}
+
+test_create_reads_exact_initial_message_from_stdin() {
+  printf '# Stdin request\n\nKeep `$value` literal.' > "$CASE_DIR/expected.md"
+  created=$(cat "$CASE_DIR/expected.md" | bash "$SCRIPT" create --room initialstdin) || return 1
+  assert_eq "$(field "$created" MESSAGE_ID)" '00000000000000000002' || return 1
+
+  joined=$(bash "$SCRIPT" join --room initialstdin) || return 1
+  assert_contains "$joined" 'MESSAGE_COUNT=1' || return 1
+  path=$(field "$joined" MESSAGE_PATH)
+  cmp "$CASE_DIR/expected.md" "$path" || fail 'create changed stdin message bytes'
+}
+
+test_create_rejects_whitespace_stdin_without_room() {
+  printf ' \t\n\n' > "$CASE_DIR/whitespace.md"
+  if bash "$SCRIPT" create --room emptycreate < "$CASE_DIR/whitespace.md" > "$CASE_DIR/failure.out" 2> "$CASE_DIR/failure.err"; then
+    fail 'whitespace-only create unexpectedly succeeded'
+    return 1
+  fi
+  assert_contains "$(cat "$CASE_DIR/failure.err")" 'ERROR=empty-message' || return 1
+  [ ! -e "$TMPDIR/agent-chat-rooms/emptycreate" ] || fail 'failed create published a room'
+}
+
+test_create_with_zero_byte_stdin_has_no_initial_message() {
+  created=$(bash "$SCRIPT" create --room noinitial < /dev/null) || return 1
+  assert_eq "$(field "$created" MESSAGE_ID)" '' || return 1
+  assert_eq "$(sed -n 's/^VERSION=//p' "$TMPDIR/agent-chat-rooms/noinitial/manifest")" '1' || return 1
+
+  joined=$(bash "$SCRIPT" join --room noinitial) || return 1
+  assert_contains "$joined" 'MESSAGE_COUNT=0'
+}
+
+test_create_file_is_exact_and_ignores_stdin() {
+  printf '# Existing file\n\nKeep `$file` and the final byte.' > "$CASE_DIR/existing.md"
+  printf 'discarded stdin\n' > "$CASE_DIR/discarded.md"
+  created=$(bash "$SCRIPT" create --room filecreate --file "$CASE_DIR/existing.md" < "$CASE_DIR/discarded.md") || return 1
+
+  joined=$(bash "$SCRIPT" join --room filecreate) || return 1
+  path=$(field "$joined" MESSAGE_PATH)
+  cmp "$CASE_DIR/existing.md" "$path" || fail 'create changed file bytes or consumed stdin'
+}
+
+test_create_file_rejects_empty_content_and_legacy_flag() {
+  : > "$CASE_DIR/empty.md"
+  printf ' \t\n' > "$CASE_DIR/whitespace.md"
+  for source in "$CASE_DIR/empty.md" "$CASE_DIR/whitespace.md"; do
+    room="emptyfile$(basename "$source" .md)"
+    run_failing bash "$SCRIPT" create --room "$room" --file "$source" || return 1
+    assert_contains "$FAILURE_ERROR" 'ERROR=empty-message' || return 1
+    [ ! -e "$TMPDIR/agent-chat-rooms/$room" ] || fail 'failed file create published a room' || return 1
+  done
+
+  run_failing bash "$SCRIPT" create --room legacy --message-file "$CASE_DIR/empty.md" || return 1
+  assert_contains "$FAILURE_ERROR" 'ERROR=invalid-arguments' || return 1
+  [ ! -e "$TMPDIR/agent-chat-rooms/legacy" ] || fail 'legacy create flag published a room'
 }
 
 new_pair() {
@@ -156,6 +211,70 @@ test_send_and_resume_preserve_order_and_redelivery() {
 
   redelivered=$(bash "$SCRIPT" resume --room ordered --resume "$PEER_B_RESUME") || return 1
   assert_eq "$(printf '%s\n' "$redelivered" | sed -n 's/^MESSAGE_ID=//p')" "$ids"
+}
+
+test_send_reads_exact_one_line_stdin() {
+  new_pair sendoneline || return 1
+  printf 'one line without a trailing newline' > "$CASE_DIR/expected.md"
+  sent=$(bash "$SCRIPT" send --room sendoneline --resume "$PEER_A_RESUME" < "$CASE_DIR/expected.md") || return 1
+
+  resumed=$(bash "$SCRIPT" resume --room sendoneline --resume "$PEER_B_RESUME") || return 1
+  assert_contains "$resumed" "MESSAGE_ID=$(field "$sent" MESSAGE_ID)" || return 1
+  path=$(field "$resumed" MESSAGE_PATH)
+  cmp "$CASE_DIR/expected.md" "$path" || fail 'send changed one-line stdin bytes'
+}
+
+test_send_reads_exact_multiline_stdin() {
+  new_pair sendstdin || return 1
+  printf '# Stdin message\n\n- Keep `$value` literal\n- Preserve the final byte.' > "$CASE_DIR/expected.md"
+  sent=$(bash "$SCRIPT" send --room sendstdin --resume "$PEER_A_RESUME" < "$CASE_DIR/expected.md") || return 1
+
+  resumed=$(bash "$SCRIPT" resume --room sendstdin --resume "$PEER_B_RESUME") || return 1
+  assert_contains "$resumed" "MESSAGE_ID=$(field "$sent" MESSAGE_ID)" || return 1
+  path=$(field "$resumed" MESSAGE_PATH)
+  cmp "$CASE_DIR/expected.md" "$path" || fail 'send changed stdin message bytes'
+}
+
+test_send_file_is_exact_and_ignores_stdin() {
+  new_pair sendfile || return 1
+  printf '# Existing message\n\nUse the file.' > "$CASE_DIR/existing.md"
+  printf 'discarded stdin\n' > "$CASE_DIR/discarded.md"
+  sent=$(bash "$SCRIPT" send --room sendfile --resume "$PEER_A_RESUME" --file "$CASE_DIR/existing.md" < "$CASE_DIR/discarded.md") || return 1
+
+  resumed=$(bash "$SCRIPT" resume --room sendfile --resume "$PEER_B_RESUME") || return 1
+  assert_contains "$resumed" "MESSAGE_ID=$(field "$sent" MESSAGE_ID)" || return 1
+  path=$(field "$resumed" MESSAGE_PATH)
+  cmp "$CASE_DIR/existing.md" "$path" || fail 'send changed file bytes or consumed stdin'
+}
+
+test_send_rejects_empty_content_without_publishing() {
+  new_pair sendempty || return 1
+  : > "$CASE_DIR/empty.md"
+  printf ' \t\n\n' > "$CASE_DIR/whitespace.md"
+  for mode in stdin file; do
+    for source in "$CASE_DIR/empty.md" "$CASE_DIR/whitespace.md"; do
+      if [ "$mode" = stdin ]; then
+        run_failing bash "$SCRIPT" send --room sendempty --resume "$PEER_A_RESUME" < "$source" || return 1
+      else
+        run_failing bash "$SCRIPT" send --room sendempty --resume "$PEER_A_RESUME" --file "$source" || return 1
+      fi
+      assert_contains "$FAILURE_ERROR" 'ERROR=empty-message' || return 1
+    done
+  done
+
+  history=$(bash "$SCRIPT" history --room sendempty --resume "$PEER_A_RESUME") || return 1
+  assert_contains "$history" 'MESSAGE_COUNT=2' || return 1
+  assert_eq "$(find "$TMPDIR/agent-chat-rooms/sendempty/messages" -type f -name '.message.*' | wc -l | tr -d ' ')" '0' || return 1
+  sent=$(printf 'next message' | bash "$SCRIPT" send --room sendempty --resume "$PEER_A_RESUME") || return 1
+  assert_eq "$(field "$sent" MESSAGE_ID)" '00000000000000000003'
+}
+
+test_send_rejects_direct_message_arguments() {
+  new_pair sendargs || return 1
+  run_failing bash "$SCRIPT" send --room sendargs --resume "$PEER_A_RESUME" 'direct Markdown' || return 1
+  assert_contains "$FAILURE_ERROR" 'ERROR=invalid-arguments' || return 1
+  run_failing bash "$SCRIPT" send --room sendargs --resume "$PEER_A_RESUME" --message 'direct Markdown' || return 1
+  assert_contains "$FAILURE_ERROR" 'ERROR=invalid-arguments'
 }
 
 test_ack_and_watch_acknowledges_then_wakes() {
@@ -349,7 +468,7 @@ test_malformed_hash_marks_room_corrupt() {
   created=$(bash "$SCRIPT" create --room badhash) || return 1
   resume=$(field "$created" RESUME_ID)
   bad_hash=$(printf '%064s' z | tr ' ' a)
-  printf 'VERSION=2\nPEER_A_HASH=%s\nPEER_A_BOUNDARY=0\nPEER_B_HASH=\nPEER_B_BOUNDARY=0\n' "$bad_hash" > "$TMPDIR/agent-chat-rooms/badhash/manifest"
+  printf 'VERSION=1\nPEER_A_HASH=%s\nPEER_A_BOUNDARY=0\nPEER_B_HASH=\nPEER_B_BOUNDARY=0\n' "$bad_hash" > "$TMPDIR/agent-chat-rooms/badhash/manifest"
   run_failing bash "$SCRIPT" resume --room badhash --resume "$resume" || return 1
   assert_contains "$FAILURE_ERROR" 'ERROR=corrupt-room'
 }
@@ -357,7 +476,17 @@ test_malformed_hash_marks_room_corrupt() {
 run_case 'create claims peer-a' test_create_claims_peer_a
 run_case 'create without name generates safe unique room' test_create_without_name_generates_safe_unique_room
 run_case 'join receives initial message' test_join_receives_initial_message
+run_case 'create reads exact initial message from stdin' test_create_reads_exact_initial_message_from_stdin
+run_case 'create rejects whitespace stdin without room' test_create_rejects_whitespace_stdin_without_room
+run_case 'create with zero-byte stdin has no initial message' test_create_with_zero_byte_stdin_has_no_initial_message
+run_case 'create file is exact and ignores stdin' test_create_file_is_exact_and_ignores_stdin
+run_case 'create file rejects empty content and legacy flag' test_create_file_rejects_empty_content_and_legacy_flag
 run_case 'send and resume preserve order and redelivery' test_send_and_resume_preserve_order_and_redelivery
+run_case 'send reads exact one-line stdin' test_send_reads_exact_one_line_stdin
+run_case 'send reads exact multiline stdin' test_send_reads_exact_multiline_stdin
+run_case 'send file is exact and ignores stdin' test_send_file_is_exact_and_ignores_stdin
+run_case 'send rejects empty content without publishing' test_send_rejects_empty_content_without_publishing
+run_case 'send rejects direct message arguments' test_send_rejects_direct_message_arguments
 run_case 'ack-and-watch acknowledges then wakes' test_ack_and_watch_acknowledges_then_wakes
 run_case 'watch returns existing unread batch' test_watch_returns_existing_unread_batch
 run_case 'full room rejects join without change' test_full_room_rejects_join_without_change

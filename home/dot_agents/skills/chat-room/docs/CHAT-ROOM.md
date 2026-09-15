@@ -6,6 +6,8 @@ The script runs through Bash on macOS and Linux, including macOS Bash 3.2. It us
 
 Chat rooms live under `${TMPDIR:-/tmp}/agent-chat-rooms`. The root and room data use permissions that deny access to other operating-system users.
 
+The room protocol stays at version 1. Any other manifest version is corrupt input. The protocol version does not increment and has no migration path.
+
 ## Room layout
 
 ```text
@@ -77,16 +79,18 @@ An interruption before step 4 commits no membership change. It can leave an unus
 
 Recovery is idempotent. It restores a lowered sequence high-water mark, publishes a missing System message at its reserved ID, recreates a missing retirement record, and applies the after-membership view when the manifest still matches the recorded before-view. It validates an existing derived file instead of publishing a duplicate. Persistent transactions can also repair a derived file that is lost after normal completion.
 
-A message is written and closed before atomic rename publishes it. Manifest and acknowledgment updates also use same-filesystem temporary files and atomic rename. Stale locks record their process ID and can be recovered when that local process no longer exists.
+A Peer message source is consumed while the room lock is held. Standard input writes directly into one hidden room-owned message file. `--file` copies the selected file once into that same hidden message file and leaves the source unchanged. After validation, sequence allocation and atomic rename publish the message. Accepted input bytes stay unchanged, and the script sets no message-size limit.
 
-Resume ID rotation changes only the manifest. Its atomic manifest rename is its single state commit, so it has no derived credential state to recover. Room creation is atomic at the room-directory rename. No v1 or pre-transaction room migration exists.
+Manifest and acknowledgment updates also use same-filesystem temporary files and atomic rename. Stale locks record their process ID and can be recovered when that local process no longer exists.
+
+Resume ID rotation changes only the manifest. Its atomic manifest rename is its single state commit, so it has no derived credential state to recover. Room creation is atomic at the room-directory rename. The fixed version-1 protocol has no migration path.
 
 Generated Room IDs use a human-readable name plus a random suffix. Custom IDs must match the bounded safe-name rule, must not be `.` or `..`, and must not already exist. Resume IDs use 32 random bytes and are stored only as SHA-256 hashes.
 
 ## Subcommands
 
 ```text
-chat-room.sh create [--room <room-id>] [--message-file <path>]
+chat-room.sh create [--room <room-id>] [--file <path>]
 chat-room.sh join --room <room-id> [--peer <peer-a|peer-b>]
 chat-room.sh leave --room <room-id> --resume <resume-id>
 chat-room.sh resume --room <room-id> --resume <resume-id>
@@ -100,7 +104,9 @@ chat-room.sh history --room <room-id> --resume <resume-id>
 chat-room.sh --help
 ```
 
-`send` reads the Peer message from standard input when `--file` is absent. Natural-language argument inference belongs to `SKILL.md`. This script interface stays strict.
+`send` reads one Peer message from standard input when `--file` is absent. `create` reads an optional initial Peer message the same way; zero-byte standard input means no initial message. For either command, `--file` selects that file and leaves standard input unread. Empty and whitespace-only selected messages fail with `ERROR=empty-message`. Whitespace is the POSIX character class under the C locale. Direct positional message content and a `--message` option are invalid arguments.
+
+Natural-language argument inference belongs to `SKILL.md`. This script interface stays strict.
 
 For `join`, `--peer` is a preference, not a required slot. Join selects the preferred slot when it is open. Otherwise, it selects the other open slot. Without a preference, it selects `peer-a` first and then `peer-b`. Join fails only when both slots are assigned.
 
@@ -218,7 +224,7 @@ Failures write a stable reason and detail to standard error and exit nonzero. Di
 - room missing, already exists, or full
 - invalid or retired Resume ID
 - retired Peer replaced
-- invalid room name, interval, message ID, or arguments
+- invalid room name, interval, message ID, arguments, or empty message
 - corrupt protocol data or unrecoverable lock
 
 A failure before membership transaction commit leaves membership unchanged. After commit, recovery completes the committed membership change without duplicate System messages, credential resurrection, delivery-boundary loss, or sequence reuse. Other failed operations leave published messages, credentials, boundaries, and Acknowledgments unchanged.

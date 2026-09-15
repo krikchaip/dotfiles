@@ -6,6 +6,7 @@ readonly PROTOCOL_VERSION=1
 readonly ROOT="${TMPDIR:-/tmp}/agent-chat-rooms"
 STAGING=
 TRANSACTION_STAGING=
+MESSAGE_STAGING=
 HELD_LOCK=
 RECOVERY_LOCK=
 
@@ -20,6 +21,7 @@ cleanup() {
   fi
   [ -z "$STAGING" ] || rm -rf -- "$STAGING"
   [ -z "$TRANSACTION_STAGING" ] || rm -rf -- "$TRANSACTION_STAGING"
+  [ -z "$MESSAGE_STAGING" ] || rm -f -- "$MESSAGE_STAGING"
 }
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
@@ -37,7 +39,7 @@ fail() {
 usage() {
   cat <<'EOF'
 Usage:
-  chat-room.sh create [--room <room-id>] [--message-file <path>]
+  chat-room.sh create [--room <room-id>] [--file <path>]
   chat-room.sh join --room <room-id> [--peer <peer-a|peer-b>]
   chat-room.sh leave --room <room-id> --resume <resume-id>
   chat-room.sh resume --room <room-id> --resume <resume-id>
@@ -284,20 +286,26 @@ reserve_sequence_locked() {
 }
 
 publish_message_locked() {
-  local room suffix source message_tmp message_path
+  local room suffix source message_path
   room=$1
   suffix=$2
   source=$3
-  reserve_sequence_locked "$room"
-  message_tmp=$(mktemp "$room/messages/.message.XXXXXX") || fail write-failed 'message temporary file'
+  MESSAGE_STAGING=$(mktemp "$room/messages/.message.XXXXXX") || fail write-failed 'message temporary file'
   if [ "$source" = '-' ]; then
-    cat > "$message_tmp"
+    cat > "$MESSAGE_STAGING"
   else
-    cat -- "$source" > "$message_tmp"
+    cat -- "$source" > "$MESSAGE_STAGING"
   fi
-  chmod 600 "$message_tmp"
+  chmod 600 "$MESSAGE_STAGING"
+  if ! LC_ALL=C grep -q '[^[:space:]]' "$MESSAGE_STAGING"; then
+    rm -f -- "$MESSAGE_STAGING"
+    MESSAGE_STAGING=
+    fail empty-message 'Peer message must contain non-whitespace content'
+  fi
+  reserve_sequence_locked "$room"
   message_path="$room/messages/${PUBLISHED_ID}-${suffix}.md"
-  mv -- "$message_tmp" "$message_path"
+  mv -- "$MESSAGE_STAGING" "$message_path"
+  MESSAGE_STAGING=
 }
 
 publish_system_message_locked() {
@@ -361,7 +369,7 @@ print_unread() {
 }
 
 create_room() {
-  local room_id room_supplied message_file message_supplied room resume_id peer_a_hash system_message_id user_message_id
+  local room_id room_supplied message_file message_supplied room resume_id peer_a_hash system_message_id user_message_id message_tmp message_path
   room_id=
   room_supplied=0
   message_file=
@@ -369,7 +377,7 @@ create_room() {
   while [ "$#" -gt 0 ]; do
     case $1 in
       --room) [ "$#" -ge 2 ] || fail invalid-arguments '--room needs a value'; room_id=$2; room_supplied=1; shift 2 ;;
-      --message-file) [ "$#" -ge 2 ] || fail invalid-arguments '--message-file needs a value'; message_file=$2; message_supplied=1; shift 2 ;;
+      --file) [ "$#" -ge 2 ] || fail invalid-arguments '--file needs a value'; message_file=$2; message_supplied=1; shift 2 ;;
       *) fail invalid-arguments "unknown create argument: $1" ;;
     esac
   done
@@ -399,6 +407,21 @@ create_room() {
   if [ "$message_supplied" -eq 1 ]; then
     publish_message_locked "$STAGING" peer-a "$message_file"
     user_message_id=$PUBLISHED_ID
+  else
+    message_tmp=$(mktemp "$STAGING/messages/.message.XXXXXX") || fail write-failed 'message temporary file'
+    cat > "$message_tmp"
+    chmod 600 "$message_tmp"
+    if [ ! -s "$message_tmp" ]; then
+      rm -f -- "$message_tmp"
+    elif ! LC_ALL=C grep -q '[^[:space:]]' "$message_tmp"; then
+      rm -f -- "$message_tmp"
+      fail empty-message 'Peer message must contain non-whitespace content'
+    else
+      reserve_sequence_locked "$STAGING"
+      message_path="$STAGING/messages/${PUBLISHED_ID}-peer-a.md"
+      mv -- "$message_tmp" "$message_path"
+      user_message_id=$PUBLISHED_ID
+    fi
   fi
   release_lock
 
