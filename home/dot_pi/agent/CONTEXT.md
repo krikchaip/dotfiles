@@ -12,6 +12,18 @@ _Avoid_: Dotfile tweak, random plugin, agent hack
 A TypeScript module loaded by Pi to change behavior through lifecycle events, commands, tools, UI hooks, or runtime patches.
 _Avoid_: Plugin, script
 
+**Personal architecture**:
+The module responsibilities, boundaries, dependency directions, and composition rules of a personal Extension branch.
+_Avoid_: Exact folder snapshot, personal feature set
+
+**Upstream behavioral delta**:
+A behavior added, changed, or removed between two upstream Extension revisions, independent of the upstream code placement.
+_Avoid_: Upstream patch, upstream files
+
+**Architecture translation**:
+An implementation of an Upstream behavioral delta through the Personal architecture instead of through the upstream code placement.
+_Avoid_: Patch transplant, conflict resolution
+
 **Tool exclusion**:
 A Pi agent customization that keeps matching registered tools out of the model context by making them inactive for a session. Its settings are fixed when the session starts.
 _Avoid_: Tool removal, disabled provider

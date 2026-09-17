@@ -10,7 +10,7 @@ This workflow starts from a GitHub comparison URL. Resolve its local repository 
 
 ## Uncertainty gate
 
-Investigate available facts first. If uncertainty remains at any step, use `/skill:grilling` and wait for shared understanding before making a decision or changing a branch.
+Investigate available facts first. If uncertainty remains at any step, use `/skill:grill-with-docs` and wait for shared understanding before making a decision or changing a branch.
 
 ## 1. Resolve the local context
 
@@ -65,39 +65,67 @@ One E2E case can cover several commits, but every personal corpus commit must ha
 
 Completion: `personal` is frozen, the dated candidate exists at its original tip, every verified user-authored commit reachable from the baseline has an evidence row, all counts reconcile, and every baseline case passes before primary synchronization or rebase.
 
-## 3. Review the unsynced upstream changes
+## 3. Determine the architecture mode
 
-Treat the comparison URL as the boundary of the review. The local primary branch does not contain these upstream changes yet.
+Compare the frozen personal baseline with the pre-sync primary branch and relevant history. Architecture means module responsibilities, boundaries, public seams, dependency directions, and composition rules. File differences alone do not prove an architecture difference.
 
-1. Use the documentation changes in the comparison as the review index. Do not catalog the complete source diff.
-2. If `CHANGELOG.md` exists, review every relevant changelog bullet shown in its comparison diff. Start with the oldest change included in this diff and continue to the most recent change included in it. The oldest entry in the complete changelog is outside the review unless it also appears in the comparison diff.
-3. If `CHANGELOG.md` does not exist, review every relevant bullet or documented change shown in the `README.md` comparison diff in the same order.
-4. For each documentation item, inspect only the related source and history needed to assess its effect on the personal branch. The documentation item defines the scope; targeted code evidence verifies the assessment.
+Classify the sync:
+
+- **Architecture aligned:** the user has not changed the extension architecture. Record the evidence, keep the normal sync workflow, and skip architecture documentation and translation work.
+- **Architecture diverged:** the personal branch has changed the extension architecture. Preserve the Personal architecture while integrating upstream behavior.
+
+For an architecture-diverged sync:
+
+1. Read the repository's architecture documentation and inspect the personal code and refactor history.
+2. Treat the personal code as authoritative. When documentation conflicts with the code, update the documentation on the dated candidate to describe the code.
+3. When architecture documentation is absent, add a concise repository-owned architecture document on the dated candidate. Describe current responsibilities, boundaries, public seams, dependency directions, and composition rules.
+4. Use the reconciled documentation as the architecture reference for translation. Do not add tests that enforce a fixed architecture or directory layout.
+5. Apply the uncertainty gate only when the code and history do not identify one clear responsibility or boundary.
+
+Completion: the sync is classified as architecture aligned or architecture diverged with evidence. For a diverged sync, the dated candidate contains architecture documentation that agrees with the frozen personal code.
+
+## 4. Review upstream and plan integration
+
+Treat the comparison URL as the review boundary. The local primary branch does not contain these upstream changes yet.
+
+1. Resolve the complete upstream commit range from the pre-sync primary tip through the reviewed upstream ref.
+2. Use changed `CHANGELOG.md` bullets as the first review index. If no changelog exists, use changed `README.md` items. Start with the oldest documented change in the comparison and continue to the newest.
+3. Reconcile that index against every upstream commit and every changed production file in the range. Group related changes into an **Upstream behavioral delta**. Record verified non-behavioral changes separately. No commit or changed production file can remain unaccounted for.
+4. For each delta, inspect the related source, tests, documentation, and history needed to identify behavior added, changed, or removed. Upstream file placement is evidence, not the required destination in the personal branch.
 5. Assess feature compatibility before code compatibility:
    - Find intentional feature removals, disabled commands, improvements, replacements, and behavior changes in the personal branch.
-   - Treat these personal decisions as the policy for the rebased branch.
-   - When upstream changes a feature that the personal branch intentionally removed or replaced, preserve the personal behavior. Include related code, documentation, tests, configuration, and registrations. A clean code merge must not restore that feature.
-   - Combine upstream and personal behavior only when both feature intents remain compatible.
-6. Present the review in the chat unless the user asks you to save it to a file. After each changelog bullet or README item, give this assessment:
+   - Treat these personal decisions as the policy for the candidate.
+   - When upstream changes a feature that the personal branch intentionally removed or replaced, preserve the personal behavior across code, documentation, tests, configuration, and registrations.
+   - Combine upstream and personal behavior only when both intents remain compatible.
+6. For an architecture-aligned sync, use the normal integration action: accept upstream behavior, combine compatible behavior, preserve personal behavior, or keep a feature removed.
+7. For an architecture-diverged sync, create an **Architecture translation** plan for every applicable delta:
+   - Name the upstream commits, files, symbols, and observed behavior.
+   - Name the responsible personal module, public seam, and composition point from the architecture documentation.
+   - State which upstream placement or dependency must not survive.
+   - Name the behavior tests or project checks that will verify the result.
+   - Create a cohesive new personal module when the delta has no existing owner. Connect it through the documented composition model.
+8. Continue without asking when one translation destination is clear. Apply the uncertainty gate when ownership is ambiguous, personal and upstream behavior conflict without an existing decision, or the delta cannot fit the documented Personal architecture.
+9. Present the review in the chat unless the user asks you to save it. For each delta or non-behavioral change, report:
+   - `Upstream evidence:` commits, documentation items, files, and symbols.
    - `Applies:` yes, no, or partly.
-   - `Feature compatibility:` compatible, personal override, or decision required.
-   - `Impact:` the concrete effect on the personal branch.
-   - `Action:` accept upstream behavior, combine both, preserve personal behavior, or keep a feature removed.
-   - `Evidence:` the relevant files or commits.
+   - `Feature compatibility:` compatible, personal override, not applicable, or decision required.
+   - `Architecture mode:` aligned or diverged.
+   - `Destination:` normal integration action, or the named Architecture translation destination.
+   - `Evidence plan:` behavior tests and project checks.
 
-Use ASD-STE100 Simplified Technical English. Account for every relevant item in the comparison range.
+Use ASD-STE100 Simplified Technical English.
 
-Completion: every relevant changelog bullet, or every relevant README change when no changelog exists, has a verified feature assessment and merge action.
+Completion: every upstream commit and changed production file is accounted for; every delta has a feature decision; and every applicable delta has either a normal integration action or a concrete Architecture translation plan.
 
-## 4. Gate the sync
+## 5. Gate the sync
 
 Give one clear result: `safe to sync`, `decision required`, or `do not sync`.
 
-`safe to sync` describes the pre-rebase compatibility decision only. It does not mean `regression-clean`. Reserve `regression-clean` and “no regression found” for successful completion of Section 6.
+`safe to sync` describes the pre-rebase compatibility decision only. It does not mean `regression-clean`. Reserve `regression-clean` and “no regression found” for successful completion of Section 7.
 
-A verified personal feature decision overrides conflicting upstream behavior. Apply the uncertainty gate when personal intent is unclear or no existing personal decision settles an incompatible feature choice.
+A verified personal feature decision overrides conflicting upstream behavior. For an architecture-diverged sync, the documented Personal architecture overrides conflicting upstream placement and dependencies. `safe to sync` requires a destination for every applicable Upstream behavioral delta.
 
-When the result is `safe to sync`, offer to perform the sync. Ask for explicit approval to update the remote fork primary branch, fast-forward the local primary branch, and rebase the dated candidate. State that `personal` will remain at the immutable baseline SHA.
+When the result is `safe to sync`, offer to perform the sync. Ask for explicit approval to update the remote fork primary branch, fast-forward the local primary branch, rebase the dated candidate, and apply the presented translation plan when architecture diverged. State that `personal` will remain at the immutable baseline SHA. One approval authorizes every listed translation; apply the uncertainty gate again only for a required deviation.
 
 After approval:
 
@@ -108,55 +136,67 @@ After approval:
 
 Use fast-forward updates only. If GitHub reports divergence, a conflict, or a different parent, apply the uncertainty gate instead of using `--force`.
 
-Completion: required product decisions are settled, the remote and local primary branches contain the reviewed upstream commits, and the user has approved the rebase.
+Completion: required decisions are settled, the remote and local primary branches contain the reviewed upstream commits, and the user has approved the rebase and any planned Architecture translation.
 
-## 5. Rebase the dated candidate
+## 6. Rebase and translate the dated candidate
 
 After approval, verify that the primary branch contains the reviewed upstream commits. Record the pre-rebase candidate SHA. Then use `/skill:resolving-merge-conflicts` to rebase only `personal-YYYYMMDD` onto the primary branch.
 
-A **code conflict** is a Git merge collision. A **feature conflict** is incompatible behavior. A feature conflict can exist even when Git completes the rebase without a code conflict.
-
-Apply feature decisions that the user approved during the comparison review. Do not move `personal`.
+A **code conflict** is a Git merge collision. A **feature conflict** is incompatible behavior. An **architecture conflict** is upstream code that violates the documented Personal architecture. Feature and architecture conflicts can exist when Git completes the rebase without a code conflict.
 
 After the rebase:
 
 1. Verify that the candidate is based on the updated primary branch.
 2. Verify that `personal` still equals the immutable baseline SHA.
 3. Record every conflict-touched file and changed patch.
-4. Continue to the preservation review before making corrective changes for newly discovered omissions.
+4. For an architecture-aligned sync, continue without translation work.
+5. For an architecture-diverged sync, apply every approved Architecture translation as one or more separate candidate commits after the rebase:
+   - Preserve the Upstream behavioral delta through the named personal modules and seams.
+   - Remove or bypass duplicate implementation that landed in an obsolete upstream location.
+   - Keep the documented responsibilities, dependency directions, and composition rules.
+   - When translation adds a module or changes a documented detail, update the architecture documentation in the same translation commit to agree with the code.
+   - In each translation commit, identify the upstream change, extracted behavior, personal destination, and verification evidence.
+6. Apply the uncertainty gate before any translation that must deviate from the approved plan. Do not move `personal`.
 
-Completion: the dated candidate is rebased, `personal` is unchanged, and the candidate is ready for the preservation review.
+Completion: the dated candidate is rebased; `personal` is unchanged; and every approved Architecture translation is present as a separate, auditable candidate change.
 
-## 6. Review preservation and gate corrective changes
+## 7. Review preservation and integration
 
-1. Run `git range-diff` between the pre-rebase candidate stack and the rebased candidate stack. Identify every changed patch and every file touched during conflict resolution.
-2. Compare the rebased candidate with the frozen baseline across every invariant in the personal commit corpus. This review includes shared personal commits that do not appear in the branch-only range-diff.
-3. Inspect the related source, documentation, tests, configuration, registrations, conflict-touched files, and changed patches.
-4. Present a preservation report. Give each invariant one status:
+1. Run `git range-diff` between the pre-rebase candidate stack and the rebased candidate stack. Identify every changed personal patch and every file touched during conflict resolution.
+2. Compare the candidate with the frozen baseline across every invariant in the personal commit corpus. Include shared personal commits that do not appear in the branch-only range-diff.
+3. Reconcile the final candidate against every Upstream behavioral delta and verified non-behavioral change. Inspect files that arrived without code conflicts as well as translation commits.
+4. For an architecture-diverged sync, inspect the final code against the reconciled architecture documentation. Verify module responsibility, public seams, dependency direction, composition, and absence of duplicate legacy ownership. Review the code directly; do not add architecture-enforcement tests.
+5. Inspect related source, documentation, behavior tests, configuration, registrations, upstream-changed files, conflict-touched files, and changed patches.
+6. Present a preservation report. Give each personal invariant one status:
    - `preserved`
    - `intentionally changed by an approved upstream decision`
    - `missing`
    - `uncertain`
-5. For every `missing` or `uncertain` item, show:
-   - The personal commit and invariant.
-   - The exact observed difference.
-   - The relevant files or symbols.
-   - The proposed correction.
-   - The tests that will prove the correction.
-6. Report `decision required` and wait for the user to review the gaps and approve specific corrections.
-7. Apply only approved corrections, only on the dated candidate. Then rerun the complete preservation report.
-8. Do not weaken an assertion unless an approved upstream decision changed that behavior.
-9. When no item is missing or uncertain, run:
-   - Every unchanged baseline E2E case against the candidate.
-   - All project checks.
-   - The complete real-TUI E2E suite.
-10. Present the complete evidence table with candidate results. Clean generated runtime artifacts and remove the detached baseline worktree.
 
-Until every evidence row passes, report `regression status: unverified`.
+   Give each applicable upstream delta one status:
+   - `integrated`
+   - `missing`
+   - `uncertain`
 
-Completion: every personal corpus invariant is preserved or intentionally changed by an approved decision, every evidence row passes, and all applicable checks pass.
+   For architecture-diverged syncs, give each documented responsibility or boundary one status:
+   - `preserved`
+   - `violation`
+   - `uncertain`
 
-## 7. Hand the dated candidate to the user
+7. For every `missing`, `violation`, or `uncertain` item, show the exact difference, relevant files or symbols, proposed correction, and behavior evidence that will verify it.
+8. Report `decision required` and wait for approval before applying newly discovered corrections. Apply approved corrections only on the dated candidate, then rerun the complete review.
+9. Do not weaken a behavior assertion unless an approved upstream decision changed that behavior.
+10. When no item is missing, violated, or uncertain, run:
+    - Every unchanged baseline E2E case against the candidate.
+    - All project checks.
+    - The complete real-TUI E2E suite.
+11. Present the personal and upstream evidence with candidate results. Clean generated runtime artifacts and remove the detached baseline worktree.
+
+Until every behavior evidence row passes and, for an architecture-diverged sync, every documented architecture item is preserved, report `regression status: unverified`.
+
+Completion: every personal invariant is preserved or intentionally changed by an approved decision; every Upstream behavioral delta is integrated or intentionally excluded; architecture-diverged code agrees with its documentation; and all applicable checks pass.
+
+## 8. Hand the dated candidate to the user
 
 1. Leave the clean repository checked out on `personal-YYYYMMDD`.
 2. Report:
