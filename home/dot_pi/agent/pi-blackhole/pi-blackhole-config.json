@@ -20,17 +20,17 @@
   "memory": true,
   "sessionFallback": true,
   "fullFoldAlways": true,
-  "observeAfterTokens": 30000,
-  "reflectAfterTokens": 50000,
-  "observationsPoolMaxTokens": 40000,
-  "reflectionsPoolMaxTokens": 16000,
-  "observationsPoolTargetTokens": 20000,
+  "observeAfterTokens": 80000,
+  "reflectAfterTokens": 120000,
+  "observationsPoolMaxTokens": 20000,
+  "reflectionsPoolMaxTokens": 8000,
+  "observationsPoolTargetTokens": 10000,
   "reflectorInputMaxTokens": 80000,
   "dropperInputMaxTokens": 80000,
   "observerChunkMaxTokens": 40000,
   "observerPreambleMaxTokens": 0,
   "dropperPressureThreshold": 0.7,
-  "dropperPoolFullnessThreshold": 0.5,
+  "dropperPoolFullnessThreshold": 0.7,
   "agentMaxTurns": 16,
 
   "model": {
@@ -46,9 +46,8 @@
     "id": "gemini-3.8-flash-high"
   },
   "dropperModel": {
-    "provider": "opencode",
-    "id": "big-pickle",
-    "thinking": "high"
+    "provider": "antigravity",
+    "id": "claude-sonnet-4-6"
   },
   "observerFallbackModels": [
     { "provider": "openai-codex", "id": "gpt-5.6-luna", "thinking": "medium" }
