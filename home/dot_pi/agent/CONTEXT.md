@@ -160,6 +160,22 @@ _Avoid_: Main quest, orchestrator, root agent, main thread
 A Pi agent spawned by the parent agent to perform a side quest in a persistent child session.
 _Avoid_: Side quest, task, background job
 
+**Agent definition**:
+A user-authored Markdown configuration for one canonical sub-agent identity. It can provide selection guidance, a presentation label, reusable instructions, and launch policy.
+_Avoid_: Side-quest handoff, child manifest, task prompt
+
+**Agent selection description**:
+The `description` in an Agent definition. It tells the parent agent when to select that sub-agent identity. It is not an instruction for the selected sub-agent.
+_Avoid_: Agent definition instructions, display name, task label
+
+**Agent definition instructions**:
+Reusable instructions from an Agent definition's Markdown body. Side Quests adds them only to the selected sub-agent's system prompt.
+_Avoid_: Agent selection description, Side-quest handoff, `Agent.description`
+
+**Agent catalog**:
+The selection guidance in the parent agent's system prompt. It lists valid Agent definitions by canonical name and Agent selection description.
+_Avoid_: `Agent.subagent_type` enum, child prompt, live-child widget
+
 **Main quest**:
 The overall task performed by the parent agent. It owns the user's outcome and includes review and acceptance of delegated results.
 _Avoid_: Parent agent, parent session, orchestrator, main thread

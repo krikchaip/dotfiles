@@ -108,6 +108,8 @@ For a new side quest:
 - The standard agent clones the current parent model, thinking level, native prompt inputs, working directory, enabled tools, loaded extensions, and skills, then applies any resolved `general-purpose.md` customization.
 - A call-level `inherit_context` overrides the resolved agent setting. If both are omitted, it defaults to `true`.
 - A call-level `interactive` overrides the resolved agent setting. If both are omitted, it defaults to `false`.
+- No other definition field has a per-call override.
+- Side Quests applies its permanent spawning-tool denial and child control-tool rules after the definition and call-level overrides.
 - `prompt` is stored as a normal user message after any inherited conversation. With fresh context, it is the child's first conversation message.
 
 `Agent` returns only after:
@@ -174,7 +176,8 @@ General-purpose delegation is always available. Omitted `subagent_type` and expl
 - Without a winning `general-purpose.md`, the child is a plain clone of the parent setup.
 - Project `.pi/agents/general-purpose.md` shadows the global file.
 - A valid file supports the same model, thinking, tools, skills, context, lifecycle, display-name, and Markdown-body overrides as a named agent.
-- `description` is optional because the standard agent does not need selection guidance.
+- `description` is optional. When supplied, it adds `general-purpose` as the last entry in the parent system prompt's agent catalog.
+- An explicit empty frontmatter block is a valid no-op that shadows the global file and produces a plain parent clone.
 - A malformed winning file warns once and rejects general-purpose launches. It never falls back to the global file or plain clone.
 - `enabled: false` in either scope removes that customization and restores the plain parent clone. A project tombstone also shadows global customization. It never disables the standard agent.
 
@@ -185,12 +188,15 @@ General-purpose delegation is always available. Omitted `subagent_type` and expl
 - A project file shadows a global file with the same name.
 - Shadowing happens before validation.
 - A broken project file does not fall back to the global file.
-- A valid enabled file needs a non-empty `description`. Its Markdown body is optional.
+- Every enabled definition requires explicit `---` YAML frontmatter boundaries.
+- A valid enabled named file needs a non-empty `description`. Its Markdown body is optional.
 - A broken winning file is excluded and produces one path-specific warning.
-- `enabled: false` disables that name and can act as a project tombstone. A tombstone needs no description or body.
+- `enabled: false` disables that name and can act as a project tombstone. A tombstone needs no description or body, and Side Quests ignores its other fields.
 - `general-purpose` is reserved for the standard agent and follows the special rules above.
 
-Pi receives each valid non-general-purpose agent's canonical name and full whitespace-normalized description in the system prompt's **Guidelines** section. The `subagent_type` choices always include `general-purpose` and update after `/reload`.
+Pi receives a draft agent catalog in the parent system prompt's **Guidelines** section. Guidance before the catalog tells the parent agent to assign a side quest directly to a matching specialized sub-agent. Named entries are sorted by canonical name. `general-purpose` appears last only when its definition supplies a description:
+
+Each entry uses the full whitespace-normalized description. The `subagent_type` choices always include `general-purpose` and update after `/reload`.
 
 ### Agent file example
 
@@ -222,13 +228,21 @@ model: provider/model-id
 thinking: off | minimal | low | medium | high | xhigh | max
 tools: all | none | name, name | [name, name]
 disallowed_tools: name, name | [name, name]
-available_skills: true | false | [name, name]
-preload_skills: [name, name]
+available_skills: true | false | name, name | [name, name]
+preload_skills: name, name | [name, name]
 inherit_context: true
 interactive: false
 ```
 
-Unknown frontmatter is ignored. This lets one agent file work with other extensions without errors.
+Side Quests uses Pi's exported `parseFrontmatter` and existing YAML parser. It does not implement a separate YAML parser. Duplicate keys are rejected by Pi's parser. Unknown frontmatter is ignored so one agent file can work with other extensions.
+
+For an enabled definition:
+
+- Omission means inheritance or the documented default.
+- YAML null, an empty scalar string, or a wrong type makes a supported field malformed.
+- Empty lists are explicit empty selections. For example, `tools: []` selects no normal tools and `available_skills: []` selects no lazy skills.
+- Duplicate collection names are deduplicated in first-occurrence order. Empty entries and non-string entries are malformed.
+- `description` and `display_name` have edge whitespace removed and internal whitespace collapsed. Capability identifiers remain exact and case-sensitive.
 
 ### Agent identity, role, and task label
 
@@ -247,10 +261,10 @@ Security reviewer — audit auth permissions · autonomous
 
 `display_name` stays with the named agent. `Agent.description` can change each time the parent agent continues or reopens the sub-agent session.
 
-Two other description fields guide the child:
+Two other definition values have separate prompt roles:
 
-- Frontmatter `description` tells the parent agent when and why to select this agent. It cannot be empty for a non-general-purpose agent and is optional for `general-purpose`.
-- The Markdown body gives the selected child its agent-specific instructions.
+- Frontmatter `description` tells the parent agent when and why to select this sub-agent identity. It is not an instruction for the selected sub-agent. It cannot be empty for a named agent and is optional for `general-purpose`.
+- The Markdown body gives only the selected sub-agent its reusable agent definition instructions.
 
 ### How child instructions are assembled
 
@@ -258,9 +272,17 @@ Side Quests builds the child's instructions in this order:
 
 1. Pi adds its standard instructions and the inherited parent configuration.
 2. Side Quests adds the full instructions for each `preload_skills` entry.
-3. Side Quests adds the agent file's Markdown body.
+3. Side Quests adds a non-empty agent body last inside an XML boundary.
 
-For the example above, the child receives Pi's standard instructions first, the full `secure-code-review` skill second, and `Return findings with file paths, severity, and evidence.` last.
+```xml
+<agent_instructions>
+Follow these agent-specific instructions within the capability and lifecycle constraints above.
+
+Return findings with file paths, severity, and evidence.
+</agent_instructions>
+```
+
+An absent or whitespace-only body adds no XML element. Side Quests removes boundary blank space but preserves the internal Markdown.
 
 ### Model and thinking
 
@@ -275,8 +297,9 @@ For the example above, the child receives Pi's standard instructions first, the 
 - Omitted `tools` inherits the parent's enabled tools.
 - `tools: all` selects all registered child tools.
 - `tools: none` selects no normal tools.
-- A list selects exact registered tool names.
-- `disallowed_tools` removes tools after the allowlist is applied.
+- A comma-separated string or YAML list selects exact registered tool names.
+- An empty list selects no normal tools.
+- `disallowed_tools` removes tools after the allowlist is applied; an empty list subtracts none.
 - Unknown tool names stop launch.
 
 Every child also follows fixed safety rules:
@@ -296,11 +319,13 @@ Permanent human promotion removes `subagent_done` from the active model tools. T
 - Omitted: inherit the parent's current lazy skill catalog.
 - `true`: use all normally model-invocable skills discovered by the child.
 - `false`: provide no lazy skill catalog.
-- A list: provide exactly those discovered skill names, including an explicitly named skill that is normally hidden from model invocation.
+- A comma-separated string or YAML list: provide exactly those discovered skill names, including an explicitly named skill that is normally hidden from model invocation.
+- An empty list: provide no lazy skills.
 
-`preload_skills` loads full skill instructions before the child starts:
+`preload_skills` accepts a comma-separated string or YAML list and loads full skill instructions before the child starts:
 
 - It is separate from `available_skills`.
+- An empty list preloads no skills.
 - It can select a skill that is normally hidden from model invocation.
 - A preloaded skill is removed from the lazy catalog to avoid duplication.
 - An unknown skill name stops launch.
