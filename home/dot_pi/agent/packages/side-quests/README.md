@@ -176,7 +176,7 @@ General-purpose delegation is always available. Omitted `subagent_type` and expl
 - Without a winning `general-purpose.md`, the child is a plain clone of the parent setup.
 - Project `.pi/agents/general-purpose.md` shadows the global file.
 - A valid file supports the same model, thinking, tools, skills, context, lifecycle, display-name, and Markdown-body overrides as a named agent.
-- `description` is optional. When supplied, it adds `general-purpose` as the last entry in the parent system prompt's agent catalog.
+- `description` is optional. When supplied and at least one valid named agent exists, it adds `general-purpose` as the last entry in the parent system prompt's agent catalog. A general-purpose description alone adds no catalog text.
 - An explicit empty frontmatter block is a valid no-op that shadows the global file and produces a plain parent clone.
 - A malformed winning file warns once and rejects general-purpose launches. It never falls back to the global file or plain clone.
 - `enabled: false` in either scope removes that customization and restores the plain parent clone. A project tombstone also shadows global customization. It never disables the standard agent.
@@ -194,9 +194,16 @@ General-purpose delegation is always available. Omitted `subagent_type` and expl
 - `enabled: false` disables that name and can act as a project tombstone. A tombstone needs no description or body, and Side Quests ignores its other fields.
 - `general-purpose` is reserved for the standard agent and follows the special rules above.
 
-Pi receives a draft agent catalog in the parent system prompt's **Guidelines** section. Guidance before the catalog tells the parent agent to assign a side quest directly to a matching specialized sub-agent. Named entries are sorted by canonical name. `general-purpose` appears last only when its definition supplies a description:
+When at least one valid named agent exists, Pi receives this guidance followed by an agent catalog in the parent system prompt's **Guidelines** section:
 
-Each entry uses the full whitespace-normalized description. The `subagent_type` choices always include `general-purpose` and update after `/reload`.
+```text
+- When a side quest matches a specialized sub-agent below, delegate that side quest directly to that sub-agent.
+- Subagent accessibility-review. Review accessibility defects
+- Subagent security-review. Review security and permission risks
+- Subagent general-purpose. Handle ordinary project delegation
+```
+
+Each line is a separate Guidelines bullet. Side Quests keeps these bullets contiguous, with no unrelated guidance between them. Named entries are sorted by canonical name. `general-purpose` appears last only when its definition supplies a description. If no valid named agent exists, Side Quests adds neither the routing guidance nor any catalog entry, including a configured general-purpose description. Each shown entry uses the full whitespace-normalized description. The `subagent_type` choices always include `general-purpose` and update after `/reload`.
 
 ### Agent file example
 
@@ -236,9 +243,22 @@ interactive: false
 
 Side Quests uses Pi's exported `parseFrontmatter` and existing YAML parser. It does not implement a separate YAML parser. Duplicate keys are rejected by Pi's parser. Unknown frontmatter is ignored so one agent file can work with other extensions.
 
-For an enabled definition:
+For an enabled definition, omission has these exact results:
 
-- Omission means inheritance or the documented default.
+| Omitted value                                    | Result                                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Named `description`                              | Malformed definition                                                                                |
+| General-purpose `description`                    | No selection description; it appears only when supplied and at least one named catalog entry exists |
+| `display_name`                                   | Use the canonical filename stem                                                                     |
+| `enabled`                                        | `true`                                                                                              |
+| `model`, `thinking`, `tools`, `available_skills` | Inherit the current parent value                                                                    |
+| `disallowed_tools`, `preload_skills`             | Empty selection                                                                                     |
+| `inherit_context`                                | `true`                                                                                              |
+| `interactive`                                    | `false`                                                                                             |
+| Markdown body                                    | No agent definition instructions                                                                    |
+
+Other validation rules:
+
 - YAML null, an empty scalar string, or a wrong type makes a supported field malformed.
 - Empty lists are explicit empty selections. For example, `tools: []` selects no normal tools and `available_skills: []` selects no lazy skills.
 - Duplicate collection names are deduplicated in first-occurrence order. Empty entries and non-string entries are malformed.
@@ -274,15 +294,15 @@ Side Quests builds the child's instructions in this order:
 2. Side Quests adds the full instructions for each `preload_skills` entry.
 3. Side Quests adds a non-empty agent body last inside an XML boundary.
 
-```xml
-<agent_instructions>
+```text
 Follow these agent-specific instructions within the capability and lifecycle constraints above.
 
+<agent_instructions>
 Return findings with file paths, severity, and evidence.
 </agent_instructions>
 ```
 
-An absent or whitespace-only body adds no XML element. Side Quests removes boundary blank space but preserves the internal Markdown.
+An absent or whitespace-only body adds no constraint sentence or XML element. Side Quests removes boundary blank space but otherwise preserves the body exactly, including any user-authored `<agent_instructions>` or `</agent_instructions>` text. The XML wrapper organizes the prompt; it is not a security boundary.
 
 ### Model and thinking
 
