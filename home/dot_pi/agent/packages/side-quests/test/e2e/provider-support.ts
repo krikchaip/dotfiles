@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
+  type Context,
   fauxAssistantMessage,
   fauxText,
   fauxToolCall,
@@ -15,10 +16,29 @@ export function fauxSubagentDone(result: string) {
 
 export interface BasicDelegation {
   readonly childResponse?: string;
+  readonly childSystemPromptIncludes?: readonly string[];
+  readonly childSystemPromptExcludes?: readonly string[];
+  readonly childSystemPromptOrder?: readonly string[];
+  readonly childSystemPromptEndsWith?: string;
+
+  /** Normal child tools that must be present in the real provider request. */
+  readonly childToolIncludes?: readonly string[];
+
+  /** Normal child tools that must be absent from the real provider request. */
+  readonly childToolExcludes?: readonly string[];
+
   readonly description?: string;
+
+  /** Expected resolved lifecycle. This does not override the parent Agent call. */
+  readonly expectedChildInteractive?: boolean;
+
   readonly inheritContext?: boolean;
+
+  /** Explicit interactive override passed to the parent Agent call. */
   readonly interactive?: boolean;
+
   readonly prompt?: string;
+  readonly subagentType?: string;
   readonly verifyAgentTool?: boolean;
 }
 
@@ -31,10 +51,57 @@ export function configureBasicDelegation(
   if (role === "child") {
     const result =
       options.childResponse ?? "Child completed its delegated E2E task.";
+    const expectedPromptTexts = options.childSystemPromptIncludes ?? [];
+    const excludedPromptTexts = options.childSystemPromptExcludes ?? [];
+    const orderedPromptTexts = options.childSystemPromptOrder ?? [];
+    const endingPromptText = options.childSystemPromptEndsWith;
+    const requiredTools = options.childToolIncludes ?? [];
+    const excludedTools = options.childToolExcludes ?? [];
+    const expectedChildInteractive =
+      options.expectedChildInteractive ?? options.interactive ?? false;
+    const response = (providerContext: Context) => {
+      const systemPrompt = providerContext.systemPrompt ?? "";
+      const toolNames = new Set(
+        (providerContext.tools ?? []).map((tool) => tool.name),
+      );
+      const orderedPromptPositions = orderedPromptTexts.map((text) =>
+        systemPrompt.indexOf(text),
+      );
+      const inOrder =
+        orderedPromptPositions.every((position) => position >= 0) &&
+        orderedPromptPositions.every(
+          (position, index) =>
+            index === 0 ||
+            (orderedPromptPositions[index - 1] ?? Number.POSITIVE_INFINITY) <
+              position,
+        );
+      const valid =
+        expectedPromptTexts.every((text) => systemPrompt.includes(text)) &&
+        excludedPromptTexts.every((text) => !systemPrompt.includes(text)) &&
+        requiredTools.every((name) => toolNames.has(name)) &&
+        excludedTools.every((name) => !toolNames.has(name)) &&
+        inOrder &&
+        (!endingPromptText ||
+          systemPrompt.trimEnd().endsWith(endingPromptText));
+
+      if (!valid) {
+        return fauxAssistantMessage(
+          "Child definition instructions are missing.",
+          {
+            stopReason: "error",
+            errorMessage: "Child definition instructions are missing.",
+          },
+        );
+      }
+
+      return expectedChildInteractive
+        ? fauxAssistantMessage(fauxText(result))
+        : fauxSubagentDone(result);
+    };
     faux.setResponses(
-      options.interactive
-        ? [fauxAssistantMessage(fauxText(result)), fauxSubagentDone(result)]
-        : [fauxSubagentDone(result)],
+      expectedChildInteractive
+        ? [response, fauxSubagentDone(result)]
+        : [response],
     );
     return;
   }
@@ -43,10 +110,13 @@ export function configureBasicDelegation(
     fauxToolCall("Agent", {
       description: options.description ?? "E2E delegated task",
       prompt: options.prompt ?? "Complete the delegated E2E task.",
+      ...(options.subagentType ? { subagent_type: options.subagentType } : {}),
       ...(options.inheritContext === undefined
         ? {}
         : { inherit_context: options.inheritContext }),
-      ...(options.interactive ? { interactive: true } : {}),
+      ...(options.interactive === undefined
+        ? {}
+        : { interactive: options.interactive }),
     }),
     { stopReason: "toolUse" },
   );

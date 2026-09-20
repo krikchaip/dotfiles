@@ -17,7 +17,9 @@ const originalRoot = process.env.PI_CODING_AGENT_DIR;
 const temporaryRoots: string[] = [];
 
 afterEach(() => {
-  process.env.PI_CODING_AGENT_DIR = originalRoot;
+  if (originalRoot === undefined)
+    Reflect.deleteProperty(process.env, "PI_CODING_AGENT_DIR");
+  else process.env.PI_CODING_AGENT_DIR = originalRoot;
   for (const root of temporaryRoots.splice(0))
     rmSync(root, { recursive: true, force: true });
 });
@@ -55,6 +57,45 @@ test("creates a private managed session with a canonical resumable path", () => 
   expect(SessionStore.readResumableManifest(manifest.sessionPath)).toEqual(
     manifest,
   );
+});
+
+test("persists immutable parent baseline through continuation", () => {
+  const manifest = createManagedSession({
+    agentName: "security",
+    appendSystemPrompt:
+      "<agent_instructions>Return evidence.</agent_instructions>",
+    displayName: "Security reviewer",
+    extensionPaths: ["/tmp/one-off.ts"],
+    noSkills: true,
+    parentSystemPromptInputs: {
+      appendSystemPrompt: "PARENT APPEND",
+      contextFiles: [{ content: "PARENT CONTEXT", path: "/tmp/AGENTS.md" }],
+      customPrompt: "PARENT CUSTOM",
+    },
+    skillPaths: ["/tmp/skills/research/SKILL.md"],
+  });
+
+  SessionStore.updateManifest(manifest, {
+    description: "resume with frozen parent baseline",
+    lifecycle: "interactive",
+  });
+
+  expect(
+    SessionStore.readResumableManifest(manifest.sessionPath),
+  ).toMatchObject({
+    agentName: "security",
+    appendSystemPrompt:
+      "<agent_instructions>Return evidence.</agent_instructions>",
+    displayName: "Security reviewer",
+    extensionPaths: ["/tmp/one-off.ts"],
+    noSkills: true,
+    parentSystemPromptInputs: {
+      appendSystemPrompt: "PARENT APPEND",
+      contextFiles: [{ content: "PARENT CONTEXT", path: "/tmp/AGENTS.md" }],
+      customPrompt: "PARENT CUSTOM",
+    },
+    skillPaths: ["/tmp/skills/research/SKILL.md"],
+  });
 });
 
 test("persists a correlated continuation and lifecycle promotion", () => {

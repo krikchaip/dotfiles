@@ -10,7 +10,9 @@ const originalRoot = process.env.PI_CODING_AGENT_DIR;
 const temporaryRoots: string[] = [];
 
 afterEach(() => {
-  process.env.PI_CODING_AGENT_DIR = originalRoot;
+  if (originalRoot === undefined)
+    Reflect.deleteProperty(process.env, "PI_CODING_AGENT_DIR");
+  else process.env.PI_CODING_AGENT_DIR = originalRoot;
   for (const root of temporaryRoots.splice(0))
     rmSync(root, { force: true, recursive: true });
 });

@@ -138,6 +138,8 @@ export class ParentRuntime {
     manifest: ChildManifest,
     prompt: string,
   ): Promise<ParentContinuation> {
+    this.assertRequiredTools(manifest);
+
     const previous = this.childrenById.get(manifest.childId);
     const located = previous
       ? undefined
@@ -205,6 +207,16 @@ export class ParentRuntime {
     await this.launch(manifest);
 
     return { continuationKind, operation: "reopened" };
+  }
+
+  /**
+   * Rejects resume before it can mutate child state or open a pane.
+   */
+  assertRequiredTools(manifest: ChildManifest): void {
+    const registered = new Set(this.pi.getAllTools().map((tool) => tool.name));
+    const missing = manifest.tools.find((tool) => !registered.has(tool));
+    if (missing)
+      throw new Error(`Required child tool is unavailable: ${missing}`);
   }
 
   /**
@@ -676,12 +688,30 @@ export class ParentRuntime {
       entry,
       "--session",
       manifest.sessionPath,
+    ];
+
+    for (const extensionPath of manifest.extensionPaths ?? [])
+      command.push("--extension", extensionPath);
+    command.push(
       "--extension",
       new URL("../child/index.ts", import.meta.url).pathname,
-    ];
+    );
 
     if (manifest.model) command.push("--model", manifest.model);
     if (manifest.thinking) command.push("--thinking", manifest.thinking);
+
+    const parentInputs = manifest.parentSystemPromptInputs;
+    if (parentInputs?.customPrompt !== undefined)
+      command.push("--system-prompt", parentInputs.customPrompt);
+    const parentAppend = ParentRuntime.parentPromptAppend(parentInputs);
+    if (parentAppend !== undefined)
+      command.push("--append-system-prompt", parentAppend);
+    if (parentInputs?.contextFiles !== undefined)
+      command.push("--no-context-files");
+
+    if (manifest.noSkills) command.push("--no-skills");
+    for (const skillPath of manifest.skillPaths ?? [])
+      command.push("--skill", skillPath);
 
     // The CLI list is an execution allowlist, not only the initial active set.
     // Interactive startup hides subagent_done until its human command needs it.
@@ -693,5 +723,35 @@ export class ParentRuntime {
     if (initialPrompt) command.push(initialPrompt);
 
     return command;
+  }
+
+  /**
+   * Formats parent context exactly as Pi's native prompt builder does.
+   */
+  private static parentPromptAppend(
+    inputs: ChildManifest["parentSystemPromptInputs"],
+  ): string | undefined {
+    const contextFiles = inputs?.contextFiles ?? [];
+    const context = contextFiles.length
+      ? [
+          "<project_context>",
+          "",
+          "Project-specific instructions and guidelines:",
+          "",
+          ...contextFiles.flatMap(({ path, content }) => [
+            `<project_instructions path="${path}">`,
+            content,
+            "</project_instructions>",
+            "",
+          ]),
+          "</project_context>",
+          "",
+        ].join("\n")
+      : undefined;
+    return (
+      [inputs?.appendSystemPrompt, context]
+        .filter((part): part is string => part !== undefined)
+        .join("\n\n") || undefined
+    );
   }
 }

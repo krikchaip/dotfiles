@@ -16,6 +16,15 @@ import { JsonStore, STORE_VERSION } from "./json.ts";
 export type Lifecycle = "autonomous" | "interactive";
 
 /**
+ * Records parent native prompt inputs that a child must replay exactly.
+ */
+export type ParentSystemPromptInputs = Readonly<{
+  appendSystemPrompt?: string;
+  contextFiles?: readonly Readonly<{ content: string; path: string }>[];
+  customPrompt?: string;
+}>;
+
+/**
  * Records the resumable identity and immutable launch policy for one child.
  */
 export type ChildManifest = Readonly<{
@@ -38,7 +47,7 @@ export type ChildManifest = Readonly<{
   cwd: string;
 
   /** Identifies the resolved child agent definition. */
-  agentName: "general-purpose";
+  agentName: string;
 
   /** Records the child name shown in the parent UI. */
   displayName: string;
@@ -60,6 +69,21 @@ export type ChildManifest = Readonly<{
 
   /** Records the active child tool names. */
   tools: readonly string[];
+
+  /** Records the immutable child-specific system-prompt suffix. */
+  appendSystemPrompt?: string;
+
+  /** Disables normal skill discovery before loading this exact lazy catalog. */
+  noSkills?: boolean;
+
+  /** Records exact skill files available to the child on startup. */
+  skillPaths?: readonly string[];
+
+  /** Records explicit parent CLI extensions that the child must replay. */
+  extensionPaths?: readonly string[];
+
+  /** Records parent native prompt inputs that the child must replay. */
+  parentSystemPromptInputs?: ParentSystemPromptInputs;
 
   /** Records when Side Quests created the child session. */
   createdAt: number;
@@ -116,6 +140,12 @@ export type CreateSessionParams = Readonly<
     ChildManifest,
     "version" | "sessionPath" | "agentName" | "displayName" | "createdAt"
   > & {
+    /** Records the resolved definition identity. */
+    agentName?: string;
+
+    /** Records the resolved presentation label. */
+    displayName?: string;
+
     /** Records the parent session file to copy when context inheritance is on. */
     parentSessionPath?: string;
   }
@@ -162,14 +192,19 @@ export class SessionStore {
       ownerId: params.ownerId,
       sessionPath: realpathSync(path),
       cwd: params.cwd,
-      agentName: "general-purpose",
-      displayName: "general-purpose",
+      agentName: params.agentName ?? "general-purpose",
+      displayName: params.displayName ?? params.agentName ?? "general-purpose",
       description: params.description,
       lifecycle: params.lifecycle,
       inheritContext: params.inheritContext,
       model: params.model,
       thinking: params.thinking,
       tools: params.tools,
+      appendSystemPrompt: params.appendSystemPrompt,
+      noSkills: params.noSkills,
+      skillPaths: params.skillPaths,
+      extensionPaths: params.extensionPaths,
+      parentSystemPromptInputs: params.parentSystemPromptInputs,
       createdAt: Date.now(),
     };
 
@@ -209,14 +244,19 @@ export class SessionStore {
       ownerId: params.ownerId,
       sessionPath: realpathSync(path),
       cwd: params.cwd,
-      agentName: "general-purpose",
-      displayName: "general-purpose",
+      agentName: params.agentName ?? "general-purpose",
+      displayName: params.displayName ?? params.agentName ?? "general-purpose",
       description: params.description,
       lifecycle: params.lifecycle,
       inheritContext: params.inheritContext,
       model: params.model,
       thinking: params.thinking,
       tools: params.tools,
+      appendSystemPrompt: params.appendSystemPrompt,
+      noSkills: params.noSkills,
+      skillPaths: params.skillPaths,
+      extensionPaths: params.extensionPaths,
+      parentSystemPromptInputs: params.parentSystemPromptInputs,
       createdAt: Date.now(),
     };
 
@@ -448,12 +488,7 @@ export class SessionStore {
   private static readManifestFile(path: string): ChildManifest | undefined {
     const value = JsonStore.readRecord(path);
 
-    if (
-      !value ||
-      value.version !== STORE_VERSION ||
-      value.agentName !== "general-purpose"
-    )
-      return undefined;
+    if (!value || value.version !== STORE_VERSION) return undefined;
 
     const strings = [
       "childId",
@@ -461,6 +496,7 @@ export class SessionStore {
       "ownerId",
       "sessionPath",
       "cwd",
+      "agentName",
       "displayName",
       "description",
     ];
@@ -468,6 +504,18 @@ export class SessionStore {
     if (
       (value.model !== undefined && typeof value.model !== "string") ||
       (value.thinking !== undefined && typeof value.thinking !== "string") ||
+      (value.appendSystemPrompt !== undefined &&
+        typeof value.appendSystemPrompt !== "string") ||
+      (value.noSkills !== undefined && typeof value.noSkills !== "boolean") ||
+      (value.skillPaths !== undefined &&
+        (!Array.isArray(value.skillPaths) ||
+          value.skillPaths.some((path) => typeof path !== "string"))) ||
+      (value.extensionPaths !== undefined &&
+        (!Array.isArray(value.extensionPaths) ||
+          value.extensionPaths.some((path) => typeof path !== "string"))) ||
+      !SessionStore.validParentSystemPromptInputs(
+        value.parentSystemPromptInputs,
+      ) ||
       !Array.isArray(value.tools) ||
       value.tools.some((tool) => typeof tool !== "string")
     )
@@ -486,6 +534,37 @@ export class SessionStore {
       return undefined;
 
     return value as unknown as ChildManifest;
+  }
+
+  /**
+   * Validates the serializable parent prompt inputs stored in a manifest.
+   */
+  private static validParentSystemPromptInputs(value: unknown): boolean {
+    if (value === undefined) return true;
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      return false;
+
+    const inputs = value as Record<string, unknown>;
+    if (
+      (inputs.customPrompt !== undefined &&
+        typeof inputs.customPrompt !== "string") ||
+      (inputs.appendSystemPrompt !== undefined &&
+        typeof inputs.appendSystemPrompt !== "string")
+    )
+      return false;
+
+    return (
+      inputs.contextFiles === undefined ||
+      (Array.isArray(inputs.contextFiles) &&
+        inputs.contextFiles.every(
+          (file) =>
+            !!file &&
+            typeof file === "object" &&
+            !Array.isArray(file) &&
+            typeof (file as Record<string, unknown>).path === "string" &&
+            typeof (file as Record<string, unknown>).content === "string",
+        ))
+    );
   }
 
   /**

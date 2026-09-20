@@ -1,19 +1,37 @@
 import { activeContinuation } from "./scenario/active-continuation.ts";
 import { activeParentEvent } from "./scenario/active-parent-event.ts";
 import { activePromotionRejection } from "./scenario/active-promotion.ts";
+import {
+  agentCallOverridePriority,
+  agentCatalogRefresh,
+  agentCollectionPolicyScenarios,
+  agentResumePermissionsImmutable,
+  generalPurposeTombstone,
+  invalidAgentDefinitionScenarios,
+  namedAgentTombstone,
+} from "./scenario/agent-definition-matrix.ts";
 import { askParent } from "./scenario/ask-parent.ts";
 import { child } from "./scenario/child.ts";
+import { descriptionOnlyNamedAgent } from "./scenario/description-only-named-agent.ts";
+import {
+  emptyGeneralPurposeExplicit,
+  emptyGeneralPurposeOmitted,
+} from "./scenario/empty-general-purpose.ts";
 import { exhaustedProvider } from "./scenario/exhausted-provider.ts";
 import { explicitCompletion } from "./scenario/explicit-completion.ts";
 import { failure } from "./scenario/failure.ts";
 import { fatalAutonomous } from "./scenario/fatal-autonomous.ts";
 import { fatalInteractive } from "./scenario/fatal-interactive.ts";
 import { focusPreservation } from "./scenario/focus-preservation.ts";
+import { generalPurposeDefinition } from "./scenario/general-purpose-definition.ts";
+import { globalAgentDefinition } from "./scenario/global-agent-definition.ts";
 import { idleContinuation } from "./scenario/idle-continuation.ts";
 import { inheritedAgentRenderer } from "./scenario/inherited-agent-renderer.ts";
 import { inheritedParentRequestRenderer } from "./scenario/inherited-parent-request-renderer.ts";
 import { interactive } from "./scenario/interactive.ts";
 import { lifecycle } from "./scenario/lifecycle.ts";
+import { malformedAgentDefinition } from "./scenario/malformed-agent-definition.ts";
+import { namedAgent } from "./scenario/named-agent.ts";
 import { narrowWidgets } from "./scenario/narrow-widgets.ts";
 import { navigationCancellation } from "./scenario/navigation-cancellation.ts";
 import { outside } from "./scenario/outside.ts";
@@ -27,6 +45,7 @@ import {
 } from "./scenario/pending-request-outcomes.ts";
 import { persistentState } from "./scenario/persistent-state.ts";
 import { programmaticContinuation } from "./scenario/programmatic-continuation.ts";
+import { projectShadowsGlobalAgent } from "./scenario/project-shadows-global-agent.ts";
 import { resultExpansion } from "./scenario/result-expansion.ts";
 import { resumePromotionRejection } from "./scenario/resume-promotion.ts";
 import { staleResponse } from "./scenario/stale-response.ts";
@@ -87,6 +106,9 @@ export const scenarios: readonly Scenario[] = [
   navigationCancellation,
   parentResponsiveness,
   unmarkedClosure,
+  malformedAgentDefinition,
+  namedAgent,
+  descriptionOnlyNamedAgent,
   narrowWidgets,
   widgetSpacing,
   resultExpansion,
@@ -104,6 +126,18 @@ export const scenarios: readonly Scenario[] = [
   wrapUpFailed,
   wrapUpInterrupted,
   wrapUpTextless,
+  generalPurposeDefinition,
+  globalAgentDefinition,
+  projectShadowsGlobalAgent,
+  emptyGeneralPurposeOmitted,
+  emptyGeneralPurposeExplicit,
+  ...agentCollectionPolicyScenarios,
+  ...invalidAgentDefinitionScenarios,
+  generalPurposeTombstone,
+  namedAgentTombstone,
+  agentCatalogRefresh,
+  agentCallOverridePriority,
+  agentResumePermissionsImmutable,
 ];
 
 const scenariosByName = new Map(

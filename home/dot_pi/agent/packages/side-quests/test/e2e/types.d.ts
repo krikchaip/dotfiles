@@ -13,9 +13,19 @@ declare global {
   }
 
   interface ScenarioProcess {
+    /** Test-owned project agent files created before Pi starts. */
+    readonly agentDefinitions?: Readonly<Record<string, string>>;
+
+    /** Test-owned global agent files created before Pi starts. */
+    readonly globalAgentDefinitions?: Readonly<Record<string, string>>;
+
     readonly child?: boolean;
     readonly extensionFixtures?: readonly string[];
     readonly extensionsBefore?: readonly string[];
+
+    /** Load the deterministic E2E provider without requiring a managed child. */
+    readonly fauxProvider?: boolean;
+
     readonly lifecycle?: "interactive";
     readonly managed?: boolean;
     readonly outsideTmux?: boolean;
@@ -23,6 +33,10 @@ declare global {
     readonly positionalPrompt?: string;
     readonly providerTokensPerSecond?: number;
     readonly settings?: Readonly<Record<string, unknown>>;
+
+    /** Test-owned global skill files created before Pi starts. */
+    readonly skillFiles?: Readonly<Record<string, string>>;
+
     readonly terminalForegroundResponse?: string;
     readonly themeFixture?: string;
     readonly tmuxFixture?: string;

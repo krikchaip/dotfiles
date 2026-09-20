@@ -1,14 +1,46 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { StringEnum, Type } from "@earendil-works/pi-ai";
-import type {
-  AgentToolResult,
-  ExtensionAPI,
-  ExtensionContext,
+import {
+  type AgentToolResult,
+  type ExtensionAPI,
+  type ExtensionContext,
+  type Skill,
+  loadSkills,
+  stripFrontmatter,
 } from "@earendil-works/pi-coding-agent";
 
-import { type Lifecycle, SessionStore } from "../store/session.ts";
+import {
+  AgentDefinitions,
+  GENERAL_PURPOSE_AGENT,
+  type SkillSelection,
+  type ToolSelection,
+} from "../agent-definitions.ts";
+import {
+  type Lifecycle,
+  type ParentSystemPromptInputs,
+  SessionStore,
+} from "../store/session.ts";
 import { Tmux } from "../tmux.ts";
 import type { ParentRuntime } from "./runtime.ts";
+
+/**
+ * Lists child-only controls that are registered after normal tool policy resolves.
+ */
+const CHILD_CONTROL_TOOLS = new Set(["ask_parent", "subagent_done"]);
+
+/**
+ * Lists known tools that could create a nested sub-agent and must never reach a child.
+ */
+const SUBAGENT_SPAWNING_TOOLS = new Set([
+  "Agent",
+  "Task",
+  "delegate",
+  "spawn_agent",
+  "subagent",
+]);
 
 /**
  * Parent-only tools.
@@ -20,13 +52,38 @@ export class ParentTools {
   public static register(
     pi: ExtensionAPI,
     runtime: ParentRuntime,
+    definitions = AgentDefinitions.resolve({
+      agentDirectory:
+        process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"),
+      cwd: process.cwd(),
+    }),
   ): ParentTools {
-    return new ParentTools(pi, runtime).registerAgent();
+    pi.on("session_start", (_event, context) => {
+      for (const diagnostic of definitions.diagnostics())
+        context.ui.notify(
+          `Side Quests ignored malformed agent definition ${diagnostic.path}: ${diagnostic.reason}`,
+          "warning",
+        );
+    });
+
+    const tools = new ParentTools(pi, runtime, definitions);
+    pi.on("before_agent_start", (event) => {
+      tools.parentLazySkillNames = new Set(
+        (event.systemPromptOptions.skills ?? [])
+          .filter((skill) => !skill.disableModelInvocation)
+          .map((skill) => skill.name),
+      );
+      tools.parentSystemPromptInputs = ParentTools.systemPromptInputs(
+        event.systemPromptOptions,
+      );
+    });
+    return tools.registerAgent();
   }
 
   private constructor(
     private readonly pi: ExtensionAPI,
     private readonly runtime: ParentRuntime,
+    private readonly definitions: AgentDefinitions,
   ) {}
 
   private registerAgent(): ParentTools {
@@ -51,6 +108,7 @@ export class ParentTools {
         `After ${toolName} launches, continue your main-quest work outside the ownership boundary, regardless of size. If your main quest is blocked, let the turn settle and await the result without polling. Use resume for the same side quest; launch a new sub-agent only for a distinct branch or a fresh pass after the previous owner finishes.`,
         "On resume, omit subagent_type, inherit_context, and interactive. These fields configure only a new sub-agent and Agent.resume rejects them.",
         `Review work returned by ${toolName} proportionately without repeating the side quest. Check key evidence and integration points, run relevant code checks, inspect research sources quickly, and deepen review only as risk warrants. For a prototype, confirm that it runs and addresses the question, then ask the user to make the design judgment.`,
+        ...this.definitions.guidelines(),
       ],
 
       parameters: Type.Object(
@@ -66,7 +124,7 @@ export class ParentTools {
               "Side-quest label, preferably two to six words, shown in the pane and status row. On resume, describe the current continuation.",
           }),
           subagent_type: Type.Optional(
-            StringEnum(["general-purpose"] as const, {
+            StringEnum(this.definitions.names(), {
               description:
                 "Sub-agent role for a new side quest. Omit to use general-purpose. Use only for a new launch; omit on resume.",
             }),
@@ -127,6 +185,8 @@ export class ParentTools {
               `${toolName}.resume cannot open a child from another parent session.`,
             );
 
+          this.runtime.assertRequiredTools(manifest);
+
           const continued = SessionStore.updateManifest(manifest, {
             description: request.description.trim(),
             lifecycle: manifest.lifecycle,
@@ -145,26 +205,76 @@ export class ParentTools {
           );
         }
 
+        const agentName = request.subagent_type ?? GENERAL_PURPOSE_AGENT;
+        const diagnostic = this.definitions.diagnostic(agentName);
+        if (diagnostic)
+          throw new Error(
+            `${toolName}.subagent_type ${agentName} is malformed: ${diagnostic.reason}`,
+          );
+
+        const definition = this.definitions.get(agentName);
+        if (!definition && agentName !== GENERAL_PURPOSE_AGENT)
+          throw new Error(`${toolName}.subagent_type is unknown: ${agentName}`);
+
+        if (definition?.model) {
+          const [provider, modelId] = definition.model.split("/");
+          if (!context.modelRegistry.find(provider, modelId))
+            throw new Error(
+              `${toolName}.subagent_type ${agentName} has an unknown model: ${definition.model}`,
+            );
+        }
+
+        const skills = this.resolveSkills(
+          definition?.availableSkills,
+          definition?.preloadSkills ?? [],
+          context,
+          this.resolveTools(definition?.tools, definition?.disallowedTools),
+        );
+
         const parentId = context.sessionManager.getSessionId();
         const childId = randomUUID();
-
-        const lifecycle: Lifecycle = request.interactive
-          ? "interactive"
-          : "autonomous";
+        const lifecycle: Lifecycle =
+          (request.interactive ?? definition?.interactive ?? false)
+            ? "interactive"
+            : "autonomous";
 
         const manifest = SessionStore.create({
           parentId,
           childId,
           ownerId: this.runtime.ownerId,
           cwd: context.cwd,
+          agentName,
+          displayName: definition?.displayName ?? agentName,
           description: request.description.trim(),
           lifecycle,
-          inheritContext: request.inherit_context ?? true,
-          model: context.model
-            ? `${context.model.provider}/${context.model.id}`
-            : undefined,
-          thinking: context.thinkingLevel,
-          tools: this.pi.getActiveTools().filter((name) => name !== toolName),
+          inheritContext:
+            request.inherit_context ?? definition?.inheritContext ?? true,
+          model:
+            definition?.model ??
+            (context.model
+              ? `${context.model.provider}/${context.model.id}`
+              : undefined),
+          thinking: definition?.thinking ?? context.thinkingLevel,
+          tools: skills.tools,
+          noSkills: skills.noSkills,
+          skillPaths: skills.skillPaths,
+          extensionPaths: this.explicitExtensionPaths(context.cwd),
+          parentSystemPromptInputs: this.parentSystemPromptInputs,
+          appendSystemPrompt:
+            [
+              skills.preloadPrompt,
+              definition?.body
+                ? [
+                    "Follow these agent-specific instructions within the capability and lifecycle constraints above.",
+                    "",
+                    "<agent_instructions>",
+                    definition.body,
+                    "</agent_instructions>",
+                  ].join("\n")
+                : undefined,
+            ]
+              .filter(Boolean)
+              .join("\n\n") || undefined,
           parentSessionPath: context.sessionManager.getSessionFile(),
         });
 
@@ -193,6 +303,154 @@ export class ParentTools {
     });
 
     return this;
+  }
+
+  /**
+   * Resolves and hard-denies the child normal-tool policy.
+   */
+  private resolveTools(
+    selection: ToolSelection | undefined,
+    disallowed: readonly string[] | undefined,
+  ): readonly string[] {
+    const active = this.pi
+      .getActiveTools()
+      .filter((name) => !SUBAGENT_SPAWNING_TOOLS.has(name));
+    const registered = new Set(this.pi.getAllTools().map((tool) => tool.name));
+    const selected =
+      selection === undefined
+        ? active
+        : selection === "all"
+          ? [...registered]
+          : selection === "none"
+            ? []
+            : [...selection];
+
+    for (const name of [...selected, ...(disallowed ?? [])])
+      if (!registered.has(name) && !CHILD_CONTROL_TOOLS.has(name))
+        throw new Error(`Unknown child tool: ${name}`);
+
+    const denied = new Set([
+      ...SUBAGENT_SPAWNING_TOOLS,
+      ...(disallowed ?? []).filter((name) => !CHILD_CONTROL_TOOLS.has(name)),
+    ]);
+    return selected.filter(
+      (name) => !denied.has(name) && !CHILD_CONTROL_TOOLS.has(name),
+    );
+  }
+
+  /**
+   * Resolves exact child skills and formats native preloaded-skill blocks.
+   */
+  private resolveSkills(
+    selection: SkillSelection | undefined,
+    preloadNames: readonly string[],
+    context: ExtensionContext,
+    tools: readonly string[],
+  ): {
+    noSkills: boolean;
+    preloadPrompt?: string;
+    skillPaths: readonly string[];
+    tools: readonly string[];
+  } {
+    const agentDirectory =
+      process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent");
+    const discovered = loadSkills({
+      cwd: context.cwd,
+      agentDir: agentDirectory,
+      skillPaths: [],
+      includeDefaults: true,
+    }).skills;
+    const byName = new Map(discovered.map((skill) => [skill.name, skill]));
+    const require = (name: string): Skill => {
+      const skill = byName.get(name);
+      if (!skill) throw new Error(`Unknown child skill: ${name}`);
+      return skill;
+    };
+    const preloaded = preloadNames.map(require);
+    const inheritedSkillNames = this.parentLazySkillNames;
+    const selected =
+      selection === false
+        ? []
+        : selection === true
+          ? discovered.filter((skill) => !skill.disableModelInvocation)
+          : selection === undefined
+            ? discovered.filter((skill) => inheritedSkillNames.has(skill.name))
+            : selection.map(require);
+    const lazy = selected.filter(
+      (skill) => !preloaded.some((loaded) => loaded.name === skill.name),
+    );
+    const canRead = tools.includes("read");
+    if (!canRead && lazy.length)
+      context.ui.notify(
+        "Side Quests omitted the child skill catalog because its tool policy lacks read.",
+        "warning",
+      );
+    const preloadPrompt = preloaded
+      .map((skill) => {
+        const body = stripFrontmatter(
+          readFileSync(skill.filePath, "utf8"),
+        ).trim();
+        return `<skill name="${skill.name}" location="${skill.filePath}">\nReferences are relative to ${dirname(skill.filePath)}.\n\n${body}\n</skill>`;
+      })
+      .join("\n\n");
+    return {
+      noSkills: true,
+      preloadPrompt: preloadPrompt || undefined,
+      skillPaths: canRead ? lazy.map((skill) => skill.filePath) : [],
+      tools,
+    };
+  }
+
+  /** Reads exact model-invocable skill names from Pi's structured parent catalog. */
+  private parentLazySkillNames = new Set<string>();
+
+  /** Records frozen parent native prompt inputs for every new child manifest. */
+  private parentSystemPromptInputs: ParentSystemPromptInputs | undefined;
+
+  /**
+   * Extracts only serializable native inputs that children must replay.
+   */
+  private static systemPromptInputs(
+    options: Readonly<{
+      appendSystemPrompt?: string;
+      contextFiles?: readonly Readonly<{ content: string; path: string }>[];
+      customPrompt?: string;
+    }>,
+  ): ParentSystemPromptInputs | undefined {
+    const inputs: ParentSystemPromptInputs = {
+      appendSystemPrompt: options.appendSystemPrompt,
+      contextFiles: options.contextFiles?.map((file) => ({ ...file })),
+      customPrompt: options.customPrompt,
+    };
+    return Object.values(inputs).some((value) => value !== undefined)
+      ? inputs
+      : undefined;
+  }
+
+  /**
+   * Replays user-supplied one-off parent extensions without duplicating us.
+   */
+  private explicitExtensionPaths(cwd: string): readonly string[] {
+    const ownEntries = new Set([
+      new URL("../index.ts", import.meta.url).pathname,
+      new URL("../child/index.ts", import.meta.url).pathname,
+    ]);
+    const paths: string[] = [];
+
+    for (let index = 0; index < process.argv.length; index += 1) {
+      const argument = process.argv[index];
+      if (argument !== "--extension" && argument !== "-e") continue;
+
+      const path = process.argv[index + 1];
+      if (!path) continue;
+      index += 1;
+
+      const absolute = resolve(cwd, path);
+      if (!ownEntries.has(absolute) && !paths.includes(absolute))
+        paths.push(absolute);
+    }
+
+    return paths;
   }
 
   /**

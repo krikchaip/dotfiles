@@ -42,16 +42,21 @@ const child = {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
-  process.env.PI_CODING_AGENT_DIR = originalRoot;
+  if (originalRoot === undefined)
+    Reflect.deleteProperty(process.env, "PI_CODING_AGENT_DIR");
+  else process.env.PI_CODING_AGENT_DIR = originalRoot;
   for (const root of temporaryRoots.splice(0))
     rmSync(root, { force: true, recursive: true });
 });
 
-function runtime(): ParentRuntime {
+function runtime(registeredToolNames = ["read", "grep"]): ParentRuntime {
   const root = mkdtempSync(join(tmpdir(), "side-quests-parent-runtime-"));
   temporaryRoots.push(root);
   process.env.PI_CODING_AGENT_DIR = root;
-  return ParentRuntime.register({ on() {} } as unknown as ExtensionAPI);
+  return ParentRuntime.register({
+    getAllTools: () => registeredToolNames.map((name) => ({ name })),
+    on() {},
+  } as unknown as ExtensionAPI);
 }
 
 function writeActivity(
@@ -92,6 +97,68 @@ test.each(["autonomous", "interactive"] as const)(
     );
   },
 );
+
+test("starts a frozen skill policy with no discovery and exact skill paths", async () => {
+  let command: string[] = [];
+  vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
+    command = params.command;
+    return { paneId: child.paneId, windowId: child.windowId };
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+
+  await runtime().launch({
+    ...child.manifest,
+    noSkills: true,
+    skillPaths: ["/tmp/skills/research/SKILL.md", "/tmp/skills/tdd/SKILL.md"],
+  });
+
+  expect(command).toContain("--no-skills");
+  expect(command.filter((argument) => argument === "--skill")).toHaveLength(2);
+  expect(command).toEqual(
+    expect.arrayContaining([
+      "/tmp/skills/research/SKILL.md",
+      "/tmp/skills/tdd/SKILL.md",
+    ]),
+  );
+});
+
+test("replays frozen parent prompt inputs and one-off extensions in the child command", async () => {
+  let command: string[] = [];
+  vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
+    command = params.command;
+    return { paneId: child.paneId, windowId: child.windowId };
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+
+  await runtime().launch({
+    ...child.manifest,
+    extensionPaths: ["/tmp/extensions/one-off.ts"],
+    parentSystemPromptInputs: {
+      appendSystemPrompt: "PARENT APPEND",
+      contextFiles: [
+        { content: "PARENT CONTEXT", path: "/tmp/parent/AGENTS.md" },
+      ],
+      customPrompt: "PARENT CUSTOM",
+    },
+  });
+
+  const extension = command.indexOf("/tmp/extensions/one-off.ts");
+  const childExtension = command.indexOf(
+    new URL("../../child/index.ts", import.meta.url).pathname,
+  );
+  const append = command.indexOf("--append-system-prompt");
+  expect(extension).toBeGreaterThan(-1);
+  expect(extension).toBeLessThan(childExtension);
+  expect(command).toEqual(
+    expect.arrayContaining([
+      "--system-prompt",
+      "PARENT CUSTOM",
+      "--no-context-files",
+    ]),
+  );
+  expect(command[append + 1]).toContain("PARENT APPEND");
+  expect(command[append + 1]).toContain("PARENT CONTEXT");
+});
 
 test("leaves initial shared-window title ownership inside tmux", async () => {
   let creation: Parameters<typeof Tmux.createWindow>[0] | undefined;
@@ -191,8 +258,7 @@ test("polls all child process states with one tmux query", async () => {
   process.env.PI_CODING_AGENT_DIR = root;
 
   let sessionStart:
-    | ((event: unknown, context: ExtensionContext) => void)
-    | undefined;
+    ((event: unknown, context: ExtensionContext) => void) | undefined;
   const pi = {
     on(
       event: string,
@@ -295,6 +361,24 @@ test.each([
   },
 );
 
+test("rejects a resumed child before writing or reopening when a required tool is absent", async () => {
+  const parent = runtime([]);
+  const writeResponse = vi.spyOn(SessionStore, "writeResponse");
+  const createWindow = vi.spyOn(Tmux, "createWindow").mockResolvedValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "findManagedPane").mockReturnValue(undefined);
+  vi.spyOn(Tmux, "paneExists").mockReturnValue(false);
+
+  await expect(
+    parent.continue(child.manifest, "Resume the restricted reviewer."),
+  ).rejects.toThrow("Required child tool is unavailable: read");
+
+  expect(writeResponse).not.toHaveBeenCalled();
+  expect(createWindow).not.toHaveBeenCalled();
+});
+
 test.each([
   [true, "answer"],
   [false, "steer"],
@@ -371,15 +455,20 @@ test("window disappearing during a title write quietly stops updates", async () 
     .mockResolvedValue("no such window: @1");
   vi.spyOn(Tmux, "paneExists").mockReturnValue(true);
 
-  await runtime().launch(child.manifest);
-  await vi.waitFor(() => expect(selectedPane).toHaveBeenCalledTimes(2));
+  const parent = runtime();
+  await parent.launch(child.manifest);
+  await vi.waitFor(() =>
+    expect(selectedPane.mock.calls.length).toBeGreaterThanOrEqual(2),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const callsAfterWindowRemoval = selectedPane.mock.calls.length;
 
   expect(setTitle).toHaveBeenCalledTimes(1);
 
-  await runtime().continue(child.manifest, "Continue after window removal.");
+  await parent.continue(child.manifest, "Continue after window removal.");
   await new Promise((resolve) => setTimeout(resolve, 0));
 
-  expect(selectedPane).toHaveBeenCalledTimes(2);
+  expect(selectedPane).toHaveBeenCalledTimes(callsAfterWindowRemoval);
 });
 
 test("title update failures warn once, retry, and do not block launch", async () => {
@@ -394,6 +483,7 @@ test("title update failures warn once, retry, and do not block launch", async ()
   >();
   const notify = vi.fn();
   const pi = {
+    getAllTools: () => [{ name: "read" }],
     on(
       event: string,
       handler: (event: { reason?: string }, context: ExtensionContext) => void,

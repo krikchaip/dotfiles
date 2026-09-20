@@ -350,9 +350,35 @@ export class E2EHarness {
 
   async #start(): Promise<void> {
     const { process } = this.options.scenario;
+    const usesFauxProvider = process.managed || process.fauxProvider;
 
     mkdirSync(this.workDirectory, { recursive: true });
     mkdirSync(this.stateDirectory, { recursive: true });
+
+    if (process.agentDefinitions) {
+      const agents = join(this.workDirectory, ".pi", "agents");
+      mkdirSync(agents, { recursive: true });
+      for (const [name, content] of Object.entries(process.agentDefinitions))
+        writeFileSync(join(agents, `${name}.md`), content);
+    }
+
+    if (process.globalAgentDefinitions) {
+      const agents = join(this.stateDirectory, "agents");
+      mkdirSync(agents, { recursive: true });
+      for (const [name, content] of Object.entries(
+        process.globalAgentDefinitions,
+      ))
+        writeFileSync(join(agents, `${name}.md`), content);
+    }
+
+    if (process.skillFiles) {
+      const skills = join(this.stateDirectory, "skills");
+      for (const [path, content] of Object.entries(process.skillFiles)) {
+        const target = join(skills, path);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, content);
+      }
+    }
 
     if (process.settings)
       writeFileSync(
@@ -367,7 +393,7 @@ export class E2EHarness {
       copyFileSync(fixturePath, join(themes, basename(fixturePath)));
     }
 
-    if (process.managed) {
+    if (usesFauxProvider) {
       const extensions = join(this.stateDirectory, "extensions");
       mkdirSync(extensions, { recursive: true });
 
@@ -399,7 +425,7 @@ export class E2EHarness {
 
     command.push("-e", this.options.extension);
 
-    if (!process.managed) command.push("--no-extensions");
+    if (!usesFauxProvider) command.push("--no-extensions");
     else command.push("--model", "side-quests-e2e/fake");
 
     if (process.child)
