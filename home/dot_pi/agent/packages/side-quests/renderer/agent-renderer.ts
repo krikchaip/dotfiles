@@ -296,8 +296,8 @@ export class AgentRenderer {
   /**
    * Formats the stable summary shown in one Agent tool header.
    */
-  public static summary(args: unknown, _result?: RendererResult): string {
-    const agent = AgentRenderer.display(args);
+  public static summary(args: unknown, result?: RendererResult): string {
+    const agent = AgentRenderer.display(args, result);
 
     return `${agent.type} :: ${agent.description}`;
   }
@@ -361,13 +361,20 @@ export class AgentRenderer {
   /**
    * Resolves stable display fields from one Agent call.
    */
-  private static display(args: unknown): AgentDisplay {
+  private static display(args: unknown, result?: RendererResult): AgentDisplay {
     const prompt = AgentRenderer.stringArg(args, "prompt") ?? "Agent";
+    const path = AgentRenderer.sessionPath(result, args);
+    const manifest = path
+      ? SessionStore.readResumableManifest(path)
+      : undefined;
 
     return {
       description: AgentRenderer.stringArg(args, "description") ?? prompt,
       mode: AgentRenderer.stringArg(args, "resume") ? "resumed" : "fresh",
-      type: AgentRenderer.stringArg(args, "subagent_type") ?? "general-purpose",
+      type:
+        manifest?.agentName ??
+        AgentRenderer.stringArg(args, "subagent_type") ??
+        "general-purpose",
       inheritContext: AgentRenderer.booleanArg(args, "inherit_context"),
       interactive: AgentRenderer.booleanArg(args, "interactive"),
     };
@@ -487,8 +494,7 @@ export class AgentRenderer {
     result?: RendererResult,
   ): Text {
     const renderContext = context as
-      | { isError?: boolean; isPartial?: boolean }
-      | undefined;
+      { isError?: boolean; isPartial?: boolean } | undefined;
     const statusColor = renderContext?.isError ? "error" : "success";
     const statusGlyph = "●";
 

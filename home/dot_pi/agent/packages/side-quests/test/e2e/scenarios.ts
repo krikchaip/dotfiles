@@ -33,6 +33,12 @@ import { inheritedParentRequestRenderer } from "./scenario/inherited-parent-requ
 import { interactive } from "./scenario/interactive.ts";
 import { lifecycle } from "./scenario/lifecycle.ts";
 import { malformedAgentDefinition } from "./scenario/malformed-agent-definition.ts";
+import {
+  namedLiveAnswer,
+  namedLiveSteer,
+  namedStoppedAnswer,
+  namedStoppedReopen,
+} from "./scenario/named-agent-continuations.ts";
 import { namedAgent } from "./scenario/named-agent.ts";
 import { narrowWidgets } from "./scenario/narrow-widgets.ts";
 import { navigationCancellation } from "./scenario/navigation-cancellation.ts";
@@ -110,6 +116,10 @@ export const scenarios: readonly Scenario[] = [
   unmarkedClosure,
   malformedAgentDefinition,
   namedAgent,
+  namedLiveAnswer,
+  namedLiveSteer,
+  namedStoppedAnswer,
+  namedStoppedReopen,
   descriptionOnlyNamedAgent,
   narrowWidgets,
   widgetSpacing,

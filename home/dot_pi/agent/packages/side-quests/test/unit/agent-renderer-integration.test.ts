@@ -251,13 +251,30 @@ test("Agent calls expose canonical text to transcript composers", () => {
 });
 
 test.each([
-  ["answer", "continued", "general-purpose :: classified continuation"],
-  ["answer", "reopened", "general-purpose :: classified continuation"],
-  ["steer", "reopened", "general-purpose :: classified continuation"],
-  ["steer", "continued", "general-purpose :: classified continuation"],
+  ["answer", "continued", "surfer :: classified continuation"],
+  ["answer", "reopened", "surfer :: classified continuation"],
+  ["steer", "reopened", "surfer :: classified continuation"],
+  ["steer", "continued", "surfer :: classified continuation"],
 ] as const)(
-  "finished %s/%s Agent call renders the expected parent header",
+  "finished %s/%s Agent call renders the managed canonical identity",
   (continuationKind, operation, expectedHeader) => {
+    const sessionPath = "/tmp/managed/session.jsonl";
+
+    vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue({
+      version: 1,
+      childId: "named-child",
+      parentId: "parent",
+      ownerId: "owner",
+      sessionPath,
+      cwd: "/tmp",
+      agentName: "surfer",
+      displayName: "Surfer",
+      description: "named child",
+      lifecycle: "interactive",
+      inheritContext: true,
+      tools: [],
+      createdAt: Date.now(),
+    });
     expect(AgentRenderer.install()).toBe(true);
 
     const renderer = rendererFor("getCallRenderer", {
@@ -272,7 +289,7 @@ test.each([
       {
         description: "classified continuation",
         prompt: "Continue.",
-        resume: "/tmp/managed/session.jsonl",
+        resume: sessionPath,
       },
       theme,
       { isPartial: false },
@@ -280,6 +297,7 @@ test.each([
     const text = renderedText(rendered);
 
     expect(text).toContain(expectedHeader);
+    expect(text).not.toContain("Surfer :: classified continuation");
     expect(text).not.toMatch(/\((?:answered|resumed|steered)\)/u);
   },
 );

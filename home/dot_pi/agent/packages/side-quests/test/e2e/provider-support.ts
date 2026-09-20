@@ -157,6 +157,7 @@ export interface ContinuationDelegation {
   readonly interactive?: boolean;
   readonly launchPrompt: string;
   readonly promoteOnContinuation?: boolean;
+  readonly subagentType?: string;
   readonly waitForActiveBeforeContinuation?: boolean;
 }
 
@@ -191,6 +192,9 @@ export function configureContinuation(
         description: "E2E delegated task",
         prompt: options.launchPrompt,
         ...(options.interactive ? { interactive: true } : {}),
+        ...(options.subagentType
+          ? { subagent_type: options.subagentType }
+          : {}),
       }),
       { stopReason: "toolUse" },
     ),
@@ -234,6 +238,7 @@ export interface ReopenDelegation {
   readonly resumedResponseDelayMs?: number;
   readonly resumedRetryFailures?: readonly string[];
   readonly resumedTool?: string;
+  readonly subagentType?: string;
 }
 
 export function configureReopen(
@@ -287,6 +292,9 @@ export function configureReopen(
       fauxToolCall("Agent", {
         description: "E2E delegated task",
         prompt: options.launchPrompt,
+        ...(options.subagentType
+          ? { subagent_type: options.subagentType }
+          : {}),
       }),
       { stopReason: "toolUse" },
     ),
