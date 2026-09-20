@@ -161,8 +161,16 @@ A Pi agent spawned by the parent agent to perform a side quest in a persistent c
 _Avoid_: Side quest, task, background job
 
 **Agent definition**:
-A user-authored Markdown configuration for one canonical sub-agent identity. It can provide selection guidance, a presentation label, reusable instructions, and launch policy.
-_Avoid_: Side-quest handoff, child manifest, task prompt
+A user-authored Markdown configuration for one canonical sub-agent identity in either global or project scope. Same-name global and project Agent definitions can each supply part of the identity's configuration.
+_Avoid_: Resolved Agent definition, Side-quest handoff, child manifest, task prompt
+
+**Agent definition overlay**:
+Field-by-field resolution of same-name global and project Agent definitions. A supplied project field replaces the global field; an omitted project field inherits the global field; a field omitted from both uses its documented default.
+_Avoid_: File shadowing, whole-file replacement, frontmatter merge
+
+**Resolved Agent definition**:
+The validated result of Agent definition overlay, including its resolved Markdown instructions and documented defaults. Side Quests uses this result to decide catalog visibility and launch policy.
+_Avoid_: Agent definition file, child manifest, parent runtime baseline
 
 **Agent selection description**:
 The `description` in an Agent definition. It tells the parent agent when to select that sub-agent identity. It is not an instruction for the selected sub-agent.

@@ -169,29 +169,39 @@ Side Quests discovers Markdown files from:
 
 It does not scan `.agents/agents/` and does not include bundled agents.
 
+When both scopes contain the same case-sensitive filename stem, Side Quests creates one **Resolved Agent definition**:
+
+- The global file is the lower-priority layer.
+- A project field replaces the complete same-name global field.
+- An omitted project field inherits the global field.
+- A field omitted from both files uses its documented default.
+- Collection fields replace rather than concatenate. An explicit `[]` clears the global collection.
+- Both files and all supplied supported fields must be valid. An override or `enabled: false` cannot hide malformed configuration.
+
+There is no reset sentinel for restoring a parent-derived default over a supplied global scalar. YAML null and empty scalar strings remain malformed. If both layers omit a parent-derived field, the child inherits the parent value.
+
 ### General-purpose configuration
 
 General-purpose delegation is always available. Omitted `subagent_type` and explicit `general-purpose` behave identically.
 
-- Without a winning `general-purpose.md`, the child is a plain clone of the parent setup.
-- Project `.pi/agents/general-purpose.md` shadows the global file.
-- A valid file supports the same model, thinking, tools, skills, context, lifecycle, display-name, and Markdown-body overrides as a named agent.
+- Without either `general-purpose.md`, the child is a plain clone of the parent setup.
+- Same-name project and global files use the field-by-field overlay rules above.
+- A valid Resolved Agent definition supports the same model, thinking, tools, skills, context, lifecycle, display-name, and Markdown-body overrides as a named agent.
 - `description` is optional. When supplied and at least one valid named agent exists, it adds `general-purpose` as the last entry in the parent system prompt's agent catalog. A general-purpose description alone adds no catalog text.
-- An explicit empty frontmatter block is a valid no-op that shadows the global file and produces a plain parent clone.
-- A malformed winning file warns once and rejects general-purpose launches. It never falls back to the global file or plain clone.
-- `enabled: false` in either scope removes that customization and restores the plain parent clone. A project tombstone also shadows global customization. It never disables the standard agent.
+- An empty project frontmatter block supplies no frontmatter overrides. It inherits global frontmatter fields, or uses documented defaults when no global file exists. Its Markdown body is resolved separately: a non-empty project body replaces the global body; an absent or whitespace-only project body inherits it.
+- A malformed global or project layer warns once and rejects general-purpose launches. It never falls back to the other file or plain clone.
+- Resolved `enabled: false` removes customization and restores the plain parent clone. Project `enabled: true` can restore global `enabled: false` while inheriting the global file's other valid fields. It never disables the standard agent.
 
 ### Named-agent names and precedence
 
 - The case-sensitive filename stem is the agent name.
 - `.pi/agents/security.md` defines `security`.
-- A project file shadows a global file with the same name.
-- Shadowing happens before validation.
-- A broken project file does not fall back to the global file.
-- Every enabled definition requires explicit `---` YAML frontmatter boundaries.
-- A valid enabled named file needs a non-empty `description`. Its Markdown body is optional.
-- A broken winning file is excluded and produces one path-specific warning.
-- `enabled: false` disables that name and can act as a project tombstone. A tombstone needs no description or body, and Side Quests ignores its other fields.
+- A project file overlays a global file with the same name field by field.
+- Every present file requires explicit `---` YAML frontmatter boundaries.
+- Side Quests validates every supplied supported field in both files before it uses the Resolved Agent definition.
+- A named Resolved Agent definition needs a non-empty `description`. Either layer can supply it; the requirement is checked after overlay.
+- A malformed layer invalidates the resolved identity and produces one path-specific warning. A valid override cannot hide an invalid lower-priority value.
+- Resolved `enabled: false` disables that name. Project `enabled: true` can restore global `enabled: false` and inherit its other valid fields.
 - `general-purpose` is reserved for the standard agent and follows the special rules above.
 
 When at least one valid named agent exists, Pi receives this guidance followed by an agent catalog in the parent system prompt's **Guidelines** section:
@@ -243,7 +253,7 @@ interactive: false
 
 Side Quests uses Pi's exported `parseFrontmatter` and existing YAML parser. It does not implement a separate YAML parser. Duplicate keys are rejected by Pi's parser. Unknown frontmatter is ignored so one agent file can work with other extensions.
 
-For an enabled definition, omission has these exact results:
+After project-over-global overlay, omission from both layers has these exact results:
 
 | Omitted value                                    | Result                                                                                              |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
@@ -259,8 +269,9 @@ For an enabled definition, omission has these exact results:
 
 Other validation rules:
 
-- YAML null, an empty scalar string, or a wrong type makes a supported field malformed.
-- Empty lists are explicit empty selections. For example, `tools: []` selects no normal tools and `available_skills: []` selects no lazy skills.
+- YAML null, an empty scalar string, or a wrong type makes a supplied supported field malformed in either layer.
+- `enabled: false` does not skip validation of sibling fields or the other layer.
+- A supplied project collection replaces the complete global collection. Empty lists are explicit empty selections. For example, `tools: []` selects no normal tools and `available_skills: []` selects no lazy skills.
 - Duplicate collection names are deduplicated in first-occurrence order. Empty entries and non-string entries are malformed.
 - `description` and `display_name` have edge whitespace removed and internal whitespace collapsed. Capability identifiers remain exact and case-sensitive.
 
@@ -302,7 +313,7 @@ Return findings with file paths, severity, and evidence.
 </agent_instructions>
 ```
 
-An absent or whitespace-only body adds no constraint sentence or XML element. Side Quests removes boundary blank space but otherwise preserves the body exactly, including any user-authored `<agent_instructions>` or `</agent_instructions>` text. The XML wrapper organizes the prompt; it is not a security boundary.
+A non-empty project body replaces the global body. An absent or whitespace-only project body after boundary trimming inherits the global body. If both layers lack a non-empty body, Side Quests adds no constraint sentence or XML element. There is no syntax for clearing a non-empty global body. Side Quests removes boundary blank space but otherwise preserves the resolved body exactly, including any user-authored `<agent_instructions>` or `</agent_instructions>` text. The XML wrapper organizes the prompt; it is not a security boundary.
 
 ### Model and thinking
 

@@ -59,7 +59,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 **Blocked by:** 2. Deliver the complete day-to-day MVP.
 
-**Required discussion before implementation:** Complete. Decisions recorded so far: use Pi's exported `parseFrontmatter` and existing YAML parser; require explicit frontmatter boundaries; omission inherits or uses the documented default; YAML null, empty scalar strings, and wrong types fail closed; explicit empty lists are valid empty selections; disabled tombstones skip all other field validation; absent and whitespace-only bodies add no instructions; CSV strings and YAML lists are valid for tool and skill collections; duplicate names are removed in first-occurrence order while invalid entries fail closed; and non-empty bodies are appended last inside `<agent_instructions>`. When at least one valid named agent exists, the draft parent catalog first directs matching side quests to specialized sub-agents, renders named entries as `Subagent <name>. <description>` in canonical-name order, and renders `general-purpose` last only when it supplies a description. A general-purpose description alone adds no catalog text. The body Markdown is the only content inside `<agent_instructions>`; its constraint sentence appears before the element. Preserve body content exactly after boundary trimming, including XML-like text. The routing guidance and catalog entries are separate contiguous Guidelines bullets. Catalog prompt wording remains subject to later prompt engineering.
+**Required discussion before Ticket 3 implementation:** Complete. Ticket 3 originally delivered whole-file project shadowing and tombstone validation short-circuiting. Ticket 8 and [Agent Definition Overlays](tickets/09-agent-definition-overlays.md) supersede only those resolution rules with field-by-field overlay and strict validation of every supplied field. Ticket 3's remaining parser, boundary, value syntax, collection normalization, prompt assembly, catalog, capability, and lifecycle decisions remain in force. Its checked items below record the behavior delivered before this amendment.
 
 - [x] Record the agreed omission/null/empty-string/empty-list/body behavior for every supported frontmatter field before writing its resolver.
 - [x] Make omitted `subagent_type` and explicit `general-purpose` resolve to the same reserved standard identity.
@@ -143,7 +143,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 **What to build:** Deliver the fully integrated Side Quests product. Audit every requirement against the specification, wayfinder map and resolved tickets, README, and executable layout oracle. Implement every remaining gap instead of deferring it, then produce complete automated and real Pi-in-tmux acceptance evidence.
 
-**Blocked by:** 6. Survive reload, replacement, and owner loss.
+**Blocked by:** 6. Survive reload, replacement, and owner loss; 8. Layer project Agent definitions over global definitions.
 
 - [ ] Build a traceable acceptance matrix covering every user story, implementation decision, testing decision, README behavior, and wayfinder amendment.
 - [ ] Exercise every public `Agent` schema rule, agent-definition rule, permission invariant, lifecycle transition, mailbox state, terminal outcome, health transition, layout mode, UI state, reload path, teardown path, and storage-safety rule.
@@ -152,6 +152,24 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [ ] Run formatter, typecheck, lint, unit tests, integration tests, prototype checks, package application checks, and isolated real Pi-in-tmux E2E tests with no failure or flake.
 - [ ] Prove there is no focus theft, duplicate delivery, stale response, stale widget, leaked process, malformed geometry, unsafe resume, session-list pollution, or mutation of unrelated panes.
 - [ ] Leave the specification, map amendments, resolved design tickets, README, package behavior, and test evidence consistent with each other.
+
+## 8. Layer project Agent definitions over global definitions
+
+**Status:** ready-for-human
+
+**Implementation gate:** Design is complete. Wait for the user's explicit green light before changing production code.
+
+**What to build:** Replace whole-file project shadowing with strict Agent definition overlay. For the same canonical identity, supplied project fields replace complete global fields, omitted project fields inherit global fields, and fields omitted from both use documented defaults. Resolve Markdown instructions with the same precedence. Validate every present layer and every supplied supported field before launch.
+
+**Blocked by:** 3. Configure general-purpose and named agents.
+
+- [ ] Implement field-presence-aware global-to-project overlay without merging collection elements.
+- [ ] Apply required named-description checks and documented defaults only after overlay.
+- [ ] Inherit a non-empty global body when the project body is absent or whitespace-only; replace it with a non-empty project body.
+- [ ] Make project `enabled` override global `enabled`, including restoration through project `true`, while validating every supplied field even when disabled or overridden.
+- [ ] Preserve strict malformed-layer rejection, unknown-field compatibility, reload behavior for new launches, and immutable existing child manifests.
+- [ ] Add the named unit and real Pi-in-tmux E2E evidence for Q1–Q9 recorded in [Agent Definition Overlays](tickets/09-agent-definition-overlays.md). Every grilling answer must have corresponding automated evidence.
+- [ ] Run the clean serial release gate: format, lint, typecheck, unit tests, all E2E scenarios, diff check, and deployed-runtime comparison.
 
 ## Backlog
 

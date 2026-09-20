@@ -9,6 +9,10 @@ Domain terms follow the [specification](../spec.md#domain-model): parent agent a
 
 Where are agent definitions discovered, how are same-name definitions resolved, what defaults apply when `subagent_type` is omitted, and how does definition frontmatter determine the child Pi session's final capabilities?
 
+## Amendment
+
+[Agent Definition Overlays](09-agent-definition-overlays.md) supersedes this ticket's whole-file shadowing, winning-file, empty-project-frontmatter, and tombstone validation rules. Same-name global and project files now resolve field by field. Every present layer and every supplied supported field is validated, including disabled and overridden fields. The remaining discovery, field syntax, defaults, catalog, capability, lifecycle, and prompt rules in this ticket remain in force.
+
 ## Comments
 
 - Preserve the resolved `Agent` request schema from `01-agent-interface.md`.
