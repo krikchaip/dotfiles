@@ -55,7 +55,13 @@ export type AgentDefinition = Readonly<{
  * Lists the supported Pi thinking levels.
  */
 export type ThinkingLevel =
-  "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+  | "off"
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "max";
 
 export type ToolSelection = "all" | "none" | readonly string[];
 export type SkillSelection = boolean | readonly string[];

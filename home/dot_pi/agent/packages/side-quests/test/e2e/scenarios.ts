@@ -26,6 +26,7 @@ import { focusPreservation } from "./scenario/focus-preservation.ts";
 import { generalPurposeDefinition } from "./scenario/general-purpose-definition.ts";
 import { globalAgentDefinition } from "./scenario/global-agent-definition.ts";
 import { idleContinuation } from "./scenario/idle-continuation.ts";
+import { inheritedAgentsSkills } from "./scenario/inherited-agents-skills.ts";
 import { inheritedAgentRenderer } from "./scenario/inherited-agent-renderer.ts";
 import { inheritedParentRequestRenderer } from "./scenario/inherited-parent-request-renderer.ts";
 import { interactive } from "./scenario/interactive.ts";
@@ -131,6 +132,7 @@ export const scenarios: readonly Scenario[] = [
   projectShadowsGlobalAgent,
   emptyGeneralPurposeOmitted,
   emptyGeneralPurposeExplicit,
+  inheritedAgentsSkills,
   ...agentCollectionPolicyScenarios,
   ...invalidAgentDefinitionScenarios,
   generalPurposeTombstone,

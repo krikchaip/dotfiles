@@ -16,12 +16,15 @@ declare global {
     /** Test-owned project agent files created before Pi starts. */
     readonly agentDefinitions?: Readonly<Record<string, string>>;
 
-    /** Test-owned global agent files created before Pi starts. */
-    readonly globalAgentDefinitions?: Readonly<Record<string, string>>;
+    /** Test-owned project .agents skill files created before Pi starts. */
+    readonly agentSkillFiles?: Readonly<Record<string, string>>;
 
     readonly child?: boolean;
     readonly extensionFixtures?: readonly string[];
     readonly extensionsBefore?: readonly string[];
+
+    /** Test-owned global agent files created before Pi starts. */
+    readonly globalAgentDefinitions?: Readonly<Record<string, string>>;
 
     /** Load the deterministic E2E provider without requiring a managed child. */
     readonly fauxProvider?: boolean;

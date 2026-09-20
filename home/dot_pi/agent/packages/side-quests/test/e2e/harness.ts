@@ -362,6 +362,15 @@ export class E2EHarness {
         writeFileSync(join(agents, `${name}.md`), content);
     }
 
+    if (process.agentSkillFiles) {
+      const skills = join(this.workDirectory, ".agents", "skills");
+      for (const [path, content] of Object.entries(process.agentSkillFiles)) {
+        const target = join(skills, path);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, content);
+      }
+    }
+
     if (process.globalAgentDefinitions) {
       const agents = join(this.stateDirectory, "agents");
       mkdirSync(agents, { recursive: true });
@@ -419,6 +428,13 @@ export class E2EHarness {
     command.push("--no-context-files", "--no-prompt-templates");
     if (!process.themeFixture) command.push("--no-themes");
     command.push("--no-skills");
+    for (const path of Object.keys(process.skillFiles ?? {}))
+      command.push("--skill", join(this.stateDirectory, "skills", path));
+    for (const path of Object.keys(process.agentSkillFiles ?? {}))
+      command.push(
+        "--skill",
+        join(this.workDirectory, ".agents", "skills", path),
+      );
 
     for (const extension of process.extensionsBefore ?? [])
       command.push("-e", resolve(this.options.root, extension));

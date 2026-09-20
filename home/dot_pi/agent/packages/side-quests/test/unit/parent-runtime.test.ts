@@ -258,7 +258,8 @@ test("polls all child process states with one tmux query", async () => {
   process.env.PI_CODING_AGENT_DIR = root;
 
   let sessionStart:
-    ((event: unknown, context: ExtensionContext) => void) | undefined;
+    | ((event: unknown, context: ExtensionContext) => void)
+    | undefined;
   const pi = {
     on(
       event: string,

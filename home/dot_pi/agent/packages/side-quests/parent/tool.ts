@@ -8,7 +8,6 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
   type Skill,
-  loadSkills,
   stripFrontmatter,
 } from "@earendil-works/pi-coding-agent";
 
@@ -68,11 +67,7 @@ export class ParentTools {
 
     const tools = new ParentTools(pi, runtime, definitions);
     pi.on("before_agent_start", (event) => {
-      tools.parentLazySkillNames = new Set(
-        (event.systemPromptOptions.skills ?? [])
-          .filter((skill) => !skill.disableModelInvocation)
-          .map((skill) => skill.name),
-      );
+      tools.parentSkills = [...(event.systemPromptOptions.skills ?? [])];
       tools.parentSystemPromptInputs = ParentTools.systemPromptInputs(
         event.systemPromptOptions,
       );
@@ -352,14 +347,7 @@ export class ParentTools {
     skillPaths: readonly string[];
     tools: readonly string[];
   } {
-    const agentDirectory =
-      process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent");
-    const discovered = loadSkills({
-      cwd: context.cwd,
-      agentDir: agentDirectory,
-      skillPaths: [],
-      includeDefaults: true,
-    }).skills;
+    const discovered = this.parentSkills;
     const byName = new Map(discovered.map((skill) => [skill.name, skill]));
     const require = (name: string): Skill => {
       const skill = byName.get(name);
@@ -367,15 +355,12 @@ export class ParentTools {
       return skill;
     };
     const preloaded = preloadNames.map(require);
-    const inheritedSkillNames = this.parentLazySkillNames;
     const selected =
       selection === false
         ? []
-        : selection === true
+        : selection === true || selection === undefined
           ? discovered.filter((skill) => !skill.disableModelInvocation)
-          : selection === undefined
-            ? discovered.filter((skill) => inheritedSkillNames.has(skill.name))
-            : selection.map(require);
+          : selection.map(require);
     const lazy = selected.filter(
       (skill) => !preloaded.some((loaded) => loaded.name === skill.name),
     );
@@ -401,8 +386,8 @@ export class ParentTools {
     };
   }
 
-  /** Reads exact model-invocable skill names from Pi's structured parent catalog. */
-  private parentLazySkillNames = new Set<string>();
+  /** Records Pi's exact structured parent skill catalog. */
+  private parentSkills: readonly Skill[] = [];
 
   /** Records frozen parent native prompt inputs for every new child manifest. */
   private parentSystemPromptInputs: ParentSystemPromptInputs | undefined;

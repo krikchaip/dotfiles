@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type {
   AgentToolResult,
   ExtensionAPI,
@@ -67,6 +67,31 @@ function manifest(overrides: Partial<ChildManifest> = {}): ChildManifest {
     tools: ["read"],
     createdAt: 1,
     ...overrides,
+  };
+}
+
+/**
+ * Builds one structured skill from Pi's parent prompt event.
+ */
+function parentSkill(
+  name: string,
+  filePath: string,
+  disableModelInvocation = false,
+): Skill {
+  const baseDir = dirname(filePath);
+  return {
+    name,
+    description: `${name} test skill`,
+    filePath,
+    baseDir,
+    disableModelInvocation,
+    sourceInfo: {
+      path: filePath,
+      source: "test",
+      scope: "temporary",
+      origin: "top-level",
+      baseDir,
+    },
   };
 }
 
@@ -496,6 +521,11 @@ test("omits the lazy skill catalog when the selected tool policy lacks read", as
       AgentDefinitions.resolve({ agentDirectory, cwd }),
       notify,
       cwd,
+      true,
+      [
+        parentSkill("research", join(skillPath, "SKILL.md")),
+        parentSkill("tdd", join(lazySkillPath, "SKILL.md")),
+      ],
     );
 
     expect(create).toHaveBeenCalledWith(
@@ -556,7 +586,7 @@ test("freezes the inherited parent skill catalog when agent skill fields are omi
       vi.fn(),
       cwd,
       true,
-      [{ name: "tdd", disableModelInvocation: false }] as unknown as Skill[],
+      [parentSkill("tdd", join(skills, "tdd", "SKILL.md"))],
     );
 
     expect(create).toHaveBeenCalledWith(
@@ -664,8 +694,9 @@ test("freezes only the parent lazy catalog when preloads require omitted-skill m
       launch: vi.fn().mockResolvedValue(child),
     };
     const parentSkills = [
-      { name: "tdd", disableModelInvocation: false },
-    ] as unknown as Skill[];
+      parentSkill("research", join(skills, "research", "SKILL.md")),
+      parentSkill("tdd", join(skills, "tdd", "SKILL.md")),
+    ];
 
     await executeAgent(
       {
