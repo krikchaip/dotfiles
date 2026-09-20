@@ -47,7 +47,7 @@ export type AgentDefinition = Readonly<{
   /** The optional lifecycle default. */
   interactive?: boolean;
 
-  /** The Markdown file that supplied this definition. */
+  /** The highest-priority Markdown file in the resolved definition. */
   path: string;
 }>;
 
@@ -55,36 +55,81 @@ export type AgentDefinition = Readonly<{
  * Lists the supported Pi thinking levels.
  */
 export type ThinkingLevel =
-  | "off"
-  | "minimal"
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh"
-  | "max";
+  "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
+/**
+ * Selects normal child tools by sentinel or exact tool names.
+ */
 export type ToolSelection = "all" | "none" | readonly string[];
+
+/**
+ * Selects lazy child skills by boolean policy or exact skill names.
+ */
 export type SkillSelection = boolean | readonly string[];
 
 /**
- * Records one malformed winning definition without falling back to a loser.
+ * Records the participating layer that made one resolved identity malformed.
  */
 export type AgentDefinitionDiagnostic = Readonly<{
   path: string;
   reason: string;
 }>;
 
+/**
+ * Keeps one layer's registry-resolved fields available for strict validation.
+ */
+export type AgentDefinitionRuntimeLayer = Readonly<{
+  name: string;
+  path: string;
+  model?: string;
+  tools?: ToolSelection;
+  disallowedTools?: readonly string[];
+  availableSkills?: SkillSelection;
+  preloadSkills?: readonly string[];
+}>;
+
 type DefinitionRecord =
-  | Readonly<{ kind: "valid"; definition: AgentDefinition }>
-  | Readonly<{ kind: "disabled" }>
+  | Readonly<{
+      definition: AgentDefinition;
+      kind: "valid";
+      runtimeLayers: readonly AgentDefinitionRuntimeLayer[];
+    }>
+  | Readonly<{
+      kind: "disabled";
+      runtimeLayers: readonly AgentDefinitionRuntimeLayer[];
+    }>
+  | Readonly<{ diagnostic: AgentDefinitionDiagnostic; kind: "invalid" }>;
+
+type DefinitionFields = {
+  description?: string;
+  body?: string;
+  displayName?: string;
+  enabled?: boolean;
+  model?: string;
+  thinking?: ThinkingLevel;
+  tools?: ToolSelection;
+  disallowedTools?: readonly string[];
+  availableSkills?: SkillSelection;
+  preloadSkills?: readonly string[];
+  inheritContext?: boolean;
+  interactive?: boolean;
+};
+
+type DefinitionLayer = Readonly<{
+  fields: Readonly<DefinitionFields>;
+  path: string;
+}>;
+
+type LayerRecord =
+  | Readonly<{ kind: "valid"; layer: DefinitionLayer }>
   | Readonly<{ diagnostic: AgentDefinitionDiagnostic; kind: "invalid" }>;
 
 /**
- * Owns agent-definition discovery, precedence, and catalog construction.
+ * Owns agent-definition discovery, overlay resolution, and catalog construction.
  */
 export class AgentDefinitions {
   /**
-   * Discovers definitions with project files shadowing same-name global files.
+   * Discovers definitions and overlays same-name project fields over global fields.
    */
   public static resolve(options: {
     agentDirectory: string;
@@ -94,11 +139,18 @@ export class AgentDefinitions {
       join(options.agentDirectory, "agents"),
     );
     const project = AgentDefinitions.files(join(options.cwd, ".pi", "agents"));
-    const paths = new Map([...global, ...project]);
+    const names = new Set([...global.keys(), ...project.keys()]);
     const records = new Map<string, DefinitionRecord>();
 
-    for (const [name, path] of paths)
-      records.set(name, AgentDefinitions.parse(name, path));
+    for (const name of names)
+      records.set(
+        name,
+        AgentDefinitions.resolveLayers(
+          name,
+          global.get(name),
+          project.get(name),
+        ),
+      );
 
     return new AgentDefinitions(records);
   }
@@ -126,7 +178,7 @@ export class AgentDefinitions {
   }
 
   /**
-   * Returns the diagnostic for a winning malformed definition.
+   * Returns the diagnostic for a malformed participating layer.
    */
   diagnostic(name: string): AgentDefinitionDiagnostic | undefined {
     const record = this.records.get(name);
@@ -134,11 +186,20 @@ export class AgentDefinitions {
   }
 
   /**
-   * Lists one warning payload for every malformed winning definition.
+   * Lists one warning payload for every identity with a malformed layer.
    */
   diagnostics(): readonly AgentDefinitionDiagnostic[] {
     return [...this.records.values()].flatMap((record) =>
       record.kind === "invalid" ? [record.diagnostic] : [],
+    );
+  }
+
+  /**
+   * Lists every structurally valid layer that needs live registry validation.
+   */
+  runtimeLayers(): readonly AgentDefinitionRuntimeLayer[] {
+    return [...this.records.values()].flatMap((record) =>
+      record.kind === "invalid" ? [] : record.runtimeLayers,
     );
   }
 
@@ -194,55 +255,135 @@ export class AgentDefinitions {
   }
 
   /**
-   * Parses the supported fields after Pi parses the YAML frontmatter.
+   * Validates both layers, overlays supplied project fields, and applies defaults.
    */
-  private static parse(name: string, path: string): DefinitionRecord {
+  private static resolveLayers(
+    name: string,
+    globalPath: string | undefined,
+    projectPath: string | undefined,
+  ): DefinitionRecord {
+    const global = globalPath
+      ? AgentDefinitions.parseLayer(globalPath)
+      : undefined;
+    const project = projectPath
+      ? AgentDefinitions.parseLayer(projectPath)
+      : undefined;
+
+    if (global?.kind === "invalid") return global;
+    if (project?.kind === "invalid") return project;
+
+    const layers = [global, project].flatMap((record) =>
+      record?.kind === "valid" ? [record.layer] : [],
+    );
+    const fields: Readonly<DefinitionFields> = Object.assign(
+      {},
+      ...layers.map((layer) => layer.fields),
+    );
+    const runtimeLayers = layers.map(({ fields: layer, path }) => ({
+      name,
+      path,
+      model: layer.model,
+      tools: layer.tools,
+      disallowedTools: layer.disallowedTools,
+      availableSkills: layer.availableSkills,
+      preloadSkills: layer.preloadSkills,
+    }));
+    const path = projectPath ?? globalPath;
+    if (!path)
+      throw new Error(`Missing discovered definition path for ${name}`);
+
+    if ((fields.enabled ?? true) === false)
+      return { kind: "disabled", runtimeLayers };
+    if (name !== GENERAL_PURPOSE_AGENT && !fields.description)
+      return {
+        kind: "invalid",
+        diagnostic: {
+          path,
+          reason: "named definitions require a non-empty description",
+        },
+      };
+
+    return {
+      kind: "valid",
+      runtimeLayers,
+      definition: {
+        name,
+        description: fields.description,
+        body: fields.body,
+        displayName: fields.displayName ?? name,
+        model: fields.model,
+        thinking: fields.thinking,
+        tools: fields.tools,
+        disallowedTools: fields.disallowedTools ?? [],
+        availableSkills: fields.availableSkills,
+        preloadSkills: fields.preloadSkills ?? [],
+        inheritContext: fields.inheritContext,
+        interactive: fields.interactive,
+        path,
+      },
+    };
+  }
+
+  /**
+   * Parses and validates every supplied field without applying omission defaults.
+   */
+  private static parseLayer(path: string): LayerRecord {
     try {
       const content = readFileSync(path, "utf8");
       if (!AgentDefinitions.hasFrontmatterBoundaries(content))
         throw new Error(
-          "enabled definitions require YAML frontmatter boundaries",
+          "agent definitions require YAML frontmatter boundaries",
         );
 
       const { body, frontmatter } = parseFrontmatter(content);
-      const enabled = AgentDefinitions.boolean(frontmatter, "enabled", true);
-      if (!enabled) return { kind: "disabled" };
-
+      const fields: DefinitionFields = {};
       const description = AgentDefinitions.optionalText(
         frontmatter,
         "description",
       );
-      if (name !== GENERAL_PURPOSE_AGENT && !description)
-        throw new Error("named definitions require a non-empty description");
+      const displayName = AgentDefinitions.optionalText(
+        frontmatter,
+        "display_name",
+      );
+      const enabled = AgentDefinitions.optionalBoolean(frontmatter, "enabled");
+      const model = AgentDefinitions.optionalModel(frontmatter);
+      const thinking = AgentDefinitions.optionalThinking(frontmatter);
+      const tools = AgentDefinitions.optionalTools(frontmatter);
+      const disallowedTools = AgentDefinitions.optionalNames(
+        frontmatter,
+        "disallowed_tools",
+      );
+      const availableSkills = AgentDefinitions.optionalSkills(frontmatter);
+      const preloadSkills = AgentDefinitions.optionalNames(
+        frontmatter,
+        "preload_skills",
+      );
+      const inheritContext = AgentDefinitions.optionalBoolean(
+        frontmatter,
+        "inherit_context",
+      );
+      const interactive = AgentDefinitions.optionalBoolean(
+        frontmatter,
+        "interactive",
+      );
+      const normalizedBody = body.trim();
 
-      return {
-        kind: "valid",
-        definition: {
-          name,
-          description,
-          body: body.trim() || undefined,
-          displayName:
-            AgentDefinitions.optionalText(frontmatter, "display_name") ?? name,
-          model: AgentDefinitions.optionalModel(frontmatter),
-          thinking: AgentDefinitions.optionalThinking(frontmatter),
-          tools: AgentDefinitions.optionalTools(frontmatter),
-          disallowedTools:
-            AgentDefinitions.optionalNames(frontmatter, "disallowed_tools") ??
-            [],
-          availableSkills: AgentDefinitions.optionalSkills(frontmatter),
-          preloadSkills:
-            AgentDefinitions.optionalNames(frontmatter, "preload_skills") ?? [],
-          inheritContext: AgentDefinitions.optionalBoolean(
-            frontmatter,
-            "inherit_context",
-          ),
-          interactive: AgentDefinitions.optionalBoolean(
-            frontmatter,
-            "interactive",
-          ),
-          path,
-        },
-      };
+      if (description !== undefined) fields.description = description;
+      if (normalizedBody) fields.body = normalizedBody;
+      if (displayName !== undefined) fields.displayName = displayName;
+      if (enabled !== undefined) fields.enabled = enabled;
+      if (model !== undefined) fields.model = model;
+      if (thinking !== undefined) fields.thinking = thinking;
+      if (tools !== undefined) fields.tools = tools;
+      if (disallowedTools !== undefined)
+        fields.disallowedTools = disallowedTools;
+      if (availableSkills !== undefined)
+        fields.availableSkills = availableSkills;
+      if (preloadSkills !== undefined) fields.preloadSkills = preloadSkills;
+      if (inheritContext !== undefined) fields.inheritContext = inheritContext;
+      if (interactive !== undefined) fields.interactive = interactive;
+
+      return { kind: "valid", layer: { fields, path } };
     } catch (cause) {
       return {
         kind: "invalid",
@@ -264,17 +405,6 @@ export class AgentDefinitions {
     return /(?:^|\r?\n)---[\t ]*(?:\r?\n|$)/.test(
       content.slice(opening[0].length),
     );
-  }
-
-  /**
-   * Reads a supported boolean with a caller-supplied omission default.
-   */
-  private static boolean(
-    frontmatter: Record<string, unknown>,
-    field: string,
-    fallback: boolean,
-  ): boolean {
-    return AgentDefinitions.optionalBoolean(frontmatter, field) ?? fallback;
   }
 
   /**

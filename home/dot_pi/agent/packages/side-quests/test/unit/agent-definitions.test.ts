@@ -27,7 +27,7 @@ function definition(directory: string, name: string, content: string): void {
   });
 }
 
-test("project definitions shadow global definitions and produce the parent catalog", () => {
+test("project definitions overlay global definitions and produce the parent catalog", () => {
   const { agentDirectory, cwd } = fixture();
   const project = join(cwd, ".pi", "agents");
   const global = join(agentDirectory, "agents");
@@ -234,7 +234,7 @@ test("accepts every explicit empty collection", () => {
   });
 });
 
-test("a malformed project definition shadows its valid global definition", () => {
+test("a malformed project layer invalidates its valid global layer", () => {
   const { agentDirectory, cwd } = fixture();
   const project = join(cwd, ".pi", "agents");
   const global = join(agentDirectory, "agents");
@@ -256,7 +256,7 @@ test("a malformed project definition shadows its valid global definition", () =>
   );
 });
 
-test("disabled tombstones skip validation and suppress named agents", () => {
+test("disabled tombstones validate sibling fields and suppress named agents", () => {
   const { agentDirectory, cwd } = fixture();
   const project = join(cwd, ".pi", "agents");
   const global = join(agentDirectory, "agents");
@@ -272,8 +272,267 @@ test("disabled tombstones skip validation and suppress named agents", () => {
   const definitions = AgentDefinitions.resolve({ agentDirectory, cwd });
 
   expect(definitions.get("security")).toBeUndefined();
-  expect(definitions.diagnostic("security")).toBeUndefined();
+  expect(definitions.diagnostic("security")?.path).toBe(
+    join(project, "security.md"),
+  );
   expect(definitions.names()).toEqual(["general-purpose"]);
+});
+
+test("agent-overlay-replaces-collection-fields", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(
+    global,
+    "security",
+    [
+      "---",
+      "description: Global security review",
+      "tools: [read, grep]",
+      "disallowed_tools: [bash]",
+      "available_skills: [research, tdd]",
+      "preload_skills: [research]",
+      "---",
+    ].join("\n"),
+  );
+  definition(
+    project,
+    "security",
+    [
+      "---",
+      "tools: [bash]",
+      "disallowed_tools: []",
+      "available_skills: []",
+      "preload_skills: [tdd]",
+      "---",
+    ].join("\n"),
+  );
+
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
+  ).toMatchObject({
+    description: "Global security review",
+    tools: ["bash"],
+    disallowedTools: [],
+    availableSkills: [],
+    preloadSkills: ["tdd"],
+  });
+});
+
+test("agent-overlay-inherits-global-body", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(
+    global,
+    "security",
+    "---\ndescription: Global security review\n---\nGlobal body",
+  );
+  definition(project, "security", "---\n---\n \n\t ");
+
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security")?.body,
+  ).toBe("Global body");
+
+  definition(project, "security", "---\n---\nProject body");
+
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security")?.body,
+  ).toBe("Project body");
+});
+
+test("agent-overlay-rejects-overridden-invalid-global", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(global, "security", "---\ndescription: 42\n---\n");
+  definition(
+    project,
+    "security",
+    "---\ndescription: Valid project description\n---\n",
+  );
+
+  const definitions = AgentDefinitions.resolve({ agentDirectory, cwd });
+
+  expect(definitions.get("security")).toBeUndefined();
+  expect(definitions.diagnostic("security")?.path).toBe(
+    join(global, "security.md"),
+  );
+});
+
+test("agent-overlay-project-enabled-overrides-global", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(
+    global,
+    "security",
+    "---\ndescription: Global security review\nenabled: false\n---\n",
+  );
+  definition(project, "security", "---\nenabled: true\n---\n");
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
+  ).toMatchObject({ description: "Global security review" });
+
+  definition(
+    global,
+    "security",
+    "---\ndescription: Global security review\nenabled: true\n---\n",
+  );
+  definition(project, "security", "---\nenabled: false\n---\n");
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
+  ).toBeUndefined();
+
+  definition(
+    global,
+    "security",
+    "---\ndescription: Global security review\nenabled: false\n---\n",
+  );
+  definition(
+    project,
+    "security",
+    "---\ndescription: Project security review\n---\n",
+  );
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
+  ).toBeUndefined();
+});
+
+test("agent-overlay-validates-description-after-overlay", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  definition(project, "security", "---\nmodel: openai/gpt-5.6\n---\n");
+
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).diagnostic("security")
+      ?.reason,
+  ).toBe("named definitions require a non-empty description");
+
+  mkdirSync(global, { recursive: true });
+  definition(
+    global,
+    "security",
+    "---\ndescription: Global security review\n---\n",
+  );
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
+  ).toMatchObject({
+    description: "Global security review",
+    model: "openai/gpt-5.6",
+  });
+});
+
+test("agent-overlay-uses-parent-default-after-double-omission", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(
+    global,
+    "security",
+    "---\ndescription: Global security review\n---\n",
+  );
+  definition(project, "security", "---\n---\n");
+
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
+  ).toMatchObject({
+    model: undefined,
+    thinking: undefined,
+    tools: undefined,
+    disallowedTools: [],
+    availableSkills: undefined,
+    preloadSkills: [],
+    inheritContext: undefined,
+    interactive: undefined,
+  });
+});
+
+test("agent-overlay-restored-agent-inherits-global-fields", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(
+    global,
+    "security",
+    [
+      "---",
+      "description: Global security review",
+      "display_name: Global reviewer",
+      "enabled: false",
+      "tools: [read]",
+      "available_skills: [research]",
+      "---",
+      "Global body",
+    ].join("\n"),
+  );
+  definition(project, "security", "---\nenabled: true\n---\n");
+
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
+  ).toMatchObject({
+    description: "Global security review",
+    displayName: "Global reviewer",
+    tools: ["read"],
+    availableSkills: ["research"],
+    body: "Global body",
+  });
+});
+
+test("agent-overlay-tombstone-validates-global", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(global, "security", "---\ntools: [42]\n---\n");
+  definition(project, "security", "---\nenabled: false\n---\n");
+
+  const definitions = AgentDefinitions.resolve({ agentDirectory, cwd });
+
+  expect(definitions.get("security")).toBeUndefined();
+  expect(definitions.diagnostic("security")?.path).toBe(
+    join(global, "security.md"),
+  );
+});
+
+test("agent-overlay-validates-disabled-layer-fields", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(global, "security", "---\nenabled: false\ntools: [42]\n---\n");
+  definition(project, "security", "---\nenabled: true\n---\n");
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).diagnostic("security")
+      ?.path,
+  ).toBe(join(global, "security.md"));
+
+  definition(
+    global,
+    "security",
+    "---\ndescription: Global security review\n---\n",
+  );
+  definition(project, "security", "---\nenabled: false\ntools: [42]\n---\n");
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).diagnostic("security")
+      ?.path,
+  ).toBe(join(project, "security.md"));
 });
 
 const MATRIX_IDENTITIES = ["general-purpose", "security"] as const;
@@ -527,7 +786,7 @@ test.each(
 
     expect(definitions.get(identity)).toBeUndefined();
     expect(definitions.diagnostic(identity)?.reason).toBe(
-      "enabled definitions require YAML frontmatter boundaries",
+      "agent definitions require YAML frontmatter boundaries",
     );
   },
 );
@@ -625,11 +884,7 @@ test("general-purpose tombstone removes global customization without disabling d
     "general-purpose",
     "---\ndescription: Global customization\n---\nGlobal body\n",
   );
-  definition(
-    project,
-    "general-purpose",
-    "---\nenabled: false\ntools: [42]\n---\n",
-  );
+  definition(project, "general-purpose", "---\nenabled: false\n---\n");
 
   const definitions = AgentDefinitions.resolve({ agentDirectory, cwd });
 

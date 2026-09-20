@@ -239,7 +239,7 @@ function invalidDefinitionScenario(testCase: InvalidDefinitionCase): Scenario {
   const name = testCase.kind === "named" ? "security" : "general-purpose";
   const validGlobal = [
     "---",
-    "description: Global fallback must stay shadowed",
+    "description: Global fallback must not be used",
     "---",
     "GLOBAL FALLBACK BODY MUST NOT LAUNCH",
   ].join("\n");
@@ -297,7 +297,7 @@ export const generalPurposeTombstone: Scenario = {
   name: "agent-general-purpose-tombstone",
   process: {
     agentDefinitions: {
-      "general-purpose": "---\nenabled: false\ntools: [42]\n---\n",
+      "general-purpose": "---\nenabled: false\n---\n",
     },
     globalAgentDefinitions: {
       "general-purpose": [
@@ -329,7 +329,7 @@ export const namedAgentTombstone: Scenario = {
   name: "agent-named-tombstone",
   process: {
     agentDefinitions: {
-      security: "---\nenabled: false\ntools: [42]\n---\n",
+      security: "---\nenabled: false\n---\n",
     },
     fauxProvider: true,
     globalAgentDefinitions: {

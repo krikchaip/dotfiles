@@ -12,6 +12,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 
 import {
+  type AgentDefinitionDiagnostic,
   AgentDefinitions,
   GENERAL_PURPOSE_AGENT,
   type SkillSelection,
@@ -66,11 +67,12 @@ export class ParentTools {
     });
 
     const tools = new ParentTools(pi, runtime, definitions);
-    pi.on("before_agent_start", (event) => {
+    pi.on("before_agent_start", (event, context) => {
       tools.parentSkills = [...(event.systemPromptOptions.skills ?? [])];
       tools.parentSystemPromptInputs = ParentTools.systemPromptInputs(
         event.systemPromptOptions,
       );
+      tools.validateRuntimeLayers(context);
     });
     return tools.registerAgent();
   }
@@ -201,7 +203,10 @@ export class ParentTools {
         }
 
         const agentName = request.subagent_type ?? GENERAL_PURPOSE_AGENT;
-        const diagnostic = this.definitions.diagnostic(agentName);
+        this.validateRuntimeLayers(context);
+        const diagnostic =
+          this.definitions.diagnostic(agentName) ??
+          this.runtimeDiagnostics.get(agentName);
         if (diagnostic)
           throw new Error(
             `${toolName}.subagent_type ${agentName} is malformed: ${diagnostic.reason}`,
@@ -210,14 +215,6 @@ export class ParentTools {
         const definition = this.definitions.get(agentName);
         if (!definition && agentName !== GENERAL_PURPOSE_AGENT)
           throw new Error(`${toolName}.subagent_type is unknown: ${agentName}`);
-
-        if (definition?.model) {
-          const [provider, modelId] = definition.model.split("/");
-          if (!context.modelRegistry.find(provider, modelId))
-            throw new Error(
-              `${toolName}.subagent_type ${agentName} has an unknown model: ${definition.model}`,
-            );
-        }
 
         const skills = this.resolveSkills(
           definition?.availableSkills,
@@ -298,6 +295,56 @@ export class ParentTools {
     });
 
     return this;
+  }
+
+  /**
+   * Validates every layer against live model, tool, and skill registries once.
+   */
+  private validateRuntimeLayers(context: ExtensionContext): void {
+    if (this.runtimeLayersValidated) return;
+    this.runtimeLayersValidated = true;
+
+    for (const layer of this.definitions.runtimeLayers()) {
+      if (this.runtimeDiagnostics.has(layer.name)) continue;
+
+      try {
+        if (layer.model) {
+          const [provider, modelId] = layer.model.split("/");
+          if (!context.modelRegistry.find(provider, modelId))
+            throw new Error(`unknown model: ${layer.model}`);
+        }
+
+        this.resolveTools(layer.tools, layer.disallowedTools);
+        this.validateRuntimeSkills(
+          layer.availableSkills,
+          layer.preloadSkills ?? [],
+        );
+      } catch (cause) {
+        const diagnostic: AgentDefinitionDiagnostic = {
+          path: layer.path,
+          reason: cause instanceof Error ? cause.message : String(cause),
+        };
+        this.runtimeDiagnostics.set(layer.name, diagnostic);
+        context.ui.notify(
+          `Side Quests ignored malformed agent definition ${diagnostic.path}: ${diagnostic.reason}`,
+          "warning",
+        );
+      }
+    }
+  }
+
+  /**
+   * Validates explicit skill names without resolving the merged child policy.
+   */
+  private validateRuntimeSkills(
+    selection: SkillSelection | undefined,
+    preloadNames: readonly string[],
+  ): void {
+    const known = new Set(this.parentSkills.map((skill) => skill.name));
+    const selected = Array.isArray(selection) ? selection : [];
+
+    for (const name of [...selected, ...preloadNames])
+      if (!known.has(name)) throw new Error(`Unknown child skill: ${name}`);
   }
 
   /**
@@ -391,6 +438,15 @@ export class ParentTools {
 
   /** Records frozen parent native prompt inputs for every new child manifest. */
   private parentSystemPromptInputs: ParentSystemPromptInputs | undefined;
+
+  /** Records one live-registry failure for each invalid resolved identity. */
+  private readonly runtimeDiagnostics = new Map<
+    string,
+    AgentDefinitionDiagnostic
+  >();
+
+  /** Prevents duplicate live-registry validation and warning notifications. */
+  private runtimeLayersValidated = false;
 
   /**
    * Extracts only serializable native inputs that children must replay.

@@ -155,21 +155,19 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 ## 8. Layer project Agent definitions over global definitions
 
-**Status:** ready-for-human
-
-**Implementation gate:** Design is complete. Wait for the user's explicit green light before changing production code.
+**Status:** done
 
 **What to build:** Replace whole-file project shadowing with strict Agent definition overlay. For the same canonical identity, supplied project fields replace complete global fields, omitted project fields inherit global fields, and fields omitted from both use documented defaults. Resolve Markdown instructions with the same precedence. Validate every present layer and every supplied supported field before launch.
 
 **Blocked by:** 3. Configure general-purpose and named agents.
 
-- [ ] Implement field-presence-aware global-to-project overlay without merging collection elements.
-- [ ] Apply required named-description checks and documented defaults only after overlay.
-- [ ] Inherit a non-empty global body when the project body is absent or whitespace-only; replace it with a non-empty project body.
-- [ ] Make project `enabled` override global `enabled`, including restoration through project `true`, while validating every supplied field even when disabled or overridden.
-- [ ] Preserve strict malformed-layer rejection, unknown-field compatibility, reload behavior for new launches, and immutable existing child manifests.
-- [ ] Add the named unit and real Pi-in-tmux E2E evidence for Q1–Q9 recorded in [Agent Definition Overlays](tickets/09-agent-definition-overlays.md). Every grilling answer must have corresponding automated evidence.
-- [ ] Run the clean serial release gate: format, lint, typecheck, unit tests, all E2E scenarios, diff check, and deployed-runtime comparison.
+- [x] Implement field-presence-aware global-to-project overlay without merging collection elements.
+- [x] Apply required named-description checks and documented defaults only after overlay.
+- [x] Inherit a non-empty global body when the project body is absent or whitespace-only; replace it with a non-empty project body.
+- [x] Make project `enabled` override global `enabled`, including restoration through project `true`, while validating every supplied field even when disabled or overridden.
+- [x] Preserve strict malformed-layer rejection, unknown-field compatibility, reload behavior for new launches, and immutable existing child manifests.
+- [x] Add the named unit and real Pi-in-tmux E2E evidence for Q1–Q9 recorded in [Agent Definition Overlays](tickets/09-agent-definition-overlays.md). Every grilling answer has corresponding automated evidence.
+- [x] Run the clean serial release gate: format, lint, typecheck, 442 unit tests, all 94 serial real Pi-in-tmux E2E scenarios, diff check, and deployed-runtime comparison.
 
 ## Backlog
 

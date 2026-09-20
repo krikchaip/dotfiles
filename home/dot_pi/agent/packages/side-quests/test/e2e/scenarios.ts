@@ -10,6 +10,7 @@ import {
   invalidAgentDefinitionScenarios,
   namedAgentTombstone,
 } from "./scenario/agent-definition-matrix.ts";
+import { agentDefinitionOverlayScenarios } from "./scenario/agent-definition-overlays.ts";
 import { askParent } from "./scenario/ask-parent.ts";
 import { child } from "./scenario/child.ts";
 import { descriptionOnlyNamedAgent } from "./scenario/description-only-named-agent.ts";
@@ -26,8 +27,8 @@ import { focusPreservation } from "./scenario/focus-preservation.ts";
 import { generalPurposeDefinition } from "./scenario/general-purpose-definition.ts";
 import { globalAgentDefinition } from "./scenario/global-agent-definition.ts";
 import { idleContinuation } from "./scenario/idle-continuation.ts";
-import { inheritedAgentsSkills } from "./scenario/inherited-agents-skills.ts";
 import { inheritedAgentRenderer } from "./scenario/inherited-agent-renderer.ts";
+import { inheritedAgentsSkills } from "./scenario/inherited-agents-skills.ts";
 import { inheritedParentRequestRenderer } from "./scenario/inherited-parent-request-renderer.ts";
 import { interactive } from "./scenario/interactive.ts";
 import { lifecycle } from "./scenario/lifecycle.ts";
@@ -46,7 +47,7 @@ import {
 } from "./scenario/pending-request-outcomes.ts";
 import { persistentState } from "./scenario/persistent-state.ts";
 import { programmaticContinuation } from "./scenario/programmatic-continuation.ts";
-import { projectShadowsGlobalAgent } from "./scenario/project-shadows-global-agent.ts";
+import { projectOverridesGlobalAgent } from "./scenario/project-overrides-global-agent.ts";
 import { resultExpansion } from "./scenario/result-expansion.ts";
 import { resumePromotionRejection } from "./scenario/resume-promotion.ts";
 import { staleResponse } from "./scenario/stale-response.ts";
@@ -129,10 +130,11 @@ export const scenarios: readonly Scenario[] = [
   wrapUpTextless,
   generalPurposeDefinition,
   globalAgentDefinition,
-  projectShadowsGlobalAgent,
+  projectOverridesGlobalAgent,
   emptyGeneralPurposeOmitted,
   emptyGeneralPurposeExplicit,
   inheritedAgentsSkills,
+  ...agentDefinitionOverlayScenarios,
   ...agentCollectionPolicyScenarios,
   ...invalidAgentDefinitionScenarios,
   generalPurposeTombstone,

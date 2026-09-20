@@ -25,7 +25,7 @@ An implementation of an Upstream behavioral delta through the Personal architect
 _Avoid_: Patch transplant, conflict resolution
 
 **Tool exclusion**:
-A Pi agent customization that keeps matching registered tools out of the model context by making them inactive for a session. Its settings are fixed when the session starts.
+A Pi agent customization that keeps matching registered tools out of the model context by making them inactive for a session. Configured patterns are fixed when the session starts. Exact `--tools` entries override matching configured patterns for one Pi process; `--exclude-tools` entries join configured patterns and take priority.
 _Avoid_: Tool removal, disabled provider
 
 **Tool exclusion pattern**:

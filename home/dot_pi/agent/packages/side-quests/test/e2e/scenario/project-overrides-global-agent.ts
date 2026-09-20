@@ -1,7 +1,7 @@
 import { configureBasicDelegation } from "../provider-support.ts";
 
-export const projectShadowsGlobalAgent: Scenario = {
-  name: "project-shadows-global-agent",
+export const projectOverridesGlobalAgent: Scenario = {
+  name: "project-overrides-global-agent",
   process: {
     agentDefinitions: {
       evidence: [
@@ -27,6 +27,7 @@ export const projectShadowsGlobalAgent: Scenario = {
   },
   configureProvider(context) {
     configureBasicDelegation(context, {
+      childSystemPromptExcludes: ["Use global-only evidence rules."],
       childSystemPromptIncludes: ["Use project-only evidence rules."],
       expectedChildInteractive: true,
       description: "project evidence",
@@ -45,7 +46,7 @@ export const projectShadowsGlobalAgent: Scenario = {
 
     harness.assert(
       !view.includes("Global reviewer"),
-      `Global definition was selected instead of the project definition.\n${view}`,
+      `Global display name overrode the project display name.\n${view}`,
     );
   },
 };

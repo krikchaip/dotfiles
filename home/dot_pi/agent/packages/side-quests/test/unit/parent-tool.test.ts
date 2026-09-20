@@ -128,6 +128,38 @@ function namedDefinitions(
   }
 }
 
+function overlaidDefinitions(
+  globalFrontmatter: readonly string[],
+  projectFrontmatter: readonly string[],
+): AgentDefinitions {
+  const root = mkdtempSync(join(tmpdir(), "side-quests-parent-overlay-"));
+  const cwd = join(root, "project");
+  const agentDirectory = join(root, "agent");
+  const globalAgents = join(agentDirectory, "agents");
+  const projectAgents = join(cwd, ".pi", "agents");
+  mkdirSync(globalAgents, { recursive: true });
+  mkdirSync(projectAgents, { recursive: true });
+  writeFileSync(
+    join(globalAgents, "security.md"),
+    [
+      "---",
+      "description: Review global security risks",
+      ...globalFrontmatter,
+      "---",
+    ].join("\n"),
+  );
+  writeFileSync(
+    join(projectAgents, "security.md"),
+    ["---", ...projectFrontmatter, "---"].join("\n"),
+  );
+
+  try {
+    return AgentDefinitions.resolve({ agentDirectory, cwd });
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+}
+
 function malformedDefinitions(): AgentDefinitions {
   const root = mkdtempSync(join(tmpdir(), "side-quests-malformed-definition-"));
   const cwd = join(root, "project");
@@ -152,20 +184,45 @@ async function executeAgent(
   definitions = EMPTY_DEFINITIONS,
   notify = vi.fn(),
   cwd = "/tmp",
-  modelExists = true,
+  modelExists:
+    | boolean
+    | ((provider: string, modelId: string) => boolean) = true,
   parentSkills: readonly Skill[] = [],
   registeredToolNames = ["read", "grep", "Agent"],
   parentPromptInputs: Record<string, unknown> = {},
 ): Promise<AgentToolResult<unknown> | undefined> {
   const tools: ToolDefinition[] = [];
+  const context = {
+    cwd,
+    getSystemPrompt: () => "",
+    model: undefined,
+    modelRegistry: {
+      find: (provider: string, modelId: string) =>
+        typeof modelExists === "function"
+          ? modelExists(provider, modelId)
+          : modelExists,
+    },
+    sessionManager: {
+      getSessionFile: () => "/tmp/parent/session.jsonl",
+      getSessionId: () => "parent-id",
+    },
+    thinkingLevel: "off",
+    ui: { notify },
+  } as never;
   const pi = {
     getActiveTools: () => registeredToolNames,
     getAllTools: () => registeredToolNames.map((name) => ({ name })),
-    on(event: string, handler: (event: unknown) => void) {
+    on(event: string, handler: (event: unknown, context: unknown) => void) {
       if (event === "before_agent_start")
-        handler({
-          systemPromptOptions: { ...parentPromptInputs, skills: parentSkills },
-        });
+        handler(
+          {
+            systemPromptOptions: {
+              ...parentPromptInputs,
+              skills: parentSkills,
+            },
+          },
+          context,
+        );
     },
     registerTool: (tool: ToolDefinition) => tools.push(tool),
   } as unknown as ExtensionAPI;
@@ -179,18 +236,7 @@ async function executeAgent(
     definitions,
   );
 
-  return tools[0]?.execute("call-id", request, undefined, undefined, {
-    cwd,
-    getSystemPrompt: () => "",
-    model: undefined,
-    modelRegistry: { find: () => modelExists },
-    sessionManager: {
-      getSessionFile: () => "/tmp/parent/session.jsonl",
-      getSessionId: () => "parent-id",
-    },
-    thinkingLevel: "off",
-    ui: { notify },
-  } as never);
+  return tools[0]?.execute("call-id", request, undefined, undefined, context);
 }
 
 test("registers only the public Agent tool", () => {
@@ -338,7 +384,131 @@ test("rejects an unknown configured model before creating a child session", asyn
       false,
     ),
   ).rejects.toThrow(
-    "Agent.subagent_type security has an unknown model: test-provider/missing-model",
+    "Agent.subagent_type security is malformed: unknown model: test-provider/missing-model",
+  );
+  expect(create).not.toHaveBeenCalled();
+});
+
+test("rejects an unavailable global model hidden by a project replacement", async () => {
+  vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
+  const create = vi.spyOn(SessionStore, "create");
+  const notify = vi.fn();
+  const runtime = {
+    ownerId: "owner-id",
+    continue: vi.fn(),
+    launch: vi.fn(),
+  };
+
+  await expect(
+    executeAgent(
+      {
+        description: "audit permissions",
+        prompt: "Review the permission implementation.",
+        subagent_type: "security",
+      },
+      runtime as never,
+      overlaidDefinitions(
+        ["enabled: false", "model: test-provider/missing-model"],
+        ["enabled: true", "model: test-provider/available-model"],
+      ),
+      notify,
+      "/tmp",
+      (_provider, modelId) => modelId === "available-model",
+    ),
+  ).rejects.toThrow(
+    "Agent.subagent_type security is malformed: unknown model: test-provider/missing-model",
+  );
+  expect(notify).toHaveBeenCalledWith(
+    expect.stringMatching(
+      /agent\/agents\/security\.md: unknown model: test-provider\/missing-model/,
+    ),
+    "warning",
+  );
+  expect(create).not.toHaveBeenCalled();
+});
+
+test("rejects an unknown global tool hidden by a project replacement", async () => {
+  vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
+  const create = vi.spyOn(SessionStore, "create");
+  const runtime = {
+    ownerId: "owner-id",
+    continue: vi.fn(),
+    launch: vi.fn(),
+  };
+
+  await expect(
+    executeAgent(
+      {
+        description: "audit permissions",
+        prompt: "Review the permission implementation.",
+        subagent_type: "security",
+      },
+      runtime as never,
+      overlaidDefinitions(["tools: [missing]"], ["tools: [read]"]),
+    ),
+  ).rejects.toThrow(
+    "Agent.subagent_type security is malformed: Unknown child tool: missing",
+  );
+  expect(create).not.toHaveBeenCalled();
+});
+
+test("rejects an unknown global skill hidden by a project replacement", async () => {
+  vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
+  const create = vi.spyOn(SessionStore, "create");
+  const runtime = {
+    ownerId: "owner-id",
+    continue: vi.fn(),
+    launch: vi.fn(),
+  };
+
+  await expect(
+    executeAgent(
+      {
+        description: "audit permissions",
+        prompt: "Review the permission implementation.",
+        subagent_type: "security",
+      },
+      runtime as never,
+      overlaidDefinitions(
+        ["available_skills: [missing]"],
+        ["available_skills: []"],
+      ),
+    ),
+  ).rejects.toThrow(
+    "Agent.subagent_type security is malformed: Unknown child skill: missing",
+  );
+  expect(create).not.toHaveBeenCalled();
+});
+
+test("rejects unknown runtime fields beside final enabled false", async () => {
+  vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
+  const create = vi.spyOn(SessionStore, "create");
+  const notify = vi.fn();
+  const runtime = {
+    ownerId: "owner-id",
+    continue: vi.fn(),
+    launch: vi.fn(),
+  };
+
+  await expect(
+    executeAgent(
+      {
+        description: "audit permissions",
+        prompt: "Review the permission implementation.",
+        subagent_type: "security",
+      },
+      runtime as never,
+      overlaidDefinitions([], ["enabled: false", "tools: [missing]"]),
+      notify,
+    ),
+  ).rejects.toThrow(
+    "Agent.subagent_type security is malformed: Unknown child tool: missing",
+  );
+  expect(notify).toHaveBeenCalledWith(
+    expect.stringMatching(
+      /project\/.pi\/agents\/security\.md: Unknown child tool: missing/,
+    ),
+    "warning",
   );
   expect(create).not.toHaveBeenCalled();
 });
