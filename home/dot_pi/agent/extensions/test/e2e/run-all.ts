@@ -10,13 +10,7 @@ type Options = {
 };
 
 const suites: Suite[] = [
-  {
-    file: "auto-compact.ts",
-    expectedBaselineFailures: [
-      "PRODUCT DEFECT: failed automatic compaction did not arm one-turn backoff",
-      "Stale compaction made a continuation provider call",
-    ],
-  },
+  { file: "auto-compact.ts" },
   { file: "auto-rename.ts" },
   { file: "blinking-cursor.ts" },
   { file: "branch-merge.ts" },
@@ -59,6 +53,7 @@ const suites: Suite[] = [
   { file: "themed-dialog-borders.ts" },
   { file: "thinking-summary.ts" },
   { file: "tool-exclusion.ts" },
+  { file: "tool-exclusion-cli-override.ts" },
   { file: "tmux-kitty-images.ts" },
   { file: "tmux-kitty-scroll-indicator.ts" },
   { file: "tmux-kitty-scroll-indicator-color.ts" },

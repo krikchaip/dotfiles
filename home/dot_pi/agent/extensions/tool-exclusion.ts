@@ -73,26 +73,55 @@ function configuredToolExclusions(context: ExtensionContext): RegExp[] {
   ].map(compileToolExclusionPattern);
 }
 
+function configuredToolOverrides(
+  arguments_: readonly string[],
+): Set<string> | undefined {
+  let overrides: Set<string> | undefined;
+
+  for (let index = 0; index < arguments_.length; index++) {
+    const argument = arguments_[index];
+    if (argument === "--") break;
+    if (
+      (argument === "--tools" || argument === "-t") &&
+      index + 1 < arguments_.length
+    ) {
+      overrides = new Set(
+        arguments_[++index]
+          .split(",")
+          .map((name) => name.trim())
+          .filter((name) => name.length > 0),
+      );
+    }
+  }
+
+  return overrides;
+}
+
 function applyToolExclusions(
   pi: ExtensionAPI,
   exclusions: readonly RegExp[],
+  overrides: ReadonlySet<string> | undefined,
 ): void {
   if (exclusions.length === 0) return;
 
   const active = pi.getActiveTools();
   const filtered = active.filter(
-    (name) => !exclusions.some((pattern) => pattern.test(name)),
+    (name) =>
+      overrides?.has(name) || !exclusions.some((pattern) => pattern.test(name)),
   );
   if (filtered.length !== active.length) pi.setActiveTools(filtered);
 }
 
 export default function toolExclusion(pi: ExtensionAPI): void {
   let exclusions: RegExp[] = [];
+  const overrides = configuredToolOverrides(process.argv);
 
   pi.on("session_start", (_event, context) => {
     exclusions = configuredToolExclusions(context);
-    applyToolExclusions(pi, exclusions);
+    applyToolExclusions(pi, exclusions, overrides);
   });
-  pi.on("before_agent_start", () => applyToolExclusions(pi, exclusions));
-  pi.on("context", () => applyToolExclusions(pi, exclusions));
+  pi.on("before_agent_start", () =>
+    applyToolExclusions(pi, exclusions, overrides),
+  );
+  pi.on("context", () => applyToolExclusions(pi, exclusions, overrides));
 }
