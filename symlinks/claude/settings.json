@@ -5,6 +5,13 @@
   "model": "opus",
   "effortLevel": "high",
   "autoCompactWindow": 300000,
+  "pluginConfigs": {
+    "agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md-and-agents-md"
+      }
+    }
+  },
   "autoMemoryEnabled": false,
   "theme": "dark",
   "editorMode": "normal",
