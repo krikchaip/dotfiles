@@ -172,6 +172,26 @@ _Avoid_: File shadowing, whole-file replacement, frontmatter merge
 The validated result of Agent definition overlay, including its resolved Markdown instructions and documented defaults. Side Quests uses this result to decide catalog visibility and launch policy.
 _Avoid_: Agent definition file, child manifest, parent runtime baseline
 
+**Agent capability selection**:
+The part of a Resolved Agent definition that selects its tools, extensions, and skills.
+_Avoid_: Permission fields, resource filters, allowlist
+
+**Fixed capability selection**:
+An Agent capability selection made from plain identifiers that replaces inherited tools or skills. For extensions, it starts from fresh child discovery of the Direct extension baseline and adds exactly the selected package/source extensions.
+_Avoid_: Exact mode, allowlist mode, absolute selection
+
+**Parent-relative capability selection**:
+An Agent capability selection made only from `+` and `-` identifiers that starts from the corresponding parent capability set and adds or removes named capabilities. For a versioned extension source, `+` replaces an inherited source with the same normalized package identity and resolves the requested version or ref exactly.
+_Avoid_: Delta mode, modifier mode, inherited allowlist
+
+**Direct extension baseline**:
+The non-package extension entrypoints available before package extension selection. Fixed, boolean, and empty extension values discover it fresh for the child and do not replay one-off parent CLI sources. Omission and Parent-relative capability selection get those sources through the parent snapshot; parent-relative selection can remove a member.
+_Avoid_: Implicit extensions, mandatory extensions, package extensions
+
+**Child readiness handshake**:
+The launch boundary in which a detached sub-agent reports its loaded extension entrypoints and resulting tool registry before `Agent` returns success. Failure removes the temporary pane, session, and manifest.
+_Avoid_: Extension preflight, process started, optimistic launch
+
 **Agent selection description**:
 The `description` in an Agent definition. It tells the parent agent when to select that sub-agent identity. It is not an instruction for the selected sub-agent.
 _Avoid_: Agent definition instructions, display name, task label

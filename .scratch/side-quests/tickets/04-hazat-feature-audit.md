@@ -16,6 +16,7 @@ Walking through `hazat/pi-interactive-subagents`' README in order, which feature
 - For each section, record upstream behavior, `side-quests` disposition, replacement behavior when applicable, and rationale.
 - Inspect source when README wording is incomplete or disagrees with current behavior.
 - [Agent Interface](01-agent-interface.md), [Pane Layout Modes](02-pane-layout-modes.md), and [Agent Configuration](03-agent-configuration.md) remain the baseline, but this audit may explicitly revise them.
+- [Unified Agent Capability Selection](10-unified-capability-selection.md) supersedes this audit's historical `tools`/`disallowed_tools` policy syntax. The current rules use `tools`, `extensions`, and `skills`.
 - Consult `tintinweb/pi-subagents` only when a HazAT section reaches tool compatibility or inspires a targeted addition; defer a narrow compatibility-delta check until the HazAT audit is complete.
 - Exact session-directory structure, retention, and acceptance tests may remain dedicated follow-up tickets.
 - Retain the full parent session ID as ownership identity and target the canonical tmux window ID for every operation. Replace the short-UUID display name with the selected-pane title policy: a managed child shows its normalized current `Agent.description`, capped at 48 terminal display cells; an unmanaged pane uses tmux's native automatic name. Pane selection is shared across attached tmux clients.
@@ -48,7 +49,7 @@ Walking through `hazat/pi-interactive-subagents`' README in order, which feature
 - Exclude HazAT's `/plan`, `/iterate`, and `/subagent` commands. Existing `home/dot_pi/agent/extensions/branch-merge.ts` owns interactive branch/fork/merge workflows, so `side-quests` does not duplicate them. Its only parent command is the `/side-quests` live-pane navigator specified below.
 - Exclude all bundled agents. Discovery uses only the resolved project and global scopes.
 - Retain HazAT's `subagent_done` name but replace its inferred handoff with one required non-empty `result`. It is active only for autonomous lifecycle and has strong description, prompt snippet, and system Guidelines that require one final, standalone call after all work and validation. Permanent promotion removes the tool and all of its model-facing prompt metadata. Add `/subagent-done` for humans in both lifecycles; it accepts no arguments and starts one hidden completion turn with only `subagent_done` active. The saved tool call renders directly as the single `WRAP UP` banner and supplies the parent result.
-- Rename HazAT's child-only `caller_ping` model tool to `ask_parent`. Treat it as a reserved control capability above frontmatter tool policy: register and activate it in every child after resolving `tools` and `disallowed_tools`, so neither omission from `tools` nor inclusion in `disallowed_tools` can disable it. It remains available after interactive takeover.
+- Rename HazAT's child-only `caller_ping` model tool to `ask_parent`. Treat it as a reserved control capability above Agent capability selection: register and activate it in every child after resolving `tools`, so omission or `-ask_parent` cannot disable it. It remains available after interactive takeover.
 
 ### Async Subagent Flow — retained with compatibility handoffs
 

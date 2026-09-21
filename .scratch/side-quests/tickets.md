@@ -59,7 +59,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 **Blocked by:** 2. Deliver the complete day-to-day MVP.
 
-**Required discussion before Ticket 3 implementation:** Complete. Ticket 3 originally delivered whole-file project shadowing and tombstone validation short-circuiting. Ticket 8 and [Agent Definition Overlays](tickets/09-agent-definition-overlays.md) supersede only those resolution rules with field-by-field overlay and strict validation of every supplied field. Ticket 3's remaining parser, boundary, value syntax, collection normalization, prompt assembly, catalog, capability, and lifecycle decisions remain in force. Its checked items below record the behavior delivered before this amendment.
+**Required discussion before Ticket 3 implementation:** Complete. Ticket 3 originally delivered whole-file project shadowing and tombstone validation short-circuiting. Ticket 8 and [Agent Definition Overlays](tickets/09-agent-definition-overlays.md) supersede those resolution rules with field-by-field overlay and strict validation of every supplied field. [Unified Agent Capability Selection](tickets/10-unified-capability-selection.md) supersedes Ticket 3 capability syntax and extension inheritance. Ticket 3's checked capability items are historical evidence for the earlier implementation, not the current required behavior. Its remaining parser, boundary, non-capability default, prompt assembly, catalog, and lifecycle decisions remain in force.
 
 - [x] Record the agreed omission/null/empty-string/empty-list/body behavior for every supported frontmatter field before writing its resolver.
 - [x] Make omitted `subagent_type` and explicit `general-purpose` resolve to the same reserved standard identity.
@@ -139,11 +139,11 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 ## 7. Complete full specification conformance
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-**What to build:** Deliver the fully integrated Side Quests product. Audit every requirement against the specification, wayfinder map and resolved tickets, README, and executable layout oracle. Implement every remaining gap instead of deferring it, then produce complete automated and real Pi-in-tmux acceptance evidence.
+**What to build:** Deliver the fully integrated Side Quests product. Audit every requirement against the specification, wayfinder map and resolved tickets, README, and executable layout oracle. Implement every remaining authorized gap instead of deferring it, then produce complete automated and real Pi-in-tmux acceptance evidence. Ticket 10 production work remains excluded until the user explicitly clears its implementation gate.
 
-**Blocked by:** 6. Survive reload, replacement, and owner loss; 8. Layer project Agent definitions over global definitions.
+**Blocked by:** 6. Survive reload, replacement, and owner loss; 8. Layer project Agent definitions over global definitions; explicit user clearance of Ticket 10's implementation gate.
 
 - [ ] Build a traceable acceptance matrix covering every user story, implementation decision, testing decision, README behavior, and wayfinder amendment.
 - [ ] Exercise every public `Agent` schema rule, agent-definition rule, permission invariant, lifecycle transition, mailbox state, terminal outcome, health transition, layout mode, UI state, reload path, teardown path, and storage-safety rule.
@@ -168,6 +168,24 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [x] Preserve strict malformed-layer rejection, unknown-field compatibility, reload behavior for new launches, and immutable existing child manifests.
 - [x] Add the named unit and real Pi-in-tmux E2E evidence for Q1–Q9 recorded in [Agent Definition Overlays](tickets/09-agent-definition-overlays.md). Every grilling answer has corresponding automated evidence.
 - [x] Run the clean serial release gate: format, lint, typecheck, 442 unit tests, all 94 serial real Pi-in-tmux E2E scenarios, diff check, and deployed-runtime comparison.
+
+## 10. Define unified Agent capability selection
+
+**Status:** done
+
+**Implementation gate:** Not cleared. Documentation and design only; no production implementation has started.
+
+**What to build:** Replace separate tool denylist, skill selection, skill preload, and extension-inheritance rules with one Agent capability selection surface: `tools`, `extensions`, and `skills`. The design uses Fixed capability selection and Parent-relative capability selection. It preserves the Direct extension baseline and adds strict child readiness validation.
+
+**Blocked by:** 3. Configure general-purpose and named agents; 8. Layer project Agent definitions over global definitions.
+
+- [x] Define the shared boolean, CSV, YAML-list, whitespace, duplicate, and conflict rules.
+- [x] Define fixed and parent-relative tool, extension, and skill selection.
+- [x] Define `++skill` preload behavior and prevent lazy/preloaded duplication.
+- [x] Define package identity, exact npm-version and Git-ref resolution, parent-relative source upsert, direct-extension baseline, fresh child discovery, and Pi resolver reuse.
+- [x] Define fail-closed selection and child readiness behavior for extension-provided tools.
+- [x] Define no backward compatibility for former capability field spellings: consume only `tools`, `extensions`, and `skills`, and silently ignore every other unrecognized frontmatter field.
+- [x] Record the design in [Unified Agent Capability Selection](tickets/10-unified-capability-selection.md). No source, package, or test code changed for this amendment.
 
 ## Backlog
 

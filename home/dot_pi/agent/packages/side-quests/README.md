@@ -105,20 +105,24 @@ Unknown fields are rejected. An unknown or invalid `subagent_type`, or a disable
 For a new side quest:
 
 - `resume` is omitted.
-- The standard agent clones the current parent model, thinking level, native prompt inputs, working directory, enabled tools, loaded extensions, and skills, then applies any resolved `general-purpose.md` customization.
+- The standard agent clones the current parent model, thinking level, native prompt inputs, working directory, enabled tools, extension snapshot, and skills, then applies any resolved `general-purpose.md` customization.
 - A call-level `inherit_context` overrides the resolved agent setting. If both are omitted, it defaults to `true`.
 - A call-level `interactive` overrides the resolved agent setting. If both are omitted, it defaults to `false`.
 - No other definition field has a per-call override.
 - Side Quests applies its permanent spawning-tool denial and child control-tool rules after the definition and call-level overrides.
 - `prompt` is stored as a normal user message after any inherited conversation. With fresh context, it is the child's first conversation message.
 
-`Agent` returns only after:
+`Agent` returns success only after:
 
 - The tmux pane has started.
 - The child Pi process has started.
 - The persistent child session file exists.
+- The child has loaded every resolved extension entrypoint.
+- The child readiness handshake has validated its resulting tool registry.
 
-The response includes the canonical session path. The parent agent can continue the main quest immediately. `Agent` never waits for completion.
+A tool can come from an extension enabled only for that child. Side Quests validates it against the child registry instead of requiring it in the parent. If an intended extension fails to load or child validation fails, launch fails closed. Side Quests removes the temporary pane, session, and manifest, then returns an error with the relevant path and reason. It does not continue with a partial extension set or execute extensions twice in a preflight process.
+
+The successful response includes the canonical session path. The parent agent can continue the main quest immediately. `Agent` never waits for completion.
 
 ### Continue or resume a sub-agent
 
@@ -186,7 +190,7 @@ General-purpose delegation is always available. Omitted `subagent_type` and expl
 
 - Without either `general-purpose.md`, the child is a plain clone of the parent setup.
 - Same-name project and global files use the field-by-field overlay rules above.
-- A valid Resolved Agent definition supports the same model, thinking, tools, skills, context, lifecycle, display-name, and Markdown-body overrides as a named agent.
+- A valid Resolved Agent definition supports the same model, thinking, tool, extension, skill, context, lifecycle, display-name, and Markdown-body overrides as a named agent.
 - `description` is optional. When supplied and at least one valid named agent exists, it adds `general-purpose` as the last entry in the parent system prompt's agent catalog. A general-purpose description alone adds no catalog text.
 - An empty project frontmatter block supplies no frontmatter overrides. It inherits global frontmatter fields, or uses documented defaults when no global file exists. Its Markdown body is resolved separately: a non-empty project body replaces the global body; an absent or whitespace-only project body inherits it.
 - A malformed global or project layer warns once and rejects general-purpose launches. It never falls back to the other file or plain clone.
@@ -225,9 +229,8 @@ enabled: true
 model: openai-codex/gpt-5.6-sol
 thinking: high
 tools: [read, grep, find]
-disallowed_tools: [bash, edit, write]
-available_skills: false
-preload_skills: [secure-code-review]
+extensions: false
+skills: [++secure-code-review]
 inherit_context: false
 interactive: false
 ---
@@ -243,37 +246,37 @@ display_name: Friendly UI label
 enabled: true
 model: provider/model-id
 thinking: off | minimal | low | medium | high | xhigh | max
-tools: all | none | name, name | [name, name]
-disallowed_tools: name, name | [name, name]
-available_skills: true | false | name, name | [name, name]
-preload_skills: name, name | [name, name]
+tools: true | false | identifier, identifier | [identifier, identifier]
+extensions: true | false | identifier, identifier | [identifier, identifier]
+skills: true | false | identifier, identifier | [identifier, identifier]
 inherit_context: true
 interactive: false
 ```
 
-Side Quests uses Pi's exported `parseFrontmatter` and existing YAML parser. It does not implement a separate YAML parser. Duplicate keys are rejected by Pi's parser. Unknown frontmatter is ignored so one agent file can work with other extensions.
+Side Quests uses Pi's exported `parseFrontmatter` and existing YAML parser. It does not implement a separate YAML parser. Duplicate keys are rejected by Pi's parser. Unrecognized frontmatter is silently ignored so one agent file can work with other extensions.
 
 After project-over-global overlay, omission from both layers has these exact results:
 
-| Omitted value                                    | Result                                                                                              |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Named `description`                              | Malformed definition                                                                                |
-| General-purpose `description`                    | No selection description; it appears only when supplied and at least one named catalog entry exists |
-| `display_name`                                   | Use the canonical filename stem                                                                     |
-| `enabled`                                        | `true`                                                                                              |
-| `model`, `thinking`, `tools`, `available_skills` | Inherit the current parent value                                                                    |
-| `disallowed_tools`, `preload_skills`             | Empty selection                                                                                     |
-| `inherit_context`                                | `true`                                                                                              |
-| `interactive`                                    | `false`                                                                                             |
-| Markdown body                                    | No agent definition instructions                                                                    |
+| Omitted value                                        | Result                                                                                              |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Named `description`                                  | Malformed definition                                                                                |
+| General-purpose `description`                        | No selection description; it appears only when supplied and at least one named catalog entry exists |
+| `display_name`                                       | Use the canonical filename stem                                                                     |
+| `enabled`                                            | `true`                                                                                              |
+| `model`, `thinking`, `tools`, `extensions`, `skills` | Inherit the current parent value                                                                    |
+| `inherit_context`                                    | `true`                                                                                              |
+| `interactive`                                        | `false`                                                                                             |
+| Markdown body                                        | No agent definition instructions                                                                    |
 
 Other validation rules:
 
 - YAML null, an empty scalar string, or a wrong type makes a supplied supported field malformed in either layer.
 - `enabled: false` does not skip validation of sibling fields or the other layer.
-- A supplied project collection replaces the complete global collection. Empty lists are explicit empty selections. For example, `tools: []` selects no normal tools and `available_skills: []` selects no lazy skills.
-- Duplicate collection names are deduplicated in first-occurrence order. Empty entries and non-string entries are malformed.
-- `description` and `display_name` have edge whitespace removed and internal whitespace collapsed. Capability identifiers remain exact and case-sensitive.
+- A supplied project capability expression replaces the complete global expression. Empty lists are explicit empty selections. For example, `tools: []` selects no normal tools, `extensions: []` retains only the Direct extension baseline, and `skills: []` selects no lazy or preloaded skills.
+- CSV strings and YAML lists trim boundary whitespace from each item independently. Identifiers remain case-sensitive, and internal characters remain unchanged.
+- Repeated normalized entries, mixed fixed/parent-relative syntax, conflicting operations, empty entries, and non-string entries are malformed. Side Quests does not silently deduplicate them.
+- A comma inside an identifier requires a quoted YAML-list item. CSV has no comma escape.
+- `description` and `display_name` have edge whitespace removed and internal whitespace collapsed.
 
 ### Agent identity, role, and task label
 
@@ -302,7 +305,7 @@ Two other definition values have separate prompt roles:
 Side Quests builds the child's instructions in this order:
 
 1. Pi adds its standard instructions and the inherited parent configuration.
-2. Side Quests adds the full instructions for each `preload_skills` entry.
+2. Side Quests adds the full instructions for each `++skill` entry.
 3. Side Quests adds a non-empty agent body last inside an XML boundary.
 
 ```text
@@ -323,45 +326,117 @@ A non-empty project body replaces the global body. An absent or whitespace-only 
 - Invalid explicit values stop launch instead of falling back.
 - Unsupported valid thinking levels use Pi's normal model-specific clamp.
 
+### Unified capability selection
+
+`tools`, `extensions`, and `skills` each accept omission, `true`, `false`, a CSV string, or a YAML string list:
+
+```yaml
+tools: read, bash
+extensions: false
+skills: [research, ++tdd]
+```
+
+Omission inherits the corresponding parent selection. `true` selects the broad field-specific set described below. `false` and `[]` select none, except that extension values retain the Direct extension baseline.
+
+A plain list is a **Fixed capability selection**:
+
+```yaml
+tools: [read, bash, web_search]
+```
+
+A list of `+identifier` and `-identifier` entries is a **Parent-relative capability selection**:
+
+```yaml
+tools: [+web_search, -bash]
+```
+
+It starts from the parent set, adds `+` entries, and removes `-` entries. Do not mix plain identifiers with `+` or `-`, even when the names differ:
+
+```yaml
+tools: [read, bash, +web_search] # malformed
+```
+
+CSV strings and YAML lists normalize identically. Whitespace around every item is trimmed independently, including uneven CSV spacing:
+
+```yaml
+tools: "read,   +web_search , -bash"
+```
+
+Case and internal characters remain exact. Empty items, non-string list items, duplicate normalized entries, and conflicting operations are malformed. A comma inside an identifier must use a quoted YAML-list item:
+
+```yaml
+extensions:
+  - "/tmp/extensions/a,b/index.ts"
+```
+
 ### Tools and permissions
 
 - Omitted `tools` inherits the parent's enabled tools.
-- `tools: all` selects all registered child tools.
-- `tools: none` selects no normal tools.
-- A comma-separated string or YAML list selects exact registered tool names.
-- An empty list selects no normal tools.
-- `disallowed_tools` removes tools after the allowlist is applied; an empty list subtracts none.
-- Unknown tool names stop launch.
+- `tools: true` selects all registered child tools.
+- `tools: false` and `tools: []` select no normal tools.
+- A fixed list selects exact registered tool names.
+- A parent-relative list modifies the parent's enabled set.
+- Plain and `+` names may enable a registered tool inactive in the parent.
+- Unknown names stop launch.
 
 Every child also follows fixed safety rules:
 
 - `Agent` and all other known subagent-spawning tools are always denied.
-- `ask_parent` is always registered and enabled, even when the agent file denies it.
-- Autonomous children activate the separate lifecycle tool `subagent_done`, even when the agent file omits or denies it.
+- `ask_parent` is always registered and enabled, even when the agent file omits or removes it.
+- Autonomous children expose the separate lifecycle tool `subagent_done` to the model as the required explicit completion action. The model must call it with the final handoff; the runtime never calls it automatically. A normal assistant response leaves the child open.
 
-A child's resolved capability policy is saved in its manifest. Interactive takeover, continuation, resume, changed parent settings, and changed agent files never broaden that policy. If a required registered tool is missing when the session reopens, resume reports an error instead of using a broader fallback.
+Initially interactive children and permanently promoted children keep `subagent_done` inactive during normal model turns. This removes its schema, description, `Available tools` snippet, and tool-specific system Guidelines from the next model request. In either lifecycle, a human can run `/subagent-done` only while the child is idle. The command starts one hidden completion turn with only `subagent_done` active.
 
-Permanent human promotion removes `subagent_done` from the active model tools. This also removes its schema, description, `Available tools` snippet, and tool-specific system Guidelines from the next model request. The human `/subagent-done` command can temporarily activate only that tool for one hidden completion turn.
+### Extensions
+
+Extension identifiers use source and path forms Pi supports: npm, Git, relative or absolute local files and directories, and Pi path patterns. A relative path in a global definition resolves from `$PI_CODING_AGENT_DIR`; one in a project definition resolves from `<cwd>/.pi`. Side Quests reuses Pi's package/source resolver, identity rules, extension discovery, and pattern behavior. It does not implement another parser or matcher. `+` and `-` are the only Agent capability operators; `!` is not an alias.
+
+The **Direct extension baseline** contains non-package extensions. Its source depends on selection mode:
+
+- Omitted `extensions` inherits the complete parent extension snapshot, including direct extensions supplied to the parent through one-off `--extension` or `-e` CLI arguments.
+- `true`, `false`, `[]`, and fixed selection discover the current normal child baseline from effective global/project direct extensions. They do not replay one-off parent CLI sources unless a fixed expression explicitly selects the same source.
+- Parent-relative selection starts from the complete parent extension snapshot, including one-off parent CLI sources, and applies `+` and `-` operations.
+
+`extensions: false` and `extensions: []` load only the freshly discovered Direct extension baseline. `extensions: true` also loads every normally enabled package extension from current effective settings. A fixed list keeps the fresh baseline and loads only the listed package/source extensions. Only a parent-relative `-identifier` can remove a baseline member.
+
+A package identifier selects that package's extension entrypoints only. It does not select its skills, prompts, or themes. Plain and `+` package identifiers override extension filters in `settings.json`, but remain inside the package author's `package.json` Pi manifest boundary. Broad `true` respects normal settings filters.
+
+An npm version or Git ref remains part of the selected source and Pi resolves it exactly:
+
+```yaml
+extensions:
+  - "npm:@scope/package@1.2.3"
+  - "git:github.com/user/repository@v2.0.0"
+```
+
+Package identity ignores the npm version or Git ref only for matching, duplicate detection, and conflict detection. Thus one fixed expression cannot select two versions of the same package. In parent-relative mode, `+npm:package@2` replaces an inherited `npm:package@1` for that child because `+` is an upsert by normalized identity. Local identity uses Pi's resolved path rules.
+
+Every explicit package, path, directory, or pattern operation must match at least one extension entrypoint. A package with no extensions, an empty extension directory, an unmatched pattern, or a removal with no match stops launch. Broad `true`, `false`, and `[]` remain valid when no package extension exists.
+
+The private Side Quests child companion is infrastructure outside Agent capability selection and cannot be removed.
 
 ### Skills
 
-`available_skills` controls skills that the child can load when needed:
+- Omitted `skills` inherits the parent's lazy catalog.
+- `skills: true` selects all normally model-invocable child-discovered skills and preloads none.
+- `skills: false` and `skills: []` select no lazy or preloaded skills.
+- A plain skill name selects it for a fixed lazy catalog.
+- `+skill` and `-skill` modify the inherited lazy catalog.
+- `++skill` preloads its full instructions.
 
-- Omitted: inherit the parent's current lazy skill catalog.
-- `true`: use all normally model-invocable skills discovered by the child.
-- `false`: provide no lazy skill catalog.
-- A comma-separated string or YAML list: provide exactly those discovered skill names, including an explicitly named skill that is normally hidden from model invocation.
-- An empty list: provide no lazy skills.
+`++skill` is mode-neutral. Plain names plus `++` form fixed selection. Single-signed names plus `++` form parent-relative selection. A list containing only `++` entries is fixed, has no lazy skills, and preloads those entries:
 
-`preload_skills` accepts a comma-separated string or YAML list and loads full skill instructions before the child starts:
+```yaml
+skills: [research, ++agent-browser]
+skills: [+research, -grilling, ++tdd]
+skills: [++tdd]
+```
 
-- It is separate from `available_skills`.
-- An empty list preloads no skills.
-- It can select a skill that is normally hidden from model invocation.
-- A preloaded skill is removed from the lazy catalog to avoid duplication.
-- An unknown skill name stops launch.
+A skill cannot be lazy and preloaded in one expression. `tdd, ++tdd` and `+tdd, ++tdd` are malformed. `-tdd, ++tdd` is valid. Explicit lazy and preload names may select discovered skills hidden from model invocation. Preloaded skills are removed from the resulting lazy catalog.
 
 If the child does not have `read`, Side Quests omits a non-empty lazy skill catalog and shows a launch warning. Preloaded skill instructions still work.
+
+A child's resolved capability policy, including exact extension entrypoints, is saved in its manifest. Interactive takeover, continuation, resume, changed parent settings, and changed agent files never broaden that policy. If a required capability is missing when the session reopens, resume reports an error instead of using a broader fallback.
 
 ### Context and working directory
 
@@ -371,7 +446,7 @@ If the child does not have `read`, Side Quests omits a non-empty lazy skill cata
 - Every new child starts in the parent agent's current working directory at invocation time.
 - Agent files and `Agent` calls cannot override the working directory.
 
-Every child inherits the parent's loaded extensions. Side Quests remains child-safe: parent orchestration is inactive, while the child companion handles identity, activity, communication, and lifecycle.
+Every child loads its resolved extension selection. Side Quests remains child-safe: parent orchestration is inactive, while the required child companion handles identity, activity, communication, and lifecycle.
 
 ## Tmux windows and panes
 
@@ -766,7 +841,7 @@ $PI_CODING_AGENT_DIR/side-quests/
 Persistent data:
 
 - `session.jsonl` contains the Pi child session.
-- `manifest.json` contains identity, lineage, CWD, lifecycle, model, thinking, exact tools, skills, prompt policy, and schema version.
+- `manifest.json` contains identity, lineage, CWD, lifecycle, model, thinking, exact tools, resolved extension entrypoints, skills, prompt policy, and schema version.
 - Resume cannot change resolved identity, context choice, lifecycle, capabilities, or prompt policy.
 - Continuation can update only the task label. Human terminal takeover can persist permanent lifecycle promotion.
 - Unanswered requests remain until they receive a matching response.
@@ -820,7 +895,7 @@ Side Quests does not include:
 - Mandatory delegation or an orchestrator
 - Task queues, groups, scheduling, or nested agents
 - Worktree or isolation management
-- Per-call model, tools, skills, thinking, CWD, prompt, or turn-limit controls
+- Per-call model, tools, extensions, skills, thinking, CWD, system-prompt, or turn-limit controls
 - Bundled agents, cross-session agent memory, or fuzzy model matching
 - Alternate transcripts or ephemeral child sessions
 - Automatic age-based cleanup or a session-deletion UI

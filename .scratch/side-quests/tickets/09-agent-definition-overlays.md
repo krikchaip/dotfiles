@@ -19,7 +19,7 @@ For every supported frontmatter field:
 2. A field omitted by the project definition inherits the global field.
 3. A field omitted by both definitions uses its documented default.
 
-Collection fields are replaced, not concatenated or unioned. An explicit empty collection replaces the global collection with its documented empty selection. Scalar sentinels such as `tools: all` and `tools: none` keep their existing meanings. No reset sentinel is added: YAML null and empty scalar strings remain malformed. A project layer cannot bypass a supplied global scalar to restore the parent-derived default; it must supply another valid value. If both layers omit a parent-derived field such as `model`, the Resolved Agent definition inherits the current parent value.
+Agent capability fields use the unified expressions in [Unified Agent Capability Selection](10-unified-capability-selection.md): `tools`, `extensions`, and `skills`. A project capability expression replaces the complete global expression; it never concatenates or unions with it. A signed project expression resolves against the current parent runtime, not the global expression. `true`, `false`, an explicit empty list, and a Fixed capability selection use the results defined by that ticket. No reset sentinel is added: YAML null and empty scalar strings remain malformed. A project layer cannot bypass a supplied global scalar to restore a parent-derived default; it must supply another valid value. If both layers omit a parent-derived field such as `model`, the Resolved Agent definition inherits the current parent value.
 
 Resolve the Markdown body separately but with the same precedence. A non-empty project body replaces the global body. A project body that is absent or whitespace-only after boundary trimming inherits the global body. If neither layer has a non-empty body, add no Agent definition instructions. This design adds no syntax for clearing a non-empty global body.
 
@@ -39,7 +39,7 @@ Every grilling answer requires automated evidence. Use focused unit tests for th
 
 | Answer | Required automated evidence |
 | --- | --- |
-| Q1 — collection replacement | `agent-overlay-replaces-collection-fields`: global and project collections differ; the launched child receives only the complete project value. Include an explicit project `[]` case. |
+| Q1 — capability-expression replacement | `agent-overlay-replaces-capability-expressions`: global and project `tools`, `extensions`, and `skills` expressions differ; the launched child receives only the complete project expression. Include `[]`, fixed, and parent-relative project cases. |
 | Q2 — body inheritance | `agent-overlay-inherits-global-body`: an absent and a whitespace-only project body each preserve the global body. A non-empty project body replaces it and excludes the global body. |
 | Q3 — strict participating-layer validation | `agent-overlay-rejects-overridden-invalid-global`: a valid project override of the same field does not hide an invalid global value; warning appears and no pane or session is created. |
 | Q4 — `enabled` precedence | `agent-overlay-project-enabled-overrides-global`: project `true` restores global `false`; project `false` disables global `true`; project omission inherits the global value. |
