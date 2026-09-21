@@ -2,11 +2,13 @@
   "permissions": {
     "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "opus",
   "effortLevel": "high",
-  "advisorModel": "opus",
+  "autoCompactWindow": 300000,
+  "autoMemoryEnabled": false,
   "theme": "dark",
   "editorMode": "normal",
   "autoCompactEnabled": true,
-  "switchModelsOnFlag": true
+  "switchModelsOnFlag": false,
+  "autoScrollEnabled": true
 }
