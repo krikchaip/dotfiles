@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "model": "sonnet",
+  "effortLevel": "high",
+  "advisorModel": "opus",
+  "theme": "dark",
+  "editorMode": "normal",
+  "autoCompactEnabled": true,
+  "switchModelsOnFlag": true
+}
