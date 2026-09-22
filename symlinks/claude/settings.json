@@ -2,7 +2,8 @@
   "$schema": "https://www.schemastore.org/claude-code-settings.json",
   "attribution": {
     "commit": "",
-    "pr": ""
+    "pr": "",
+    "sessionUrl": false
   },
   "permissions": {
     "defaultMode": "auto"
@@ -41,5 +42,13 @@
   "autoScrollEnabled": true,
   "tui": "fullscreen",
   "syncClaudeAiSkills": false,
-  "syncClaudeAiPlugins": false
+  "syncClaudeAiPlugins": false,
+  "cleanupPeriodDays": 14,
+  "diffTool": "terminal",
+  "disableAgentView": true,
+  "enableAllProjectMcpServers": true,
+  "externalEditorContext": true,
+  "env": {
+    "EDITOR": "env NVIM_APPNAME=nvchad nvim"
+  }
 }
