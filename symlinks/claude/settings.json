@@ -13,6 +13,7 @@
     }
   },
   "autoMemoryEnabled": false,
+  "outputStyle": "Concise",
   "theme": "dark",
   "editorMode": "normal",
   "autoCompactEnabled": true,
