@@ -46,7 +46,6 @@
     }
   },
   "autoCompactWindow": 300000,
-  "advisorModel": "fable",
   "promptSuggestionEnabled": true,
   "pluginConfigs": {
     "agents-md@builtin": {
@@ -57,11 +56,11 @@
   },
   "tui": "fullscreen",
   "autoMemoryEnabled": false,
-  "showThinkingSummaries": true,
+  "showThinkingSummaries": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "editorMode": "normal",
-  "verbose": true,
+  "verbose": false,
   "preferredNotifChannel": "kitty",
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
