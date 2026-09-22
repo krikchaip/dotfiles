@@ -60,6 +60,7 @@
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "editorMode": "normal",
+  "verbose": true,
   "preferredNotifChannel": "kitty",
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
