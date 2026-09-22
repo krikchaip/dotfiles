@@ -1,0 +1,47 @@
+#!/bin/bash
+set -euo pipefail
+
+# Build "Claude Code.app", a copy of terminal-notifier with the Claude Code icon.
+# macOS takes a notification's icon from the sending app bundle, so the copy
+# needs its own icon and bundle identifier. Used by the Notification hook in
+# symlinks/claude/settings.json.
+# Icon hash: {{ include "../symlinks/claude/notifier-icon.png" | sha256sum }}
+
+if [ -x "/opt/homebrew/bin/brew" ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x "/usr/local/bin/brew" ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+source_app="$(brew --prefix terminal-notifier)/terminal-notifier.app"
+if [ ! -d "$source_app" ]; then
+  echo "Warning: terminal-notifier.app not found at $source_app. Skipping Claude Code notifier."
+  exit 0
+fi
+
+icon="{{ .chezmoi.sourceDir }}/../symlinks/claude/notifier-icon.png"
+dest="$HOME/Applications/Claude Code.app"
+iconset="$(mktemp -d)/icon.iconset"
+
+echo "Building $dest..."
+mkdir -p "$HOME/Applications" "$iconset"
+rm -rf "$dest"
+cp -R "$source_app" "$dest"
+chmod -R u+w "$dest"
+
+for size in 16 32 128 256 512; do
+  sips -z "$size" "$size" "$icon" --out "$iconset/icon_${size}x${size}.png" >/dev/null
+  sips -z "$((size * 2))" "$((size * 2))" "$icon" --out "$iconset/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil --convert icns "$iconset" --output "$dest/Contents/Resources/icon.icns"
+rm -rf "$(dirname "$iconset")"
+rm -f "$dest/Contents/Resources/Terminal.icns"
+
+plist="$dest/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c 'Set :CFBundleIconFile icon' "$plist"
+/usr/libexec/PlistBuddy -c 'Set :CFBundleName Claude Code' "$plist"
+/usr/libexec/PlistBuddy -c 'Set :CFBundleIdentifier com.r3nniw.claude-code-notifier' "$plist"
+codesign --force --sign - "$dest"
+
+# Register the bundle so Notification Center picks up the new icon.
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$dest"

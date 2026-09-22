@@ -16,13 +16,27 @@
   "includeGitInstructions": false,
   "permissions": {
     "deny": ["ShareOnboardingGuide"],
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "additionalDirectories": ["/tmp"]
   },
   "model": "opus[1m]",
   "enableAllProjectMcpServers": true,
   "disableClaudeAiConnectors": true,
   "skillOverrides": {},
   "disableBundledSkills": false,
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt|elicitation_dialog|elicitation_url_dialog|agent_needs_input",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/Applications/Claude Code.app/Contents/MacOS/terminal-notifier\" -title \"Claude Code\" -message \"\\\\$(jq -r .message)\" -sound Blow -activate net.kovidgoyal.kitty"
+          }
+        ]
+      }
+    ]
+  },
   "disableAgentView": true,
   "disableWorkflows": true,
   "disableArtifact": true,
@@ -61,7 +75,7 @@
   "theme": "dark",
   "editorMode": "normal",
   "verbose": false,
-  "preferredNotifChannel": "kitty",
+  "preferredNotifChannel": "notifications_disabled",
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
   "autoScrollEnabled": true,
