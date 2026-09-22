@@ -8,6 +8,14 @@
     "defaultMode": "auto"
   },
   "model": "opus",
+  "disableClaudeAiConnectors": false,
+  "disableBundledSkills": false,
+  "disableWorkflows": true,
+  "disableArtifact": true,
+  "enabledPlugins": {
+    "i-have-adhd@i-have-adhd": true,
+    "amp@synced": false
+  },
   "extraKnownMarketplaces": {
     "i-have-adhd": {
       "source": {
@@ -31,8 +39,5 @@
   "editorMode": "normal",
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
-  "autoScrollEnabled": true,
-  "enabledPlugins": {
-    "i-have-adhd@i-have-adhd": true
-  }
+  "autoScrollEnabled": true
 }
