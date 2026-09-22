@@ -8,7 +8,7 @@
     "defaultMode": "auto"
   },
   "model": "opus",
-  "disableClaudeAiConnectors": false,
+  "disableClaudeAiConnectors": true,
   "disableBundledSkills": false,
   "disableWorkflows": true,
   "disableArtifact": true,
@@ -39,5 +39,6 @@
   "editorMode": "normal",
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
-  "autoScrollEnabled": true
+  "autoScrollEnabled": true,
+  "tui": "fullscreen"
 }
