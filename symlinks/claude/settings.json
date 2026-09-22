@@ -1,18 +1,32 @@
 {
   "$schema": "https://www.schemastore.org/claude-code-settings.json",
+  "respectGitignore": true,
+  "cleanupPeriodDays": 14,
+  "syncClaudeAiSkills": false,
+  "syncClaudeAiPlugins": false,
+  "env": {
+    "EDITOR": "env NVIM_APPNAME=nvchad nvim",
+    "CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS": "1"
+  },
   "attribution": {
     "commit": "",
     "pr": "",
     "sessionUrl": false
   },
+  "includeGitInstructions": false,
   "permissions": {
+    "deny": ["ShareOnboardingGuide"],
     "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "opus[1m]",
+  "enableAllProjectMcpServers": true,
   "disableClaudeAiConnectors": true,
+  "skillOverrides": {},
   "disableBundledSkills": false,
+  "disableAgentView": true,
   "disableWorkflows": true,
   "disableArtifact": true,
+  "respondToBashCommands": false,
   "enabledPlugins": {
     "i-have-adhd@i-have-adhd": true
   },
@@ -26,7 +40,13 @@
   },
   "outputStyle": "Concise",
   "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  },
   "autoCompactWindow": 300000,
+  "promptSuggestionEnabled": true,
   "pluginConfigs": {
     "agents-md@builtin": {
       "options": {
@@ -34,21 +54,19 @@
       }
     }
   },
+  "tui": "fullscreen",
   "autoMemoryEnabled": false,
+  "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "editorMode": "normal",
+  "preferredNotifChannel": "kitty",
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
   "autoScrollEnabled": true,
-  "tui": "fullscreen",
-  "syncClaudeAiSkills": false,
-  "syncClaudeAiPlugins": false,
-  "cleanupPeriodDays": 14,
+  "fileCheckpointingEnabled": true,
+  "showTurnDuration": true,
+  "remoteControlAtStartup": false,
   "diffTool": "terminal",
-  "disableAgentView": true,
-  "enableAllProjectMcpServers": true,
-  "externalEditorContext": true,
-  "env": {
-    "EDITOR": "env NVIM_APPNAME=nvchad nvim"
-  }
+  "externalEditorContext": true
 }
