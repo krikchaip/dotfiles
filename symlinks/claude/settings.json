@@ -13,8 +13,7 @@
   "disableWorkflows": true,
   "disableArtifact": true,
   "enabledPlugins": {
-    "i-have-adhd@i-have-adhd": true,
-    "amp@synced": false
+    "i-have-adhd@i-have-adhd": true
   },
   "extraKnownMarketplaces": {
     "i-have-adhd": {
@@ -40,5 +39,7 @@
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
   "autoScrollEnabled": true,
-  "tui": "fullscreen"
+  "tui": "fullscreen",
+  "syncClaudeAiSkills": false,
+  "syncClaudeAiPlugins": false
 }
