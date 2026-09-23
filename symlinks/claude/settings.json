@@ -22,7 +22,12 @@
   "model": "opus[1m]",
   "enableAllProjectMcpServers": true,
   "disableClaudeAiConnectors": true,
-  "skillOverrides": {},
+  "skillOverrides": {
+    "dataviz": "user-invocable-only",
+    "claude-api": "user-invocable-only",
+    "claude-in-chrome": "user-invocable-only",
+    "init": "user-invocable-only"
+  },
   "disableBundledSkills": false,
   "hooks": {
     "Notification": [
