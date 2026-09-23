@@ -111,7 +111,7 @@ alias pu = mise upgrade npm:@earendil-works/pi-coding-agent
 alias pns = p --no-session
 
 # claude code
-alias cc = claude
+alias c = claude
 
 # account rotator
 alias txr = tuxevil-rotator
