@@ -1,12 +1,15 @@
 {
   "$schema": "https://www.schemastore.org/claude-code-settings.json",
   "respectGitignore": true,
-  "cleanupPeriodDays": 14,
+  "cleanupPeriodDays": 30,
   "syncClaudeAiSkills": false,
   "syncClaudeAiPlugins": false,
   "env": {
-    "EDITOR": "env NVIM_APPNAME=nvchad nvim",
-    "CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS": "1"
+    "CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS": "1",
+    "CLAUDE_CODE_ENABLE_TASKS": "0",
+    "CLAUDE_CODE_ENABLE_TODO_TOOLS": "0",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0",
+    "EDITOR": "env NVIM_APPNAME=nvchad nvim"
   },
   "attribution": {
     "commit": "",
@@ -15,7 +18,7 @@
   },
   "includeGitInstructions": false,
   "permissions": {
-    "deny": ["ShareOnboardingGuide"],
+    "deny": ["ShareOnboardingGuide", "SendFeedback", "ReportFindings"],
     "defaultMode": "auto",
     "additionalDirectories": ["/tmp"]
   },
@@ -41,6 +44,9 @@
         ]
       }
     ]
+  },
+  "worktree": {
+    "bgIsolation": "none"
   },
   "disableAgentView": true,
   "disableWorkflows": true,
