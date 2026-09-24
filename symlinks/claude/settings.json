@@ -18,7 +18,14 @@
   },
   "includeGitInstructions": false,
   "permissions": {
-    "deny": ["ShareOnboardingGuide", "SendFeedback", "ReportFindings"],
+    "deny": [
+      "DesignSync",
+      "EnterPlanMode",
+      "ExitPlanMode",
+      "ReportFindings",
+      "SendFeedback",
+      "ShareOnboardingGuide"
+    ],
     "defaultMode": "auto",
     "additionalDirectories": ["/tmp"]
   },
