@@ -1,7 +1,7 @@
 ---
 name: retrospective
 description: Review one or more agent-harness sessions and propose context-file, skill, and prompt-template changes for user approval.
-compatibility: Requires explicit user invocation. On standard-only clients, load this skill manually. The bundled Pi analyzer requires Node.js.
+compatibility: Requires explicit user invocation. On standard-only clients, load this skill manually. The bundled Pi and Claude Code analyzers require Node.js.
 disable-model-invocation: true
 ---
 
@@ -21,7 +21,7 @@ Parse the user's freeform arguments into:
 
 Infer the current harness from the runtime, not from identifier syntax. Every source in one invocation belongs to that harness. If no source identifier is present, ask for one or more and stop. Ask one focused question when an identifier or selected artifact is ambiguous; never guess.
 
-Load the matching Harness reference when one exists. Start with [Pi](references/pi.md). If no reference exists, use the current harness's environment, primary documentation, and source to discover equivalent session and artifact conventions before continuing.
+Load the matching Harness reference when one exists: [Pi](references/pi.md) or [Claude Code](references/claude-code.md). If no reference exists, use the current harness's environment, primary documentation, and source to discover equivalent session and artifact conventions before continuing.
 
 Snapshot every source before analysis. Each snapshot must have a fixed cutoff and must not modify its source. If a source is the current session, explain that later messages are excluded and ask whether to proceed.
 
