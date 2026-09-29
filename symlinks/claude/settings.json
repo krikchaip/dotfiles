@@ -27,7 +27,9 @@
       "ShareOnboardingGuide"
     ],
     "defaultMode": "auto",
-    "additionalDirectories": ["/tmp"]
+    "additionalDirectories": [
+      "/tmp"
+    ]
   },
   "model": "opus[1m]",
   "enableAllProjectMcpServers": true,
