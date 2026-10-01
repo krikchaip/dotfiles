@@ -10,8 +10,12 @@ import type {
 import { afterEach, expect, test, vi } from "vitest";
 
 import { AgentDefinitions } from "../../agent-definitions.ts";
+import type { ResolvedExtension } from "../../extension-selection.ts";
 import { ParentRuntime } from "../../parent/runtime.ts";
-import { ParentTools } from "../../parent/tool.ts";
+import {
+  type ParentExtensionResolver,
+  ParentTools,
+} from "../../parent/tool.ts";
 import type { ChildManifest } from "../../store/session.ts";
 import { SessionStore } from "../../store/session.ts";
 import { Tmux } from "../../tmux.ts";
@@ -20,6 +24,11 @@ const EMPTY_DEFINITIONS = AgentDefinitions.resolve({
   agentDirectory: join(tmpdir(), "side-quests-no-agent-definitions"),
   cwd: join(tmpdir(), "side-quests-no-agent-definitions"),
 });
+
+const EMPTY_EXTENSION_RESOLVER: ParentExtensionResolver = {
+  parent: async () => [],
+  resolve: async () => [],
+};
 
 type AgentRequestSchema = Readonly<{
   type: string;
@@ -47,7 +56,12 @@ function registerParentTools(): ToolDefinition[] {
     },
   } as unknown as ExtensionAPI;
 
-  ParentTools.register(pi, ParentRuntime.register(pi), EMPTY_DEFINITIONS);
+  ParentTools.register(
+    pi,
+    ParentRuntime.register(pi),
+    EMPTY_DEFINITIONS,
+    EMPTY_EXTENSION_RESOLVER,
+  );
   return tools;
 }
 
@@ -179,8 +193,7 @@ function malformedDefinitions(): AgentDefinitions {
 
 async function executeAgent(
   request: Record<string, unknown>,
-  runtime: Pick<ParentRuntime, "continue" | "launch" | "ownerId"> &
-    Partial<Pick<ParentRuntime, "assertRequiredTools">>,
+  runtime: Pick<ParentRuntime, "continue" | "launch" | "ownerId">,
   definitions = EMPTY_DEFINITIONS,
   notify = vi.fn(),
   cwd = "/tmp",
@@ -190,6 +203,7 @@ async function executeAgent(
   parentSkills: readonly Skill[] = [],
   registeredToolNames = ["read", "grep", "Agent"],
   parentPromptInputs: Record<string, unknown> = {},
+  extensionResolver: ParentExtensionResolver = EMPTY_EXTENSION_RESOLVER,
 ): Promise<AgentToolResult<unknown> | undefined> {
   const tools: ToolDefinition[] = [];
   const context = {
@@ -209,19 +223,22 @@ async function executeAgent(
     thinkingLevel: "off",
     ui: { notify },
   } as never;
+  const beforeStart: (() => unknown)[] = [];
   const pi = {
     getActiveTools: () => registeredToolNames,
     getAllTools: () => registeredToolNames.map((name) => ({ name })),
-    on(event: string, handler: (event: unknown, context: unknown) => void) {
+    on(event: string, handler: (event: unknown, context: unknown) => unknown) {
       if (event === "before_agent_start")
-        handler(
-          {
-            systemPromptOptions: {
-              ...parentPromptInputs,
-              skills: parentSkills,
+        beforeStart.push(() =>
+          handler(
+            {
+              systemPromptOptions: {
+                ...parentPromptInputs,
+                skills: parentSkills,
+              },
             },
-          },
-          context,
+            context,
+          ),
         );
     },
     registerTool: (tool: ToolDefinition) => tools.push(tool),
@@ -229,12 +246,12 @@ async function executeAgent(
 
   ParentTools.register(
     pi,
-    {
-      assertRequiredTools() {},
-      ...runtime,
-    } as ParentRuntime,
+    runtime as ParentRuntime,
     definitions,
+    extensionResolver,
+    async () => parentSkills,
   );
+  for (const handler of beforeStart) await handler();
 
   return tools[0]?.execute("call-id", request, undefined, undefined, context);
 }
@@ -255,7 +272,12 @@ test("adds named definitions to the Agent enum and contiguous Guidelines catalog
     on() {},
   } as unknown as ExtensionAPI;
 
-  ParentTools.register(pi, ParentRuntime.register(pi), namedDefinitions());
+  ParentTools.register(
+    pi,
+    ParentRuntime.register(pi),
+    namedDefinitions(),
+    EMPTY_EXTENSION_RESOLVER,
+  );
 
   const tool = tools[0] as ToolDefinition;
   const schema = tool.parameters as unknown as AgentRequestSchema;
@@ -284,7 +306,12 @@ test("reports malformed agent definitions at parent startup", () => {
   } as unknown as ExtensionAPI;
   const notify = vi.fn();
 
-  ParentTools.register(pi, ParentRuntime.register(pi), malformedDefinitions());
+  ParentTools.register(
+    pi,
+    ParentRuntime.register(pi),
+    malformedDefinitions(),
+    EMPTY_EXTENSION_RESOLVER,
+  );
   sessionStart?.({}, { ui: { notify } });
 
   expect(notify).toHaveBeenCalledWith(
@@ -469,10 +496,7 @@ test("rejects an unknown global skill hidden by a project replacement", async ()
         subagent_type: "security",
       },
       runtime as never,
-      overlaidDefinitions(
-        ["available_skills: [missing]"],
-        ["available_skills: []"],
-      ),
+      overlaidDefinitions(["skills: [missing]"], ["skills: []"]),
     ),
   ).rejects.toThrow(
     "Agent.subagent_type security is malformed: Unknown child skill: missing",
@@ -513,7 +537,7 @@ test("rejects unknown runtime fields beside final enabled false", async () => {
   expect(create).not.toHaveBeenCalled();
 });
 
-test("accepts denied child controls and force-enables them outside normal policy", async () => {
+test("keeps required child controls outside normal tool policy", async () => {
   const child = manifest();
   vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
   const create = vi.spyOn(SessionStore, "create").mockResolvedValue(child);
@@ -530,7 +554,7 @@ test("accepts denied child controls and force-enables them outside normal policy
       subagent_type: "security",
     },
     runtime as never,
-    namedDefinitions("disallowed_tools: [ask_parent, subagent_done]"),
+    namedDefinitions("", "[grep, ask_parent, subagent_done]"),
   );
 
   expect(create).toHaveBeenCalledWith(
@@ -555,7 +579,7 @@ test("hard-denies every known spawning tool for an all-tools policy", async () =
       subagent_type: "security",
     },
     runtime as never,
-    namedDefinitions("", "all"),
+    namedDefinitions("", "true"),
     vi.fn(),
     "/tmp",
     true,
@@ -569,8 +593,9 @@ test("hard-denies every known spawning tool for an all-tools policy", async () =
 });
 
 test.each([
-  ["none", "", []],
-  ["[read, grep]", "disallowed_tools: [grep]", ["read"]],
+  ["false", "", []],
+  ["[read, grep]", "", ["read", "grep"]],
+  ["[+grep, -read]", "", ["grep"]],
 ] as const)(
   "resolves normal tool policy tools: %s with %s",
   async (tools, extra, expectedTools) => {
@@ -599,10 +624,7 @@ test.each([
   },
 );
 
-test.each([
-  ["[missing]", ""],
-  ["[read]", "disallowed_tools: [missing]"],
-] as const)(
+test.each([["[missing]", ""]] as const)(
   "rejects unknown configured tool policy: %s %s",
   async (tools, extra) => {
     vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
@@ -622,6 +644,31 @@ test.each([
   },
 );
 
+test("defers an unknown tool when child extension policy can provide it", async () => {
+  const child = manifest();
+  vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
+  const create = vi.spyOn(SessionStore, "create").mockResolvedValue(child);
+  const runtime = {
+    ownerId: "owner-id",
+    continue: vi.fn(),
+    launch: vi.fn().mockResolvedValue(child),
+  };
+
+  await executeAgent(
+    {
+      description: "use child extension tool",
+      prompt: "Use the child-only tool.",
+      subagent_type: "security",
+    },
+    runtime as never,
+    namedDefinitions("extensions: false", "[child_search]"),
+  );
+
+  expect(create).toHaveBeenCalledWith(
+    expect.objectContaining({ tools: ["child_search"] }),
+  );
+});
+
 test("rejects an unavailable selected skill before creating a child session", async () => {
   vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
   const create = vi.spyOn(SessionStore, "create");
@@ -639,7 +686,7 @@ test("rejects an unavailable selected skill before creating a child session", as
         subagent_type: "security",
       },
       runtime as never,
-      namedDefinitions("available_skills: [not-a-real-skill]"),
+      namedDefinitions("skills: [not-a-real-skill]"),
     ),
   ).rejects.toThrow("Unknown child skill: not-a-real-skill");
   expect(create).not.toHaveBeenCalled();
@@ -658,7 +705,7 @@ test("omits the lazy skill catalog when the selected tool policy lacks read", as
   mkdirSync(lazySkillPath, { recursive: true });
   writeFileSync(
     join(definitionsPath, "security.md"),
-    "---\ndescription: Review security\ntools: [grep]\navailable_skills: [research, tdd]\npreload_skills: [research]\n---\n",
+    "---\ndescription: Review security\ntools: [grep]\nskills: [tdd, ++research]\n---\n",
   );
   writeFileSync(
     join(skillPath, "SKILL.md"),
@@ -771,23 +818,38 @@ test("freezes the inherited parent skill catalog when agent skill fields are omi
   }
 });
 
-test("snapshots parent native prompt inputs and one-off extensions", async () => {
-  const root = mkdtempSync(join(tmpdir(), "side-quests-parent-baseline-"));
-  const cwd = join(root, "project");
-  const extensionPath = join(cwd, "one-off.ts");
-  const originalArgv = [...process.argv];
-  mkdirSync(cwd, { recursive: true });
-  writeFileSync(extensionPath, "export default () => {};\n");
-  process.argv.splice(
-    0,
-    process.argv.length,
-    "bun",
-    "pi",
-    "--extension",
-    "./one-off.ts",
-  );
-
-  try {
+test.each([
+  {
+    name: "keeps a shared inherited tool when one parent provider remains",
+    projectFrontmatter: ["extensions: [-/removed.ts]"],
+    parentExtensions: [
+      parentExtension("/removed.ts", ["shared_search"]),
+      parentExtension("/retained.ts", ["shared_search"]),
+    ],
+    selectedExtensions: [parentExtension("/retained.ts", ["shared_search"])],
+    registeredTools: ["read", "shared_search", "Agent"],
+    expectedTools: ["read", "shared_search"],
+  },
+  {
+    name: "keeps an explicit relative tool strict after its provider is removed",
+    projectFrontmatter: [
+      "tools: [+owned_search]",
+      "extensions: [-/removed.ts]",
+    ],
+    parentExtensions: [parentExtension("/removed.ts", ["owned_search"])],
+    selectedExtensions: [],
+    registeredTools: ["read", "owned_search", "Agent"],
+    expectedTools: ["read", "owned_search"],
+  },
+])(
+  "$name",
+  async ({
+    projectFrontmatter,
+    parentExtensions,
+    selectedExtensions,
+    registeredTools,
+    expectedTools,
+  }) => {
     const child = manifest();
     vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
     const create = vi.spyOn(SessionStore, "create").mockResolvedValue(child);
@@ -799,37 +861,142 @@ test("snapshots parent native prompt inputs and one-off extensions", async () =>
 
     await executeAgent(
       {
-        description: "freeze parent baseline",
-        prompt: "Preserve the parent native prompt inputs.",
+        description: "apply extension tool provenance",
+        prompt: "Preserve the correct inherited tools.",
+        subagent_type: "security",
       },
       runtime as never,
-      EMPTY_DEFINITIONS,
+      overlaidDefinitions([], projectFrontmatter),
       vi.fn(),
-      cwd,
+      "/tmp",
       true,
       [],
-      ["read", "Agent"],
+      registeredTools,
+      {},
       {
-        appendSystemPrompt: "PARENT APPEND",
-        contextFiles: [{ content: "PARENT CONTEXT", path: "/tmp/AGENTS.md" }],
-        customPrompt: "PARENT CUSTOM",
+        parent: async () => parentExtensions,
+        resolve: async () => selectedExtensions,
       },
     );
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        extensionPaths: [extensionPath],
-        parentSystemPromptInputs: {
-          appendSystemPrompt: "PARENT APPEND",
-          contextFiles: [{ content: "PARENT CONTEXT", path: "/tmp/AGENTS.md" }],
-          customPrompt: "PARENT CUSTOM",
-        },
-      }),
+      expect.objectContaining({ tools: expectedTools }),
     );
-  } finally {
-    process.argv.splice(0, process.argv.length, ...originalArgv);
-    rmSync(root, { force: true, recursive: true });
-  }
+  },
+);
+
+function parentExtension(
+  path: string,
+  providedTools: readonly string[],
+): ResolvedExtension {
+  return {
+    identity: path,
+    origin: "direct",
+    path,
+    providerPath: path,
+    providedTools,
+    source: path,
+  };
+}
+
+test("snapshots resolved parent extensions and native prompt inputs", async () => {
+  const child = manifest();
+  vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
+  const create = vi.spyOn(SessionStore, "create").mockResolvedValue(child);
+  const runtime = {
+    ownerId: "owner-id",
+    continue: vi.fn(),
+    launch: vi.fn().mockResolvedValue(child),
+  };
+  const resolve = vi.fn(async () => [
+    {
+      identity: "/tmp/one-off.ts",
+      origin: "direct" as const,
+      path: "/tmp/one-off.ts",
+      providerPath: "/tmp/one-off.ts",
+      providedTools: [],
+      source: "/tmp/one-off.ts",
+    },
+  ]);
+
+  await executeAgent(
+    {
+      description: "freeze parent baseline",
+      prompt: "Preserve the parent native prompt inputs.",
+    },
+    runtime as never,
+    EMPTY_DEFINITIONS,
+    vi.fn(),
+    "/tmp",
+    true,
+    [],
+    ["read", "Agent"],
+    {
+      appendSystemPrompt: "PARENT APPEND",
+      contextFiles: [{ content: "PARENT CONTEXT", path: "/tmp/AGENTS.md" }],
+      customPrompt: "PARENT CUSTOM",
+    },
+    { parent: async () => [], resolve },
+  );
+
+  expect(resolve).toHaveBeenCalledWith(undefined);
+  expect(create).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extensionPaths: ["/tmp/one-off.ts"],
+      parentSystemPromptInputs: {
+        appendSystemPrompt: "PARENT APPEND",
+        contextFiles: [{ content: "PARENT CONTEXT", path: "/tmp/AGENTS.md" }],
+        customPrompt: "PARENT CUSTOM",
+      },
+    }),
+  );
+});
+
+test("resolves a configured extension field before creating its manifest", async () => {
+  const child = manifest();
+  vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
+  const create = vi.spyOn(SessionStore, "create").mockResolvedValue(child);
+  const runtime = {
+    ownerId: "owner-id",
+    continue: vi.fn(),
+    launch: vi.fn().mockResolvedValue(child),
+  };
+  const resolve = vi.fn(async () => [
+    {
+      identity: "npm:child-extension",
+      origin: "package" as const,
+      path: "/tmp/child-extension.ts",
+      providerPath: "/tmp/child-extension.ts",
+      providedTools: [],
+      source: "npm:child-extension@2",
+    },
+  ]);
+
+  await executeAgent(
+    {
+      description: "resolve child extension",
+      prompt: "Use the resolved child extension.",
+      subagent_type: "security",
+    },
+    runtime as never,
+    namedDefinitions("extensions: false"),
+    vi.fn(),
+    "/tmp",
+    true,
+    [],
+    ["read", "grep", "Agent"],
+    {},
+    { parent: async () => [], resolve },
+  );
+
+  expect(resolve).toHaveBeenCalledWith(
+    expect.objectContaining({ selection: { kind: "none" } }),
+  );
+  expect(create).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extensionPaths: ["/tmp/child-extension.ts"],
+    }),
+  );
 });
 
 test("freezes only the parent lazy catalog when preloads require omitted-skill materialization", async () => {
@@ -850,7 +1017,7 @@ test("freezes only the parent lazy catalog when preloads require omitted-skill m
   }
   writeFileSync(
     join(agents, "security.md"),
-    "---\ndescription: Review security\ntools: [read]\npreload_skills: [research]\n---\n",
+    "---\ndescription: Review security\ntools: [read]\nskills: [-research, ++research]\n---\n",
   );
   process.env.PI_CODING_AGENT_DIR = agentDirectory;
 
@@ -935,18 +1102,16 @@ test.each([
   },
 );
 
-test("rejects resume before mutating its manifest when a required tool is absent", async () => {
+test("retains the saved manifest when reopened child readiness rejects a required tool", async () => {
   const child = manifest();
-  const assertRequiredTools = vi.fn(() => {
-    throw new Error("Required child tool is unavailable: read");
-  });
   vi.spyOn(Tmux, "requireTmux").mockImplementation(() => {});
   vi.spyOn(SessionStore, "readResumableManifest").mockReturnValue(child);
   const updateManifest = vi.spyOn(SessionStore, "updateManifest");
   const runtime = {
     ownerId: "owner-id",
-    assertRequiredTools,
-    continue: vi.fn(),
+    continue: vi
+      .fn()
+      .mockRejectedValue(new Error("Missing required child tools: read")),
     launch: vi.fn(),
   };
 
@@ -959,11 +1124,10 @@ test("rejects resume before mutating its manifest when a required tool is absent
       },
       runtime as never,
     ),
-  ).rejects.toThrow("Required child tool is unavailable: read");
+  ).rejects.toThrow("Missing required child tools: read");
 
-  expect(assertRequiredTools).toHaveBeenCalledWith(child);
   expect(updateManifest).not.toHaveBeenCalled();
-  expect(runtime.continue).not.toHaveBeenCalled();
+  expect(runtime.continue).toHaveBeenCalledOnce();
 });
 
 test.each([

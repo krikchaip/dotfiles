@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type {
@@ -17,6 +17,14 @@ const temporaryRoots: string[] = [];
 
 beforeEach(() => {
   vi.spyOn(Tmux, "selectedPaneId").mockResolvedValue({ missing: true });
+  vi.spyOn(RuntimeStore, "readReadiness").mockImplementation(
+    (_parentId, childId) => ({
+      version: 1,
+      childId,
+      status: "ready",
+      createdAt: Date.now(),
+    }),
+  );
 });
 
 const child = {
@@ -74,12 +82,86 @@ function writeActivity(
   });
 }
 
+test("waits for explicit child readiness before launch succeeds", async () => {
+  vi.useFakeTimers();
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  const parent = runtime();
+  let checked: () => void = () => {};
+  const firstReadinessCheck = new Promise<void>((resolve) => {
+    checked = resolve;
+  });
+  vi.mocked(RuntimeStore.readReadiness)
+    .mockImplementationOnce(() => {
+      checked();
+      return undefined;
+    })
+    .mockReturnValue({
+      version: 1,
+      childId: child.manifest.childId,
+      status: "ready",
+      createdAt: Date.now(),
+    });
+
+  let settled = false;
+  const launch = parent.launch(child.manifest).then((manifest) => {
+    settled = true;
+    return manifest;
+  });
+  await firstReadinessCheck;
+  expect(settled).toBe(false);
+
+  await vi.advanceTimersByTimeAsync(25);
+  await expect(launch).resolves.toEqual(child.manifest);
+});
+
+test("failed readiness closes the pane and removes temporary session state", async () => {
+  const parent = runtime();
+  const manifest = SessionStore.createSync({
+    parentId: "parent-id",
+    childId: "failed-child-id",
+    ownerId: parent.ownerId,
+    cwd: "/tmp",
+    description: "fail readiness",
+    lifecycle: "autonomous",
+    inheritContext: false,
+    tools: ["child_only"],
+  });
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  const closePane = vi.spyOn(Tmux, "closePane").mockImplementation(() => {});
+  vi.mocked(RuntimeStore.readReadiness).mockReturnValue({
+    version: 1,
+    childId: manifest.childId,
+    status: "failed",
+    createdAt: Date.now(),
+    error: "/tmp/extension.ts: fixture exploded",
+  });
+
+  await expect(
+    parent.launch(manifest, "Start the failed fixture.", {
+      removeSessionOnFailure: true,
+    }),
+  ).rejects.toThrow("/tmp/extension.ts: fixture exploded");
+
+  expect(closePane).toHaveBeenCalledWith(child.paneId);
+  expect(SessionStore.readManifest(manifest.sessionPath)).toBeUndefined();
+});
+
 test.each(["autonomous", "interactive"] as const)(
   "includes control tools in %s child startup allowlist",
   async (lifecycle) => {
     let command: string[] = [];
     vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
-      command = params.command;
+      command = JSON.parse(
+        readFileSync(params.command[2] ?? "", "utf8"),
+      ).command;
       return { paneId: child.paneId, windowId: child.windowId };
     });
     vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
@@ -98,10 +180,63 @@ test.each(["autonomous", "interactive"] as const)(
   },
 );
 
+test.each(["autonomous", "interactive"] as const)(
+  "allows initial broad discovery but denies spawning in a %s child",
+  async (lifecycle) => {
+    let command: string[] = [];
+    vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
+      command = JSON.parse(
+        readFileSync(params.command[2] ?? "", "utf8"),
+      ).command;
+      return { paneId: child.paneId, windowId: child.windowId };
+    });
+    vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+    await runtime().launch({
+      ...child.manifest,
+      lifecycle,
+      discoverTools: true,
+    });
+    expect(command).not.toContain("--tools");
+    expect(command[command.indexOf("--exclude-tools") + 1]?.split(",")).toEqual(
+      ["Agent", "Task", "delegate", "spawn_agent", "subagent"],
+    );
+  },
+);
+
+test("returns the child's finalized manifest only after readiness", async () => {
+  const parent = runtime();
+  const pending = SessionStore.createSync({
+    ...child.manifest,
+    discoverTools: true,
+  });
+  const finalized = SessionStore.finalizeTools(pending, ["read", "child_only"]);
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  await expect(parent.launch(pending)).resolves.toEqual(finalized);
+});
+
+test("keeps the requested reopen label after readiness without unfreezing policy", async () => {
+  const parent = runtime();
+  const saved = SessionStore.createSync(child.manifest);
+  const requested = { ...saved, description: "reopened task label" };
+  vi.spyOn(Tmux, "createWindow").mockResolvedValue({
+    paneId: child.paneId,
+    windowId: child.windowId,
+  });
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  await expect(parent.launch(requested)).resolves.toEqual(requested);
+  expect(parent.children()[0]?.manifest.description).toBe(
+    "reopened task label",
+  );
+});
+
 test("starts a frozen skill policy with no discovery and exact skill paths", async () => {
   let command: string[] = [];
   vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
-    command = params.command;
+    command = JSON.parse(readFileSync(params.command[2] ?? "", "utf8")).command;
     return { paneId: child.paneId, windowId: child.windowId };
   });
   vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
@@ -122,10 +257,10 @@ test("starts a frozen skill policy with no discovery and exact skill paths", asy
   );
 });
 
-test("replays frozen parent prompt inputs and one-off extensions in the child command", async () => {
+test("hosts frozen extensions once while replaying parent prompt inputs", async () => {
   let command: string[] = [];
   vi.spyOn(Tmux, "createWindow").mockImplementation(async (params) => {
-    command = params.command;
+    command = JSON.parse(readFileSync(params.command[2] ?? "", "utf8")).command;
     return { paneId: child.paneId, windowId: child.windowId };
   });
   vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
@@ -142,13 +277,19 @@ test("replays frozen parent prompt inputs and one-off extensions in the child co
     },
   });
 
-  const extension = command.indexOf("/tmp/extensions/one-off.ts");
   const childExtension = command.indexOf(
     new URL("../../child/index.ts", import.meta.url).pathname,
   );
   const append = command.indexOf("--append-system-prompt");
-  expect(extension).toBeGreaterThan(-1);
-  expect(extension).toBeLessThan(childExtension);
+  expect(command).not.toContain("/tmp/extensions/one-off.ts");
+  expect(command).toContain("--no-extensions");
+  expect(childExtension).toBeGreaterThan(-1);
+  expect(command.filter((argument) => argument === "--extension")).toHaveLength(
+    2,
+  );
+  expect(command[command.indexOf("--extension") + 1]).toMatch(
+    /\/child-id\/extensions\/0\.ts$/,
+  );
   expect(command).toEqual(
     expect.arrayContaining([
       "--system-prompt",
@@ -362,7 +503,7 @@ test.each([
   },
 );
 
-test("rejects a resumed child before writing or reopening when a required tool is absent", async () => {
+test("rejects failed child readiness before sending a continuation prompt", async () => {
   const parent = runtime([]);
   const writeResponse = vi.spyOn(SessionStore, "writeResponse");
   const createWindow = vi.spyOn(Tmux, "createWindow").mockResolvedValue({
@@ -371,13 +512,23 @@ test("rejects a resumed child before writing or reopening when a required tool i
   });
   vi.spyOn(Tmux, "findManagedPane").mockReturnValue(undefined);
   vi.spyOn(Tmux, "paneExists").mockReturnValue(false);
+  vi.spyOn(Tmux, "markManagedPane").mockResolvedValue();
+  const closePane = vi.spyOn(Tmux, "closePane").mockImplementation(() => {});
+  vi.mocked(RuntimeStore.readReadiness).mockReturnValue({
+    version: 1,
+    childId: child.manifest.childId,
+    status: "failed",
+    createdAt: Date.now(),
+    error: "Missing required child tools: read",
+  });
 
   await expect(
     parent.continue(child.manifest, "Resume the restricted reviewer."),
-  ).rejects.toThrow("Required child tool is unavailable: read");
+  ).rejects.toThrow("Missing required child tools: read");
 
   expect(writeResponse).not.toHaveBeenCalled();
-  expect(createWindow).not.toHaveBeenCalled();
+  expect(createWindow).toHaveBeenCalledOnce();
+  expect(closePane).toHaveBeenCalledWith(child.paneId);
 });
 
 test.each([
@@ -526,9 +677,8 @@ test("title update failures warn once, retry, and do not block launch", async ()
     launchResolved = true;
     return manifest;
   });
-  await vi.advanceTimersByTimeAsync(0);
-  expect(launchResolved).toBe(true);
   await expect(launch).resolves.toEqual(child.manifest);
+  expect(launchResolved).toBe(true);
 
   let continuationResolved = false;
   const continuation = parent

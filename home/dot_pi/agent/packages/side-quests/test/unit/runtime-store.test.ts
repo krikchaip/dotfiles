@@ -58,6 +58,13 @@ const terminal = {
   response: "Completed work.",
 } as const;
 
+const readiness = {
+  version: STORE_VERSION,
+  childId: "child-id",
+  status: "ready",
+  createdAt: 2_500,
+} as const;
+
 test("round-trips a valid activity snapshot", () => {
   temporaryRoot();
   const { version: _version, ...state } = activity;
@@ -86,6 +93,35 @@ test.each([
   });
 
   expect(RuntimeStore.readActivity("parent-id", "child-id")).toBeUndefined();
+});
+
+test("round-trips and clears child readiness", () => {
+  temporaryRoot();
+  const { version: _version, ...state } = readiness;
+
+  RuntimeStore.writeReadiness("parent-id", state);
+
+  expect(RuntimeStore.readReadiness("parent-id", "child-id")).toEqual(
+    readiness,
+  );
+  RuntimeStore.clearReadiness("parent-id", "child-id");
+  expect(RuntimeStore.readReadiness("parent-id", "child-id")).toBeUndefined();
+});
+
+test.each([
+  { version: STORE_VERSION + 1 },
+  { childId: "different-child" },
+  { status: "starting" },
+  { createdAt: "now" },
+  { error: false },
+])("rejects an invalid child readiness record %#", (update) => {
+  const root = temporaryRoot();
+  JsonStore.write(childStatePath(root, "readiness.json"), {
+    ...readiness,
+    ...update,
+  });
+
+  expect(RuntimeStore.readReadiness("parent-id", "child-id")).toBeUndefined();
 });
 
 test("round-trips and clears a valid terminal outcome", () => {

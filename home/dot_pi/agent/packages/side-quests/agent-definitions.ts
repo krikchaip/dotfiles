@@ -2,6 +2,12 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parseFrontmatter } from "@earendil-works/pi-coding-agent";
 
+import {
+  type CapabilityField,
+  type CapabilitySelection,
+  parseCapabilitySelection,
+} from "./capability-selection.ts";
+
 /**
  * Identifies the standard agent that is always available for delegation.
  */
@@ -29,17 +35,14 @@ export type AgentDefinition = Readonly<{
   /** The optional Pi thinking-level override. */
   thinking?: ThinkingLevel;
 
-  /** The optional normal-tool replacement policy. */
-  tools?: ToolSelection;
+  /** The optional normal-tool capability expression and its source file. */
+  tools?: ConfiguredCapability;
 
-  /** The normal tools removed after the allowlist is applied. */
-  disallowedTools: readonly string[];
+  /** The optional extension capability expression and its source file. */
+  extensions?: ConfiguredCapability;
 
-  /** The optional lazy-skill replacement policy. */
-  availableSkills?: SkillSelection;
-
-  /** The full skill instructions loaded at child startup. */
-  preloadSkills: readonly string[];
+  /** The optional skill capability expression and its source file. */
+  skills?: ConfiguredCapability;
 
   /** The optional conversation-copying default. */
   inheritContext?: boolean;
@@ -64,14 +67,15 @@ export type ThinkingLevel =
   | "max";
 
 /**
- * Selects normal child tools by sentinel or exact tool names.
+ * Keeps a parsed capability expression with its field-level path provenance.
  */
-export type ToolSelection = "all" | "none" | readonly string[];
+export type ConfiguredCapability = Readonly<{
+  /** Records the parsed unified capability expression. */
+  selection: CapabilitySelection;
 
-/**
- * Selects lazy child skills by boolean policy or exact skill names.
- */
-export type SkillSelection = boolean | readonly string[];
+  /** Identifies the definition file that supplied this field. */
+  sourcePath: string;
+}>;
 
 /**
  * Records the participating layer that made one resolved identity malformed.
@@ -88,10 +92,9 @@ export type AgentDefinitionRuntimeLayer = Readonly<{
   name: string;
   path: string;
   model?: string;
-  tools?: ToolSelection;
-  disallowedTools?: readonly string[];
-  availableSkills?: SkillSelection;
-  preloadSkills?: readonly string[];
+  tools?: CapabilitySelection;
+  extensions?: CapabilitySelection;
+  skills?: CapabilitySelection;
 }>;
 
 type DefinitionRecord =
@@ -113,10 +116,9 @@ type DefinitionFields = {
   enabled?: boolean;
   model?: string;
   thinking?: ThinkingLevel;
-  tools?: ToolSelection;
-  disallowedTools?: readonly string[];
-  availableSkills?: SkillSelection;
-  preloadSkills?: readonly string[];
+  tools?: ConfiguredCapability;
+  extensions?: ConfiguredCapability;
+  skills?: ConfiguredCapability;
   inheritContext?: boolean;
   interactive?: boolean;
 };
@@ -289,10 +291,9 @@ export class AgentDefinitions {
       name,
       path,
       model: layer.model,
-      tools: layer.tools,
-      disallowedTools: layer.disallowedTools,
-      availableSkills: layer.availableSkills,
-      preloadSkills: layer.preloadSkills,
+      tools: layer.tools?.selection,
+      extensions: layer.extensions?.selection,
+      skills: layer.skills?.selection,
     }));
     const path = projectPath ?? globalPath;
     if (!path)
@@ -320,9 +321,8 @@ export class AgentDefinitions {
         model: fields.model,
         thinking: fields.thinking,
         tools: fields.tools,
-        disallowedTools: fields.disallowedTools ?? [],
-        availableSkills: fields.availableSkills,
-        preloadSkills: fields.preloadSkills ?? [],
+        extensions: fields.extensions,
+        skills: fields.skills,
         inheritContext: fields.inheritContext,
         interactive: fields.interactive,
         path,
@@ -354,15 +354,20 @@ export class AgentDefinitions {
       const enabled = AgentDefinitions.optionalBoolean(frontmatter, "enabled");
       const model = AgentDefinitions.optionalModel(frontmatter);
       const thinking = AgentDefinitions.optionalThinking(frontmatter);
-      const tools = AgentDefinitions.optionalTools(frontmatter);
-      const disallowedTools = AgentDefinitions.optionalNames(
+      const tools = AgentDefinitions.optionalCapability(
         frontmatter,
-        "disallowed_tools",
+        "tools",
+        path,
       );
-      const availableSkills = AgentDefinitions.optionalSkills(frontmatter);
-      const preloadSkills = AgentDefinitions.optionalNames(
+      const extensions = AgentDefinitions.optionalCapability(
         frontmatter,
-        "preload_skills",
+        "extensions",
+        path,
+      );
+      const skills = AgentDefinitions.optionalCapability(
+        frontmatter,
+        "skills",
+        path,
       );
       const inheritContext = AgentDefinitions.optionalBoolean(
         frontmatter,
@@ -381,11 +386,8 @@ export class AgentDefinitions {
       if (model !== undefined) fields.model = model;
       if (thinking !== undefined) fields.thinking = thinking;
       if (tools !== undefined) fields.tools = tools;
-      if (disallowedTools !== undefined)
-        fields.disallowedTools = disallowedTools;
-      if (availableSkills !== undefined)
-        fields.availableSkills = availableSkills;
-      if (preloadSkills !== undefined) fields.preloadSkills = preloadSkills;
+      if (extensions !== undefined) fields.extensions = extensions;
+      if (skills !== undefined) fields.skills = skills;
       if (inheritContext !== undefined) fields.inheritContext = inheritContext;
       if (interactive !== undefined) fields.interactive = interactive;
 
@@ -476,59 +478,18 @@ export class AgentDefinitions {
   }
 
   /**
-   * Reads tools from a sentinel or a normalized comma-separated/YAML list.
+   * Parses one present unified capability expression and preserves omission.
    */
-  private static optionalTools(
+  private static optionalCapability(
     frontmatter: Record<string, unknown>,
-  ): ToolSelection | undefined {
-    if (!("tools" in frontmatter)) return undefined;
-    const value = frontmatter.tools;
-    if (value === "all" || value === "none") return value;
-    return AgentDefinitions.names(value, "tools");
-  }
-
-  /**
-   * Reads the lazy-skill policy from a boolean or normalized name list.
-   */
-  private static optionalSkills(
-    frontmatter: Record<string, unknown>,
-  ): SkillSelection | undefined {
-    if (!("available_skills" in frontmatter)) return undefined;
-    const value = frontmatter.available_skills;
-    if (typeof value === "boolean") return value;
-    return AgentDefinitions.names(value, "available_skills");
-  }
-
-  /**
-   * Reads an optional normalized comma-separated or YAML name list.
-   */
-  private static optionalNames(
-    frontmatter: Record<string, unknown>,
-    field: string,
-  ): readonly string[] | undefined {
+    field: CapabilityField,
+    sourcePath: string,
+  ): ConfiguredCapability | undefined {
     if (!(field in frontmatter)) return undefined;
-    return AgentDefinitions.names(frontmatter[field], field);
-  }
-
-  /**
-   * Validates a CSV string or YAML string list and removes later duplicates.
-   */
-  private static names(value: unknown, field: string): readonly string[] {
-    const names =
-      typeof value === "string"
-        ? value.split(",").map((name) => name.trim())
-        : Array.isArray(value)
-          ? value
-          : undefined;
-    if (
-      !names ||
-      names.some((name) => typeof name !== "string" || !name.trim())
-    )
-      throw new Error(
-        `${field} must be a comma-separated string or string list`,
-      );
-
-    return [...new Set(names)];
+    return {
+      selection: parseCapabilitySelection(field, frontmatter[field]),
+      sourcePath,
+    };
   }
 
   /**

@@ -81,6 +81,8 @@ The same normalized identifier cannot receive conflicting operations. Exact dupl
 
 `tools: true` selects all registered child tools. `tools: false` and `tools: []` select no normal child tools. A plain list selects the exact normal tool set. A signed list modifies the parent's current enabled set. Plain and `+` tool identifiers can explicitly enable a registered tool that is inactive in the parent.
 
+A Parent-relative `extensions` removal also removes tools supplied only by the removed parent extension entrypoints from the inherited tool baseline. Apply this provenance pruning when `tools` is omitted or Parent-relative, before applying explicit tool operations. Retain a same-name tool when a built-in, Direct, or retained extension provider still supplies it. Plain and `+tool` identifiers are explicit requests, not inherited tools, and remain strict child-readiness requirements.
+
 Permanent Side Quests safety rules apply after selection. Subagent-spawning tools remain denied. Required child control tools remain outside Agent capability selection.
 
 ### Extensions
@@ -150,7 +152,7 @@ A tool identifier can refer to a tool registered only by an extension selected f
 Every behavior requires automated evidence before implementation is accepted:
 
 - `capability-selection-matrix`: table-driven unit tests cover all three fields, both list modes, booleans, omission, empty lists, whitespace normalization, comma-bearing YAML items, duplicate and conflict errors, overlay replacement, and unknown identifiers.
-- `agent-tools-unified-selection`: E2E tests observe fixed, parent-relative, all, and empty child tool surfaces plus permanent Side Quests safety rules.
+- `agent-tools-unified-selection`: E2E tests observe fixed, parent-relative, all, and empty child tool surfaces; automatic inherited-tool pruning after Parent-relative extension removal; shared tool providers; strict explicit tool requests; and permanent Side Quests safety rules.
 - `agent-skills-unified-selection`: E2E tests observe lazy and preloaded prompt content, fixed and parent-relative `++` behavior, hidden-skill selection, same-skill conflicts, missing-`read` behavior, and immutable resume policy.
 - `agent-extensions-unified-selection`: E2E tests observe parent-snapshot inheritance, fresh child discovery, the Direct extension baseline, fixed and signed package/path selection, exact npm-version and Git-ref resolution, parent-relative version/ref upsert, same-identity duplicate/conflict rejection, settings-filter override, manifest boundaries, no-match errors, canonical identity conflicts, and comma-bearing paths. Prove omission and parent-relative selection retain a one-off parent CLI extension while `true`, `false`, `[]`, and a fixed list do not replay it unless explicitly selected.
 - `agent-child-readiness`: E2E tests enable an extension unavailable in the parent, select one of its tools, and prove success only after child registry validation. Failure cases prove fail-closed cleanup with no retained pane, session, or manifest.
@@ -160,6 +162,7 @@ Run focused tests during implementation. Finish with the package's clean serial 
 
 ## Comments
 
+- Implementation validation is recorded in [validation.md](../validation.md). The user approved the Direct baseline identity fix on 2026-09-30. Its resolver and real-Pi removal regression pass. The existing serial gate passes 444 unit tests and 100 real-Pi scenarios; the broader Ticket 10 extension-selection E2E matrix remains incomplete.
 - This ticket supersedes Ticket 3's `tools`/`disallowed_tools` and `available_skills`/`preload_skills` capability syntax. It also replaces Ticket 3's unconditional extension inheritance with resolved `extensions` policy.
 - Uneven CSV separator spacing is accepted because each item is trimmed independently.
 - Paths containing commas must use quoted YAML-list items; CSV cannot escape a comma.

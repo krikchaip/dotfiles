@@ -19,7 +19,14 @@ declare global {
     /** Test-owned project .agents skill files created before Pi starts. */
     readonly agentSkillFiles?: Readonly<Record<string, string>>;
 
+    /** Additional native Pi flags for test-owned launch input. */
+    readonly arguments?: readonly string[];
+
     readonly child?: boolean;
+
+    /** Allows only the selected factory-failure label asserted by the scenario. */
+    readonly expectedExtensionFactoryFailure?: boolean;
+
     readonly extensionFixtures?: readonly string[];
     readonly extensionsBefore?: readonly string[];
 
@@ -31,10 +38,20 @@ declare global {
 
     readonly lifecycle?: "interactive";
     readonly managed?: boolean;
+
+    /** Override resource offline mode for test-owned loopback package fixtures. */
+    readonly offline?: boolean;
+
+    /** Reduces parent extension discovery while retaining the explicit provider. */
+    readonly noExtensions?: boolean;
+
     readonly outsideTmux?: boolean;
     readonly persistSession?: boolean;
     readonly positionalPrompt?: string;
     readonly providerTokensPerSecond?: number;
+
+    /** Lowers the production Package budget for a test-owned real launch. */
+    readonly resourceBudgetBytes?: number;
     readonly settings?: Readonly<Record<string, unknown>>;
 
     /** Test-owned global skill files created before Pi starts. */
@@ -51,6 +68,8 @@ declare global {
     readonly process: ScenarioProcess;
     readonly timeoutMs?: number;
     readonly width?: number;
+    /** Prepares test-owned resources before native Pi startup. */
+    prepare?(harness: E2EHarness): Promise<void>;
     configureProvider?(context: ProviderContext): void;
     run(harness: E2EHarness): Promise<void>;
   }

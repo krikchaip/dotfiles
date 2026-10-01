@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { registerTerminalForegroundQuery } from "../renderer/terminal-foreground.ts";
 import { currentEnvironment, detectRole } from "../role.ts";
+import { SessionStore } from "../store/session.ts";
 import { ChildCommands } from "./command.ts";
 import { registerChildPrompt } from "./prompt.ts";
 import { ChildRuntime } from "./runtime.ts";
@@ -11,7 +12,7 @@ import { ChildUI } from "./ui.ts";
 /**
  * Package-internal entrypoint. Managed child Pi processes load this path explicitly.
  */
-export default function (pi: ExtensionAPI): void {
+export default async function (pi: ExtensionAPI): Promise<void> {
   const environment = currentEnvironment();
   if (detectRole(environment) !== "child") return;
 
@@ -22,6 +23,16 @@ export default function (pi: ExtensionAPI): void {
     !environment.PI_SIDE_QUESTS_SESSION
   )
     return;
+
+  const manifest = SessionStore.readManifest(
+    environment.PI_SIDE_QUESTS_SESSION,
+  );
+  if (
+    !manifest ||
+    manifest.childId !== environment.PI_SIDE_QUESTS_CHILD_ID ||
+    manifest.parentId !== environment.PI_SIDE_QUESTS_PARENT_ID
+  )
+    throw new Error("Side Quests child manifest is invalid.");
 
   registerTerminalForegroundQuery(pi);
   const runtime = ChildRuntime.register(pi);

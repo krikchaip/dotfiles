@@ -1,10 +1,16 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
 
 import { configureBasicDelegation, delay } from "../provider-support.ts";
 
 export const fatalAutonomous: Scenario = {
   name: "fatal-autonomous",
-  process: { managed: true, positionalPrompt: "Delegate this E2E task now." },
+  process: {
+    extensionFixtures: ["test/e2e/fixture/fatal-process-exit.ts"],
+    managed: true,
+    positionalPrompt: "Delegate this E2E task now.",
+  },
   configureProvider(context) {
     if (context.role === "parent") {
       configureBasicDelegation(context, {
@@ -20,6 +26,7 @@ export const fatalAutonomous: Scenario = {
     ]);
   },
   async run(harness: E2EHarness) {
+    await harness.waitFor("└ Spawned [inherited]");
     const childPane = await harness.childPane();
     const remain = (
       await harness.tmux(
@@ -36,7 +43,7 @@ export const fatalAutonomous: Scenario = {
       "The managed child pane did not retain nonzero process exits.",
     );
 
-    await harness.tmux("respawn-pane", "-k", "-t", childPane, "exit 17");
+    writeFileSync(join(harness.stateDirectory, "fatal-process-exit"), "exit\n");
     await harness.waitFor("SUBAGENT FAILED");
     await harness.sendParentKeys("C-o");
     await harness.waitFor("Child process exited with status 17.", 5_000);

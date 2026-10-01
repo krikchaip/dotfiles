@@ -24,6 +24,22 @@ Outside tmux, Side Quests:
 
 Side Quests does not support cmux, Zellij, WezTerm, or a non-tmux fallback.
 
+## Disk safety
+
+Startup and ordinary prompts do not copy Package graphs. Startup records loaded Package fingerprints off-thread. An actual `Agent` launch materializes an immutable view only when a child needs it. If the installed source changes before materialization, launch fails with a reload instruction instead of inheriting a different version.
+
+Stored Package growth is proportional to distinct content and retained graph structure:
+
+- Unchanged file bytes are stored once in `side-quests/snapshot-objects/v3` and hard-linked into read-only native-resolution views under `side-quests/resources/snapshot-*`. Repeated sessions, Pi processes, source timestamps, and installed paths do not duplicate those bytes.
+- A changed Package version gets a separate immutable view. It reuses unchanged file objects and adds only changed content plus graph metadata. Stored files never hard-link back to mutable installed files.
+- There is no default fixed byte cap. Several GiB can be valid. `PI_SIDE_QUESTS_MAX_RESOURCE_BYTES` sets an optional positive safe-integer cap for controlled environments and tests.
+- Before new content is written, Side Quests requires at least **2 GiB free space after the reserved new objects and publication metadata**. This is a pre-copy check, not a quota on other programs.
+- All allocators for one agent directory share a cross-process lock. Reads and writes are bounded. A crashed allocator can leave a lock; another allocation fails after 10 seconds rather than guessing that the lock is safe to delete.
+- V3 graphs have process leases and saved-child references. Cleanup waits at least 60 seconds after publication, then removes a graph only when no live process lease and no managed saved manifest references it. Invalid or unknown ownership metadata prevents deletion. Legacy roots without v3 ownership proof are never deleted automatically.
+- Package files and graph directories are read-only. Extensions must keep mutable settings, logs, and state outside their installed Package tree.
+
+When an online selection needs a missing npm version, Git ref, or fresh unpinned Package, Side Quests runs Pi's native installer after the 2 GiB free-space preflight. Installer stdout and stderr stay out of the parent terminal on success. A failure reports only the final 16 KiB of captured diagnostics. Side Quests checks the free-space floor again before immutable capture. Offline selection never installs and requires matching warm resources.
+
 ## How it works
 
 ```text
@@ -150,8 +166,10 @@ Every `Agent.resume` prompt is stored as a custom continuation message, not as a
 
 - **Live and idle:** the child receives the custom message immediately.
 - **Live and active:** the custom message is queued until the current tool batch finishes, without interruption.
-- **Stopped:** Side Quests reopens the saved session in a new pane and delivers the custom message as its first continuation.
+- **Stopped:** Side Quests reopens the saved session in a new pane, validates the saved extensions and tools through child readiness, then delivers the custom message as its first continuation.
 - **Already live:** Side Quests never starts a duplicate process for the same session.
+
+A failed reopen keeps the saved session and its previous task label. It closes the temporary pane and does not deliver the continuation.
 
 The acknowledgement states whether Side Quests launched, continued, or reopened the child. It always includes the canonical session path.
 
@@ -379,6 +397,10 @@ extensions:
 - Plain and `+` names may enable a registered tool inactive in the parent.
 - Unknown names stop launch.
 
+When a parent-relative `extensions` expression removes an extension, Side Quests also removes tools supplied only by that extension from the inherited tool baseline. This automatic pruning applies when `tools` is omitted or parent-relative, so the agent file does not need a matching `-tool`. A same-name tool stays inherited when a built-in, Direct, or retained extension provider still supplies it. Plain and `+tool` entries are explicit requests and remain strict: launch fails if the selected child extensions do not register them.
+
+Broad tool selection is resolved in the initial child after its selected extensions register their tools. The child freezes the exact normal-tool list before reporting readiness; reopen uses that list instead of selecting all tools again. Lower-layer tool names absent from the parent registry are also checked in the child, even when a project expression replaces them. These checks do not widen the final tool allowlist. Failure reports the supplying definition path and removes the failed launch state. Readiness failure exits only the managed child before any provider request; a deferred native shutdown request is not sufficient during startup.
+
 Every child also follows fixed safety rules:
 
 - `Agent` and all other known subagent-spawning tools are always denied.
@@ -397,7 +419,9 @@ The **Direct extension baseline** contains non-package extensions. Its source de
 - `true`, `false`, `[]`, and fixed selection discover the current normal child baseline from effective global/project direct extensions. They do not replay one-off parent CLI sources unless a fixed expression explicitly selects the same source.
 - Parent-relative selection starts from the complete parent extension snapshot, including one-off parent CLI sources, and applies `+` and `-` operations.
 
-`extensions: false` and `extensions: []` load only the freshly discovered Direct extension baseline. `extensions: true` also loads every normally enabled package extension from current effective settings. A fixed list keeps the fresh baseline and loads only the listed package/source extensions. Only a parent-relative `-identifier` can remove a baseline member.
+The startup snapshot respects the parent's `--no-extensions` flag. In that case, omitted and parent-relative selections inherit only the parent's explicit CLI sources; they do not add normally discovered extensions. Fresh selection still uses normal child discovery.
+
+`extensions: false` and `extensions: []` load only the freshly discovered Direct extension baseline. `extensions: true` also loads every normally enabled package extension from current effective settings. A fixed list keeps the fresh baseline and loads only the listed package/source extensions. Direct-only and fixed selections do not resolve unrelated settings packages. Parent-relative selections resolve only their named operations, not the full settings package batch. An uncached, unselected settings package does not block these selections offline; a missing selected package still stops launch. Only a parent-relative `-identifier` can remove a baseline member.
 
 A package identifier selects that package's extension entrypoints only. It does not select its skills, prompts, or themes. Plain and `+` package identifiers override extension filters in `settings.json`, but remain inside the package author's `package.json` Pi manifest boundary. Broad `true` respects normal settings filters.
 
@@ -413,6 +437,10 @@ Package identity ignores the npm version or Git ref only for matching, duplicate
 
 Every explicit package, path, directory, or pattern operation must match at least one extension entrypoint. A package with no extensions, an empty extension directory, an unmatched pattern, or a removal with no match stops launch. Broad `true`, `false`, and `[]` remain valid when no package extension exists.
 
+Fresh discovery rereads effective settings for each new child selection. Inherited and reopened children keep their saved snapshot. Matching installed npm/Git graphs use immutable read-only views in `side-quests/resources/snapshot-*`, within the [disk-safety rules](#disk-safety). Online missing versions, refs, and fresh unpinned additions use Pi's native installer after the free-space preflight. Copied inherited npm resources retain the `node_modules` graph layout so extensions and package-backed skill scripts can resolve hoisted dependencies. A later version or ref selection does not replace another child's saved install; unchanged files are shared by content. Saved manifests retain their exact views, while proven-unused v3 views can be collected. Local source files stay at their original paths; this does not freeze user edits to local files.
+
+Selected extension factories execute once per child process generation, including reopen. Automatic child discovery is disabled; private native-Pi wrappers load the exact saved entrypoints through the child's own extension API and provider registry. Package discovery performs at most the required initial native install; child wrapper loading never starts a second installer.
+
 The private Side Quests child companion is infrastructure outside Agent capability selection and cannot be removed.
 
 ### Skills
@@ -423,6 +451,8 @@ The private Side Quests child companion is infrastructure outside Agent capabili
 - A plain skill name selects it for a fixed lazy catalog.
 - `+skill` and `-skill` modify the inherited lazy catalog.
 - `++skill` preloads its full instructions.
+
+Configured skill selection uses Pi's native resource loader to discover current global, project, `.agents`, and package skills. It does not execute extension factories during discovery. `skills: true` uses this fresh catalog, not the parent's potentially reduced catalog. Explicit names can select newly discovered skills. Omission keeps the exact parent snapshot. Resolved skill paths are saved for immutable continuation.
 
 `++skill` is mode-neutral. Plain names plus `++` form fixed selection. Single-signed names plus `++` form parent-relative selection. A list containing only `++` entries is fixed, has no lazy skills, and preloads those entries:
 
@@ -828,6 +858,7 @@ $PI_CODING_AGENT_DIR/side-quests/
 ├── sessions/<parent-session-uuid>/<child-session-uuid>/
 │   ├── session.jsonl
 │   ├── manifest.json
+│   ├── extensions/<index>.ts
 │   └── mailbox/
 │       ├── request.json
 │       └── response.json
@@ -835,6 +866,7 @@ $PI_CODING_AGENT_DIR/side-quests/
     ├── owner.json
     └── children/<child-session-uuid>/
         ├── activity.json
+        ├── readiness.json
         └── terminal.json
 ```
 
@@ -842,6 +874,7 @@ Persistent data:
 
 - `session.jsonl` contains the Pi child session.
 - `manifest.json` contains identity, lineage, CWD, lifecycle, model, thinking, exact tools, resolved extension entrypoints, skills, prompt policy, and schema version.
+- `extensions/<index>.ts` contains private loader wrappers derived from the manifest. Side Quests recreates them when it reopens the child.
 - Resume cannot change resolved identity, context choice, lifecycle, capabilities, or prompt policy.
 - Continuation can update only the task label. Human terminal takeover can persist permanent lifecycle promotion.
 - Unanswered requests remain until they receive a matching response.

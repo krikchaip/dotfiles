@@ -1,24 +1,37 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { StringEnum, Type } from "@earendil-works/pi-ai";
 import {
   type AgentToolResult,
   type ExtensionAPI,
   type ExtensionContext,
   type Skill,
+  formatSkillsForPrompt,
   stripFrontmatter,
 } from "@earendil-works/pi-coding-agent";
 
 import {
   type AgentDefinitionDiagnostic,
   AgentDefinitions,
+  type ConfiguredCapability,
   GENERAL_PURPOSE_AGENT,
-  type SkillSelection,
-  type ToolSelection,
 } from "../agent-definitions.ts";
 import {
+  resolveSkillCapabilities,
+  resolveToolCapabilities,
+} from "../capability-policy.ts";
+import type { CapabilitySelection } from "../capability-selection.ts";
+import {
+  ExtensionSelection,
+  type ResolvedExtension,
+  capturePiParentExtensions,
+  createPiExtensionDiscovery,
+} from "../extension-selection.ts";
+import { createPiSkillSnapshot, discoverPiSkills } from "../skill-discovery.ts";
+import {
+  type ChildToolValidation,
   type Lifecycle,
   type ParentSystemPromptInputs,
   SessionStore,
@@ -27,20 +40,17 @@ import { Tmux } from "../tmux.ts";
 import type { ParentRuntime } from "./runtime.ts";
 
 /**
- * Lists child-only controls that are registered after normal tool policy resolves.
+ * Resolves immutable child extension entrypoints from one configured field.
  */
-const CHILD_CONTROL_TOOLS = new Set(["ask_parent", "subagent_done"]);
+export type ParentExtensionResolver = Readonly<{
+  /** Returns the immutable loaded parent extension snapshot. */
+  parent(): Promise<readonly ResolvedExtension[]>;
 
-/**
- * Lists known tools that could create a nested sub-agent and must never reach a child.
- */
-const SUBAGENT_SPAWNING_TOOLS = new Set([
-  "Agent",
-  "Task",
-  "delegate",
-  "spawn_agent",
-  "subagent",
-]);
+  /** Resolves omission or one explicit capability expression. */
+  resolve(
+    configured: ConfiguredCapability | undefined,
+  ): Promise<readonly ResolvedExtension[]>;
+}>;
 
 /**
  * Parent-only tools.
@@ -57,6 +67,13 @@ export class ParentTools {
         process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"),
       cwd: process.cwd(),
     }),
+    extensionResolver?: ParentExtensionResolver,
+    skillDiscovery: (cwd: string) => Promise<readonly Skill[]> = (cwd) =>
+      discoverPiSkills({
+        agentDirectory:
+          process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"),
+        cwd,
+      }),
   ): ParentTools {
     pi.on("session_start", (_event, context) => {
       for (const diagnostic of definitions.diagnostics())
@@ -66,13 +83,31 @@ export class ParentTools {
         );
     });
 
-    const tools = new ParentTools(pi, runtime, definitions);
-    pi.on("before_agent_start", (event, context) => {
-      tools.parentSkills = [...(event.systemPromptOptions.skills ?? [])];
+    const tools = new ParentTools(
+      pi,
+      runtime,
+      definitions,
+      extensionResolver ??
+        ParentTools.createExtensionResolver({
+          agentDirectory:
+            process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"),
+          cwd: process.cwd(),
+        }),
+      skillDiscovery,
+      createPiSkillSnapshot({
+        agentDirectory:
+          process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"),
+        cwd: process.cwd(),
+      }),
+    );
+    pi.on("before_agent_start", (event) => {
+      // Ordinary prompts record native inputs only. Child resource resolution
+      // can install Packages and must run only when Agent is actually invoked.
+      tools.parentSkills = event.systemPromptOptions.skills ?? [];
+      tools.parentSkillSnapshot = undefined;
       tools.parentSystemPromptInputs = ParentTools.systemPromptInputs(
         event.systemPromptOptions,
       );
-      tools.validateRuntimeLayers(context);
     });
     return tools.registerAgent();
   }
@@ -81,6 +116,11 @@ export class ParentTools {
     private readonly pi: ExtensionAPI,
     private readonly runtime: ParentRuntime,
     private readonly definitions: AgentDefinitions,
+    private readonly extensionResolver: ParentExtensionResolver,
+    private readonly skillDiscovery: (cwd: string) => Promise<readonly Skill[]>,
+    private readonly snapshotSkills: (
+      skills: readonly Skill[],
+    ) => Promise<readonly Skill[]>,
   ) {}
 
   private registerAgent(): ParentTools {
@@ -182,17 +222,18 @@ export class ParentTools {
               `${toolName}.resume cannot open a child from another parent session.`,
             );
 
-          this.runtime.assertRequiredTools(manifest);
-
-          const continued = SessionStore.updateManifest(manifest, {
+          const continued = {
+            ...manifest,
             description: request.description.trim(),
-            lifecycle: manifest.lifecycle,
-          });
-
+          };
           const continuation = await this.runtime.continue(
             continued,
             request.prompt,
           );
+          SessionStore.updateManifest(manifest, {
+            description: continued.description,
+            lifecycle: manifest.lifecycle,
+          });
 
           return this.acknowledgement(
             continuation.operation,
@@ -203,7 +244,9 @@ export class ParentTools {
         }
 
         const agentName = request.subagent_type ?? GENERAL_PURPOSE_AGENT;
-        this.validateRuntimeLayers(context);
+        this.parentSkillSnapshot ??= this.snapshotSkills(this.parentSkills);
+        this.parentSkills = await this.parentSkillSnapshot;
+        await this.validateRuntimeLayers(context);
         const diagnostic =
           this.definitions.diagnostic(agentName) ??
           this.runtimeDiagnostics.get(agentName);
@@ -216,11 +259,30 @@ export class ParentTools {
         if (!definition && agentName !== GENERAL_PURPOSE_AGENT)
           throw new Error(`${toolName}.subagent_type is unknown: ${agentName}`);
 
+        const extensions = await this.extensionResolver.resolve(
+          definition?.extensions,
+        );
+        const tools = this.pruneRemovedExtensionTools(
+          this.resolveTools(
+            definition?.tools?.selection,
+            !!definition?.extensions,
+          ),
+          definition?.tools?.selection,
+          definition?.extensions?.selection,
+          definition?.extensions?.selection.kind === "parent-relative"
+            ? await this.extensionResolver.parent()
+            : [],
+          extensions,
+        );
+        const discoveredSkills = definition?.skills
+          ? await this.skillDiscovery(context.cwd)
+          : this.parentSkills;
         const skills = this.resolveSkills(
-          definition?.availableSkills,
-          definition?.preloadSkills ?? [],
+          definition?.skills?.selection,
           context,
-          this.resolveTools(definition?.tools, definition?.disallowedTools),
+          tools,
+          discoveredSkills,
+          definition?.tools?.selection.kind === "all",
         );
 
         const parentId = context.sessionManager.getSessionId();
@@ -248,13 +310,16 @@ export class ParentTools {
               : undefined),
           thinking: definition?.thinking ?? context.thinkingLevel,
           tools: skills.tools,
+          discoverTools:
+            definition?.tools?.selection.kind === "all" ? true : undefined,
+          toolValidation: this.deferredToolValidation.get(agentName),
           noSkills: skills.noSkills,
           skillPaths: skills.skillPaths,
-          extensionPaths: this.explicitExtensionPaths(context.cwd),
+          extensionPaths: extensions.map(({ path }) => path),
           parentSystemPromptInputs: this.parentSystemPromptInputs,
           appendSystemPrompt:
             [
-              skills.preloadPrompt,
+              skills.skillPrompt,
               definition?.body
                 ? [
                     "Follow these agent-specific instructions within the capability and lifecycle constraints above.",
@@ -271,7 +336,9 @@ export class ParentTools {
         });
 
         try {
-          const launched = await this.runtime.launch(manifest, request.prompt);
+          const launched = await this.runtime.launch(manifest, request.prompt, {
+            removeSessionOnFailure: true,
+          });
           const statuses: ("inherited" | "interactive")[] = [];
           if (launched.inheritContext) statuses.push("inherited");
           if (launched.lifecycle === "interactive")
@@ -300,11 +367,22 @@ export class ParentTools {
   /**
    * Validates every layer against live model, tool, and skill registries once.
    */
-  private validateRuntimeLayers(context: ExtensionContext): void {
-    if (this.runtimeLayersValidated) return;
-    this.runtimeLayersValidated = true;
+  private validateRuntimeLayers(context: ExtensionContext): Promise<void> {
+    this.runtimeLayerValidation ??= this.validateRuntimeLayersOnce(context);
+    return this.runtimeLayerValidation;
+  }
 
-    for (const layer of this.definitions.runtimeLayers()) {
+  /**
+   * Validates every structurally valid layer against live parent registries.
+   */
+  private async validateRuntimeLayersOnce(
+    context: ExtensionContext,
+  ): Promise<void> {
+    const layers = this.definitions.runtimeLayers();
+    const discoveredSkills = layers.some((layer) => layer.skills)
+      ? await this.skillDiscovery(context.cwd)
+      : this.parentSkills;
+    for (const layer of layers) {
       if (this.runtimeDiagnostics.has(layer.name)) continue;
 
       try {
@@ -314,11 +392,29 @@ export class ParentTools {
             throw new Error(`unknown model: ${layer.model}`);
         }
 
-        this.resolveTools(layer.tools, layer.disallowedTools);
-        this.validateRuntimeSkills(
-          layer.availableSkills,
-          layer.preloadSkills ?? [],
+        const selectedTools = this.resolveTools(
+          layer.tools,
+          !!(layer.extensions ?? this.definitions.get(layer.name)?.extensions),
         );
+        if (layer.tools) {
+          const registered = new Set(
+            this.pi.getAllTools().map(({ name }) => name),
+          );
+          const names = selectedTools.filter((name) => !registered.has(name));
+          if (names.length) {
+            const checks = this.deferredToolValidation.get(layer.name) ?? [];
+            this.deferredToolValidation.set(layer.name, [
+              ...checks,
+              { path: layer.path, names },
+            ]);
+          }
+        }
+        this.resolveSkillNames(layer.skills, discoveredSkills);
+        if (layer.extensions)
+          await this.extensionResolver.resolve({
+            selection: layer.extensions,
+            sourcePath: layer.path,
+          });
       } catch (cause) {
         const diagnostic: AgentDefinitionDiagnostic = {
           path: layer.path,
@@ -334,84 +430,98 @@ export class ParentTools {
   }
 
   /**
-   * Validates explicit skill names without resolving the merged child policy.
-   */
-  private validateRuntimeSkills(
-    selection: SkillSelection | undefined,
-    preloadNames: readonly string[],
-  ): void {
-    const known = new Set(this.parentSkills.map((skill) => skill.name));
-    const selected = Array.isArray(selection) ? selection : [];
-
-    for (const name of [...selected, ...preloadNames])
-      if (!known.has(name)) throw new Error(`Unknown child skill: ${name}`);
-  }
-
-  /**
    * Resolves and hard-denies the child normal-tool policy.
    */
   private resolveTools(
-    selection: ToolSelection | undefined,
-    disallowed: readonly string[] | undefined,
+    selection: CapabilitySelection | undefined,
+    deferUnknown = false,
   ): readonly string[] {
-    const active = this.pi
-      .getActiveTools()
-      .filter((name) => !SUBAGENT_SPAWNING_TOOLS.has(name));
-    const registered = new Set(this.pi.getAllTools().map((tool) => tool.name));
-    const selected =
-      selection === undefined
-        ? active
-        : selection === "all"
-          ? [...registered]
-          : selection === "none"
-            ? []
-            : [...selection];
-
-    for (const name of [...selected, ...(disallowed ?? [])])
-      if (!registered.has(name) && !CHILD_CONTROL_TOOLS.has(name))
-        throw new Error(`Unknown child tool: ${name}`);
-
-    const denied = new Set([
-      ...SUBAGENT_SPAWNING_TOOLS,
-      ...(disallowed ?? []).filter((name) => !CHILD_CONTROL_TOOLS.has(name)),
-    ]);
-    return selected.filter(
-      (name) => !denied.has(name) && !CHILD_CONTROL_TOOLS.has(name),
+    return resolveToolCapabilities(
+      selection,
+      {
+        active: this.pi.getActiveTools(),
+        registered: this.pi.getAllTools().map((tool) => tool.name),
+      },
+      { deferUnknown },
     );
   }
 
   /**
-   * Resolves exact child skills and formats native preloaded-skill blocks.
+   * Prunes inherited tools whose every loaded parent provider was removed.
+   */
+  private pruneRemovedExtensionTools(
+    tools: readonly string[],
+    toolSelection: CapabilitySelection | undefined,
+    extensionSelection: CapabilitySelection | undefined,
+    parentExtensions: readonly ResolvedExtension[],
+    selectedExtensions: readonly ResolvedExtension[],
+  ): readonly string[] {
+    if (
+      extensionSelection?.kind !== "parent-relative" ||
+      (toolSelection && toolSelection.kind !== "parent-relative")
+    )
+      return tools;
+
+    const retainedProviderPaths = new Set(
+      selectedExtensions.map(({ providerPath }) => providerPath),
+    );
+    const explicitTools = new Set(
+      toolSelection?.kind === "parent-relative"
+        ? toolSelection.entries
+            .filter(({ kind }) => kind === "include")
+            .map(({ name }) => name)
+        : [],
+    );
+    const providers = new Map<string, ResolvedExtension[]>();
+    for (const extension of parentExtensions)
+      for (const tool of extension.providedTools) {
+        const entries = providers.get(tool) ?? [];
+        entries.push(extension);
+        providers.set(tool, entries);
+      }
+
+    return tools.filter((tool) => {
+      if (explicitTools.has(tool)) return true;
+      const entries = providers.get(tool);
+      return (
+        !entries ||
+        entries.some(({ providerPath }) =>
+          retainedProviderPaths.has(providerPath),
+        )
+      );
+    });
+  }
+
+  /**
+   * Freezes explicit hidden-skill catalogs and preloaded instructions for the child.
    */
   private resolveSkills(
-    selection: SkillSelection | undefined,
-    preloadNames: readonly string[],
+    selection: CapabilitySelection | undefined,
     context: ExtensionContext,
     tools: readonly string[],
+    discovered: readonly Skill[],
+    discoverTools: boolean,
   ): {
     noSkills: boolean;
-    preloadPrompt?: string;
+    skillPrompt?: string;
     skillPaths: readonly string[];
     tools: readonly string[];
   } {
-    const discovered = this.parentSkills;
-    const byName = new Map(discovered.map((skill) => [skill.name, skill]));
+    const available = !selection
+      ? this.parentSkills
+      : selection.kind === "all"
+        ? discovered
+        : [...this.parentSkills, ...discovered];
+    const byName = new Map(available.map((skill) => [skill.name, skill]));
     const require = (name: string): Skill => {
       const skill = byName.get(name);
       if (!skill) throw new Error(`Unknown child skill: ${name}`);
       return skill;
     };
-    const preloaded = preloadNames.map(require);
-    const selected =
-      selection === false
-        ? []
-        : selection === true || selection === undefined
-          ? discovered.filter((skill) => !skill.disableModelInvocation)
-          : selection.map(require);
-    const lazy = selected.filter(
-      (skill) => !preloaded.some((loaded) => loaded.name === skill.name),
-    );
-    const canRead = tools.includes("read");
+    const resolved = this.resolveSkillNames(selection, discovered);
+    const preloaded = resolved.preloaded.map(require);
+    const lazy = resolved.lazy.map(require);
+    const canRead = discoverTools || tools.includes("read");
     if (!canRead && lazy.length)
       context.ui.notify(
         "Side Quests omitted the child skill catalog because its tool policy lacks read.",
@@ -425,16 +535,54 @@ export class ParentTools {
         return `<skill name="${skill.name}" location="${skill.filePath}">\nReferences are relative to ${dirname(skill.filePath)}.\n\n${body}\n</skill>`;
       })
       .join("\n\n");
+    // Native CLI skill loading keeps hidden skills out of its catalog even when
+    // selected explicitly. Use Pi's formatter without changing their source files.
+    const hiddenCatalog = canRead
+      ? formatSkillsForPrompt(
+          lazy
+            .filter((skill) => skill.disableModelInvocation)
+            .map((skill) => ({ ...skill, disableModelInvocation: false })),
+        )
+      : "";
     return {
       noSkills: true,
-      preloadPrompt: preloadPrompt || undefined,
+      skillPrompt:
+        [hiddenCatalog, preloadPrompt].filter(Boolean).join("\n\n") ||
+        undefined,
       skillPaths: canRead ? lazy.map((skill) => skill.filePath) : [],
       tools,
     };
   }
 
+  /**
+   * Uses fresh native discovery for selection and the exact parent lazy baseline.
+   */
+  private resolveSkillNames(
+    selection: CapabilitySelection | undefined,
+    discovered: readonly Skill[],
+  ): {
+    lazy: readonly string[];
+    preloaded: readonly string[];
+  } {
+    return resolveSkillCapabilities(selection, {
+      discovered: (selection?.kind === "all"
+        ? discovered
+        : [...this.parentSkills, ...discovered]
+      ).map((skill) => ({
+        name: skill.name,
+        modelInvocable: !skill.disableModelInvocation,
+      })),
+      parent: this.parentSkills
+        .filter((skill) => !skill.disableModelInvocation)
+        .map((skill) => skill.name),
+    });
+  }
+
   /** Records Pi's exact structured parent skill catalog. */
   private parentSkills: readonly Skill[] = [];
+
+  /** Shares lazy immutable skill capture across parallel Agent calls in a turn. */
+  private parentSkillSnapshot: Promise<readonly Skill[]> | undefined;
 
   /** Records frozen parent native prompt inputs for every new child manifest. */
   private parentSystemPromptInputs: ParentSystemPromptInputs | undefined;
@@ -445,8 +593,14 @@ export class ParentTools {
     AgentDefinitionDiagnostic
   >();
 
-  /** Prevents duplicate live-registry validation and warning notifications. */
-  private runtimeLayersValidated = false;
+  /** Carries unresolved checks from every layer into first child readiness. */
+  private readonly deferredToolValidation = new Map<
+    string,
+    readonly ChildToolValidation[]
+  >();
+
+  /** Shares one asynchronous live-registry validation across parent turns. */
+  private runtimeLayerValidation: Promise<void> | undefined;
 
   /**
    * Extracts only serializable native inputs that children must replay.
@@ -469,29 +623,25 @@ export class ParentTools {
   }
 
   /**
-   * Replays user-supplied one-off parent extensions without duplicating us.
+   * Creates one resolver with a startup-frozen complete parent snapshot.
    */
-  private explicitExtensionPaths(cwd: string): readonly string[] {
-    const ownEntries = new Set([
-      new URL("../index.ts", import.meta.url).pathname,
-      new URL("../child/index.ts", import.meta.url).pathname,
-    ]);
-    const paths: string[] = [];
-
-    for (let index = 0; index < process.argv.length; index += 1) {
-      const argument = process.argv[index];
-      if (argument !== "--extension" && argument !== "-e") continue;
-
-      const path = process.argv[index + 1];
-      if (!path) continue;
-      index += 1;
-
-      const absolute = resolve(cwd, path);
-      if (!ownEntries.has(absolute) && !paths.includes(absolute))
-        paths.push(absolute);
-    }
-
-    return paths;
+  private static createExtensionResolver(options: {
+    agentDirectory: string;
+    cwd: string;
+  }): ParentExtensionResolver {
+    const discovery = createPiExtensionDiscovery(options);
+    const selection = new ExtensionSelection(discovery);
+    const parentSnapshot = capturePiParentExtensions(options);
+    return {
+      parent: parentSnapshot,
+      resolve: async (configured) =>
+        selection.resolve(
+          configured,
+          !configured || configured.selection.kind === "parent-relative"
+            ? await parentSnapshot()
+            : [],
+        ),
+    };
   }
 
   /**

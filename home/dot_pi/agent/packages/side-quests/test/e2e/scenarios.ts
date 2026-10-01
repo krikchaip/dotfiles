@@ -12,14 +12,48 @@ import {
 } from "./scenario/agent-definition-matrix.ts";
 import { agentDefinitionOverlayScenarios } from "./scenario/agent-definition-overlays.ts";
 import { askParent } from "./scenario/ask-parent.ts";
+import {
+  extensionCanonicalAliasConflict,
+  hiddenSkillExplicitSelection,
+} from "./scenario/capability-known-red.ts";
 import { child } from "./scenario/child.ts";
 import { descriptionOnlyNamedAgent } from "./scenario/description-only-named-agent.ts";
+import { diskSafeFirstPrompt } from "./scenario/disk-safe-first-prompt.ts";
+import {
+  diskSafeColdLaunch,
+  diskSafeLaunchRefusal,
+  diskSafeWarmLaunch,
+} from "./scenario/disk-safe-launch.ts";
 import {
   emptyGeneralPurposeExplicit,
   emptyGeneralPurposeOmitted,
 } from "./scenario/empty-general-purpose.ts";
 import { exhaustedProvider } from "./scenario/exhausted-provider.ts";
 import { explicitCompletion } from "./scenario/explicit-completion.ts";
+import {
+  extensionAllChildTools,
+  extensionChildToolReopen,
+} from "./scenario/extension-child-tool.ts";
+import {
+  extensionDependencyScenarios,
+  inheritedDependencyReopen,
+} from "./scenario/extension-dependency-snapshot.ts";
+import { extensionDirectOverlapScenarios } from "./scenario/extension-direct-overlap.ts";
+import { extensionDirectRemoval } from "./scenario/extension-direct-removal.ts";
+import { extensionExecutesOnce } from "./scenario/extension-executes-once.ts";
+import { extensionFreshSettings } from "./scenario/extension-fresh-settings.ts";
+import { extensionOfflineSelectionScenarios } from "./scenario/extension-offline-selection.ts";
+import { extensionReducedParentSnapshot } from "./scenario/extension-parent-snapshot.ts";
+import { extensionPathSelectionScenarios } from "./scenario/extension-path-selection.ts";
+import { extensionSelectionMatrixScenarios } from "./scenario/extension-selection-matrix.ts";
+import { extensionStartupFailure } from "./scenario/extension-startup-failure.ts";
+import { extensionToolPruning } from "./scenario/extension-tool-pruning.ts";
+import {
+  extensionFreshVersionIsolationScenarios,
+  extensionGitVersionIsolation,
+  extensionNpmVersionIsolation,
+  extensionRemoteIdentityScenarios,
+} from "./scenario/extension-version-isolation.ts";
 import { failure } from "./scenario/failure.ts";
 import { fatalAutonomous } from "./scenario/fatal-autonomous.ts";
 import { fatalInteractive } from "./scenario/fatal-interactive.ts";
@@ -31,6 +65,10 @@ import { inheritedAgentRenderer } from "./scenario/inherited-agent-renderer.ts";
 import { inheritedAgentsSkills } from "./scenario/inherited-agents-skills.ts";
 import { inheritedParentRequestRenderer } from "./scenario/inherited-parent-request-renderer.ts";
 import { interactive } from "./scenario/interactive.ts";
+import {
+  largeLaunchAppend,
+  largeLaunchTask,
+} from "./scenario/large-launch-payload.ts";
 import { lifecycle } from "./scenario/lifecycle.ts";
 import { malformedAgentDefinition } from "./scenario/malformed-agent-definition.ts";
 import {
@@ -43,6 +81,10 @@ import { namedAgent } from "./scenario/named-agent.ts";
 import { narrowWidgets } from "./scenario/narrow-widgets.ts";
 import { navigationCancellation } from "./scenario/navigation-cancellation.ts";
 import { outside } from "./scenario/outside.ts";
+import {
+  overriddenUnknownGlobalTool,
+  overriddenValidChildTool,
+} from "./scenario/overridden-tool-validation.ts";
 import { parentResponsiveness } from "./scenario/parent-responsiveness.ts";
 import { parent } from "./scenario/parent.ts";
 import { pendingRequestClosure } from "./scenario/pending-request-closure.ts";
@@ -54,8 +96,18 @@ import {
 import { persistentState } from "./scenario/persistent-state.ts";
 import { programmaticContinuation } from "./scenario/programmatic-continuation.ts";
 import { projectOverridesGlobalAgent } from "./scenario/project-overrides-global-agent.ts";
+import {
+  packageSkillSnapshot,
+  warmPackageSnapshotScenarios,
+} from "./scenario/resource-snapshot.ts";
 import { resultExpansion } from "./scenario/result-expansion.ts";
 import { resumePromotionRejection } from "./scenario/resume-promotion.ts";
+import { skillDependencyReopen } from "./scenario/skill-dependency-snapshot.ts";
+import {
+  skillConflictScenarios,
+  skillEdgeSelectionScenarios,
+} from "./scenario/skill-edge-selection.ts";
+import { freshSkillDiscoveryScenarios } from "./scenario/skill-fresh-discovery.ts";
 import { staleResponse } from "./scenario/stale-response.ts";
 import { staleTerminalResponse } from "./scenario/stale-terminal-response.ts";
 import { stoppedReopen } from "./scenario/stopped-reopen.ts";
@@ -85,6 +137,10 @@ export const scenarios: readonly Scenario[] = [
   outside,
   parent,
   child,
+  diskSafeFirstPrompt,
+  diskSafeColdLaunch,
+  diskSafeLaunchRefusal,
+  diskSafeWarmLaunch,
   toolsListed,
   lifecycle,
   interactive,
@@ -102,6 +158,31 @@ export const scenarios: readonly Scenario[] = [
   stoppedReopen,
   terminatedToolReopen,
   explicitCompletion,
+  extensionExecutesOnce,
+  extensionAllChildTools,
+  extensionChildToolReopen,
+  extensionDirectRemoval,
+  extensionToolPruning,
+  ...extensionDirectOverlapScenarios,
+  extensionFreshSettings,
+  extensionReducedParentSnapshot,
+  extensionStartupFailure,
+  ...extensionPathSelectionScenarios,
+  ...extensionSelectionMatrixScenarios,
+  extensionNpmVersionIsolation,
+  extensionGitVersionIsolation,
+  ...extensionFreshVersionIsolationScenarios,
+  ...extensionRemoteIdentityScenarios,
+  ...warmPackageSnapshotScenarios,
+  packageSkillSnapshot,
+  ...extensionDependencyScenarios,
+  inheritedDependencyReopen,
+  skillDependencyReopen,
+  ...extensionOfflineSelectionScenarios,
+  extensionCanonicalAliasConflict,
+  hiddenSkillExplicitSelection,
+  largeLaunchAppend,
+  largeLaunchTask,
   resumePromotionRejection,
   programmaticContinuation,
   failure,
@@ -144,7 +225,12 @@ export const scenarios: readonly Scenario[] = [
   emptyGeneralPurposeOmitted,
   emptyGeneralPurposeExplicit,
   inheritedAgentsSkills,
+  ...freshSkillDiscoveryScenarios,
+  ...skillEdgeSelectionScenarios,
+  ...skillConflictScenarios,
   ...agentDefinitionOverlayScenarios,
+  overriddenUnknownGlobalTool,
+  overriddenValidChildTool,
   ...agentCollectionPolicyScenarios,
   ...invalidAgentDefinitionScenarios,
   generalPurposeTombstone,

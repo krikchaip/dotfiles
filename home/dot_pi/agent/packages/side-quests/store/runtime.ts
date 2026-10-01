@@ -1,3 +1,4 @@
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { JsonStore, STORE_VERSION } from "./json.ts";
@@ -85,6 +86,26 @@ export type ActivitySnapshot = Readonly<{
 
   /** Reports whether the child has an unanswered parent question. */
   pendingRequest: boolean;
+}>;
+
+/**
+ * Records whether a child loaded its exact capabilities successfully.
+ */
+export type ChildReadiness = Readonly<{
+  /** Records the runtime-state schema version. */
+  version: typeof STORE_VERSION;
+
+  /** Identifies the child Pi session. */
+  childId: string;
+
+  /** Records the capability startup result. */
+  status: "ready" | "failed";
+
+  /** Records when capability validation completed. */
+  createdAt: number;
+
+  /** Explains a failed extension load or tool validation. */
+  error?: string;
 }>;
 
 /**
@@ -195,6 +216,60 @@ export class RuntimeStore {
   }
 
   /**
+   * Writes the child capability-readiness result.
+   */
+  public static writeReadiness(
+    parentId: string,
+    state: Omit<ChildReadiness, "version">,
+  ): void {
+    JsonStore.write(RuntimeStore.readinessPath(parentId, state.childId), {
+      ...state,
+      version: STORE_VERSION,
+    });
+  }
+
+  /**
+   * Reads and validates one child capability-readiness result.
+   */
+  public static readReadiness(
+    parentId: string,
+    childId: string,
+  ): ChildReadiness | undefined {
+    const value = JsonStore.readRecord(
+      RuntimeStore.readinessPath(parentId, childId),
+    );
+
+    if (!value || value.version !== STORE_VERSION || value.childId !== childId)
+      return undefined;
+    if (
+      !["ready", "failed"].includes(String(value.status)) ||
+      !Number.isFinite(value.createdAt) ||
+      (value.error !== undefined && typeof value.error !== "string") ||
+      (value.status === "failed" && !String(value.error ?? "").trim())
+    )
+      return undefined;
+
+    return value as unknown as ChildReadiness;
+  }
+
+  /**
+   * Removes stale readiness before a child process starts or reopens.
+   */
+  public static clearReadiness(parentId: string, childId: string): void {
+    JsonStore.remove(RuntimeStore.readinessPath(parentId, childId));
+  }
+
+  /**
+   * Removes all temporary runtime state after a failed child launch.
+   */
+  public static clearChildState(parentId: string, childId: string): void {
+    rmSync(join(RuntimeStore.root(), parentId, "children", childId), {
+      force: true,
+      recursive: true,
+    });
+  }
+
+  /**
    * Writes the final outcome for a current child process run.
    */
   public static writeTerminal(
@@ -283,6 +358,19 @@ export class RuntimeStore {
       "children",
       childId,
       "activity.json",
+    );
+  }
+
+  /**
+   * Returns the private path for a child's readiness result.
+   */
+  private static readinessPath(parentId: string, childId: string): string {
+    return join(
+      RuntimeStore.root(),
+      parentId,
+      "children",
+      childId,
+      "readiness.json",
     );
   }
 

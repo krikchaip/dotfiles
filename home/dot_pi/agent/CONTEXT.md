@@ -48,6 +48,14 @@ _Avoid_: Raw terminal output, image content, escape sequence payload
 A reusable Pi add-on distributed or installed through Pi's package mechanism, which may provide extensions or related assets.
 _Avoid_: Dependency, plugin
 
+**Package content object**:
+One immutable read-only stored file identified by its bytes and executable mode. Unchanged Package graph views share it without linking to mutable installed files.
+_Avoid_: Cached Package copy, mutable install, blob
+
+**Package graph view**:
+One immutable read-only directory tree that preserves native module and relative-resource resolution for an exact saved Package generation while hard-linking Package content objects.
+_Avoid_: Package clone, install directory, snapshot copy
+
 **Session name**:
 A short display label for a Pi session, shown in session selection instead of relying on the first prompt.
 _Avoid_: Title, chat name

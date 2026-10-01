@@ -6,6 +6,7 @@ import type {
   MessageEndEvent,
 } from "@earendil-works/pi-coding-agent";
 
+import { resolveToolCapabilities } from "../capability-policy.ts";
 import { PARENT_PANE_ENV } from "../role.ts";
 import { type ActivitySnapshot, RuntimeStore } from "../store/runtime.ts";
 import {
@@ -14,6 +15,7 @@ import {
   SessionStore,
 } from "../store/session.ts";
 import { Tmux } from "../tmux.ts";
+import { takeChildExtensionTools } from "./extension-host.ts";
 
 /** Identifies the hidden boundary before a new child's launch prompt. */
 const LAUNCH_MESSAGE_TYPE = "side-quest-launch";
@@ -121,7 +123,7 @@ export class ChildRuntime {
     process.env.PI_SIDE_QUESTS_INITIAL_PROMPT?.trim();
 
   /** Records the validated manifest that created this child process. */
-  private readonly manifest: ChildManifest;
+  private manifest: ChildManifest;
 
   private constructor(private readonly pi: ExtensionAPI) {
     const manifest = SessionStore.readManifest(this.sessionPath);
@@ -264,19 +266,46 @@ export class ChildRuntime {
    */
   private startSession(context: ExtensionContext): void {
     const registered = new Set(this.pi.getAllTools().map((tool) => tool.name));
-    const required = this.manifest.tools.filter((name) => name !== "Agent");
+    const required = this.manifest.discoverTools
+      ? resolveToolCapabilities(
+          { kind: "all" },
+          { active: [], registered: [...registered] },
+        )
+      : this.manifest.tools.filter((name) => name !== "Agent");
 
+    const discovered = new Set([
+      ...registered,
+      ...takeChildExtensionTools(this.manifest),
+    ]);
+    const failedLayer = this.manifest.toolValidation?.find(({ names }) =>
+      names.some((name) => !discovered.has(name)),
+    );
     const missing = required.filter((name) => !registered.has(name));
-    if (missing.length) {
-      context.ui.notify(
-        `Side Quests cannot restore this subagent: missing tool ${missing.join(", ")}.`,
-        "error",
-      );
-      context.shutdown();
-
-      return;
+    const error = failedLayer
+      ? `Invalid tools in ${failedLayer.path}: Unknown child tool: ${failedLayer.names.filter((name) => !discovered.has(name)).join(", ")}`
+      : missing.length
+        ? `Missing required child tools: ${missing.join(", ")}`
+        : undefined;
+    if (error) {
+      try {
+        RuntimeStore.writeReadiness(this.parentId, {
+          childId: this.childId,
+          status: "failed",
+          createdAt: Date.now(),
+          error,
+        });
+        context.ui.notify(
+          `Side Quests cannot restore this subagent: ${error}.`,
+          "error",
+        );
+      } finally {
+        // A session_start shutdown request does not stop native prompt startup.
+        // Exit this managed child before any provider request or cleanup race.
+        process.exit(1);
+      }
     }
 
+    this.manifest = SessionStore.finalizeTools(this.manifest, required);
     this.pi.setActiveTools([
       ...required,
       "ask_parent",
@@ -296,6 +325,11 @@ export class ChildRuntime {
 
     this.snapshot("starting");
     this.startHeartbeat();
+    RuntimeStore.writeReadiness(this.parentId, {
+      childId: this.childId,
+      status: "ready",
+      createdAt: Date.now(),
+    });
   }
 
   /**

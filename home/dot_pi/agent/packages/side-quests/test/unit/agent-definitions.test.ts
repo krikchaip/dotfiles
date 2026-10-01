@@ -100,10 +100,13 @@ test("parses normalized supported frontmatter and preserves agent instructions",
       "display_name:  Evidence   reviewer  ",
       "model: openai-codex/gpt-5.6",
       "thinking: high",
-      "tools: read, grep, read",
-      "disallowed_tools: [bash, edit, bash]",
-      "available_skills: research, tdd, research",
-      "preload_skills: [tdd, research, tdd]",
+      "tools: read, grep",
+      "extensions: true",
+      "skills: research, ++tdd",
+      "disallowed_tools: [42]",
+      "disallowed_extensions: 42",
+      "available_skills: 42",
+      "preload_skills: true",
       "inherit_context: false",
       "interactive: true",
       "---",
@@ -122,10 +125,30 @@ test("parses normalized supported frontmatter and preserves agent instructions",
     displayName: "Evidence reviewer",
     model: "openai-codex/gpt-5.6",
     thinking: "high",
-    tools: ["read", "grep"],
-    disallowedTools: ["bash", "edit"],
-    availableSkills: ["research", "tdd"],
-    preloadSkills: ["tdd", "research"],
+    tools: {
+      sourcePath: join(project, "reviewer.md"),
+      selection: {
+        kind: "fixed",
+        entries: [
+          { kind: "include", name: "read" },
+          { kind: "include", name: "grep" },
+        ],
+      },
+    },
+    extensions: {
+      sourcePath: join(project, "reviewer.md"),
+      selection: { kind: "all" },
+    },
+    skills: {
+      sourcePath: join(project, "reviewer.md"),
+      selection: {
+        kind: "fixed",
+        entries: [
+          { kind: "include", name: "research" },
+          { kind: "preload", name: "tdd" },
+        ],
+      },
+    },
     inheritContext: false,
     interactive: true,
     body: "Keep this internal Markdown spacing.",
@@ -177,26 +200,23 @@ test.each([
   "model: null",
   "thinking: null",
   "tools: null",
-  "disallowed_tools: null",
-  "available_skills: null",
-  "preload_skills: null",
+  "extensions: null",
+  "skills: null",
   "inherit_context: null",
   "interactive: null",
   "display_name: ''",
   "model: ''",
   "thinking: ''",
   "tools: ''",
-  "disallowed_tools: ''",
-  "available_skills: ''",
-  "preload_skills: ''",
+  "extensions: ''",
+  "skills: ''",
   "display_name: 42",
   "enabled: 'false'",
   "model: true",
   "thinking: true",
-  "tools: true",
-  "disallowed_tools: true",
-  "available_skills: 42",
-  "preload_skills: true",
+  "tools: 42",
+  "extensions: 42",
+  "skills: 42",
   "inherit_context: 'false'",
   "interactive: 'true'",
 ] as const)("rejects present invalid frontmatter value %s", (line) => {
@@ -221,16 +241,15 @@ test("accepts every explicit empty collection", () => {
   definition(
     project,
     "security",
-    "---\ndescription: Review security\ntools: []\ndisallowed_tools: []\navailable_skills: []\npreload_skills: []\n---\n",
+    "---\ndescription: Review security\ntools: []\nextensions: []\nskills: []\n---\n",
   );
 
   expect(
     AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
   ).toMatchObject({
-    tools: [],
-    disallowedTools: [],
-    availableSkills: [],
-    preloadSkills: [],
+    tools: { selection: { kind: "none" } },
+    extensions: { selection: { kind: "none" } },
+    skills: { selection: { kind: "none" } },
   });
 });
 
@@ -291,33 +310,33 @@ test("agent-overlay-replaces-collection-fields", () => {
       "---",
       "description: Global security review",
       "tools: [read, grep]",
-      "disallowed_tools: [bash]",
-      "available_skills: [research, tdd]",
-      "preload_skills: [research]",
+      "extensions: [npm:global-extension]",
+      "skills: [research, ++tdd]",
       "---",
     ].join("\n"),
   );
   definition(
     project,
     "security",
-    [
-      "---",
-      "tools: [bash]",
-      "disallowed_tools: []",
-      "available_skills: []",
-      "preload_skills: [tdd]",
-      "---",
-    ].join("\n"),
+    ["---", "tools: [bash]", "extensions: []", "skills: [++tdd]", "---"].join(
+      "\n",
+    ),
   );
 
   expect(
     AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
   ).toMatchObject({
     description: "Global security review",
-    tools: ["bash"],
-    disallowedTools: [],
-    availableSkills: [],
-    preloadSkills: ["tdd"],
+    tools: {
+      selection: {
+        kind: "fixed",
+        entries: [{ kind: "include", name: "bash" }],
+      },
+    },
+    extensions: { selection: { kind: "none" } },
+    skills: {
+      selection: { kind: "fixed", entries: [{ kind: "preload", name: "tdd" }] },
+    },
   });
 });
 
@@ -452,9 +471,8 @@ test("agent-overlay-uses-parent-default-after-double-omission", () => {
     model: undefined,
     thinking: undefined,
     tools: undefined,
-    disallowedTools: [],
-    availableSkills: undefined,
-    preloadSkills: [],
+    extensions: undefined,
+    skills: undefined,
     inheritContext: undefined,
     interactive: undefined,
   });
@@ -475,7 +493,7 @@ test("agent-overlay-restored-agent-inherits-global-fields", () => {
       "display_name: Global reviewer",
       "enabled: false",
       "tools: [read]",
-      "available_skills: [research]",
+      "skills: [research]",
       "---",
       "Global body",
     ].join("\n"),
@@ -487,8 +505,18 @@ test("agent-overlay-restored-agent-inherits-global-fields", () => {
   ).toMatchObject({
     description: "Global security review",
     displayName: "Global reviewer",
-    tools: ["read"],
-    availableSkills: ["research"],
+    tools: {
+      selection: {
+        kind: "fixed",
+        entries: [{ kind: "include", name: "read" }],
+      },
+    },
+    skills: {
+      selection: {
+        kind: "fixed",
+        entries: [{ kind: "include", name: "research" }],
+      },
+    },
     body: "Global body",
   });
 });
@@ -545,13 +573,8 @@ type MatrixField = Readonly<{
     | "enabled"
     | "model"
     | "thinking"
-    | "tools"
-    | "disallowed_tools"
-    | "available_skills"
-    | "preload_skills"
     | "inherit_context"
     | "interactive";
-  empty?: string;
   output?: string;
   valid: string;
   value: unknown;
@@ -589,38 +612,6 @@ const FRONTMATTER_FIELD_MATRIX: readonly MatrixField[] = [
     wrong: "true",
   },
   {
-    key: "tools",
-    empty: "[]",
-    output: "tools",
-    valid: "read, grep",
-    value: ["read", "grep"],
-    wrong: "true",
-  },
-  {
-    key: "disallowed_tools",
-    empty: "[]",
-    output: "disallowedTools",
-    valid: "bash, edit",
-    value: ["bash", "edit"],
-    wrong: "true",
-  },
-  {
-    key: "available_skills",
-    empty: "[]",
-    output: "availableSkills",
-    valid: "research, tdd",
-    value: ["research", "tdd"],
-    wrong: "42",
-  },
-  {
-    key: "preload_skills",
-    empty: "[]",
-    output: "preloadSkills",
-    valid: "research, tdd",
-    value: ["research", "tdd"],
-    wrong: "true",
-  },
-  {
     key: "inherit_context",
     output: "inheritContext",
     valid: "false",
@@ -639,13 +630,7 @@ const FRONTMATTER_FIELD_MATRIX: readonly MatrixField[] = [
 function resolveMatrix(
   identity: MatrixIdentity,
   field: MatrixField,
-  state:
-    | "empty-collection"
-    | "empty-string"
-    | "null"
-    | "omitted"
-    | "value"
-    | "wrong",
+  state: "empty-string" | "null" | "omitted" | "value" | "wrong",
   body = "",
 ): AgentDefinitions {
   const { agentDirectory, cwd } = fixture();
@@ -658,8 +643,6 @@ function resolveMatrix(
       : [];
   if (state === "null") lines.push(`${field.key}: null`);
   if (state === "empty-string") lines.push(`${field.key}: ''`);
-  if (state === "empty-collection")
-    lines.push(`${field.key}: ${field.empty ?? "[]"}`);
   if (state === "value") lines.push(`${field.key}: ${field.valid}`);
   if (state === "wrong") lines.push(`${field.key}: ${field.wrong}`);
 
@@ -673,9 +656,6 @@ const VALID_MATRIX_ROWS = MATRIX_IDENTITIES.flatMap((identity) =>
       ? []
       : [{ field, identity, state: "omitted" as const }]),
     { field, identity, state: "value" as const },
-    ...(field.empty
-      ? [{ field, identity, state: "empty-collection" as const }]
-      : []),
   ]),
 );
 
@@ -687,23 +667,8 @@ test.each(VALID_MATRIX_ROWS)(
     expect(agent).toBeDefined();
     if (state === "value" && field.output)
       expect(agent?.[field.output as keyof typeof agent]).toEqual(field.value);
-    if (state === "empty-collection" && field.output)
-      expect(agent?.[field.output as keyof typeof agent]).toEqual([]);
-    if (state === "omitted") {
-      if (field.key === "display_name")
-        expect(agent?.displayName).toBe(identity);
-      if (field.key === "disallowed_tools")
-        expect(agent?.disallowedTools).toEqual([]);
-      if (field.key === "preload_skills")
-        expect(agent?.preloadSkills).toEqual([]);
-      if (
-        field.output &&
-        !["displayName", "disallowedTools", "preloadSkills"].includes(
-          field.output,
-        )
-      )
-        expect(agent?.[field.output as keyof typeof agent]).toBeUndefined();
-    }
+    if (state === "omitted" && field.key === "display_name")
+      expect(agent?.displayName).toBe(identity);
   },
 );
 
@@ -736,6 +701,137 @@ test.each(INVALID_MATRIX_ROWS)(
 
     expect(definitions.get(identity)).toBeUndefined();
     expect(definitions.diagnostic(identity)?.reason).toBeTruthy();
+  },
+);
+
+const CAPABILITY_FIELDS = ["tools", "extensions", "skills"] as const;
+type CapabilityField = (typeof CAPABILITY_FIELDS)[number];
+
+test.each([
+  { field: "tools", value: "true", selection: { kind: "all" } },
+  { field: "extensions", value: "false", selection: { kind: "none" } },
+  { field: "skills", value: "[]", selection: { kind: "none" } },
+  {
+    field: "tools",
+    value: "read, grep",
+    selection: {
+      kind: "fixed",
+      entries: [
+        { kind: "include", name: "read" },
+        { kind: "include", name: "grep" },
+      ],
+    },
+  },
+  {
+    field: "extensions",
+    value: "[npm:one, npm:two]",
+    selection: {
+      kind: "fixed",
+      entries: [
+        { kind: "include", name: "npm:one" },
+        { kind: "include", name: "npm:two" },
+      ],
+    },
+  },
+  {
+    field: "skills",
+    value: "[+research, -grilling, ++tdd]",
+    selection: {
+      kind: "parent-relative",
+      entries: [
+        { kind: "include", name: "research" },
+        { kind: "exclude", name: "grilling" },
+        { kind: "preload", name: "tdd" },
+      ],
+    },
+  },
+] as const)(
+  "parses $field unified capability expression $value with provenance",
+  ({ field, selection, value }) => {
+    const { agentDirectory, cwd } = fixture();
+    const project = join(cwd, ".pi", "agents");
+    mkdirSync(project, { recursive: true });
+    definition(
+      project,
+      "security",
+      `---\ndescription: Review security\n${field}: ${value}\n---\n`,
+    );
+
+    expect(
+      AgentDefinitions.resolve({ agentDirectory, cwd }).get("security"),
+    ).toMatchObject({
+      [field]: {
+        selection,
+        sourcePath: join(project, "security.md"),
+      },
+    });
+  },
+);
+
+test.each(
+  CAPABILITY_FIELDS.flatMap((field) => [
+    { field, value: "null" },
+    { field, value: "''" },
+    { field, value: "42" },
+    { field, value: "[one, '']" },
+    { field, value: "[one, 42]" },
+    { field, value: "[one, one]" },
+    { field, value: "[+one, -one]" },
+    { field, value: "[one, +two]" },
+    ...(field === "skills"
+      ? [{ field, value: "[one, ++one]" }]
+      : [{ field, value: "[++one]" }]),
+  ]),
+)(
+  "rejects malformed unified $field expression $value",
+  ({ field, value }: { field: CapabilityField; value: string }) => {
+    const { agentDirectory, cwd } = fixture();
+    const project = join(cwd, ".pi", "agents");
+    mkdirSync(project, { recursive: true });
+    definition(
+      project,
+      "security",
+      `---\ndescription: Review security\n${field}: ${value}\n---\n`,
+    );
+
+    const definitions = AgentDefinitions.resolve({ agentDirectory, cwd });
+    expect(definitions.get("security")).toBeUndefined();
+    expect(definitions.diagnostic("security")?.reason).toContain(field);
+  },
+);
+
+test.each(MATRIX_IDENTITIES)(
+  "ignores retired and unrelated frontmatter fields for %s",
+  (identity) => {
+    const { agentDirectory, cwd } = fixture();
+    const project = join(cwd, ".pi", "agents");
+    mkdirSync(project, { recursive: true });
+    const baseline =
+      identity === "security" ? "description: Shared-file reviewer\n" : "";
+    definition(
+      project,
+      identity,
+      [
+        "---",
+        baseline.trimEnd(),
+        "disallowed_tools: [42]",
+        "disallowed_extensions: 42",
+        "available_skills: 42",
+        "preload_skills: true",
+        "unsupported_plugin_field: preserved elsewhere",
+        "---",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    );
+
+    const definitions = AgentDefinitions.resolve({ agentDirectory, cwd });
+    const agent = definitions.get(identity);
+    expect(agent).toBeDefined();
+    expect(definitions.diagnostic(identity)).toBeUndefined();
+    expect(agent?.tools).toBeUndefined();
+    expect(agent?.extensions).toBeUndefined();
+    expect(agent?.skills).toBeUndefined();
   },
 );
 
@@ -788,77 +884,6 @@ test.each(
     expect(definitions.diagnostic(identity)?.reason).toBe(
       "agent definitions require YAML frontmatter boundaries",
     );
-  },
-);
-
-const COLLECTION_FIELDS = [
-  { key: "tools", output: "tools" },
-  { key: "disallowed_tools", output: "disallowedTools" },
-  { key: "available_skills", output: "availableSkills" },
-  { key: "preload_skills", output: "preloadSkills" },
-] as const;
-
-test.each(
-  MATRIX_IDENTITIES.flatMap((identity) =>
-    COLLECTION_FIELDS.flatMap((field) => [
-      { field, identity, value: "[read, '']" },
-      { field, identity, value: "[read, 42]" },
-    ]),
-  ),
-)(
-  "rejects invalid collection empty and non-string entries for $identity $field.key $value",
-  ({ field, identity, value }) => {
-    const { agentDirectory, cwd } = fixture();
-    const project = join(cwd, ".pi", "agents");
-    mkdirSync(project, { recursive: true });
-    const baseline =
-      identity === "security"
-        ? "description: Baseline security reviewer\n"
-        : "";
-    definition(
-      project,
-      identity,
-      `---\n${baseline}${field.key}: ${value}\n---\n`,
-    );
-
-    const definitions = AgentDefinitions.resolve({ agentDirectory, cwd });
-
-    expect(definitions.get(identity)).toBeUndefined();
-    expect(definitions.diagnostic(identity)?.reason).toContain(
-      `${field.key} must be a comma-separated string or string list`,
-    );
-  },
-);
-
-test.each(
-  MATRIX_IDENTITIES.flatMap((identity) =>
-    COLLECTION_FIELDS.map((field) => ({ field, identity })),
-  ),
-)(
-  "normalizes CSV/list equivalence and first-occurrence order for $identity $field.key",
-  ({ field, identity }) => {
-    const { agentDirectory, cwd } = fixture();
-    const project = join(cwd, ".pi", "agents");
-    mkdirSync(project, { recursive: true });
-    const baseline =
-      identity === "security"
-        ? ["description: Baseline security reviewer"]
-        : [];
-    const source = (value: string) =>
-      ["---", ...baseline, `${field.key}: ${value}`, "---", ""].join("\n");
-    const output = field.output as keyof NonNullable<
-      ReturnType<AgentDefinitions["get"]>
-    >;
-
-    definition(project, identity, source("read, grep, read"));
-    const csv = AgentDefinitions.resolve({ agentDirectory, cwd }).get(identity);
-    definition(project, identity, source("[read, grep, read]"));
-    const list = AgentDefinitions.resolve({ agentDirectory, cwd }).get(
-      identity,
-    );
-
-    expect(csv?.[output]).toEqual(["read", "grep"]);
-    expect(list?.[output]).toEqual(["read", "grep"]);
   },
 );
 
@@ -929,3 +954,89 @@ test.each(MATRIX_IDENTITIES)(
     );
   },
 );
+
+test("parses unified capability fields without interpreting retired names", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  mkdirSync(project, { recursive: true });
+  definition(
+    project,
+    "reviewer",
+    [
+      "---",
+      "description: Review capability policy",
+      "tools: [+read, -bash]",
+      "extensions: [npm:pi-web-access]",
+      "skills: [++tdd]",
+      "disallowed_tools: invalid-but-ignored",
+      "disallowed_extensions: invalid-but-ignored",
+      "available_skills: 42",
+      "preload_skills: true",
+      "---",
+    ].join("\n"),
+  );
+
+  const definitions = AgentDefinitions.resolve({ agentDirectory, cwd });
+
+  expect(definitions.get("reviewer")).toMatchObject({
+    tools: {
+      sourcePath: join(project, "reviewer.md"),
+      selection: {
+        kind: "parent-relative",
+        entries: [
+          { kind: "include", name: "read" },
+          { kind: "exclude", name: "bash" },
+        ],
+      },
+    },
+    extensions: {
+      sourcePath: join(project, "reviewer.md"),
+      selection: {
+        kind: "fixed",
+        entries: [{ kind: "include", name: "npm:pi-web-access" }],
+      },
+    },
+    skills: {
+      sourcePath: join(project, "reviewer.md"),
+      selection: {
+        kind: "fixed",
+        entries: [{ kind: "preload", name: "tdd" }],
+      },
+    },
+  });
+  expect(definitions.diagnostic("reviewer")).toBeUndefined();
+});
+
+test("project capability expressions replace global expressions by field", () => {
+  const { agentDirectory, cwd } = fixture();
+  const project = join(cwd, ".pi", "agents");
+  const global = join(agentDirectory, "agents");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(global, { recursive: true });
+  definition(
+    global,
+    "reviewer",
+    "---\ndescription: Review capability policy\ntools: [read]\nextensions: true\nskills: [research]\n---\n",
+  );
+  definition(project, "reviewer", "---\ntools: [-bash]\nskills: []\n---\n");
+
+  expect(
+    AgentDefinitions.resolve({ agentDirectory, cwd }).get("reviewer"),
+  ).toMatchObject({
+    tools: {
+      sourcePath: join(project, "reviewer.md"),
+      selection: {
+        kind: "parent-relative",
+        entries: [{ kind: "exclude", name: "bash" }],
+      },
+    },
+    extensions: {
+      sourcePath: join(global, "reviewer.md"),
+      selection: { kind: "all" },
+    },
+    skills: {
+      sourcePath: join(project, "reviewer.md"),
+      selection: { kind: "none" },
+    },
+  });
+});

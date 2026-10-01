@@ -59,6 +59,37 @@ test("creates a private managed session with a canonical resumable path", () => 
   );
 });
 
+test("freezes initial tools once and removes deferred launch checks", () => {
+  const manifest = createManagedSession({
+    discoverTools: true,
+    toolValidation: [
+      { path: "/global/agents/researcher.md", names: ["child_only"] },
+    ],
+  });
+  const frozen = SessionStore.finalizeTools(manifest, ["read", "child_only"]);
+  expect(frozen).not.toHaveProperty("discoverTools");
+  expect(frozen).not.toHaveProperty("toolValidation");
+  expect(SessionStore.finalizeTools(frozen, ["new_tool"])).toBe(frozen);
+  expect(
+    SessionStore.readResumableManifest(manifest.sessionPath)?.tools,
+  ).toEqual(["read", "child_only"]);
+});
+
+test.each([
+  { discoverTools: "true" },
+  { toolValidation: null },
+  { toolValidation: [{ path: "", names: ["read"] }] },
+  { toolValidation: [{ path: "/global.md", names: [false] }] },
+  { toolValidation: [{ path: "/global.md", names: [""] }] },
+])("rejects malformed launch tool policy %j", (policy) => {
+  const manifest = createManagedSession();
+  JsonStore.write(join(dirname(manifest.sessionPath), "manifest.json"), {
+    ...manifest,
+    ...policy,
+  });
+  expect(SessionStore.readManifest(manifest.sessionPath)).toBeUndefined();
+});
+
 test("persists immutable parent baseline through continuation", () => {
   const manifest = createManagedSession({
     agentName: "security",

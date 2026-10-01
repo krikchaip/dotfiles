@@ -14,6 +14,7 @@ export const unmarkedClosure: Scenario = {
     });
   },
   async run(harness: E2EHarness) {
+    await harness.waitFor("└ Spawned [inherited | interactive]");
     const childPane = await harness.childPane();
     await harness.tmux("kill-pane", "-t", childPane);
     await harness.waitFor("SUBAGENT CLOSED");

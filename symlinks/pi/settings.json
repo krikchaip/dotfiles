@@ -87,7 +87,6 @@
       "source": "npm:pi-mcp-adapter@2.27.0",
       "skills": []
     },
-    "npm:pi-web-access",
     "packages/image-attachments",
     "packages/oh-my-pi-themes",
     "packages/provider-payload-debug",

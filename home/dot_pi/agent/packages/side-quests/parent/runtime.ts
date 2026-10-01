@@ -4,6 +4,8 @@ import type {
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 
+import { DENIED_SPAWNING_TOOLS } from "../capability-policy.ts";
+import { createChildExtensionEntrypoints } from "../child/extension-host.ts";
 import { RESULT_MESSAGE_TYPE } from "../renderer/side-quest-result-renderer.ts";
 import { CHILD_ID_ENV, PARENT_PANE_ENV } from "../role.ts";
 import {
@@ -100,9 +102,14 @@ export class ParentRuntime {
   async launch(
     manifest: ChildManifest | Promise<ChildManifest>,
     initialPrompt?: string,
+    options: Readonly<{ removeSessionOnFailure?: boolean }> = {},
   ): Promise<ChildManifest> {
     const operation = this.launchTail.then(async () =>
-      this.open(await manifest, initialPrompt),
+      this.start(
+        await manifest,
+        initialPrompt,
+        options.removeSessionOnFailure ?? false,
+      ),
     );
     this.launchTail = operation.then(
       () => undefined,
@@ -132,14 +139,63 @@ export class ParentRuntime {
   }
 
   /**
+   * Opens one process, waits for capability readiness, and cleans failed state.
+   */
+  private async start(
+    manifest: ChildManifest,
+    initialPrompt: string | undefined,
+    removeSessionOnFailure: boolean,
+  ): Promise<ParentChild> {
+    RuntimeStore.clearReadiness(manifest.parentId, manifest.childId);
+    let child: ParentChild | undefined;
+
+    try {
+      child = await this.open(manifest, initialPrompt);
+      await this.waitForReadiness(manifest);
+      return {
+        ...child,
+        manifest:
+          manifest.discoverTools || manifest.toolValidation
+            ? (SessionStore.readManifest(manifest.sessionPath) ?? manifest)
+            : manifest,
+      };
+    } catch (cause) {
+      if (child) Tmux.closePane(child.paneId);
+      RuntimeStore.clearChildState(manifest.parentId, manifest.childId);
+      if (removeSessionOnFailure) SessionStore.remove(manifest);
+      throw cause;
+    }
+  }
+
+  /**
+   * Waits for the child to publish exactly one valid readiness result.
+   */
+  private async waitForReadiness(manifest: ChildManifest): Promise<void> {
+    const timeoutMs = 10_000;
+    const deadline = Date.now() + timeoutMs;
+
+    while (true) {
+      const readiness = RuntimeStore.readReadiness(
+        manifest.parentId,
+        manifest.childId,
+      );
+      if (readiness?.status === "ready") return;
+      if (readiness?.status === "failed")
+        throw new Error(readiness.error ?? "Child capability startup failed.");
+      if (Date.now() >= deadline)
+        throw new Error(`Child readiness timed out after ${timeoutMs} ms.`);
+
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+
+  /**
    * Sends a prompt to a managed child and reopens its process when it stopped.
    */
   async continue(
     manifest: ChildManifest,
     prompt: string,
   ): Promise<ParentContinuation> {
-    this.assertRequiredTools(manifest);
-
     const previous = this.childrenById.get(manifest.childId);
     const located = previous
       ? undefined
@@ -170,23 +226,26 @@ export class ParentRuntime {
     this.replyPendingByChildId.set(manifest.childId, !!request);
     const continuationKind = request ? "answer" : "steer";
 
-    SessionStore.writeResponse(manifest.parentId, {
+    const response = {
       responseId: randomUUID(),
       requestId: request?.requestId,
       childId: manifest.childId,
       prompt,
       createdAt: Date.now(),
-    });
+    };
 
     void this.syncWindowTitle();
 
-    const stopped = !!RuntimeStore.readTerminal(
+    const terminal = RuntimeStore.readTerminal(
       manifest.parentId,
       manifest.childId,
     );
+    const stopped = !!terminal;
 
-    if (!stopped && Tmux.paneExists(child.paneId))
+    if (!stopped && Tmux.paneExists(child.paneId)) {
+      SessionStore.writeResponse(manifest.parentId, response);
       return { continuationKind, operation: "continued" };
+    }
 
     if (stopped && Tmux.paneExists(child.paneId)) {
       const deadline = Date.now() + 10_000;
@@ -204,19 +263,15 @@ export class ParentRuntime {
 
     RuntimeStore.clearTerminal(manifest.parentId, manifest.childId);
 
-    await this.launch(manifest);
+    try {
+      await this.launch(manifest);
+    } catch (cause) {
+      if (terminal) RuntimeStore.writeTerminal(manifest.parentId, terminal);
+      throw cause;
+    }
+    SessionStore.writeResponse(manifest.parentId, response);
 
     return { continuationKind, operation: "reopened" };
-  }
-
-  /**
-   * Rejects resume before it can mutate child state or open a pane.
-   */
-  assertRequiredTools(manifest: ChildManifest): void {
-    const registered = new Set(this.pi.getAllTools().map((tool) => tool.name));
-    const missing = manifest.tools.find((tool) => !registered.has(tool));
-    if (missing)
-      throw new Error(`Required child tool is unavailable: ${missing}`);
   }
 
   /**
@@ -602,15 +657,21 @@ export class ParentRuntime {
       PI_SIDE_QUESTS_PARENT_ID: manifest.parentId,
       PI_SIDE_QUESTS_OWNER_ID: manifest.ownerId,
       PI_SIDE_QUESTS_SESSION: manifest.sessionPath,
-      ...(initialPrompt
-        ? { PI_SIDE_QUESTS_INITIAL_PROMPT: initialPrompt }
-        : {}),
       ...(process.env.PI_CODING_AGENT_DIR
         ? { PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR }
         : {}),
     };
 
-    const command = this.childCommand(manifest, initialPrompt);
+    const payload = await SessionStore.writeLaunchPayload(
+      manifest,
+      await this.childCommand(manifest, initialPrompt),
+      initialPrompt ? { PI_SIDE_QUESTS_INITIAL_PROMPT: initialPrompt } : {},
+    );
+    const command = [
+      process.execPath,
+      new URL("../child/launch.mjs", import.meta.url).pathname,
+      payload,
+    ];
 
     if (
       this.windowId &&
@@ -676,10 +737,10 @@ export class ParentRuntime {
   /**
    * Builds the Pi command that starts a managed child process.
    */
-  private childCommand(
+  private async childCommand(
     manifest: ChildManifest,
     initialPrompt?: string,
-  ): string[] {
+  ): Promise<string[]> {
     const entry = process.argv[1];
     if (!entry) throw new Error("Could not identify the Pi executable.");
 
@@ -690,8 +751,9 @@ export class ParentRuntime {
       manifest.sessionPath,
     ];
 
-    for (const extensionPath of manifest.extensionPaths ?? [])
-      command.push("--extension", extensionPath);
+    command.push("--no-extensions");
+    for (const path of await createChildExtensionEntrypoints(manifest))
+      command.push("--extension", path);
     command.push(
       "--extension",
       new URL("../child/index.ts", import.meta.url).pathname,
@@ -715,10 +777,12 @@ export class ParentRuntime {
 
     // The CLI list is an execution allowlist, not only the initial active set.
     // Interactive startup hides subagent_done until its human command needs it.
-    command.push(
-      "--tools",
-      [...manifest.tools, "ask_parent", "subagent_done"].join(","),
-    );
+    command.push("--exclude-tools", DENIED_SPAWNING_TOOLS.join(","));
+    if (!manifest.discoverTools)
+      command.push(
+        "--tools",
+        [...manifest.tools, "ask_parent", "subagent_done"].join(","),
+      );
 
     if (initialPrompt) command.push(initialPrompt);
 

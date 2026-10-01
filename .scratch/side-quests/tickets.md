@@ -141,9 +141,9 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 **Status:** ready-for-human
 
-**What to build:** Deliver the fully integrated Side Quests product. Audit every requirement against the specification, wayfinder map and resolved tickets, README, and executable layout oracle. Implement every remaining authorized gap instead of deferring it, then produce complete automated and real Pi-in-tmux acceptance evidence. Ticket 10 production work remains excluded until the user explicitly clears its implementation gate.
+**What to build:** Deliver the fully integrated Side Quests product. Audit every requirement against the specification, wayfinder map and resolved tickets, README, and executable layout oracle. Implement every remaining authorized gap instead of deferring it, then produce complete automated and real Pi-in-tmux acceptance evidence. Ticket 10's implementation gate is cleared; its remaining acceptance evidence is still required. The current approved fix pass is limited to the Ticket 3 family, as recorded in [capability-fixes-2026-09-30.md](capability-fixes-2026-09-30.md).
 
-**Blocked by:** 6. Survive reload, replacement, and owner loss; 8. Layer project Agent definitions over global definitions; explicit user clearance of Ticket 10's implementation gate.
+**Blocked by:** 6. Survive reload, replacement, and owner loss; 8. Layer project Agent definitions over global definitions; remaining Ticket 10 acceptance evidence.
 
 - [ ] Build a traceable acceptance matrix covering every user story, implementation decision, testing decision, README behavior, and wayfinder amendment.
 - [ ] Exercise every public `Agent` schema rule, agent-definition rule, permission invariant, lifecycle transition, mailbox state, terminal outcome, health transition, layout mode, UI state, reload path, teardown path, and storage-safety rule.
@@ -173,7 +173,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 
 **Status:** done
 
-**Implementation gate:** Not cleared. Documentation and design only; no production implementation has started.
+**Implementation gate:** Cleared by the user via `/skill:implement`. Production integration has started. The four approved conformance fixes and their current verification evidence are recorded in [capability-fixes-2026-09-30.md](capability-fixes-2026-09-30.md). The `done` status above refers to design; it does not accept the remaining Ticket 10 implementation matrix.
 
 **What to build:** Replace separate tool denylist, skill selection, skill preload, and extension-inheritance rules with one Agent capability selection surface: `tools`, `extensions`, and `skills`. The design uses Fixed capability selection and Parent-relative capability selection. It preserves the Direct extension baseline and adds strict child readiness validation.
 
@@ -185,7 +185,7 @@ Work the **frontier**: any ticket whose blockers are all done. Tickets 3, 4, and
 - [x] Define package identity, exact npm-version and Git-ref resolution, parent-relative source upsert, direct-extension baseline, fresh child discovery, and Pi resolver reuse.
 - [x] Define fail-closed selection and child readiness behavior for extension-provided tools.
 - [x] Define no backward compatibility for former capability field spellings: consume only `tools`, `extensions`, and `skills`, and silently ignore every other unrecognized frontmatter field.
-- [x] Record the design in [Unified Agent Capability Selection](tickets/10-unified-capability-selection.md). No source, package, or test code changed for this amendment.
+- [x] Record the design in [Unified Agent Capability Selection](tickets/10-unified-capability-selection.md). This checked item records the design-only amendment; authorized production work started afterward.
 
 ## Backlog
 

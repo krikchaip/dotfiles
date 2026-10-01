@@ -111,6 +111,7 @@ async function executeScenario(
     await harness.abort();
     throw error;
   } finally {
+    await harness.dispose();
     activeHarnesses.delete(harness);
   }
 }
@@ -166,8 +167,9 @@ async function runSelectedScenarios(
 }
 
 const root = realpathSync(resolve(import.meta.dir, "../.."));
+const sourceOnly = process.env.SIDE_QUESTS_E2E_SOURCE === "1";
 const runtimeDirectory = join(homedir(), ".pi/agent/packages/side-quests");
-const extension = join(runtimeDirectory, "index.ts");
+const extension = join(sourceOnly ? root : runtimeDirectory, "index.ts");
 const runDirectory = mkdtempSync(join(tmpdir(), "side-quests-e2e-"));
 const selected = selectedScenarios();
 const concurrency = configuredConcurrency(selected.length);
@@ -186,7 +188,7 @@ process.once("SIGINT", () => handleSignal(130));
 process.once("SIGTERM", () => handleSignal(143));
 
 try {
-  await applyRuntime(runtimeDirectory);
+  if (!sourceOnly) await applyRuntime(runtimeDirectory);
   const workerLabel = concurrency === 1 ? "worker" : "workers";
   const exclusiveCount = selected.filter(
     (scenario) => scenario.exclusive,

@@ -1,4 +1,10 @@
-import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
+import {
+  lstatSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import {
@@ -22,6 +28,17 @@ export type ParentSystemPromptInputs = Readonly<{
   appendSystemPrompt?: string;
   contextFiles?: readonly Readonly<{ content: string; path: string }>[];
   customPrompt?: string;
+}>;
+
+/**
+ * Carries lower-layer tool checks that require the selected child extensions.
+ */
+export type ChildToolValidation = Readonly<{
+  /** Identifies the definition layer that supplied these names. */
+  path: string;
+
+  /** Lists tool names absent from the parent registry. */
+  names: readonly string[];
 }>;
 
 /**
@@ -70,6 +87,12 @@ export type ChildManifest = Readonly<{
   /** Records the active child tool names. */
   tools: readonly string[];
 
+  /** Resolves broad selection once in the initial child before freezing tools. */
+  discoverTools?: boolean;
+
+  /** Validates unresolved lower-layer names before initial readiness. */
+  toolValidation?: readonly ChildToolValidation[];
+
   /** Records the immutable child-specific system-prompt suffix. */
   appendSystemPrompt?: string;
 
@@ -79,7 +102,7 @@ export type ChildManifest = Readonly<{
   /** Records exact skill files available to the child on startup. */
   skillPaths?: readonly string[];
 
-  /** Records explicit parent CLI extensions that the child must replay. */
+  /** Records immutable resolved extension entrypoints for launch and reopen. */
   extensionPaths?: readonly string[];
 
   /** Records parent native prompt inputs that the child must replay. */
@@ -200,6 +223,8 @@ export class SessionStore {
       model: params.model,
       thinking: params.thinking,
       tools: params.tools,
+      discoverTools: params.discoverTools,
+      toolValidation: params.toolValidation,
       appendSystemPrompt: params.appendSystemPrompt,
       noSkills: params.noSkills,
       skillPaths: params.skillPaths,
@@ -252,6 +277,8 @@ export class SessionStore {
       model: params.model,
       thinking: params.thinking,
       tools: params.tools,
+      discoverTools: params.discoverTools,
+      toolValidation: params.toolValidation,
       appendSystemPrompt: params.appendSystemPrompt,
       noSkills: params.noSkills,
       skillPaths: params.skillPaths,
@@ -274,6 +301,70 @@ export class SessionStore {
     return SessionStore.readManifestFile(
       join(dirname(sessionPath), "manifest.json"),
     );
+  }
+
+  /**
+   * Writes a private native extension wrapper inside the managed child store.
+   */
+  public static async writeExtensionEntrypoint(
+    manifest: ChildManifest,
+    index: number,
+    source: string,
+  ): Promise<string> {
+    const path = join(
+      SessionStore.sessionDirectory(manifest.parentId, manifest.childId),
+      "extensions",
+      `${index}.ts`,
+    );
+    await JsonStore.writeTextAsync(path, source);
+    return path;
+  }
+
+  /**
+   * Writes launch text privately, outside the bounded tmux command message.
+   */
+  public static async writeLaunchPayload(
+    manifest: ChildManifest,
+    command: readonly string[],
+    environment: Readonly<Record<string, string>>,
+  ): Promise<string> {
+    const path = join(
+      SessionStore.sessionDirectory(manifest.parentId, manifest.childId),
+      "launch.json",
+    );
+    await JsonStore.writeAsync(path, { command, environment });
+    return path;
+  }
+
+  /**
+   * Removes one failed new child session and all of its temporary state.
+   */
+  public static remove(manifest: ChildManifest): void {
+    rmSync(SessionStore.sessionDirectory(manifest.parentId, manifest.childId), {
+      force: true,
+      recursive: true,
+    });
+  }
+
+  /**
+   * Freezes broad tools once, before the initial child publishes readiness.
+   */
+  public static finalizeTools(
+    manifest: ChildManifest,
+    tools: readonly string[],
+  ): ChildManifest {
+    if (!manifest.discoverTools && !manifest.toolValidation) return manifest;
+    const {
+      discoverTools: _discoverTools,
+      toolValidation: _toolValidation,
+      ...resolved
+    } = manifest;
+    const next: ChildManifest = { ...resolved, tools: [...tools] };
+    JsonStore.write(
+      SessionStore.manifestPath(next.parentId, next.childId),
+      next,
+    );
+    return next;
   }
 
   /**
@@ -507,12 +598,15 @@ export class SessionStore {
       (value.appendSystemPrompt !== undefined &&
         typeof value.appendSystemPrompt !== "string") ||
       (value.noSkills !== undefined && typeof value.noSkills !== "boolean") ||
+      (value.discoverTools !== undefined &&
+        typeof value.discoverTools !== "boolean") ||
       (value.skillPaths !== undefined &&
         (!Array.isArray(value.skillPaths) ||
           value.skillPaths.some((path) => typeof path !== "string"))) ||
       (value.extensionPaths !== undefined &&
         (!Array.isArray(value.extensionPaths) ||
           value.extensionPaths.some((path) => typeof path !== "string"))) ||
+      !SessionStore.validToolValidation(value.toolValidation) ||
       !SessionStore.validParentSystemPromptInputs(
         value.parentSystemPromptInputs,
       ) ||
@@ -534,6 +628,27 @@ export class SessionStore {
       return undefined;
 
     return value as unknown as ChildManifest;
+  }
+
+  /**
+   * Validates deferred source-layer checks stored only until first readiness.
+   */
+  private static validToolValidation(value: unknown): boolean {
+    if (value === undefined) return true;
+    return (
+      Array.isArray(value) &&
+      value.every((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry))
+          return false;
+        const check = entry as Record<string, unknown>;
+        return (
+          typeof check.path === "string" &&
+          !!check.path &&
+          Array.isArray(check.names) &&
+          check.names.every((name) => typeof name === "string" && !!name)
+        );
+      })
+    );
   }
 
   /**

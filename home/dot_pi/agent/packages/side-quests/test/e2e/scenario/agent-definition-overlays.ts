@@ -50,23 +50,14 @@ const replacesCollectionFields: Scenario = {
   name: "agent-overlay-replaces-collection-fields",
   process: {
     agentDefinitions: {
-      security: [
-        "---",
-        "tools: [bash]",
-        "disallowed_tools: []",
-        "available_skills: []",
-        "preload_skills: []",
-        "---",
-      ].join("\n"),
+      security: ["---", "tools: [bash]", "skills: false", "---"].join("\n"),
     },
     globalAgentDefinitions: {
       security: [
         "---",
         "description: Global collection reviewer",
         "tools: [read, grep]",
-        "disallowed_tools: [bash]",
-        "available_skills: [research]",
-        "preload_skills: [research]",
+        "skills: [++research]",
         "---",
       ].join("\n"),
     },
@@ -166,17 +157,19 @@ function malformedOverlayScenario(options: {
       rejectedNamedLaunch(context, options.completion);
     },
     async run(harness: E2EHarness) {
-      const warning = await harness.waitFor(
+      await harness.waitFor(
         "Side Quests ignored malformed agent definition",
         8_000,
       );
       await harness.waitFor(options.completion, 8_000);
+      const warning = await harness.capture();
+      const compact = warning.replace(/\s+/g, "");
       const pathSuffix =
         options.warningScope === "global"
           ? "-state/agents/security.md"
           : "-cwd/.pi/agents/security.md";
       harness.assert(
-        warning.includes(pathSuffix),
+        compact.includes(pathSuffix),
         `Overlay warning did not identify the malformed ${options.warningScope} file.\n${warning}`,
       );
       await assertNoChild(harness, options.name);
@@ -217,7 +210,7 @@ const rejectsOverriddenUnknownGlobalModel: Scenario = {
     );
   },
   async run(harness: E2EHarness) {
-    const warning = await harness.waitFor(
+    await harness.waitFor(
       "Side Quests ignored malformed agent definition",
       8_000,
     );
@@ -225,9 +218,11 @@ const rejectsOverriddenUnknownGlobalModel: Scenario = {
       "Overridden unavailable global model was rejected.",
       8_000,
     );
+    const warning = await harness.capture();
+    const compact = warning.replace(/\s+/g, "");
     harness.assert(
-      warning.includes("-state/agents/security.md") &&
-        warning.includes("unknown model: missing-provider/missing-model"),
+      compact.includes("-state/agents/security.md") &&
+        compact.includes("unknownmodel:missing-provider/missing-model"),
       `Runtime validation warning did not identify the unavailable global model.\n${warning}`,
     );
     await assertNoChild(harness, "Overridden unavailable global model overlay");
@@ -333,14 +328,18 @@ const validatesDescriptionAfterOverlay: Scenario = {
     rejectedNamedLaunch(context, "Description-less overlay was rejected.");
   },
   async run(harness: E2EHarness) {
-    const warning = await harness.waitFor(
-      "named definitions require a non-empty description",
+    await harness.waitFor(
+      "Side Quests ignored malformed agent definition",
       8_000,
     );
     await harness.waitFor("Description-less overlay was rejected.", 8_000);
+    const warning = await harness.capture();
+    const compact = warning.replace(/\s+/g, "");
     harness.assert(
-      warning.includes("security.md"),
-      `Description warning omitted the file path.\n${warning}`,
+      compact.includes(
+        "security.md:nameddefinitionsrequireanon-emptydescription",
+      ),
+      `Description warning omitted the path or reason.\n${warning}`,
     );
     await assertNoChild(harness, "Description-less overlay");
   },
@@ -419,8 +418,7 @@ const restoredAgentInheritsGlobalFields: Scenario = {
         "display_name: Restored reviewer",
         "enabled: false",
         "tools: [read]",
-        "available_skills: [research]",
-        "preload_skills: [research]",
+        "skills: [++research]",
         "---",
         "RESTORED GLOBAL BODY",
       ].join("\n"),

@@ -54,6 +54,17 @@ async function execute(
   return stdout;
 }
 
+/** Makes test-owned read-only Package views removable without following symlinks. */
+function makeTreeWritable(root: string): void {
+  if (!existsSync(root)) return;
+  chmodSync(root, 0o700);
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) makeTreeWritable(path);
+    else if (!entry.isSymbolicLink()) chmodSync(path, 0o600);
+  }
+}
+
 /** Removes all resources owned by one complete E2E run. */
 export async function cleanupHarnessRun(
   sockets: readonly string[],
@@ -66,7 +77,10 @@ export async function cleanupHarnessRun(
       rmSync(socket, { force: true });
     }),
   );
-  if (!keepArtifacts) rmSync(runDirectory, { force: true, recursive: true });
+  if (!keepArtifacts) {
+    makeTreeWritable(runDirectory);
+    rmSync(runDirectory, { force: true, recursive: true });
+  }
 }
 
 export interface HarnessOptions {
@@ -87,6 +101,7 @@ export class E2EHarness {
   #logDonePath: string;
   #paneId = "";
   #statusPath: string;
+  #cleanup: (() => Promise<void>)[] = [];
 
   private constructor(private readonly options: HarnessOptions) {
     const { name } = options.scenario;
@@ -100,8 +115,13 @@ export class E2EHarness {
 
   static async start(options: HarnessOptions): Promise<E2EHarness> {
     const harness = new E2EHarness(options);
-    await harness.#start();
-    return harness;
+    try {
+      await harness.#start();
+      return harness;
+    } catch (cause) {
+      await harness.abort();
+      throw cause;
+    }
   }
 
   get name(): string {
@@ -327,21 +347,36 @@ export class E2EHarness {
       `Unexpected unsupported-tmux warning count for ${this.name}: ${warningCount}.`,
     );
 
+    const startupLog = this.options.scenario.process
+      .expectedExtensionFactoryFailure
+      ? log.replaceAll("Failed to load extension (factory):", "")
+      : log;
     this.assert(
       !/(?:\(node:\d+\) Warning|Error loading extension|Extension error|Failed to load)/.test(
-        log,
+        startupLog,
       ),
       `Startup errors found in ${this.name}:\n${log}`,
     );
   }
 
+  /** Registers teardown for a scenario-owned local service. */
+  onCleanup(cleanup: () => Promise<void>): void {
+    this.#cleanup.push(cleanup);
+  }
+
+  /** Stops local services once, including when startup fails. */
+  async dispose(): Promise<void> {
+    await Promise.all(this.#cleanup.splice(0).map((cleanup) => cleanup()));
+  }
+
   async abort(): Promise<void> {
     this.#aborted = true;
-    if (!this.#paneId) return;
-    await execute(
-      [...this.#tmuxCommand, "kill-pane", "-t", this.#paneId],
-      true,
-    );
+    if (this.#paneId)
+      await execute(
+        [...this.#tmuxCommand, "kill-pane", "-t", this.#paneId],
+        true,
+      );
+    await this.dispose();
   }
 
   get #tmuxCommand(): string[] {
@@ -423,6 +458,8 @@ export class E2EHarness {
       }
     }
 
+    await this.options.scenario.prepare?.(this);
+
     const command = ["pi"];
     if (!process.persistSession) command.push("--no-session");
     command.push("--no-context-files", "--no-prompt-templates");
@@ -441,8 +478,16 @@ export class E2EHarness {
 
     command.push("-e", this.options.extension);
 
-    if (!usesFauxProvider) command.push("--no-extensions");
-    else command.push("--model", "side-quests-e2e/fake");
+    if (!usesFauxProvider || process.noExtensions)
+      command.push("--no-extensions");
+    if (usesFauxProvider) {
+      if (process.noExtensions)
+        command.push(
+          "-e",
+          join(this.stateDirectory, "extensions", "e2e-provider.ts"),
+        );
+      command.push("--model", "side-quests-e2e/fake");
+    }
 
     if (process.child)
       command.push(
@@ -450,6 +495,7 @@ export class E2EHarness {
         join(dirname(this.options.extension), "child", "index.ts"),
       );
 
+    command.push(...(process.arguments ?? []));
     if (process.positionalPrompt) command.push(process.positionalPrompt);
 
     const environment: Record<string, string> = {
@@ -457,10 +503,16 @@ export class E2EHarness {
       COLUMNS: String(this.options.scenario.width ?? 80),
       LINES: "30",
       PI_CODING_AGENT_DIR: this.stateDirectory,
+      PI_SKIP_VERSION_CHECK: "1",
       PI_TELEMETRY: "0",
       SIDE_QUESTS_E2E_SCENARIO: this.name,
       TERM: "xterm-256color",
     };
+
+    if (process.resourceBudgetBytes !== undefined)
+      environment.PI_SIDE_QUESTS_MAX_RESOURCE_BYTES = String(
+        process.resourceBudgetBytes,
+      );
 
     if (process.tmuxFixture) {
       const realTmux = Bun.which("tmux");
@@ -478,7 +530,9 @@ export class E2EHarness {
       environment.SIDE_QUESTS_E2E_REAL_TMUX = realTmux;
     }
 
-    if (!process.managed) environment.PI_OFFLINE = "1";
+    // Managed fixtures use authored loopback registries. Pin their existing
+    // online default so a supervisor's offline baseline cannot change the test.
+    environment.PI_OFFLINE = (process.offline ?? !process.managed) ? "1" : "0";
     if (process.child) environment.PI_SIDE_QUESTS_CHILD_ID = "e2e-child";
     if (process.lifecycle)
       environment.SIDE_QUESTS_E2E_LIFECYCLE = process.lifecycle;

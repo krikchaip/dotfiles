@@ -11,7 +11,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { ChildRuntime } from "../../child/runtime.ts";
 import { RuntimeStore } from "../../store/runtime.ts";
-import { SessionStore } from "../../store/session.ts";
+import { type ChildManifest, SessionStore } from "../../store/session.ts";
 
 const originalEnvironment = {
   childId: process.env.PI_SIDE_QUESTS_CHILD_ID,
@@ -23,6 +23,7 @@ const originalEnvironment = {
 const temporaryRoots: string[] = [];
 
 afterEach(() => {
+  vi.restoreAllMocks();
   process.env.PI_CODING_AGENT_DIR = originalEnvironment.root;
   process.env.PI_SIDE_QUESTS_CHILD_ID = originalEnvironment.childId;
   process.env.PI_SIDE_QUESTS_INITIAL_PROMPT = originalEnvironment.initialPrompt;
@@ -35,6 +36,8 @@ afterEach(() => {
 
 function autonomousRuntime(
   lifecycle: "autonomous" | "interactive" = "autonomous",
+  registeredTools = ["read", "ask_parent", "subagent_done"],
+  policy: Pick<ChildManifest, "discoverTools" | "toolValidation"> = {},
 ) {
   const root = mkdtempSync(join(tmpdir(), "side-quests-child-runtime-"));
   temporaryRoots.push(root);
@@ -50,6 +53,7 @@ function autonomousRuntime(
     lifecycle,
     inheritContext: false,
     tools: ["read"],
+    ...policy,
   });
   process.env.PI_SIDE_QUESTS_CHILD_ID = manifest.childId;
   process.env.PI_SIDE_QUESTS_PARENT_ID = manifest.parentId;
@@ -57,14 +61,13 @@ function autonomousRuntime(
 
   const handlers = new Map<string, (...args: never[]) => unknown>();
   const sendMessage = vi.fn(async () => undefined);
-  let activeTools = ["read", "ask_parent", "subagent_done"];
+  let activeTools = [...registeredTools];
   const setActiveTools = vi.fn((names: string[]) => {
     activeTools = [...names];
   });
   const pi = {
     getActiveTools: () => [...activeTools],
-    getAllTools: () =>
-      ["read", "ask_parent", "subagent_done"].map((name) => ({ name })),
+    getAllTools: () => registeredTools.map((name) => ({ name })),
     on(name: string, handler: (...args: never[]) => unknown) {
       handlers.set(name, handler);
     },
@@ -140,12 +143,152 @@ test.each([
     } as unknown as ExtensionContext);
 
     expect(fixture.activeTools()).toEqual(expectedTools);
+    expect(
+      RuntimeStore.readReadiness(
+        fixture.manifest.parentId,
+        fixture.manifest.childId,
+      ),
+    ).toMatchObject({ status: "ready" });
 
     fixture.emit(
       "session_shutdown",
       { type: "session_shutdown", reason: "reload" },
       { shutdown } as unknown as ExtensionContext,
     );
+  },
+);
+
+test.each(["autonomous", "interactive"] as const)(
+  "freezes broad child tools without spawning or lifecycle tools for %s",
+  (lifecycle) => {
+    const registered = [
+      "read",
+      "child_only",
+      "Agent",
+      "Task",
+      "delegate",
+      "spawn_agent",
+      "subagent",
+      "ask_parent",
+      "subagent_done",
+    ];
+    const fixture = autonomousRuntime(lifecycle, registered, {
+      discoverTools: true,
+    });
+    const context = { shutdown: vi.fn(), ui: { notify: vi.fn() } };
+    fixture.emit("session_start", { type: "session_start" }, context);
+    const frozen = SessionStore.readManifest(fixture.manifest.sessionPath);
+    expect(frozen?.tools).toEqual(["read", "child_only"]);
+    expect(frozen).not.toHaveProperty("discoverTools");
+    expect(fixture.activeTools()).toEqual([
+      "read",
+      "child_only",
+      "ask_parent",
+      ...(lifecycle === "autonomous" ? ["subagent_done"] : []),
+    ]);
+    fixture.emit(
+      "session_shutdown",
+      { type: "session_shutdown", reason: "reload" },
+      context,
+    );
+    registered.push("late_only");
+    fixture.emit("session_start", { type: "session_start" }, context);
+    expect(fixture.activeTools()).not.toContain("late_only");
+    fixture.emit(
+      "session_shutdown",
+      { type: "session_shutdown", reason: "reload" },
+      context,
+    );
+  },
+);
+
+test("fails readiness for an unresolved lower-layer tool and reports its path", () => {
+  const fixture = autonomousRuntime(
+    "autonomous",
+    ["read", "ask_parent", "subagent_done"],
+    {
+      toolValidation: [
+        { path: "/global/agents/researcher.md", names: ["missing_tool"] },
+      ],
+    },
+  );
+  const context = { shutdown: vi.fn(), ui: { notify: vi.fn() } };
+  const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+    throw new Error("startup exited");
+  });
+  expect(() =>
+    fixture.emit("session_start", { type: "session_start" }, context),
+  ).toThrow("startup exited");
+  expect(exit).toHaveBeenCalledWith(1);
+  expect(context.shutdown).not.toHaveBeenCalled();
+  expect(
+    RuntimeStore.readReadiness(
+      fixture.manifest.parentId,
+      fixture.manifest.childId,
+    ),
+  ).toMatchObject({
+    status: "failed",
+    error:
+      "Invalid tools in /global/agents/researcher.md: Unknown child tool: missing_tool",
+  });
+});
+
+test("fails readiness when an exact manifest tool is unavailable", () => {
+  const fixture = autonomousRuntime("autonomous", [
+    "ask_parent",
+    "subagent_done",
+  ]);
+  const shutdown = vi.fn();
+  const notify = vi.fn();
+
+  const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+    throw new Error("startup exited");
+  });
+  expect(() =>
+    fixture.emit("session_start", { type: "session_start" }, {
+      shutdown,
+      ui: { notify },
+    } as unknown as ExtensionContext),
+  ).toThrow("startup exited");
+
+  expect(exit).toHaveBeenCalledWith(1);
+  expect(shutdown).not.toHaveBeenCalled();
+  expect(
+    RuntimeStore.readReadiness(
+      fixture.manifest.parentId,
+      fixture.manifest.childId,
+    ),
+  ).toMatchObject({
+    status: "failed",
+    error: "Missing required child tools: read",
+  });
+});
+
+test.each(["notify", "storage"] as const)(
+  "stops invalid startup even if %s reporting throws",
+  (failure) => {
+    const fixture = autonomousRuntime("autonomous", [
+      "ask_parent",
+      "subagent_done",
+    ]);
+    const context = { shutdown: vi.fn(), ui: { notify: vi.fn() } };
+    if (failure === "notify")
+      context.ui.notify.mockImplementation(() => {
+        throw new Error("notification failed");
+      });
+    else
+      vi.spyOn(RuntimeStore, "writeReadiness").mockImplementation(() => {
+        throw new Error("storage failed");
+      });
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("startup exited");
+    });
+    expect(() =>
+      fixture.emit("session_start", { type: "session_start" }, context),
+    ).toThrow("startup exited");
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(context.shutdown).not.toHaveBeenCalled();
+    expect(fixture.sendMessage).not.toHaveBeenCalled();
   },
 );
 

@@ -10,7 +10,7 @@ const skill = (name: string, instruction: string) =>
   ].join("\n");
 
 /**
- * Proves omitted available_skills preserves parent skills discovered from .agents.
+ * Proves omitted skills preserves parent skills discovered from .agents.
  */
 export const inheritedAgentsSkills: Scenario = {
   name: "agent-inherits-agents-skills",

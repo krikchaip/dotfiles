@@ -53,83 +53,72 @@ type CollectionCase = Readonly<{
 
 const collectionCases: readonly CollectionCase[] = [
   {
-    name: "agent-tools-csv",
+    name: "agent-tools-fixed-csv",
     frontmatter: ["tools: read, grep"],
     childToolIncludes: ["read", "grep"],
     childToolExcludes: ["bash", "Agent"],
   },
   {
-    name: "agent-tools-yaml-list",
-    frontmatter: ["tools: [read, grep]"],
-    childToolIncludes: ["read", "grep"],
+    name: "agent-tools-parent-relative",
+    frontmatter: ["tools: [+grep, -bash]"],
+    childToolIncludes: ["read", "edit", "write", "grep"],
     childToolExcludes: ["bash", "Agent"],
   },
   {
-    name: "agent-tools-explicit-empty",
-    frontmatter: ["tools: []"],
-    childToolExcludes: ["read", "grep", "bash", "Agent"],
-  },
-  {
-    name: "agent-disallowed-tools-csv",
-    frontmatter: ["tools: [read, grep]", "disallowed_tools: grep"],
-    childToolIncludes: ["read"],
-    childToolExcludes: ["grep", "Agent"],
-  },
-  {
-    name: "agent-disallowed-tools-yaml-list",
-    frontmatter: ["tools: [read, grep]", "disallowed_tools: [grep]"],
-    childToolIncludes: ["read"],
-    childToolExcludes: ["grep", "Agent"],
-  },
-  {
-    name: "agent-disallowed-tools-explicit-empty",
-    frontmatter: ["tools: [read, grep]", "disallowed_tools: []"],
-    childToolIncludes: ["read", "grep"],
+    name: "agent-tools-all",
+    frontmatter: ["tools: true"],
+    childToolIncludes: ["read", "bash", "edit", "write", "grep"],
     childToolExcludes: ["Agent"],
   },
   {
-    name: "agent-available-skills-csv",
-    frontmatter: ["tools: [read]", "available_skills: research, tdd"],
-    childSystemPromptIncludes: ["<name>research</name>", "<name>tdd</name>"],
-  },
-  {
-    name: "agent-available-skills-yaml-list",
-    frontmatter: ["tools: [read]", "available_skills: [research, tdd]"],
-    childSystemPromptIncludes: ["<name>research</name>", "<name>tdd</name>"],
-  },
-  {
-    name: "agent-available-skills-explicit-empty",
-    frontmatter: ["tools: [read]", "available_skills: []"],
-    childSystemPromptExcludes: ["<name>research</name>", "<name>tdd</name>"],
-  },
-  {
-    name: "agent-preload-skills-csv",
-    frontmatter: ["tools: [read]", "preload_skills: research, tdd"],
-    childSystemPromptIncludes: [
-      '<skill name="research"',
-      "RESEARCH PRELOAD INSTRUCTION",
-      '<skill name="tdd"',
-      "TDD PRELOAD INSTRUCTION",
+    name: "agent-tools-none-and-legacy-fields-ignored",
+    frontmatter: [
+      "tools: false",
+      "skills: false",
+      "disallowed_tools: [read]",
+      "disallowed_extensions: 42",
+      "available_skills: [research]",
+      "preload_skills: research",
     ],
-  },
-  {
-    name: "agent-preload-skills-yaml-list",
-    frontmatter: ["tools: [read]", "preload_skills: [research, tdd]"],
-    childSystemPromptIncludes: [
-      '<skill name="research"',
-      "RESEARCH PRELOAD INSTRUCTION",
-      '<skill name="tdd"',
-      "TDD PRELOAD INSTRUCTION",
-    ],
-  },
-  {
-    name: "agent-preload-skills-explicit-empty",
-    frontmatter: ["tools: [read]", "preload_skills: []"],
     childSystemPromptExcludes: [
+      "<name>research</name>",
       '<skill name="research"',
-      "RESEARCH PRELOAD INSTRUCTION",
+    ],
+    childToolExcludes: ["read", "grep", "bash", "edit", "write", "Agent"],
+  },
+  {
+    name: "agent-skills-fixed-and-preloaded",
+    frontmatter: ["tools: [read]", "skills: [research, ++tdd]"],
+    childSystemPromptIncludes: [
+      "<name>research</name>",
       '<skill name="tdd"',
       "TDD PRELOAD INSTRUCTION",
+    ],
+    childSystemPromptExcludes: ["<name>tdd</name>"],
+  },
+  {
+    name: "agent-skills-parent-relative",
+    frontmatter: ["tools: [read]", "skills: [-research, ++research]"],
+    childSystemPromptIncludes: [
+      "<name>tdd</name>",
+      '<skill name="research"',
+      "RESEARCH PRELOAD INSTRUCTION",
+    ],
+    childSystemPromptExcludes: ["<name>research</name>"],
+  },
+  {
+    name: "agent-skills-all",
+    frontmatter: ["tools: [read]", "skills: true"],
+    childSystemPromptIncludes: ["<name>research</name>", "<name>tdd</name>"],
+  },
+  {
+    name: "agent-skills-none",
+    frontmatter: ["tools: [read]", "skills: []"],
+    childSystemPromptExcludes: [
+      "<name>research</name>",
+      "<name>tdd</name>",
+      '<skill name="research"',
+      '<skill name="tdd"',
     ],
   },
 ];
@@ -162,7 +151,7 @@ function collectionScenario(testCase: CollectionCase): Scenario {
   };
 }
 
-/** Rows 81: each collection syntax reaches the real child prompt or tool surface. */
+/** Rows 81: unified capability modes reach the real child prompt or tool surface. */
 export const agentCollectionPolicyScenarios =
   collectionCases.map(collectionScenario);
 
