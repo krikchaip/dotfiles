@@ -1,23 +1,3 @@
 {
-  "mcpServers": {
-    "github": {
-      "headers": {
-        "Authorization": "Bearer {{ env "GITHUB_MCP_PAT" }}"
-      },
-      "serverUrl": "https://api.githubcopilot.com/mcp",
-      "disabled": true
-    },
-    "obsidian": {
-      "args": [
-        "exec",
-        "--",
-        "bunx",
-        "--bun",
-        "@mauricio.wolff/mcp-obsidian@latest",
-        "{{ .chezmoi.homeDir }}/Desktop/zettelkasten"
-      ],
-      "command": "mise",
-      "disabled": true
-    }
-  }
+  "mcpServers": {}
 }
