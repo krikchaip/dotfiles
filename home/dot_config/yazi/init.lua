@@ -1,3 +1,5 @@
+require("kitty-popup"):setup()
+
 -- show user/group of files in status bar
 -- ref: https://yazi-rs.github.io/docs/tips/#user-group-in-status
 Status:children_add(function()

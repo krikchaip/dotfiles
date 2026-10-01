@@ -2,3 +2,6 @@
 **/.pi/agent/**/node_modules/
 **/.pi/agent/tsconfig.json
 **/nushell/history.txt
+
+.config/yazi/plugins/kitty-popup.yazi/__pycache__/
+.config/yazi/plugins/kitty-popup.yazi/test/
