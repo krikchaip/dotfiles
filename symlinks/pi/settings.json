@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.85.1",
+  "lastChangelogVersion": "1.0.0",
   "quietStartup": true,
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
@@ -83,10 +83,6 @@
     "npm:@gotgenes/pi-permission-system",
     "npm:@joelazar/pi-tuicr",
     "npm:pi-blackhole",
-    {
-      "source": "npm:pi-mcp-adapter@2.27.0",
-      "skills": []
-    },
     "packages/image-attachments",
     "packages/oh-my-pi-themes",
     "packages/provider-payload-debug",
