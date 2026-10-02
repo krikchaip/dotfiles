@@ -20,6 +20,7 @@
   "memory": true,
   "sessionFallback": true,
   "fullFoldAlways": true,
+  "statusBar": false,
   "observeAfterTokens": 60000,
   "reflectAfterTokens": 150000,
   "observationsPoolMaxTokens": 20000,

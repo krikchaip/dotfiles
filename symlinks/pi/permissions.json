@@ -24,6 +24,7 @@
       "*build/*": "deny"
     },
     "bash": {
+      "*": "allow",
       "*agent-browser *--profile*": "deny",
       "*agent-browser *--session*": "deny",
       "*agent-browser *--session-name*": "deny",
