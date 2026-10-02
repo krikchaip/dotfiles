@@ -72,7 +72,7 @@ export const diskSafeLaunchRefusal: Scenario = {
     configureBasicDelegation(context);
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("resource budget exceeded");
+    await harness.waitFor(/resource budget\s+exceeded/);
     harness.assert(
       (await harness.childPanes()).length === 0,
       "Budget refusal retained a child pane.",

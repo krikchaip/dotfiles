@@ -29,7 +29,7 @@ export const extensionStartupFailure: Scenario = {
     configureBasicDelegation(context);
   },
   async run(harness: E2EHarness) {
-    await harness.waitFor("E2E selected extension factory exploded");
+    await harness.waitFor(/E2E\s+selected\s+extension\s+factory\s+exploded/);
     await harness.waitFor("extension-startup-failure.ts");
     const panes = await harness.childPanes();
     harness.assert(panes.length === 0, "Failed child pane was retained.");

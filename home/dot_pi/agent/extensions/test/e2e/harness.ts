@@ -70,7 +70,7 @@ async function terminateTestPaneProcesses(
     .trim()
     .split("\n")
     .map(Number)
-    .filter(Number.isFinite);
+    .filter((pid) => Number.isInteger(pid) && pid > 0);
   if (roots.length === 0) return;
 
   const table = await execute(["ps", "-axo", "pid=,ppid="], true);
