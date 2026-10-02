@@ -1,11 +1,17 @@
 import { randomUUID } from "node:crypto";
-import type {
-  ExtensionAPI,
-  ExtensionContext,
+import { homedir } from "node:os";
+import { join } from "node:path";
+import {
+  DefaultPackageManager,
+  type ExtensionAPI,
+  type ExtensionContext,
+  SettingsManager,
 } from "@earendil-works/pi-coding-agent";
 
 import { DENIED_SPAWNING_TOOLS } from "../capability-policy.ts";
 import { createChildExtensionEntrypoints } from "../child/extension-host.ts";
+import { validateExtensionIntegrity } from "../extension-integrity.ts";
+import { PiPackageResources } from "../package-resources.ts";
 import { RESULT_MESSAGE_TYPE } from "../renderer/side-quest-result-renderer.ts";
 import { CHILD_ID_ENV, PARENT_PANE_ENV } from "../role.ts";
 import {
@@ -150,6 +156,29 @@ export class ParentRuntime {
     let child: ParentChild | undefined;
 
     try {
+      await validateExtensionIntegrity(
+        manifest.extensionIntegrity ?? [],
+        async (source, _path, root) => {
+          const agentDirectory =
+            process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent");
+          const settingsManager = SettingsManager.create(
+            manifest.cwd,
+            agentDirectory,
+          );
+          const manager = new DefaultPackageManager({
+            agentDir: agentDirectory,
+            cwd: manifest.cwd,
+            settingsManager,
+          });
+          const resources = new PiPackageResources(
+            manager,
+            settingsManager,
+            agentDirectory,
+            false,
+          );
+          await resources.restoreTemporary(source, root);
+        },
+      );
       child = await this.open(manifest, initialPrompt);
       await this.waitForReadiness(manifest);
       return {
@@ -261,6 +290,11 @@ export class ParentRuntime {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
+    // No live pane remains. Only a successful launch can restore live tracking.
+    this.childrenById.delete(manifest.childId);
+    this.activityByChildId.delete(manifest.childId);
+    this.replyPendingByChildId.delete(manifest.childId);
+    this.missingPanes.delete(manifest.childId);
     RuntimeStore.clearTerminal(manifest.parentId, manifest.childId);
 
     try {

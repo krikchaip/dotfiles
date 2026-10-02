@@ -1,5 +1,7 @@
-import { existsSync } from "node:fs";
+import { existsSync, lstatSync } from "node:fs";
+import { mkdir, rmdir } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   DefaultPackageManager,
   type PackageSource,
@@ -74,6 +76,7 @@ type NativePackageManager = {
  * Keeps native package discovery private and freezes loaded files with their dependencies.
  */
 export class PiPackageResources {
+  private readonly installParsedSource: NativePackageManager["installParsedSource"];
   private readonly copiedRoots = new Map<string, Promise<string>>();
   private readonly preparedRoots = new Map<
     string,
@@ -87,8 +90,18 @@ export class PiPackageResources {
     private readonly manager: DefaultPackageManager,
     settingsManager: SettingsManager,
     private readonly agentDirectory: string,
+    private readonly freezeResolved = true,
   ) {
     const native = manager as unknown as NativePackageManager;
+    this.installParsedSource = native.installParsedSource.bind(manager);
+    native.installParsedSource = async (parsed, scope) => {
+      if (scope !== "temporary") return this.installParsedSource(parsed, scope);
+      await this.withTemporaryInstall(async () => {
+        reserveContent(this.agentDirectory, 0, 0);
+        await this.installParsedSource(parsed, scope);
+        reserveContent(this.agentDirectory, 0, 0);
+      });
+    };
     const captureCommand = native.runCommandCapture.bind(manager);
     native.runCommand = async (command, args, options) => {
       try {
@@ -198,6 +211,12 @@ export class PiPackageResources {
             `Package ${entry.source} has no matching installed resources after installation`,
           );
         }
+        if (!this.freezeResolved) {
+          // Replay Pi's native discovery through the warm path, not its absent
+          // temporary install target. This reuses parent installs without copies.
+          warm.set(packageKey(entry.parsed, entry.resolvedScope), installed);
+          continue;
+        }
         // Fresh discovery fingerprints current installs. The separate freeze()
         // memo retains the original parent-loaded generation intentionally.
         const root =
@@ -253,6 +272,76 @@ export class PiPackageResources {
           : undefined,
       );
     };
+  }
+
+  /**
+   * Restores only an absent native-temp Package, never a borrowed warm install.
+   */
+  async restoreTemporary(source: string, expectedRoot: string): Promise<void> {
+    const native = this.manager as unknown as NativePackageManager;
+    const parsed = native.parseSource(source);
+    if (parsed.type === "local" || !parsed.pinned)
+      throw new Error(
+        `Saved extension recovery needs an exact remote source: ${source}`,
+      );
+    const root =
+      parsed.type === "npm"
+        ? native.getNpmInstallPath(parsed, "temporary")
+        : native.getGitInstallPath(parsed, "temporary");
+    if (root !== expectedRoot)
+      throw new Error(
+        `Saved extension recovery has a different native-temp root: ${expectedRoot}`,
+      );
+    if (
+      ["1", "true", "yes"].includes(process.env.PI_OFFLINE?.toLowerCase() ?? "")
+    )
+      throw new Error(
+        `Offline saved extension recovery cannot install ${source}`,
+      );
+    await this.withTemporaryInstall(async () => {
+      let present = true;
+      try {
+        lstatSync(root);
+      } catch (cause) {
+        if ((cause as NodeJS.ErrnoException).code !== "ENOENT") throw cause;
+        present = false;
+      }
+      if (present)
+        throw new Error(
+          `Saved extension recovery cannot replace an existing Package: ${root}`,
+        );
+      reserveContent(this.agentDirectory, 0, 0);
+      await this.installParsedSource(parsed, "temporary");
+      reserveContent(this.agentDirectory, 0, 0);
+    });
+  }
+
+  /**
+   * Serializes native-temp installers without blocking the TUI or removing stale locks.
+   */
+  private async withTemporaryInstall(run: () => Promise<void>): Promise<void> {
+    const root = join(this.agentDirectory, "side-quests");
+    await mkdir(root, { recursive: true, mode: 0o700 });
+    const lock = join(root, "temporary-install.lock");
+    const deadline = Date.now() + 10_000;
+    for (;;) {
+      try {
+        await mkdir(lock, { mode: 0o700 });
+        break;
+      } catch (cause) {
+        if ((cause as NodeJS.ErrnoException).code !== "EEXIST") throw cause;
+        if (Date.now() >= deadline)
+          throw new Error(
+            `Temporary Package installation is busy or interrupted: ${lock}`,
+          );
+        await delay(25);
+      }
+    }
+    try {
+      await run();
+    } finally {
+      await rmdir(lock);
+    }
   }
 
   /**

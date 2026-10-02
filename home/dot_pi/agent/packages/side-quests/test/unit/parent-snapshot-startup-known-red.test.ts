@@ -16,7 +16,6 @@ import { DefaultResourceLoader } from "@earendil-works/pi-coding-agent";
 import { expect, test, vi } from "vitest";
 
 import { capturePiParentExtensions } from "../../extension-selection.ts";
-import { PiPackageResources } from "../../package-resources.ts";
 
 vi.mock("node:fs", async (importOriginal) => {
   const original = await importOriginal<typeof import("node:fs")>();
@@ -36,7 +35,7 @@ function removeFixture(path: string): void {
   rmSync(path, { recursive: true, force: true });
 }
 
-test("parent startup and session replacement do not synchronously copy package graphs", async () => {
+test("parent startup and session replacement reuse direct package paths without copying", async () => {
   const root = mkdtempSync(join(tmpdir(), "side-quests-startup-copy-"));
   const packageRoot = join(root, "npm", "node_modules", "sq-startup-fixture");
   mkdirSync(packageRoot, { recursive: true });
@@ -70,7 +69,6 @@ test("parent startup and session replacement do not synchronously copy package g
 
   const captures: ReturnType<ReturnType<typeof capturePiParentExtensions>>[] =
     [];
-  const prepare = vi.spyOn(PiPackageResources.prototype, "prepareFreeze");
   const consumers: ReturnType<typeof capturePiParentExtensions>[] = [];
   try {
     // Pi reads this getter when it builds the initial or replacement runtime.
@@ -86,7 +84,6 @@ test("parent startup and session replacement do not synchronously copy package g
       expect(loader.getExtensions()).toBe(loaded);
       consumers.push(capture);
     }
-    await Promise.all(prepare.mock.results.map(({ value }) => value));
     expect(existsSync(join(root, "side-quests", "resources"))).toBe(false);
     captures.push(...consumers.map((capture) => capture()));
     expect(
@@ -94,12 +91,11 @@ test("parent startup and session replacement do not synchronously copy package g
       "Pi startup and /resume must not copy package trees on the TUI thread.",
     ).not.toHaveBeenCalled();
     const [first, second] = await Promise.all(captures);
-    expect(first?.[0]?.path).toBe(second?.[0]?.path);
-    expect(first?.[0]?.path).not.toBe(path);
+    expect(first?.[0]?.path).toBe(path);
+    expect(second?.[0]?.path).toBe(path);
   } finally {
     await Promise.allSettled(captures);
     getter.mockRestore();
-    prepare.mockRestore();
     DefaultResourceLoader.prototype.getExtensions = nativeGetter;
     vi.clearAllMocks();
     removeFixture(root);

@@ -1,4 +1,10 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import {
   fauxAssistantMessage,
@@ -23,6 +29,7 @@ import {
 export function configureVersionIsolation(
   context: ProviderContext,
   fresh = false,
+  rejectReopen = false,
 ): void {
   if (context.role === "child") {
     context.faux.setResponses([fauxSubagentDone("Version child completed.")]);
@@ -67,7 +74,9 @@ export function configureVersionIsolation(
             errorMessage: "Missing version-one resume path.",
           });
     },
-    fauxAssistantMessage(fauxText("Waiting for version-one reopen.")),
+    ...(rejectReopen
+      ? []
+      : [fauxAssistantMessage(fauxText("Waiting for version-one reopen."))]),
     fauxAssistantMessage(fauxText("VERSION ISOLATION COMPLETE")),
   ]);
 }
@@ -106,7 +115,7 @@ export function prepareVersionDefinitions(
 }
 
 /**
- * Fresh settings discovery must preserve older npm/Git children across reopen.
+ * Fresh settings discovery must reject changed saved npm/Git sources on reopen.
  */
 export const extensionFreshVersionIsolationScenarios: readonly Scenario[] = [
   "npm",
@@ -117,6 +126,7 @@ export const extensionFreshVersionIsolationScenarios: readonly Scenario[] = [
   process: {
     managed: true,
     positionalPrompt: "Delegate the fresh-version task.",
+    extensionFixtures: ["test/e2e/fixture/version-parent-ready.ts"],
   },
   async prepare(harness) {
     const npmCommand = await startVersionRegistry(harness);
@@ -127,14 +137,27 @@ export const extensionFreshVersionIsolationScenarios: readonly Scenario[] = [
     prepareVersionDefinitions(harness, sources, npmCommand, true);
   },
   configureProvider(context) {
-    configureVersionIsolation(context, true);
+    configureVersionIsolation(context, true, true);
   },
   async run(harness: E2EHarness) {
     await harness.waitFor("VERSION ISOLATION COMPLETE", 45_000);
+    await harness.waitUntil("the final parent turn to settle", () =>
+      existsSync(join(harness.stateDirectory, "version-parent-ready")),
+    );
     const loaded = harness.read(join(harness.stateDirectory, "versions.txt"));
     harness.assert(
-      loaded === "parent:1.0.0\nchild:1.0.0\nchild:2.0.0\nchild:1.0.0\n",
-      `Fresh ${kind} settings changed an older child snapshot:\n${loaded}`,
+      loaded === "parent:1.0.0\nchild:1.0.0\nchild:2.0.0\n",
+      `Fresh ${kind} settings executed a changed saved child source:\n${loaded}`,
+    );
+    const view = await harness.capture();
+    harness.assert(
+      view.includes("Saved extension") && view.includes("changed"),
+      "Resume did not report changed extension source integrity.",
+    );
+    harness.assert(
+      harness.filesNamed("manifest.json").length === 2 &&
+        (await harness.childPanes()).length === 0,
+      "Refused resume removed a saved manifest or left a child pane.",
     );
   },
 }));
@@ -256,3 +279,127 @@ export const extensionNpmVersionIsolation: Scenario = {
     );
   },
 };
+
+/**
+ * Restores a stopped child's deleted native-temp Package at its saved exact source.
+ */
+export const extensionTemporaryRecoveryScenarios: readonly Scenario[] = [
+  "npm",
+  "git",
+].map((kind) => ({
+  name: `agent-extension-${kind}-temporary-recovery`,
+  timeoutMs: 60_000,
+  process: {
+    managed: true,
+    positionalPrompt: "Delegate the temporary recovery task.",
+    extensionFixtures: ["test/e2e/fixture/version-parent-ready.ts"],
+  },
+  async prepare(harness) {
+    const npmCommand = await startVersionRegistry(harness);
+    const sources =
+      kind === "git"
+        ? await startVersionGitRepository(harness)
+        : [`npm:${VERSION_PACKAGE}@1.0.0`, `npm:${VERSION_PACKAGE}@2.0.0`];
+    prepareVersionDefinitions(harness, sources, npmCommand);
+    writeFileSync(
+      join(harness.stateDirectory, "recovery-log-path"),
+      harness.logPath,
+    );
+  },
+  configureProvider(context) {
+    if (context.role === "child") {
+      context.faux.setResponses([fauxSubagentDone("Version child completed.")]);
+      return;
+    }
+    const launch = (resume?: string) =>
+      fauxAssistantMessage(
+        fauxToolCall("Agent", {
+          description: "Temporary Package recovery",
+          prompt: "Complete the temporary recovery task.",
+          ...(resume ? { resume } : { subagent_type: "version-two" }),
+        }),
+        { stopReason: "toolUse" },
+      );
+    context.faux.setResponses([
+      launch(),
+      fauxAssistantMessage(fauxText("Waiting for the first child.")),
+      (providerContext) => {
+        const path = sessionPath(
+          providerContext.messages,
+          /Resume:\s*([^"\n]+session\.jsonl)/,
+        );
+        const state = process.env.PI_CODING_AGENT_DIR;
+        if (!path || !state)
+          throw new Error(
+            "Recovery fixture has no managed session or isolated state.",
+          );
+        const manifest = JSON.parse(
+          readFileSync(join(path, "..", "manifest.json"), "utf8"),
+        ) as {
+          extensionIntegrity: {
+            package?: { root: string; temporary: boolean; exactSource: string };
+          }[];
+        };
+        const pkg = manifest.extensionIntegrity.find(
+          (entry) => entry.package?.temporary,
+        )?.package;
+        if (!pkg || !pkg.root.startsWith(`${join(state, "tmp")}/`))
+          throw new Error(
+            "Recovery fixture did not select a test-owned native-temp Package.",
+          );
+        writeFileSync(join(state, "recovered-source.txt"), pkg.exactSource);
+        const logPath = readFileSync(join(state, "recovery-log-path"), "utf8");
+        writeFileSync(
+          join(state, "recovery-log-offset"),
+          String(readFileSync(logPath, "utf8").length),
+        );
+        rmSync(pkg.root, { recursive: true });
+        return launch(path);
+      },
+      fauxAssistantMessage(fauxText("Waiting for the recovered child.")),
+      fauxAssistantMessage(fauxText("VERSION ISOLATION COMPLETE")),
+    ]);
+  },
+  async run(harness: E2EHarness) {
+    await harness.waitFor("VERSION ISOLATION COMPLETE", 45_000);
+    await harness.waitUntil("the final parent turn to settle", () =>
+      existsSync(join(harness.stateDirectory, "version-parent-ready")),
+    );
+    const loaded = harness.read(join(harness.stateDirectory, "versions.txt"));
+    harness.assert(
+      loaded === "parent:1.0.0\nchild:2.0.0\nchild:2.0.0\n",
+      `Native ${kind} recovery changed saved child bytes:\n${loaded}`,
+    );
+    const exact = harness.read(
+      join(harness.stateDirectory, "recovered-source.txt"),
+    );
+    harness.assert(
+      kind === "npm"
+        ? exact === `npm:${VERSION_PACKAGE}@2.0.0`
+        : /@[a-f0-9]{40}$/.test(exact),
+      "Temporary recovery did not save an exact installed version or commit.",
+    );
+    const view = await harness.capture();
+    harness.assert(
+      !view.includes("SUBAGENT FAILED"),
+      "Recovered child failed instead of completing.",
+    );
+    harness.assert(
+      harness.filesNamed("manifest.json").length === 1 &&
+        (await harness.childPanes()).length === 0,
+      "Recovery changed child identity or retained a temporary pane.",
+    );
+    const resources = join(harness.stateDirectory, "side-quests", "resources");
+    harness.assert(
+      !existsSync(resources),
+      "Extension recovery allocated a Package graph.",
+    );
+    const offset = Number(
+      harness.read(join(harness.stateDirectory, "recovery-log-offset")),
+    );
+    harness.assert(
+      !harness.read(harness.logPath).slice(offset).includes("added 1 package"),
+      "Temporary Package recovery leaked native install output into the parent terminal.",
+    );
+  },
+}));

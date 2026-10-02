@@ -8,6 +8,10 @@ import {
 
 import type { ConfiguredCapability } from "./agent-definitions.ts";
 import type { CapabilityEntry } from "./capability-selection.ts";
+import {
+  type ExtensionIntegrity,
+  captureExtensionIntegrity,
+} from "./extension-integrity.ts";
 import { PiPackageResources } from "./package-resources.ts";
 
 /**
@@ -31,6 +35,9 @@ export type ResolvedExtension = Readonly<{
 
   /** Distinguishes direct discovery from a selected package resource. */
   origin: "direct" | "package";
+
+  /** Records source bytes and exact installed Package provenance. */
+  integrity?: ExtensionIntegrity;
 }>;
 
 /**
@@ -78,6 +85,7 @@ export class ExtensionSelection {
       const selected = await this.resolveEntries(
         selection.entries,
         configured.sourcePath,
+        parentSnapshot,
       );
       return immutable(replaceByIdentity(direct, selected));
     }
@@ -85,7 +93,11 @@ export class ExtensionSelection {
     const resolvedEntries = await Promise.all(
       selection.entries.map(async (entry) => ({
         entry,
-        resolved: await this.resolveEntries([entry], configured.sourcePath),
+        resolved: await this.resolveEntries(
+          [entry],
+          configured.sourcePath,
+          parentSnapshot,
+        ),
       })),
     );
     this.validateOperations(resolvedEntries);
@@ -122,14 +134,20 @@ export class ExtensionSelection {
   private async resolveEntries(
     entries: readonly CapabilityEntry[],
     sourcePath: string,
+    parentSnapshot: readonly ResolvedExtension[],
   ): Promise<readonly ResolvedExtension[]> {
     const selected: ResolvedExtension[] = [];
     const operations = new Map<string, CapabilityEntry>();
     for (const entry of entries) {
-      const resolved = await this.discovery.explicit(
-        [entry.name],
-        definitionScope(sourcePath),
+      const inherited = parentSnapshot.filter(
+        ({ source }) => source === entry.name,
       );
+      const resolved = inherited.length
+        ? inherited
+        : await this.discovery.explicit(
+            [entry.name],
+            definitionScope(sourcePath),
+          );
       if (!resolved.length)
         throw new Error(
           `Extension ${entry.name} did not resolve to an extension entrypoint`,
@@ -188,12 +206,17 @@ export function createPiExtensionDiscovery(options: {
     cwd: options.cwd,
     settingsManager,
   });
-  new PiPackageResources(manager, settingsManager, options.agentDirectory);
+  new PiPackageResources(
+    manager,
+    settingsManager,
+    options.agentDirectory,
+    false,
+  );
 
   return {
     normal: async () => {
       await settingsManager.reload();
-      return asExtensions(await manager.resolve(), (metadata, path) =>
+      return asExtensions(manager, await manager.resolve(), (metadata, path) =>
         packageIdentity(
           manager,
           metadata.origin === "package" ? metadata.source : path,
@@ -222,8 +245,11 @@ export function createPiExtensionDiscovery(options: {
         cwd: options.cwd,
         settingsManager: directSettings,
       });
-      return asExtensions(await directManager.resolve(), (metadata, path) =>
-        packageIdentity(directManager, path, metadata.scope),
+      return asExtensions(
+        directManager,
+        await directManager.resolve(),
+        (metadata, path) =>
+          packageIdentity(directManager, path, metadata.scope),
       );
     },
     explicit: async (sources, baseDirectory) => {
@@ -236,9 +262,9 @@ export function createPiExtensionDiscovery(options: {
         });
         const expanded = expandLocalExtensions(manager, scoped, resources);
         selected.push(
-          ...asExtensions(expanded, (metadata) =>
+          ...(await asExtensions(manager, expanded, (metadata) =>
             packageIdentity(manager, metadata.source, metadata.scope),
-          ),
+          )),
         );
       }
       return selected;
@@ -263,23 +289,11 @@ export function capturePiParentExtensions(options: {
     cwd: options.cwd,
     settingsManager,
   });
-  const resources = new PiPackageResources(
-    manager,
-    settingsManager,
-    options.agentDirectory,
-  );
   const ownPaths = new Set([
     new URL("./index.ts", import.meta.url).pathname,
     new URL("./child/index.ts", import.meta.url).pathname,
   ]);
   const original = DefaultResourceLoader.prototype.getExtensions;
-  let prepared:
-    | Promise<
-        readonly (Omit<ResolvedExtension, "path"> & {
-          materialize: () => Promise<string>;
-        })[]
-      >
-    | undefined;
   let snapshot: Promise<readonly ResolvedExtension[]> | undefined;
   DefaultResourceLoader.prototype.getExtensions = function () {
     const result = original.call(this);
@@ -287,7 +301,7 @@ export function capturePiParentExtensions(options: {
       result.extensions.some(({ resolvedPath }) => ownPaths.has(resolvedPath))
     ) {
       DefaultResourceLoader.prototype.getExtensions = original;
-      prepared = Promise.all(
+      snapshot = Promise.all(
         result.extensions
           .filter(
             ({ resolvedPath }) =>
@@ -295,6 +309,11 @@ export function capturePiParentExtensions(options: {
               !resolvedPath.startsWith("<inline:"),
           )
           .map(async ({ resolvedPath, sourceInfo, tools }) => ({
+            integrity: await captureExtensionIntegrity(
+              resolvedPath,
+              sourceInfo,
+              manager,
+            ),
             identity: packageIdentity(
               manager,
               sourceInfo.origin === "package"
@@ -306,38 +325,25 @@ export function capturePiParentExtensions(options: {
               sourceInfo.origin === "package"
                 ? ("package" as const)
                 : ("direct" as const),
+            path: resolvedPath,
             providerPath: resolvedPath,
             providedTools: Object.freeze([...tools.keys()]),
             source:
               sourceInfo.origin === "package"
                 ? sourceInfo.source
                 : resolvedPath,
-            materialize: await resources.prepareFreeze(
-              resolvedPath,
-              sourceInfo,
-            ),
           })),
-      );
-      // Startup records provenance only. Child launches own graph allocation.
-      void prepared.catch(() => {});
+      ).then(immutable);
+      // Defer diagnostics to the Agent call, without an unhandled startup rejection.
+      void snapshot.catch(() => {});
     }
     return result;
   };
-  return () => {
-    if (!prepared)
+  return async () => {
+    if (!snapshot)
       throw new Error(
         "Pi 0.85.1 loaded parent extension snapshot is unavailable",
       );
-    snapshot ??= prepared.then(async (entries) =>
-      immutable(
-        await Promise.all(
-          entries.map(async ({ materialize, ...entry }) => ({
-            ...entry,
-            path: await materialize(),
-          })),
-        ),
-      ),
-    );
     return snapshot;
   };
 }
@@ -346,6 +352,7 @@ type PiMetadata = Readonly<{
   source: string;
   scope: "user" | "project" | "temporary";
   origin: "package" | "top-level";
+  baseDir?: string;
 }>;
 
 type PiResolvedResource = Readonly<{
@@ -357,20 +364,31 @@ type PiResolvedResource = Readonly<{
 type PiResolvedPaths = Readonly<{ extensions: readonly PiResolvedResource[] }>;
 
 /** Converts Pi's resolved resource records to the child manifest representation. */
-function asExtensions(
+async function asExtensions(
+  manager: DefaultPackageManager,
   paths: PiResolvedPaths,
   identity: (metadata: PiMetadata, path: string) => string,
-): readonly ResolvedExtension[] {
-  return paths.extensions
-    .filter(({ enabled }) => enabled)
-    .map(({ metadata, path }) => ({
-      identity: identity(metadata, path),
-      origin: metadata.origin === "package" ? "package" : "direct",
-      path,
-      providerPath: path,
-      providedTools: Object.freeze([]),
-      source: metadata.origin === "package" ? metadata.source : path,
-    }));
+): Promise<readonly ResolvedExtension[]> {
+  return Promise.all(
+    paths.extensions
+      .filter(({ enabled }) => enabled)
+      .map(async ({ metadata, path }) => ({
+        integrity: await captureExtensionIntegrity(
+          path,
+          { ...metadata, path },
+          manager,
+        ),
+        identity: identity(metadata, path),
+        origin:
+          metadata.origin === "package"
+            ? ("package" as const)
+            : ("direct" as const),
+        path,
+        providerPath: path,
+        providedTools: Object.freeze([]),
+        source: metadata.origin === "package" ? metadata.source : path,
+      })),
+  );
 }
 
 /**

@@ -758,3 +758,47 @@ test("cancelled events retain pending question and child identity details", asyn
     sessionPath: "/tmp/session.jsonl",
   });
 });
+
+test("refused stopped-child resume must not target an empty pane on parent shutdown", async () => {
+  const root = mkdtempSync(join(tmpdir(), "sq-refused-resume-"));
+  temporaryRoots.push(root);
+  process.env.PI_CODING_AGENT_DIR = root;
+  const handlers = new Map<string, (event: unknown) => void>();
+  const parent = ParentRuntime.register({
+    getAllTools: () => [],
+    on(name: string, handler: (event: unknown) => void) {
+      handlers.set(name, handler);
+    },
+  } as unknown as ExtensionAPI);
+  const missing = join(root, "missing-extension.ts");
+  const manifest = SessionStore.createSync({
+    parentId: "parent-id",
+    childId: "refused-child-id",
+    ownerId: parent.ownerId,
+    cwd: root,
+    description: "refused stopped-child resume",
+    lifecycle: "autonomous",
+    inheritContext: false,
+    tools: [],
+    extensionPaths: [missing],
+    extensionIntegrity: [{ path: missing, digest: "0".repeat(64) }],
+  });
+  vi.spyOn(Tmux, "findManagedPane").mockReturnValue(undefined);
+  vi.spyOn(Tmux, "paneExists").mockReturnValue(false);
+  const closePane = vi.spyOn(Tmux, "closePane").mockImplementation(() => {});
+  RuntimeStore.writeTerminal(manifest.parentId, {
+    childId: manifest.childId,
+    eventId: "completed-event",
+    kind: "completed",
+    createdAt: Date.now(),
+  });
+
+  await expect(
+    parent.continue(manifest, "Resume the saved child."),
+  ).rejects.toThrow("Saved extension is missing");
+  const retained = parent.children();
+  handlers.get("session_shutdown")?.({ reason: "exit" });
+  expect(SessionStore.readManifest(manifest.sessionPath)).toBeDefined();
+  expect(closePane).not.toHaveBeenCalledWith("");
+  expect(retained).toEqual([]);
+});

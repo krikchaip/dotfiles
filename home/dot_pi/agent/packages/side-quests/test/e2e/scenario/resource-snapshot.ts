@@ -58,7 +58,7 @@ export const warmPackageSnapshotScenarios: readonly Scenario[] = [
     mkdirSync(agents, { recursive: true });
     writeFileSync(
       join(agents, "general-purpose.md"),
-      `---\ntools: [read]\n${row.selection ? `extensions: ${row.selection}\n` : ""}---\n`,
+      `---\ntools: [read]\n${row.selection ? `extensions: ${row.selection}\n` : ""}${row.name === "unpinned-inherited" ? "skills: []\n" : ""}---\n`,
     );
   },
   configureProvider(context) {
@@ -70,6 +70,33 @@ export const warmPackageSnapshotScenarios: readonly Scenario[] = [
     harness.assert(
       loaded === "parent:1.0.0\nchild:1.0.0\n",
       `Warm-package ${row.name} did not preserve the loaded parent version:\n${loaded}`,
+    );
+    if (row.name !== "unpinned-inherited") return;
+
+    const manifestPath = harness.filesNamed("manifest.json")[0];
+    harness.assert(manifestPath, "Inherited-package manifest is missing.");
+    const manifest = JSON.parse(harness.read(manifestPath));
+    const installedEntrypoint = join(
+      harness.stateDirectory,
+      "npm",
+      "node_modules",
+      VERSION_PACKAGE,
+      "index.ts",
+    );
+    harness.assert(
+      manifest.extensionPaths.includes(installedEntrypoint),
+      `Inherited Package did not reuse its loaded parent path:\n${manifest.extensionPaths.join("\n")}`,
+    );
+    harness.assert(
+      manifest.extensionPaths.every(
+        (path: string) => !path.includes("/side-quests/resources/snapshot-"),
+      ),
+      "Inherited Package created a Package graph view before child launch.",
+    );
+    const snapshots = harness.filesNamed(".package-snapshot.json");
+    harness.assert(
+      snapshots.length === 0,
+      `Unselected Package resources created graph views:\n${snapshots.join("\n")}`,
     );
   },
 }));

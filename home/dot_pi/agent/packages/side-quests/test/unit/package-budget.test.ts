@@ -246,3 +246,45 @@ test("a changed pinned Git ref is reconciled before immutable capture", async ()
     "2.0.0",
   );
 });
+
+test("zero-copy warm user cache does not install a temporary copy or require allocation", async () => {
+  vi.stubEnv("PI_OFFLINE", "0");
+  vi.stubEnv("PI_SIDE_QUESTS_MAX_RESOURCE_BYTES", "1");
+  const { owner, root } = fixture();
+  const name = "sq-warm-user-budget-fixture";
+  const installed = join(owner, "npm", "node_modules", name);
+  mkdirSync(installed, { recursive: true });
+  writeFileSync(
+    join(installed, "package.json"),
+    JSON.stringify({
+      name,
+      version: "1.0.0",
+      pi: { extensions: ["index.ts"] },
+    }),
+  );
+  writeFileSync(join(installed, "index.ts"), "export default () => {};\n");
+  const stored = join(owner, "side-quests", "resources");
+  mkdirSync(stored, { recursive: true });
+  writeFileSync(join(stored, "fixture"), "over the test cap");
+  const settings = SettingsManager.inMemory();
+  const manager = new DefaultPackageManager({
+    agentDir: owner,
+    cwd: root,
+    settingsManager: settings,
+  });
+  const command = vi
+    .spyOn(
+      manager as unknown as {
+        runCommandCapture(...args: unknown[]): Promise<string>;
+      },
+      "runCommandCapture",
+    )
+    .mockResolvedValue("");
+  new PiPackageResources(manager, settings, owner, false);
+  const resolved = await manager.resolveExtensionSources(
+    [`npm:${name}@1.0.0`],
+    { temporary: true },
+  );
+  expect(resolved.extensions[0]?.path).toBe(join(installed, "index.ts"));
+  expect(command).not.toHaveBeenCalled();
+});

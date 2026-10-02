@@ -111,6 +111,8 @@ Only `-identifier` can remove a named member of the Direct extension baseline in
 
 Pi package references select packages as units. A selected package contributes its extension entrypoints, not its skills, prompts, or themes. Explicit plain or `+` package selection ignores extension filters from `settings.json` and loads the extension surface declared by the package. It still respects the package author's own `package.json` Pi manifest boundary and does not invent undeclared package resources. The required private Side Quests child companion is infrastructure outside Agent capability selection and cannot be removed.
 
+Children use loaded parent extension paths or matching warm installed paths, not copied Package graph views. Missing child-only Packages use Pi's native temporary scope. New manifests save exact installed npm versions or Git commits and small entrypoint/manifest hashes. Reopen rejects changed inherited sources and restores only missing native-temp Packages at their saved exact source and path. Recovery never replaces an existing Package; it uses quiet commands, offline refusal, free-space checks, and the shared asynchronous native-temp install lock. These checks do not freeze helper files or dependencies. A refused resume leaves no live-child tracking and cannot close the parent pane through an empty target. Selected remote Package skills alone retain immutable graph views.
+
 ### Skills
 
 A plain skill identifier selects that skill for the lazy catalog. `+skill` adds a lazy skill to the inherited catalog. `-skill` removes a lazy skill. An explicit lazy-skill identifier can select a discovered skill that is normally hidden from model invocation.

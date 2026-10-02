@@ -26,12 +26,18 @@ async function prepareWarmPackage(harness: E2EHarness, payloadBytes: number) {
     JSON.stringify({
       name: "sq-budget-launch-fixture",
       version: "1.0.0",
-      pi: { extensions: ["index.ts"] },
+      pi: { extensions: ["index.ts"], skills: ["skills"] },
     }),
   );
   writeFileSync(
     join(directory, "index.ts"),
     "export default function (pi) { pi.on('session_start', (_event, ctx) => ctx.ui.notify('BUDGET PACKAGE LOADED', 'info')); }\n",
+  );
+  const skill = join(directory, "skills", "sq-budget-skill");
+  mkdirSync(skill, { recursive: true });
+  writeFileSync(
+    join(skill, "SKILL.md"),
+    "---\nname: sq-budget-skill\ndescription: Budget fixture\n---\nBudget fixture instructions.\n",
   );
   writeFileSync(join(directory, "payload"), Buffer.alloc(payloadBytes));
   writeFileSync(
@@ -55,7 +61,8 @@ export const diskSafeLaunchRefusal: Scenario = {
     resourceBudgetBytes: 128 * 1024,
     positionalPrompt: "Delegate the disk-budget test.",
     agentDefinitions: {
-      "general-purpose": `---\ntools: [read]\nextensions: [${source}]\n---\n`,
+      "general-purpose":
+        "---\ntools: [read]\nextensions: false\nskills: [sq-budget-skill]\n---\n",
     },
   },
   async prepare(harness) {
@@ -103,7 +110,7 @@ export const diskSafeWarmLaunch: Scenario = {
     resourceBudgetBytes: 256 * 1024,
     positionalPrompt: "Delegate the small warm Package test.",
     agentDefinitions: {
-      "general-purpose": `---\ntools: [read]\nextensions: [${source}]\n---\n`,
+      "general-purpose": `---\ntools: [read]\nextensions: [${source}]\nskills: []\n---\n`,
     },
   },
   async prepare(harness) {
@@ -114,25 +121,30 @@ export const diskSafeWarmLaunch: Scenario = {
   },
   async run(harness: E2EHarness) {
     await harness.waitFor("SUBAGENT COMPLETED");
+    const resources = join(harness.stateDirectory, "side-quests", "resources");
     harness.assert(
-      readdirSync(join(harness.stateDirectory, "side-quests", "resources"))
-        .length === 1,
-      "Warm launch allocated duplicate Package graphs.",
+      !existsSync(resources) || readdirSync(resources).length === 0,
+      "Warm Package extension allocated a Package graph.",
     );
     const manifest = JSON.parse(
       harness.read(harness.filesNamed("manifest.json")[0] ?? ""),
     );
+    const entrypoint = join(
+      harness.stateDirectory,
+      "npm",
+      "node_modules",
+      "sq-budget-launch-fixture",
+      "index.ts",
+    );
     harness.assert(
-      manifest.extensionPaths.some((path: string) =>
-        path.includes("/side-quests/resources/snapshot-"),
-      ),
-      "Warm child did not persist the immutable Package entrypoint.",
+      manifest.extensionPaths.includes(entrypoint),
+      "Warm child did not reuse the installed Package entrypoint.",
     );
   },
 };
 
 /**
- * A cold Package installs from a bounded loopback registry before immutable capture.
+ * A cold Package installs from a bounded loopback registry into Pi's native temp path.
  */
 export const diskSafeColdLaunch: Scenario = {
   name: "agent-disk-budget-cold-install",
@@ -171,10 +183,16 @@ export const diskSafeColdLaunch: Scenario = {
       harness.read(harness.filesNamed("manifest.json")[0] ?? ""),
     );
     harness.assert(
-      manifest.extensionPaths.some((path: string) =>
-        path.includes("/side-quests/resources/snapshot-"),
+      manifest.extensionPaths.some(
+        (path: string) =>
+          path.includes("/tmp/extensions/npm/") &&
+          path.endsWith(`/${VERSION_PACKAGE}/index.ts`),
       ),
-      "Cold child did not persist the installed immutable Package entrypoint.",
+      "Cold child did not use Pi's native temporary Package entrypoint.",
+    );
+    harness.assert(
+      harness.filesNamed(".package-snapshot.json").length === 0,
+      "Cold Package extension allocated a Package graph.",
     );
     harness.assert(
       harness.read(join(harness.stateDirectory, "versions.txt")) ===

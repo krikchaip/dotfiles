@@ -203,3 +203,22 @@ test("parents in one window each insert after their common parent", async () => 
     ]);
   }
 });
+
+test("an empty close target never invokes tmux", () => {
+  const run = vi
+    .spyOn(
+      Tmux as unknown as {
+        run(args: string[]): { status: number; stdout: string; stderr: string };
+      },
+      "run",
+    )
+    .mockReturnValue({ status: 0, stdout: "", stderr: "" });
+  try {
+    Tmux.closePane("");
+    expect(run).not.toHaveBeenCalled();
+    Tmux.closePane("%9");
+    expect(run).toHaveBeenCalledExactlyOnceWith(["kill-pane", "-t", "%9"]);
+  } finally {
+    run.mockRestore();
+  }
+});

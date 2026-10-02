@@ -16,6 +16,10 @@ import {
   resolve,
 } from "node:path";
 
+import {
+  type ExtensionIntegrity,
+  validExtensionIntegrity,
+} from "../extension-integrity.ts";
 import { JsonStore, STORE_VERSION } from "./json.ts";
 
 /** Selects whether a child can finish automatically or needs a user command. */
@@ -102,8 +106,11 @@ export type ChildManifest = Readonly<{
   /** Records exact skill files available to the child on startup. */
   skillPaths?: readonly string[];
 
-  /** Records immutable resolved extension entrypoints for launch and reopen. */
+  /** Records exact resolved extension paths for launch and reopen. */
   extensionPaths?: readonly string[];
+
+  /** Prevents changed installed sources from silently changing saved children. */
+  extensionIntegrity?: readonly ExtensionIntegrity[];
 
   /** Records parent native prompt inputs that the child must replay. */
   parentSystemPromptInputs?: ParentSystemPromptInputs;
@@ -229,6 +236,7 @@ export class SessionStore {
       noSkills: params.noSkills,
       skillPaths: params.skillPaths,
       extensionPaths: params.extensionPaths,
+      extensionIntegrity: params.extensionIntegrity,
       parentSystemPromptInputs: params.parentSystemPromptInputs,
       createdAt: Date.now(),
     };
@@ -283,6 +291,7 @@ export class SessionStore {
       noSkills: params.noSkills,
       skillPaths: params.skillPaths,
       extensionPaths: params.extensionPaths,
+      extensionIntegrity: params.extensionIntegrity,
       parentSystemPromptInputs: params.parentSystemPromptInputs,
       createdAt: Date.now(),
     };
@@ -606,6 +615,10 @@ export class SessionStore {
       (value.extensionPaths !== undefined &&
         (!Array.isArray(value.extensionPaths) ||
           value.extensionPaths.some((path) => typeof path !== "string"))) ||
+      !validExtensionIntegrity(
+        value.extensionIntegrity,
+        value.extensionPaths,
+      ) ||
       !SessionStore.validToolValidation(value.toolValidation) ||
       !SessionStore.validParentSystemPromptInputs(
         value.parentSystemPromptInputs,

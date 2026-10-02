@@ -4,7 +4,7 @@ display_name: Surfer
 model: openai-codex/gpt-6-luna
 thinking: high
 tools: read, grep, find, ls, web_search, fetch_content, source_check, get_search_content
-extensions: +npm:pi-web-access, +extensions/auto-compact.ts, -npm:pi-blackhole
+extensions: +npm:pi-web-access, +extensions/auto-compact.ts, -extensions/auto-rename.ts, -npm:pi-blackhole
 skills: research
 inherit_context: false
 ---

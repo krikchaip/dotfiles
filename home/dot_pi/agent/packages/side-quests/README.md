@@ -26,7 +26,9 @@ Side Quests does not support cmux, Zellij, WezTerm, or a non-tmux fallback.
 
 ## Disk safety
 
-Startup and ordinary prompts do not copy Package graphs. Startup records loaded Package fingerprints off-thread. An actual `Agent` launch materializes an immutable view only when a child needs it. If the installed source changes before materialization, launch fails with a reload instruction instead of inheriting a different version.
+Startup, ordinary prompts, and extension discovery do not copy Package graphs. Children reuse the parent's loaded extension paths. A missing child-only Package uses Pi's native temporary install directory. Skill discovery is also zero-copy; only selected remote Package skills get immutable graph views.
+
+Extension integrity records contain the exact installed npm version or Git commit and small hashes of the entrypoint and `package.json`. They do not hash the dependency tree. Launch and stopped-child resume reject changed or missing inherited sources before opening a pane. A missing child-only native-temp Package can be installed again at its saved exact source and path; the restored bytes must pass the saved checks. Existing Packages are never replaced by recovery. These checks do not freeze helper files or dependencies and cannot prevent another program from changing files after validation. Older manifests without integrity records keep their previous path-only behavior.
 
 Stored Package growth is proportional to distinct content and retained graph structure:
 
@@ -36,9 +38,9 @@ Stored Package growth is proportional to distinct content and retained graph str
 - Before new content is written, Side Quests requires at least **2 GiB free space after the reserved new objects and publication metadata**. This is a pre-copy check, not a quota on other programs.
 - All allocators for one agent directory share a cross-process lock. Reads and writes are bounded. A crashed allocator can leave a lock; another allocation fails after 10 seconds rather than guessing that the lock is safe to delete.
 - V3 graphs have process leases and saved-child references. Cleanup waits at least 60 seconds after publication, then removes a graph only when no live process lease and no managed saved manifest references it. Invalid or unknown ownership metadata prevents deletion. Legacy roots without v3 ownership proof are never deleted automatically.
-- Package files and graph directories are read-only. Extensions must keep mutable settings, logs, and state outside their installed Package tree.
+- Stored skill Package files and graph directories are read-only. Reused installed extension files are not copied or made read-only.
 
-When an online selection needs a missing npm version, Git ref, or fresh unpinned Package, Side Quests runs Pi's native installer after the 2 GiB free-space preflight. Installer stdout and stderr stay out of the parent terminal on success. A failure reports only the final 16 KiB of captured diagnostics. Side Quests checks the free-space floor again before immutable capture. Offline selection never installs and requires matching warm resources.
+Matching installed npm/Git Packages are reused without another install. Missing versions or refs use Pi's native installer after the 2 GiB free-space preflight. Installer stdout and stderr stay out of the parent terminal on success. A failure reports only the final 16 KiB of captured diagnostics. Side Quests checks the free-space floor again after installation. Offline selection and recovery never install and require matching warm resources.
 
 ## How it works
 
@@ -437,7 +439,7 @@ Package identity ignores the npm version or Git ref only for matching, duplicate
 
 Every explicit package, path, directory, or pattern operation must match at least one extension entrypoint. A package with no extensions, an empty extension directory, an unmatched pattern, or a removal with no match stops launch. Broad `true`, `false`, and `[]` remain valid when no package extension exists.
 
-Fresh discovery rereads effective settings for each new child selection. Inherited and reopened children keep their saved snapshot. Matching installed npm/Git graphs use immutable read-only views in `side-quests/resources/snapshot-*`, within the [disk-safety rules](#disk-safety). Online missing versions, refs, and fresh unpinned additions use Pi's native installer after the free-space preflight. Copied inherited npm resources retain the `node_modules` graph layout so extensions and package-backed skill scripts can resolve hoisted dependencies. A later version or ref selection does not replace another child's saved install; unchanged files are shared by content. Saved manifests retain their exact views, while proven-unused v3 views can be collected. Local source files stay at their original paths; this does not freeze user edits to local files.
+Fresh discovery rereads effective settings for each new child selection. Inherited children reuse the parent's loaded paths; fresh and explicit selections reuse matching warm installs. No extension Package graphs are copied. Missing child-only versions or refs use Pi's native temporary installer within the [disk-safety rules](#disk-safety). Native `node_modules` layout remains intact for dependency resolution. Reopen uses the saved paths and integrity checks, not fresh settings. If another selection replaced the installed version or ref, reopen fails clearly instead of silently loading that replacement. Local source edits also fail the saved entrypoint check; reload the parent before launching a new child from changed files.
 
 Selected extension factories execute once per child process generation, including reopen. Automatic child discovery is disabled; private native-Pi wrappers load the exact saved entrypoints through the child's own extension API and provider registry. Package discovery performs at most the required initial native install; child wrapper loading never starts a second installer.
 

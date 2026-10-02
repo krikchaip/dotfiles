@@ -154,7 +154,7 @@ function warmPackage(context: ReturnType<typeof fixture>) {
   return { packageRoot, filePath };
 }
 
-test("online discovery reuses matching immutable warm Packages without an installer", async () => {
+test("online discovery reuses matching warm Packages without installing or copying", async () => {
   vi.stubEnv("PI_OFFLINE", "0");
   const context = fixture();
   const warm = warmPackage(context);
@@ -172,12 +172,11 @@ test("online discovery reuses matching immutable warm Packages without an instal
   const second = (await discoverPiSkills(context)).find(
     ({ name }) => name === "sq-cached",
   );
-  expect(first).toBeDefined();
-  expect(second?.filePath).toBe(first?.filePath);
+  expect(first?.filePath).toBe(warm.filePath);
+  expect(second?.filePath).toBe(warm.filePath);
   expect(commands).not.toHaveBeenCalled();
-  expect(
-    readdirSync(join(context.agentDirectory, "side-quests", "resources")),
-  ).toHaveLength(1);
+  const resources = join(context.agentDirectory, "side-quests", "resources");
+  expect(existsSync(resources) ? readdirSync(resources) : []).toEqual([]);
   writeFileSync(
     join(dirname(warm.filePath), "support.txt"),
     "Replacement support v2",
@@ -185,14 +184,14 @@ test("online discovery reuses matching immutable warm Packages without an instal
   const third = (await discoverPiSkills(context)).find(
     ({ name }) => name === "sq-cached",
   );
-  expect(third?.filePath).not.toBe(first?.filePath);
+  expect(third?.filePath).toBe(warm.filePath);
   expect(
-    readFileSync(join(dirname(first?.filePath ?? ""), "support.txt"), "utf8"),
-  ).toBe("Cached support v1");
+    readFileSync(join(dirname(third?.filePath ?? ""), "support.txt"), "utf8"),
+  ).toBe("Replacement support v2");
 });
 
 test.each(["1", "true", "YES"])(
-  "offline %s skill discovery freezes warm package resources",
+  "offline %s skill discovery reuses warm package resources without copying",
   async (value) => {
     vi.stubEnv("PI_OFFLINE", value);
     const context = fixture();
@@ -200,8 +199,9 @@ test.each(["1", "true", "YES"])(
     const cached = (await discoverPiSkills(context)).find(
       ({ name }) => name === "sq-cached",
     );
-    expect(cached).toBeDefined();
-    expect(cached?.filePath).not.toBe(warm.filePath);
+    expect(cached?.filePath).toBe(warm.filePath);
+    const resources = join(context.agentDirectory, "side-quests", "resources");
+    expect(existsSync(resources) ? readdirSync(resources) : []).toEqual([]);
     writeFileSync(
       join(dirname(warm.filePath), "support.txt"),
       "Replaced support v2",
@@ -211,7 +211,7 @@ test.each(["1", "true", "YES"])(
         join(dirname(cached?.filePath ?? ""), "support.txt"),
         "utf8",
       ),
-    ).toBe("Cached support v1");
+    ).toBe("Replaced support v2");
   },
 );
 
@@ -276,9 +276,10 @@ test("copied parent skill scripts execute isolated hoisted dependencies across g
       baseDir: warm.packageRoot,
     },
   };
-  const [first] = await createPiSkillSnapshot(context)([loaded]);
+  const snapshot = createPiSkillSnapshot(context);
+  const [first] = await snapshot([loaded]);
   writeFileSync(join(dependency, "index.cjs"), 'exports.version = "2.0.0";\n');
-  const [second] = await createPiSkillSnapshot(context)([loaded]);
+  const [second] = await snapshot([{ ...loaded }]);
   expect(first).toBeDefined();
   expect(second).toBeDefined();
   const execute = (filePath: string) => {

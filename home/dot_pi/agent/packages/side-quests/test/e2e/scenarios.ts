@@ -53,6 +53,7 @@ import {
   extensionGitVersionIsolation,
   extensionNpmVersionIsolation,
   extensionRemoteIdentityScenarios,
+  extensionTemporaryRecoveryScenarios,
 } from "./scenario/extension-version-isolation.ts";
 import { failure } from "./scenario/failure.ts";
 import { fatalAutonomous } from "./scenario/fatal-autonomous.ts";
@@ -173,6 +174,7 @@ export const scenarios: readonly Scenario[] = [
   extensionGitVersionIsolation,
   ...extensionFreshVersionIsolationScenarios,
   ...extensionRemoteIdentityScenarios,
+  ...extensionTemporaryRecoveryScenarios,
   ...warmPackageSnapshotScenarios,
   packageSkillSnapshot,
   ...extensionDependencyScenarios,

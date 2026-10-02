@@ -617,6 +617,7 @@ export class Tmux {
    * Closes a managed pane, while tolerating a concurrent pane exit.
    */
   public static closePane(paneId: string): void {
+    if (!paneId) return;
     const result = Tmux.run(["kill-pane", "-t", paneId]);
     if (result.status !== 0 && Tmux.paneExists(paneId))
       throw new Error(

@@ -104,7 +104,6 @@ export class ParentTools {
       // Ordinary prompts record native inputs only. Child resource resolution
       // can install Packages and must run only when Agent is actually invoked.
       tools.parentSkills = event.systemPromptOptions.skills ?? [];
-      tools.parentSkillSnapshot = undefined;
       tools.parentSystemPromptInputs = ParentTools.systemPromptInputs(
         event.systemPromptOptions,
       );
@@ -244,8 +243,6 @@ export class ParentTools {
         }
 
         const agentName = request.subagent_type ?? GENERAL_PURPOSE_AGENT;
-        this.parentSkillSnapshot ??= this.snapshotSkills(this.parentSkills);
-        this.parentSkills = await this.parentSkillSnapshot;
         await this.validateRuntimeLayers(context);
         const diagnostic =
           this.definitions.diagnostic(agentName) ??
@@ -277,7 +274,7 @@ export class ParentTools {
         const discoveredSkills = definition?.skills
           ? await this.skillDiscovery(context.cwd)
           : this.parentSkills;
-        const skills = this.resolveSkills(
+        const skills = await this.resolveSkills(
           definition?.skills?.selection,
           context,
           tools,
@@ -316,6 +313,11 @@ export class ParentTools {
           noSkills: skills.noSkills,
           skillPaths: skills.skillPaths,
           extensionPaths: extensions.map(({ path }) => path),
+          extensionIntegrity: extensions.every(({ integrity }) => integrity)
+            ? extensions.flatMap(({ integrity }) =>
+                integrity ? [integrity] : [],
+              )
+            : undefined,
           parentSystemPromptInputs: this.parentSystemPromptInputs,
           appendSystemPrompt:
             [
@@ -495,18 +497,18 @@ export class ParentTools {
   /**
    * Freezes explicit hidden-skill catalogs and preloaded instructions for the child.
    */
-  private resolveSkills(
+  private async resolveSkills(
     selection: CapabilitySelection | undefined,
     context: ExtensionContext,
     tools: readonly string[],
     discovered: readonly Skill[],
     discoverTools: boolean,
-  ): {
+  ): Promise<{
     noSkills: boolean;
     skillPrompt?: string;
     skillPaths: readonly string[];
     tools: readonly string[];
-  } {
+  }> {
     const available = !selection
       ? this.parentSkills
       : selection.kind === "all"
@@ -519,14 +521,20 @@ export class ParentTools {
       return skill;
     };
     const resolved = this.resolveSkillNames(selection, discovered);
-    const preloaded = resolved.preloaded.map(require);
-    const lazy = resolved.lazy.map(require);
+    const selectedPreloaded = resolved.preloaded.map(require);
+    const selectedLazy = resolved.lazy.map(require);
     const canRead = discoverTools || tools.includes("read");
-    if (!canRead && lazy.length)
+    if (!canRead && selectedLazy.length)
       context.ui.notify(
         "Side Quests omitted the child skill catalog because its tool policy lacks read.",
         "warning",
       );
+    const selected = await this.snapshotSkills([
+      ...selectedPreloaded,
+      ...(canRead ? selectedLazy : []),
+    ]);
+    const preloaded = selected.slice(0, selectedPreloaded.length);
+    const lazy = selected.slice(selectedPreloaded.length);
     const preloadPrompt = preloaded
       .map((skill) => {
         const body = stripFrontmatter(
@@ -549,7 +557,7 @@ export class ParentTools {
       skillPrompt:
         [hiddenCatalog, preloadPrompt].filter(Boolean).join("\n\n") ||
         undefined,
-      skillPaths: canRead ? lazy.map((skill) => skill.filePath) : [],
+      skillPaths: lazy.map((skill) => skill.filePath),
       tools,
     };
   }
@@ -580,9 +588,6 @@ export class ParentTools {
 
   /** Records Pi's exact structured parent skill catalog. */
   private parentSkills: readonly Skill[] = [];
-
-  /** Shares lazy immutable skill capture across parallel Agent calls in a turn. */
-  private parentSkillSnapshot: Promise<readonly Skill[]> | undefined;
 
   /** Records frozen parent native prompt inputs for every new child manifest. */
   private parentSystemPromptInputs: ParentSystemPromptInputs | undefined;
@@ -635,12 +640,7 @@ export class ParentTools {
     return {
       parent: parentSnapshot,
       resolve: async (configured) =>
-        selection.resolve(
-          configured,
-          !configured || configured.selection.kind === "parent-relative"
-            ? await parentSnapshot()
-            : [],
-        ),
+        selection.resolve(configured, await parentSnapshot()),
     };
   }
 
