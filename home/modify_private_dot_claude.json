@@ -1,0 +1,16 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $config := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $config = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- $servers := dict
+      "github" (dict
+        "type" "http"
+        "url" "https://api.githubcopilot.com/mcp"
+        "headers" (dict "Authorization" "Bearer ${GITHUB_MCP_PAT}"))
+      "obsidian" (dict
+        "type" "stdio"
+        "command" "bunx"
+        "args" (list "--bun" "@mauricio.wolff/mcp-obsidian@latest" (joinPath .chezmoi.homeDir "Desktop/zettelkasten")))
+-}}
+{{- $config | setValueAtPath "mcpServers" $servers | toPrettyJson -}}
