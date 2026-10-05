@@ -62,7 +62,8 @@
   "disableArtifact": true,
   "respondToBashCommands": false,
   "enabledPlugins": {
-    "i-have-adhd@i-have-adhd": true
+    "i-have-adhd@i-have-adhd": true,
+    "cc-plugin-telemetry@builtin": false
   },
   "extraKnownMarketplaces": {
     "i-have-adhd": {
@@ -102,6 +103,8 @@
   "fileCheckpointingEnabled": true,
   "showTurnDuration": true,
   "remoteControlAtStartup": false,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "diffTool": "terminal",
   "externalEditorContext": true
 }
