@@ -16,6 +16,6 @@ Pi customization tests:
 - Use focused or bounded-parallel runs for fast feedback. Finish with a clean serial release gate and remove temporary test state.
 
 Agent skills:
-- Issue tracker: Local markdown specs and tickets under `.scratch/<feature-slug>/`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
-- Triage labels: Canonical label roles map to same string values in local markdown ticket `Status:` fields. See `docs/agents/triage-labels.md`.
-- Domain docs: Multi-context layout with `CONTEXT-MAP.md` pointing to per-context files. See `docs/agents/domain.md`.
+- Issue tracker: Local markdown specs and individual issues under `.scratch/<feature-slug>/`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+- Triage labels: Canonical label roles map to same string values in local markdown issue `Status:` fields. See `docs/agents/triage-labels.md`.
+- Domain docs: Multi-context glossary layout with `GLOSSARY-MAP.md` pointing to per-context `GLOSSARY.md` files. See `docs/agents/domain.md`.

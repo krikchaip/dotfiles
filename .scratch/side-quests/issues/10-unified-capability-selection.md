@@ -4,7 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: 03, 09
 
-Domain terms follow [`CONTEXT.md`](../../../home/dot_pi/agent/CONTEXT.md): Agent capability selection, Fixed capability selection, Parent-relative capability selection, and Direct extension baseline.
+Domain terms follow [`GLOSSARY.md`](../../../home/dot_pi/agent/GLOSSARY.md): Agent capability selection, Fixed capability selection, Parent-relative capability selection, and Direct extension baseline.
 
 ## Question
 
@@ -164,7 +164,7 @@ Run focused tests during implementation. Finish with the package's clean serial 
 
 ## Comments
 
-- Implementation validation is recorded in [validation.md](../validation.md). The user approved the Direct baseline identity fix on 2026-09-30. Its resolver and real-Pi removal regression pass. The existing serial gate passes 444 unit tests and 100 real-Pi scenarios; the broader Ticket 10 extension-selection E2E matrix remains incomplete.
+- The user approved the Direct baseline identity fix on 2026-09-30. Its resolver and real-Pi removal regression pass. The existing serial gate passes 444 unit tests and 100 real-Pi scenarios; the broader Ticket 10 extension-selection E2E matrix remains incomplete.
 - This ticket supersedes Ticket 3's `tools`/`disallowed_tools` and `available_skills`/`preload_skills` capability syntax. It also replaces Ticket 3's unconditional extension inheritance with resolved `extensions` policy.
 - Uneven CSV separator spacing is accepted because each item is trimmed independently.
 - Paths containing commas must use quoted YAML-list items; CSV cannot escape a comma.

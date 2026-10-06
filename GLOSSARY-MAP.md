@@ -1,8 +1,8 @@
-# Context Map
+# Glossary Map
 
 ## Contexts
 
-- [Pi agent customizations](./home/dot_pi/agent/CONTEXT.md) — user-owned Pi coding agent extensions, packages, plugins, and related agent runtime configuration.
+- [Pi agent customizations](./home/dot_pi/agent/GLOSSARY.md) — user-owned Pi coding agent extensions, packages, plugins, and related agent runtime configuration.
 
 ## Relationships
 
