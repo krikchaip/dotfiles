@@ -22,9 +22,12 @@ M.config = function(opts)
 
   opts.diagnostics = { enable = true, show_on_dirs = true }
 
-  -- hide .git directory
-  -- ref: https://github.com/nvim-tree/nvim-tree.lua/wiki/Tips#hide-git-directory
-  opts.filters.custom = { "^.git$" }
+  -- hide what fd hides (.git, .gitignore, .ignore, .fdignore) instead of git's ignored status,
+  -- so a .ignore file can show nested repos that the parent repo ignores
+  opts.filters.git_ignored = false
+  opts.filters.custom = function(path)
+    return Explorer.Hidden(vim.fs.dirname(path))[path] == true
+  end
 
   opts.live_filter = { always_show_folders = false }
 
@@ -149,7 +152,7 @@ M.on_attach = function(bufnr)
   map("n", "<localleader>m", filter.no_bookmark.toggle, opts "Filter: Toggle Marks")
   map("n", "<localleader>b", filter.no_buffer.toggle, opts "Filter: Toggle Buffers")
   map("n", "<localleader>c", filter.git.clean.toggle, opts "Filter: Toggle Git Clean")
-  map("n", "<localleader>i", filter.git.ignored.toggle, opts "Filter: Toggle Git Ignore")
+  map("n", "<localleader>i", filter.custom.toggle, opts "Filter: Toggle Ignored")
   map("n", "<localleader>.", filter.dotfiles.toggle, opts "Filter: Toggle Dotfiles")
   map("n", "<localleader>h", filter.custom.toggle, opts "Filter: Toggle Hidden")
 

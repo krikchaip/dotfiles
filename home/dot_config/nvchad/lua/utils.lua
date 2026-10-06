@@ -440,6 +440,40 @@ Explorer = {
   MiniReveal = function()
     require("configs.mini.files").open_reveal()
   end,
+
+  -- Entries of `dir` that fd hides (.gitignore, .ignore, .fdignore; each nested repo uses its own rules).
+  -- Results are cached briefly, so one explorer render calls fd once per directory.
+  -- Entries created after the cache was filled stay visible until the next call.
+  ---@param dir string Absolute directory path
+  ---@return table<string, boolean> hidden Absolute paths to hide
+  Hidden = function(dir)
+    local cached = Explorer.hidden_cache[dir]
+    if cached and vim.uv.now() - cached.time < 1000 then return cached.paths end
+
+    local result = vim
+      .system({ "fd", "--hidden", "--max-depth", "1", "--exclude", ".git", "--base-directory", dir, "." }, { text = true })
+      :wait()
+
+    -- fd is missing or failed: hide nothing
+    if result.code ~= 0 then return {} end
+
+    local visible = {}
+    for line in result.stdout:gmatch "[^\n]+" do
+      visible[line:gsub("/$", "")] = true
+    end
+
+    local hidden = {}
+    for name in vim.fs.dir(dir) do
+      if not visible[name] then hidden[vim.fs.joinpath(dir, name)] = true end
+    end
+
+    Explorer.hidden_cache[dir] = { time = vim.uv.now(), paths = hidden }
+
+    return hidden
+  end,
+
+  ---@type table<string, { time: integer, paths: table<string, boolean> }>
+  hidden_cache = {},
 }
 
 Git = {
@@ -577,33 +611,6 @@ Git = {
         require("gitsigns").nav_hunk(direction, { preview = false })
       end
     end
-  end,
-
-  ---@param paths string[]
-  ---@return table<string, boolean> ignored
-  CheckIgnore = function(paths)
-    local command = { "git", "check-ignore", "--stdin" }
-    local stdin = table.concat(paths, "\n")
-    local output = {}
-
-    local process = vim.fn.jobstart(command, {
-      stdout_buffered = true,
-      on_stdout = function(_, data)
-        for _, line in ipairs(data) do
-          if #line > 0 then output[line] = true end
-        end
-      end,
-    })
-
-    -- command failed to run
-    if process < 1 then return {} end
-
-    -- send paths via STDIN
-    vim.fn.chansend(process, stdin)
-    vim.fn.chanclose(process, "stdin")
-    vim.fn.jobwait { process }
-
-    return output
   end,
 }
 

@@ -4,9 +4,6 @@ local map = vim.keymap.set
 local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
----@type table<string,table<string,boolean>>
-local ignored = {}
-
 ---@type table<string,string>
 local fs_type = {}
 
@@ -312,7 +309,7 @@ M.copy_relative = function()
 end
 
 M.sorter = function(entries)
-  local filters = M.combine_filters { M.gitignore(entries), M.exclude "%.git$" }
+  local filters = M.combine_filters { M.ignore(entries), M.exclude "%.git$" }
   entries = vim.tbl_filter(filters, entries)
 
   return MiniFiles.default_sort(entries)
@@ -330,27 +327,14 @@ M.combine_filters = function(...)
   end
 end
 
--- gitignore filter
--- ref: https://www.reddit.com/r/neovim/comments/17v3vec/has_anybody_setup_gitignore_filter_for_minifiles
-M.gitignore = function(entries)
-  if #entries > 0 then
-    local entry = entries[1]
-    local modifier = entry.fs_type == "file" and ":p:h" or ":h"
-    local dir_name = vim.fn.fnamemodify(entry.path, modifier)
+-- ignore filter: hide what fd hides (.gitignore, .ignore, .fdignore)
+M.ignore = function(entries)
+  if #entries == 0 then return function() return true end end
 
-    if ignored[dir_name] == nil then
-      local paths = vim.tbl_map(function(e)
-        return e.path
-      end, entries)
-
-      ignored[dir_name] = Git.CheckIgnore(paths)
-    end
-  end
+  local hidden = Explorer.Hidden(vim.fs.dirname(entries[1].path))
 
   return function(e)
-    local mod = e.fs_type == "file" and ":p:h" or ":h"
-    local parent = vim.fn.fnamemodify(e.path, mod)
-    return ignored[parent] == nil or not ignored[parent][e.path]
+    return not hidden[e.path]
   end
 end
 
@@ -361,7 +345,7 @@ M.exclude = function(pattern)
 end
 
 M.reset_cache = function()
-  ignored = {}
+  Explorer.hidden_cache = {}
   fs_type = {}
 
   for buf, _ in pairs(images) do
