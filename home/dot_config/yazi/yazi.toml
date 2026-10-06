@@ -4,7 +4,7 @@
 show_hidden = true
 
 [opener]
-edit = [{ run = 'nucmd "n \"%s\""', block = true, desc = "nvim (block)", for = "unix" }]
+edit = [{ run = 'nucmd n -- %s', block = true, desc = "nvim (block)", for = "unix" }]
 
 [plugin]
 prepend_previewers = [{ mime = "image/*", run = "kitty-popup" }]

@@ -1,3 +1,16 @@
 #!/usr/bin/env bash
 
+# Yazi supplies shell-escaped paths separately from the Nushell command.
+if [[ $# -ge 2 && $2 == -- ]]; then
+    command=$1
+    shift 2
+    index=0
+    for arg in "$@"; do
+        export "NUCMD_ARG_$index=$arg"
+        command+=" \$env.NUCMD_ARG_$index"
+        ((index += 1))
+    done
+    set -- "$command"
+fi
+
 {{ .config.shell_exec }} "$@"
