@@ -9,6 +9,7 @@
     "CLAUDE_CODE_ENABLE_TASKS": "0",
     "CLAUDE_CODE_ENABLE_TODO_TOOLS": "0",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0",
+    "CLAUDE_CODE_SCROLL_SPEED": "3",
     "EDITOR": "env NVIM_APPNAME=nvchad nvim"
   },
   "attribution": {
@@ -100,6 +101,7 @@
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
   "autoScrollEnabled": true,
+  "wheelScrollAccelerationEnabled": false,
   "fileCheckpointingEnabled": true,
   "showTurnDuration": true,
   "remoteControlAtStartup": false,
