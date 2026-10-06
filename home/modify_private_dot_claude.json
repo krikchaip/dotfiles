@@ -13,4 +13,10 @@
         "command" "bunx"
         "args" (list "--bun" "@mauricio.wolff/mcp-obsidian@latest" (joinPath .chezmoi.homeDir "Desktop/zettelkasten")))
 -}}
-{{- $config | setValueAtPath "mcpServers" $servers | toPrettyJson -}}
+{{- /* Claude Code rewrites this file in its own key order. Keep it as is
+       when mcpServers already matches, so chezmoi status stays clean. */ -}}
+{{- if eq (get $config "mcpServers" | toJson) (toJson $servers) -}}
+{{-   .chezmoi.stdin -}}
+{{- else -}}
+{{-   $config | setValueAtPath "mcpServers" $servers | toPrettyJson -}}
+{{- end -}}
