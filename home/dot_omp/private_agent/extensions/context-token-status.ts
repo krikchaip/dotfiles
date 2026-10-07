@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { formatNumber } from "@oh-my-pi/pi-utils";
 import { formatContextUsage } from "@oh-my-pi/pi-tui/chrome";
 import { SEGMENTS, type SegmentContext, type StatusLineSegment } from "@oh-my-pi/pi-tui/status-line";
+import { theme } from "@oh-my-pi/pi-tui/theme";
 
 interface ContextTokenSegment extends Omit<StatusLineSegment, "id"> {
   id: "context_tokens";
@@ -22,9 +23,17 @@ const tokenSegment: ContextTokenSegment = {
   render(ctx) {
     const rendered = nativeContext.render(ctx);
     // Keep the native capacity-only label while context occupancy is unknown.
-    if (ctx.contextPercent === null && ctx.contextWindow > 0) return rendered;
-    const label = formatContextUsage(ctx.contextPercent, ctx.contextWindow, ctx.contextTokens);
-    return { ...rendered, content: rendered.content.replace(label, tokenLabel(ctx)) };
+    let content = rendered.content;
+    if (ctx.contextPercent !== null || ctx.contextWindow <= 0) {
+      const label = formatContextUsage(ctx.contextPercent, ctx.contextWindow, ctx.contextTokens);
+      content = content.replace(label, tokenLabel(ctx));
+    }
+    // Kitty lets PUA icons borrow a following space cell; the default layout
+    // supplies one via its cost separator. tmux erases trailing ASCII spaces,
+    // so use an en-space to preserve that cell when the wand ends this group.
+    // https://sw.kovidgoyal.net/kitty/faq/#some-special-symbols-are-rendered-small-truncated-in-kitty
+    if (ctx.autoCompactEnabled && theme.icon.auto) content += "\u2002";
+    return { ...rendered, content };
   },
   describe(ctx) {
     const view = nativeContext.describe(ctx);

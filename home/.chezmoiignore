@@ -1,6 +1,13 @@
 **/*.bak
+
+**/.omp/agent/**/node_modules/
+**/.omp/agent/bun.lock
+**/.omp/agent/package.json
+**/.omp/agent/tsconfig.json
+
 **/.pi/agent/**/node_modules/
 **/.pi/agent/tsconfig.json
+
 **/nushell/history.txt
 
 .config/yazi/plugins/kitty-popup.yazi/__pycache__/

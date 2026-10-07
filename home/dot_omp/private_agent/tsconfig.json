@@ -1,0 +1,14 @@
+{
+  // Editor-only: package.json provides declarations missing from the Homebrew executable.
+  "compilerOptions": {
+    "target": "ESNext",
+    "allowImportingTsExtensions": true,
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node", "bun"]
+  },
+  "include": ["extensions/**/*.ts"]
+}
