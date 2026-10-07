@@ -51,7 +51,7 @@ tap "buo/cask-upgrade"
 
 cask "1password"
 cask "1password-cli"
-cask "antigravity"
+cask "antigravity-ide"
 cask "chatgpt"
 cask "claude-code@latest"
 cask "dbeaver-community"

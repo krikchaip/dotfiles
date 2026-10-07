@@ -2,11 +2,10 @@
 
 set -euo pipefail
 
-# Paths for source-of-truth extension file and editor CLIs.
+# Paths for source-of-truth extension file and Antigravity CLI.
 extensions_file="{{ .chezmoi.config.sourceDir }}/symlinks/vscode/extensions.txt"
 lock_dir="${TMPDIR:-/tmp}/vscode-extension-sync.lock"
 agy_bin="$HOME/.antigravity-ide/antigravity-ide/bin/agy-ide"
-surf_bin="$HOME/.codeium/windsurf/bin/surf"
 
 # Release lock and temporary file on every exit path.
 tmp_output=""
@@ -35,11 +34,8 @@ collect_extensions() {
   fi
 }
 
-# Merge agy + surf extension IDs, then normalize (no blanks, sorted, deduped).
-{
-  collect_extensions "$agy_bin"
-  collect_extensions "$surf_bin"
-} | grep -v '^[[:space:]]*$' | sort -u > "$tmp_output"
+# Normalize Antigravity extension IDs (no blanks, sorted, deduped).
+collect_extensions "$agy_bin" | grep -v '^[[:space:]]*$' | sort -u > "$tmp_output"
 
 # Ensure destination directory exists.
 mkdir -p "$(dirname "$extensions_file")"

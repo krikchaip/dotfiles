@@ -28,15 +28,6 @@
     "command": "-workbench.action.openAntigravitySettings",
     "key": "cmd+,"
   },
-  {
-    "command": "workbench.action.openWindsurfSettings",
-    "key": "alt+cmd+,",
-    "when": "windsurf.cascadePanel.active"
-  },
-  {
-    "command": "-workbench.action.openWindsurfSettings",
-    "key": "cmd+,"
-  },
   // Panel
   {
     "command": "workbench.action.toggleMaximizedPanel",
