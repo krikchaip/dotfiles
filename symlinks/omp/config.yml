@@ -1,5 +1,9 @@
 modelRoles:
-  default: openai-codex/gpt-6-sol:high
+  default: openai-codex/gpt-6.1-sol:high
+  smol: openai-codex/gpt-6-luna:high
+  slow: openai-codex/gpt-6-astra:medium
+  task: openai-codex/gpt-6.1-sol:medium
+  advisor: openai-codex/gpt-6-astra:medium
 symbolPreset: nerd
 composer:
   shape: claude
@@ -16,3 +20,7 @@ tui:
 display:
   hideToolActivity: true
 hideThinkingBlock: true
+cycleOrder:
+  - default
+  - smol
+  - slow
