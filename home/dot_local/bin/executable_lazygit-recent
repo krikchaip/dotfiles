@@ -43,13 +43,20 @@ Options:
       --picker        Always start in FZF picker loop.
 
 No arguments:
+  If inside a workspace repo: open the workspace picker, then loop back on quit.
+                        A workspace repo has nested repos within
+                        $LAZYGIT_RECENT_DEPTH levels (default 4).
   If inside a git repo: open plain lazygit in current repo.
                         Ctrl+R uses LazyGit builtin recent picker.
   Otherwise:            open FZF picker, then loop back on quit.
 
+Workspace picker:
+  Lists the workspace repo, its nested repos, and every worktree of them,
+  also worktrees outside the workspace. Changed or unpushed ones come first.
+
 FZF Keybindings:
   Enter               Open selected repo in lazygit
-  Ctrl-X              Delete selected repo from recent list
+  Ctrl-X              Delete selected repo from recent list (recent picker only)
   Esc / Ctrl-C        Exit picker
 EOF
 }
@@ -289,6 +296,208 @@ run_git_repo() {
     run_lazygit "$current_repo"
 }
 
+WORKSPACE_DEPTH="${LAZYGIT_RECENT_DEPTH:-4}"
+
+# Nested repo, worktree, and submodule folders under root (one absolute path per line)
+find_nested_repos() {
+    local root="$1"
+
+    command -v fd > /dev/null 2>&1 || return 0
+
+    fd --hidden --no-ignore --no-require-git --prune --max-depth "$WORKSPACE_DEPTH" \
+        --exclude node_modules '^\.git$' "$root" 2> /dev/null |
+        sed -E 's|/\.git/?$||' |
+        grep -v -x -F "$root" || true
+}
+
+# Linked worktree folders recorded in a .git directory (file reads, no git process)
+worktrees_of_git_dir() {
+    local git_dir="$1"
+    local gitdir_file worktree
+
+    for gitdir_file in "$git_dir"/worktrees/*/gitdir; do
+        [[ -f "$gitdir_file" ]] || continue
+        read -r worktree < "$gitdir_file"
+        printf '%s\n' "${worktree%/.git}"
+    done
+}
+
+# Every checkout of root and its nested repos, including linked worktrees outside root
+workspace_paths() {
+    local root="$1"
+
+    { printf '%s\n' "$root"; find_nested_repos "$root"; } | while IFS= read -r repo; do
+        printf '%s\n' "$repo"
+        if [[ -d "$repo/.git" ]]; then
+            worktrees_of_git_dir "$repo/.git"
+        elif [[ -f "$repo/.git" ]]; then
+            # A linked worktree: its main repo and sibling worktrees
+            local link main_git_dir
+            read -r link < "$repo/.git"
+            link="${link#gitdir: }"
+            if [[ "$link" == /*/worktrees/* ]]; then
+                main_git_dir="${link%/worktrees/*}"
+                printf '%s\n' "${main_git_dir%/.git}"
+                worktrees_of_git_dir "$main_git_dir"
+            fi
+        fi
+    done | awk '!seen[$0]++' | while IFS= read -r path; do
+        if [[ -d "$path" ]]; then
+            printf '%s\n' "$path"
+        fi
+    done
+}
+
+# One tab-separated line: path, sort key, label, state, branch, kind
+workspace_entry() {
+    local root="$1"
+    local path="$2"
+
+    # Two git processes per entry: rev-parse for the kind, status for branch, changes, and ahead
+    local dirs git_dir="" common_dir="" superproject=""
+    dirs=$(git -C "$path" rev-parse --path-format=absolute --absolute-git-dir --git-common-dir --show-superproject-working-tree 2> /dev/null) || return 0
+    { read -r git_dir; read -r common_dir; read -r superproject; } <<< "$dirs" || true
+
+    local status_out
+    status_out=$(git --no-optional-locks -C "$path" status --porcelain=v2 --branch 2> /dev/null) || return 0
+
+    local label
+    if [[ "$path" == "$root" ]]; then
+        label="(root)"
+    elif [[ "$path" == "$root"/* ]]; then
+        label="${path#"$root"/}"
+    elif [[ "$path" == "$HOME"/* ]]; then
+        label="~${path#"$HOME"}"
+    else
+        label="$path"
+    fi
+
+    local kind main_dir
+    if [[ -n "$superproject" ]]; then
+        kind="submodule"
+    elif [[ "$git_dir" != "$common_dir" ]]; then
+        main_dir="${common_dir%/.git}"
+        kind="worktree of ${main_dir##*/}"
+    else
+        kind="repo"
+    fi
+
+    local branch="" ahead="" changed=0 line
+    while IFS= read -r line; do
+        case "$line" in
+            "# branch.head "*) branch="${line#"# branch.head "}" ;;
+            "# branch.ab +"*) ahead="${line#"# branch.ab +"}"; ahead="${ahead%% *}" ;;
+            "#"*) ;;
+            ?*) changed=$((changed + 1)) ;;
+        esac
+    done <<< "$status_out"
+    [[ "$branch" == "(detached)" ]] && branch=""
+
+    # No upstream: count commits that are on no remote branch
+    if [[ -z "$ahead" ]]; then
+        ahead=$(git -C "$path" rev-list --count HEAD --not --remotes 2> /dev/null || echo 0)
+    fi
+
+    # Sort key: 0 = changed or unpushed, 1 = clean root, 2 = other clean entries
+    local state="" key=2
+    [[ "$path" == "$root" ]] && key=1
+    if [[ "$changed" -gt 0 ]]; then
+        state="${changed} changed"
+        key=0
+    fi
+    if [[ "$ahead" -gt 0 ]]; then
+        state="${state:+$state }↑${ahead}"
+        key=0
+    fi
+
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$path" "$key" "$label" "${state:-clean}" "${branch:-detached}" "$kind"
+}
+
+# Picker lines: absolute path, a tab, then aligned columns
+workspace_lines() {
+    local root="$1"
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+
+    local i=0
+    while IFS= read -r path; do
+        workspace_entry "$root" "$path" > "${tmp_dir}/${i}" &
+        i=$((i + 1))
+    done < <(workspace_paths "$root")
+    wait
+
+    cat "$tmp_dir"/* 2> /dev/null |
+        LC_ALL=C sort -t $'\t' -k2,2 -k3,3 |
+        awk -F '\t' '
+            # Display width: "↑" is one column but several bytes, so count it as one character
+            function width(s) { gsub(/↑/, "^", s); return length(s) }
+            function pad(s, w,    n) { n = w - width(s); while (n-- > 0) s = s " "; return s }
+            BEGIN { wl = width("Path"); ws = width("Status"); wb = width("Branch") }
+            {
+                path[NR] = $1; label[NR] = $3; state[NR] = $4; branch[NR] = $5; kind[NR] = $6
+                if (width($3) > wl) wl = width($3)
+                if (width($4) > ws) ws = width($4)
+                if (width($5) > wb) wb = width($5)
+            }
+            END {
+                printf "\t%s  %s  %s  %s\n", pad("Path", wl), pad("Status", ws), pad("Branch", wb), "Kind"
+                for (i = 1; i <= NR; i++) {
+                    printf "%s\t%s  %s  %s  %s\n", path[i], pad(label[i], wl), pad(state[i], ws), pad(branch[i], wb), kind[i]
+                }
+            }' || true
+
+    rm -rf "$tmp_dir"
+}
+
+run_workspace_loop() {
+    local root="$1"
+    local last_selection=""
+
+    while true; do
+        # The first line is the column header, aligned with the entries
+        local lines header
+        lines=$(workspace_lines "$root")
+        header="${lines%%$'\n'*}"
+        header="${header#*$'\t'}"
+        lines="${lines#*$'\n'}"
+
+        local pos=0
+        if [[ -n "$last_selection" ]]; then
+            pos=$(printf '%s\n' "$lines" | awk -F '\t' -v p="$last_selection" '$1 == p { print NR; exit }')
+        fi
+
+        local fzf_opts=(
+            --layout=reverse
+            --delimiter=$'\t'
+            --with-nth=2
+            --bind='ctrl-n:down'
+            --bind='ctrl-p:up'
+            --border=rounded
+            --border-label=" Workspace: $(basename "$root") "
+            --info=inline-right
+            --prompt="❯ "
+            --pointer="▶"
+            --header=$'Keybindings: enter=open\n\n'"$header"
+        )
+
+        if [[ "${pos:-0}" -gt 0 ]]; then
+            fzf_opts+=(--bind="load:pos($pos)")
+        fi
+
+        local result
+        result=$(printf '%s\n' "$lines" | env TERM=xterm-256color fzf "${fzf_opts[@]}") || break
+
+        local selection="${result%%$'\t'*}"
+        if [[ -z "$selection" ]]; then
+            break
+        fi
+
+        cmd_add "$selection" > /dev/null
+        run_lazygit "$selection"
+        last_selection="$selection"
+    done
+}
+
 case "${1:-}" in
     -h|--help)
         show_help
@@ -313,7 +522,12 @@ case "${1:-}" in
         ;;
     "")
         if git rev-parse --git-dir > /dev/null 2>&1; then
-            run_git_repo
+            workspace_root=$(git rev-parse --show-toplevel 2> /dev/null || true)
+            if [[ -n "$workspace_root" && -n "$(find_nested_repos "$workspace_root")" ]]; then
+                run_workspace_loop "$workspace_root"
+            else
+                run_git_repo
+            fi
         else
             run_picker_loop
         fi
