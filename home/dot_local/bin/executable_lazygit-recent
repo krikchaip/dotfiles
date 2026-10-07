@@ -237,14 +237,17 @@ run_fzf() {
     local fzf_opts=(
         --layout=reverse
         --expect=ctrl-x
-        --bind='ctrl-n:down'
-        --bind='ctrl-p:up'
+        # Bind every key the header lists, so the header holds without FZF_DEFAULT_OPTS
+        --bind='ctrl-n:down,ctrl-p:up'
+        --bind='ctrl-d:half-page-down,ctrl-u:half-page-up'
+        --bind='ctrl-f:last,ctrl-b:first'
+        --bind='ctrl-\:clear-query'
         --border=rounded
         --border-label=" Lazygit Recent Repos "
         --info=inline-right
         --prompt="❯ "
         --pointer="▶"
-        --header=$'Keybindings: enter=open, ctrl-x=delete\n\nPath'
+        --header=$'Keybindings: enter=open, ctrl-x=delete, esc=quit, type=filter, ctrl-\\=clear filter\n             ctrl-n/p=down/up, ctrl-d/u=half page down/up, ctrl-f/b=last/first\n\nPath'
     )
 
     if [[ "$pos" -gt 0 ]]; then
@@ -470,14 +473,17 @@ run_workspace_loop() {
             --layout=reverse
             --delimiter=$'\t'
             --with-nth=2
-            --bind='ctrl-n:down'
-            --bind='ctrl-p:up'
+            # Bind every key the header lists, so the header holds without FZF_DEFAULT_OPTS
+            --bind='ctrl-n:down,ctrl-p:up'
+            --bind='ctrl-d:half-page-down,ctrl-u:half-page-up'
+            --bind='ctrl-f:last,ctrl-b:first'
+            --bind='ctrl-\:clear-query'
             --border=rounded
             --border-label=" Workspace: $(basename "$root") "
             --info=inline-right
             --prompt="❯ "
             --pointer="▶"
-            --header=$'Keybindings: enter=open\n\n'"$header"
+            --header=$'Keybindings: enter=open, esc=quit, type=filter, ctrl-\\=clear filter\n             ctrl-n/p=down/up, ctrl-d/u=half page down/up, ctrl-f/b=last/first\n\n'"$header"
         )
 
         if [[ "${pos:-0}" -gt 0 ]]; then
