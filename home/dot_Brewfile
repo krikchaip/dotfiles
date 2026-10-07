@@ -3,6 +3,7 @@ brew "awscli"
 brew "bash"
 brew "bat"
 brew "bc"
+brew "can1357/tap/omp"
 brew "chafa"      # required by `yazi` as a last resort for image previewing 
 brew "coreutils"
 brew "eza"
