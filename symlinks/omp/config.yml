@@ -3,6 +3,16 @@ modelRoles:
 symbolPreset: nerd
 composer:
   shape: claude
+  tokenRate: true
 theme:
   dark: dark-tundra
 setupVersion: 2
+statusLine:
+  compactThinkingLevel: false
+terminal:
+  showProgress: true
+tui:
+  textSizing: true
+display:
+  hideToolActivity: true
+hideThinkingBlock: true
