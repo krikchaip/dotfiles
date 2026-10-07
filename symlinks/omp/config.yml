@@ -1,0 +1,8 @@
+modelRoles:
+  default: openai-codex/gpt-6-sol:high
+symbolPreset: nerd
+composer:
+  shape: claude
+theme:
+  dark: dark-tundra
+setupVersion: 2
