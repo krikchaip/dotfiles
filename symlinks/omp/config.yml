@@ -12,7 +12,19 @@ theme:
   dark: dark-tundra
 setupVersion: 2
 statusLine:
-  compactThinkingLevel: false
+  preset: custom
+  leftSegments:
+    - pi
+    - vim
+    - model
+    - mode
+    - collab
+    - stream
+    - pr
+    - context_tokens
+  rightSegments:
+    - session_name
+  compactThinkingLevel: true
 terminal:
   showProgress: true
 tui:
@@ -24,3 +36,5 @@ cycleOrder:
   - default
   - smol
   - slow
+dev:
+  autoqaConsent: granted
