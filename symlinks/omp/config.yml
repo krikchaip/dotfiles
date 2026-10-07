@@ -38,3 +38,12 @@ cycleOrder:
   - slow
 dev:
   autoqaConsent: granted
+disabledProviders:
+  - claude
+  - claude-plugins
+  - codex
+  - gemini
+  - opencode
+commands:
+  enableOpencodeProject: false
+  enableClaudeProject: false
