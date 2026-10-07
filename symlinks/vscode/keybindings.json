@@ -172,17 +172,6 @@
     "command": "git.stage",
     "key": "ctrl+alt+g s",
     "when": "editorTextFocus && !editorHasSelection && !operationInProgress && resourceScheme == 'file'"
-  },
-  // Extensions
-  {
-    "command": "workbench.view.extensions",
-    "key": "ctrl+shift+x",
-    "when": "viewContainer.workbench.view.extensions.enabled"
-  },
-  {
-    "command": "-workbench.view.extensions",
-    "key": "shift+cmd+x",
-    "when": "viewContainer.workbench.view.extensions.enabled"
   }
 ]
 // vim:ft=jsonc

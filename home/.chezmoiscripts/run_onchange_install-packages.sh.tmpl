@@ -93,9 +93,9 @@ install_vscode_extensions() {
       desired_extensions="$(mktemp)"
       installed_extensions="$(mktemp)"
 
-      # Normalize both lists (trim blanks, sort, dedupe) so comm can diff reliably.
+      # Normalize the desired list and sort CLI IDs; an empty installed list is valid.
       grep -v '^[[:space:]]*$' "$extensions_file" | sort -u > "$desired_extensions"
-      "$editor_bin" --list-extensions 2>/dev/null | grep -v '^[[:space:]]*$' | sort -u > "$installed_extensions"
+      "$editor_bin" --list-extensions 2>/dev/null | sort -u > "$installed_extensions"
 
       echo "Syncing $editor_name extensions..."
 
@@ -151,6 +151,7 @@ setup_vscode_extension_sync_watcher() {
 # Install VSCode extensions
 # extensions.txt hash: {{ include "../symlinks/vscode/extensions.txt" | sha256sum }}
 install_vscode_extensions "Antigravity IDE" "$HOME/.antigravity-ide/antigravity-ide/bin/agy-ide"
+install_vscode_extensions "VS Code" "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
 setup_vscode_extension_sync_watcher
 
 # Start/restart yabai & skhd services
