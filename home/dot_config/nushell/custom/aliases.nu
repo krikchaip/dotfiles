@@ -103,15 +103,17 @@ alias dj = pipenv run ./manage.py
 # agent-browser
 alias agb = agent-browser
 
-# pi agent
-alias p = pi
+# pi agent (oh-my-pi)
+alias p = omp
 alias pc = p -c
 alias pr = p -r
-alias pu = mise upgrade npm:@earendil-works/pi-coding-agent
+alias pu = p update
 alias pns = p --no-session
 
 # claude code
 alias c = claude
+alias cc = claude -c
+alias cr = claude -r
 
 # account rotator
 alias txr = tuxevil-rotator
