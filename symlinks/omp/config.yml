@@ -22,9 +22,11 @@ statusLine:
     - stream
     - pr
     - context_tokens
+    - status
   rightSegments:
     - session_name
   compactThinkingLevel: true
+  showHookStatus: false
 terminal:
   showProgress: true
 tui:
