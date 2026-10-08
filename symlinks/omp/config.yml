@@ -85,3 +85,13 @@ read:
 lsp:
   formatOnWrite: true
   diagnosticsOnEdit: true
+bash:
+  allowCompoundCommands: true
+todo:
+  enabled: false
+astGrep:
+  enabled: true
+generate_image:
+  enabled: true
+browser:
+  enabled: false
