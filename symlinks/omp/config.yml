@@ -57,6 +57,7 @@ retry:
   waitForUsageReset: true
 title:
   icons: boring
+  generator: tiny
 steeringMode: all
 followUpMode: all
 interruptMode: wait
@@ -95,3 +96,5 @@ generate_image:
   enabled: true
 browser:
   enabled: false
+plan:
+  autosave: true
