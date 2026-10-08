@@ -71,3 +71,17 @@ collab:
   displayName: krikchaip
 features:
   unexpectedStopDetection: smart
+extendedContext: true
+compaction:
+  methodOrder:
+    - snapcompact
+    - handoff
+  thresholdPercent: 50
+snapcompact:
+  toolResults: true
+read:
+  renderMarkdown: true
+  toolResultPreview: true
+lsp:
+  formatOnWrite: true
+  diagnosticsOnEdit: true
