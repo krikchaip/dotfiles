@@ -7,6 +7,8 @@ modelRoles:
   tiny: openai-codex/gpt-6-luna:medium
   memory: openai-codex/gpt-6-luna:high
   plan: openai-codex/gpt-6.1-sol:xhigh
+  vision: tuxevil-rotator/gemini-3.8-flash-high:off
+  commit: tuxevil-rotator/gemini-3.8-flash-low:off
 symbolPreset: nerd
 composer:
   shape: claude
@@ -55,6 +57,23 @@ commands:
   enableClaudeProject: false
 retry:
   waitForUsageReset: true
+  fallbackChains:
+    tiny:
+      - tuxevil-rotator/gemini-3.8-flash-low
+    smol:
+      - tuxevil-rotator/gemini-3.8-flash-high
+    default:
+      - tuxevil-rotator/gemini-3.1-pro-low
+    slow:
+      - tuxevil-rotator/gemini-3.1-pro-high
+    plan:
+      - tuxevil-rotator/gemini-3.1-pro-high
+    memory:
+      - tuxevil-rotator/gemini-3.8-flash-high
+    advisor:
+      - tuxevil-rotator/gemini-3.1-pro-high
+    task:
+      - tuxevil-rotator/gemini-3.1-pro-low
 title:
   icons: boring
   generator: tiny
