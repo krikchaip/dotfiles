@@ -97,6 +97,14 @@ compaction:
     - snapcompact
     - handoff
   thresholdPercent: 50
+  modelThresholds:
+    openai-codex/gpt-6-astra: 300000
+    openai-codex/gpt-6-luna: 300000
+    openai-codex/gpt-6.1-sol: 300000
+    tuxevil-rotator/gemini-3.1-pro-high: 300000
+    tuxevil-rotator/gemini-3.1-pro-low: 300000
+    tuxevil-rotator/gemini-3.8-flash-high: 300000
+    tuxevil-rotator/gemini-3.8-flash-low: 300000
 snapcompact:
   toolResults: true
 read:
