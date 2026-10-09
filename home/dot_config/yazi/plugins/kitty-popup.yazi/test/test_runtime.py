@@ -180,7 +180,7 @@ class TransportTests(unittest.TestCase):
         output = io.StringIO()
         with (
             patch.dict(os.environ, {"YAZI_KITTY_SOCKET": "/exited-owner"}),
-            patch.object(sys, "argv", ["main.py", "prepare", "1", "/unused.png", "5", "7", "40", "20"]),
+            patch.object(sys, "argv", ["main.py", "prepare", "1", "/unused.png", "/unused.png", "5", "7", "40", "20"]),
             patch.object(RUNTIME, "rpc", side_effect=OSError("owner exited")),
             patch.object(sys, "stdout", output),
         ):

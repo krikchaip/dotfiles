@@ -25,6 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kitty-to", required=True)
     parser.add_argument("--gif", type=pathlib.Path)
+    parser.add_argument("--video", action="store_true", help="check video thumbnails, seeking, and popup reattach")
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--baseline", action="store_true", help="read-only comparison against the installed plugin and callback")
     opts = parser.parse_args()
@@ -85,6 +86,8 @@ def main():
                              shutil.which("tmux"), "-L", identity, "attach-session", "-t", "=" + identity)
             (root / "window").write_text(window)
             eventually("attached test client", lambda: command("tmux", "-L", identity, "list-clients"))
+            for server in servers:
+                command("tmux", "-L", server, "set-environment", "-g", "KITTY_WINDOW_ID", window)
             prepare_args = ["--state-root", str(root), "--plugin-source", str(plugin_source)]
             if opts.baseline:
                 prepare_args += ["--toggle-config", str(pathlib.Path.home() / ".config/tmux/plugins/toggle-popup.conf")]
@@ -111,6 +114,40 @@ def main():
                 print(json.dumps({"case": "user GIF", "result": "pass", "owned": state["owned"]}), flush=True)
                 command("ya", "emit-to", initial["frontend_id"], "reveal", str(images / "IMAGE.png"))
                 eventually("PNG restored", lambda: (current if (current := ready()) and current["serial"] > state["serial"] else None))
+            if opts.video:
+                movie = images / "Screen recording.mov"
+                command("ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi",
+                        "-i", "color=c=red:s=320x180:d=2", "-f", "lavfi",
+                        "-i", "color=c=blue:s=320x180:d=2", "-filter_complex",
+                        "[0:v][1:v]concat=n=2:v=1:a=0", "-c:v", "mpeg4", "-g", "10", str(movie))
+                command("ya", "emit-to", initial["frontend_id"], "reveal", str(movie))
+
+                def video_ready(previous):
+                    screen = text()
+                    assert "SIXEL IMAGE" not in screen, "Video preview emitted SIXEL IMAGE text instead of a thumbnail"
+                    state = ready()
+                    return state if state and state["image_id"] != previous["image_id"] else None
+
+                video = eventually("video thumbnail", lambda: video_ready(initial))
+                assert video["path"] == str(movie), video
+                command("ya", "emit-to", initial["frontend_id"], "seek", "50")
+                sought = eventually("video seek thumbnail", lambda: video_ready(video))
+                assert sought["path"] == str(movie), sought
+                command("kitty", "@", "send-key", "--match", "id:" + window, "ctrl+z")
+                eventually("hidden video has no image cells", lambda: PLACEHOLDER not in text())
+                command("kitty", "@", "send-key", "--match", "id:" + window, "alt+y")
+                reopened = eventually("video thumbnail after reattach", lambda: video_ready(sought))
+                assert reopened["pid"] == initial["pid"] and reopened["path"] == str(movie), reopened
+                plain = images / "video-cleanup.txt"
+                plain.write_text("Video preview cleanup.\n")
+                command("ya", "emit-to", initial["frontend_id"], "reveal", str(plain))
+                eventually("video to text clears image cells",
+                           lambda: "Video preview cleanup." in text() and PLACEHOLDER not in text())
+                assert rpc(endpoint, {"action": "status"})["owned"] == 0
+                print(json.dumps({"case": "video", "result": "pass", "seek": True,
+                                  "reattach": True, "text_cleanup": True}), flush=True)
+                command("ya", "emit-to", initial["frontend_id"], "reveal", str(images / "IMAGE.png"))
+                eventually("PNG restored after video", ready)
             if opts.full:
                 result = subprocess.run([
                     sys.executable, str(SOURCE / "test/e2e.py"), "--state-root", str(root),

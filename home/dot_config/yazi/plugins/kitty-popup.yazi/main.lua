@@ -46,20 +46,35 @@ function M:entry(job)
 end
 
 function M:peek(job)
+    local video = job.mime:find("^video/") ~= nil
+    local native = require(video and "video" or "image")
     local helper = popup_helper()
     if not helper then
-        return require("image"):peek(job)
+        return native:peek(job)
     end
     if job.area.w < 1 or job.area.h < 1 then
         return
     end
+    local image = job.file.path
+    if video then
+        local start, cache = os.clock(), ya.file_cache(job)
+        if not cache then
+            return
+        end
+        local ok, err = native:preload(job)
+        if not ok or err then
+            return ya.preview_widget(job, err)
+        end
+        ya.sleep(math.max(0, rt.preview.image_delay / 1000 + start - os.clock()))
+        image = cache
+    end
     local data = call(helper, {
-        "prepare", tostring(next_serial()), tostring(job.file.path),
+        "prepare", tostring(next_serial()), tostring(job.file.path), tostring(image),
         tostring(job.area.x), tostring(job.area.y),
         tostring(job.area.w), tostring(job.area.h),
     })
     if not data or data.fallback then
-        return require("image"):peek(job)
+        return native:peek(job)
     end
     if data and data.cancelled then
         return
@@ -78,11 +93,11 @@ function M:peek(job)
 end
 
 function M:seek(job)
-    require("image"):seek(job)
+    require(job.mime:find("^video/") and "video" or "image"):seek(job)
 end
 
 function M:spot(job)
-    require("image"):spot(job)
+    require(job.mime:find("^video/") and "video" or "image"):spot(job)
 end
 
 return M

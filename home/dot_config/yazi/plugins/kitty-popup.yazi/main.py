@@ -265,6 +265,11 @@ class Owner:
         path = pathlib.Path(request["path"])
         if not path.is_absolute() or not path.is_file():
             raise ValueError("image is not a local file")
+        if not isinstance(request["image_path"], str):
+            raise ValueError("invalid thumbnail path")
+        image_path = pathlib.Path(request["image_path"])
+        if not image_path.is_absolute() or not image_path.is_file():
+            raise ValueError("thumbnail is not a local file")
         try:
             self.cells = physical_cells()
         except (OSError, ValueError, subprocess.SubprocessError):
@@ -280,7 +285,7 @@ class Owner:
             "--passthrough", "none", "--stdin", "no", "--align", "left", "--loop", "0",
             "--place", f"{width}x{height}@0x0",
             "--use-window-size", f"{width},{height},{width*cell_width},{height*cell_height}",
-            "--image-id", str(image_id), "--", str(path),
+            "--image-id", str(image_id), "--", str(image_path),
         ]
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
         encoder = Encoder(serial, image_id, peer, process, str(path), (x, y))
@@ -510,8 +515,9 @@ def main() -> int:
     endpoint = os.environ["YAZI_KITTY_SOCKET"]
     request = {"action": opts.action}
     if opts.action == "prepare":
-        serial, path, x, y, width, height = opts.args
-        request.update(serial=int(serial), path=path, x=int(x), y=int(y), width=int(width), height=int(height),
+        serial, path, image_path, x, y, width, height = opts.args
+        request.update(serial=int(serial), path=path, image_path=image_path,
+                       x=int(x), y=int(y), width=int(width), height=int(height),
                        pid=os.getppid(), frontend_id=os.environ.get("YAZI_ID"))
     elif opts.action == "show":
         request["token"] = opts.args[0]
