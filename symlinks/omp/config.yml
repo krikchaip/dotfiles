@@ -28,6 +28,7 @@ statusLine:
     - stream
     - pr
     - context_tokens
+    # - mcp
     - status
   rightSegments:
     - session_name
