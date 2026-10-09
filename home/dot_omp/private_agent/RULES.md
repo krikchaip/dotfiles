@@ -1,0 +1,3 @@
+- ALWAYS request user input for risky actions or irreversible decisions.
+- NEVER create, amend, or push a commit unless the user explicitly asks. Leave changes uncommitted for user review by default.
+- NEVER edit or modify third-party source code, library dependencies, package manager cache files, or build artifacts. Read-only access only.
