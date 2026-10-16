@@ -81,7 +81,6 @@
     "git:github.com/krikchaip/pi-token-burden@personal",
     "git:github.com/krikchaip/pi-treex@personal",
     "npm:@gotgenes/pi-permission-system",
-    "npm:@joelazar/pi-tuicr",
     "npm:pi-blackhole",
     "packages/image-attachments",
     "packages/oh-my-pi-themes",
