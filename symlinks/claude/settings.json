@@ -75,18 +75,9 @@
   "disableArtifact": true,
   "respondToBashCommands": false,
   "enabledPlugins": {
-    "i-have-adhd@i-have-adhd": true,
     "cc-plugin-telemetry@builtin": false
   },
-  "extraKnownMarketplaces": {
-    "i-have-adhd": {
-      "source": {
-        "source": "github",
-        "repo": "ayghri/i-have-adhd"
-      }
-    }
-  },
-  "outputStyle": "Concise",
+  "outputStyle": "ADHD",
   "effortLevel": "high",
   "modelSettings": {
     "claude-opus-5-5": {
