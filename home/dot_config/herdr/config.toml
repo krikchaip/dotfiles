@@ -14,10 +14,12 @@ default_shell = "nu"
 
 [theme]
 name = "tokyo-night"
-auto_switch = false
 
 [ui]
+pane_borders = "always"
 status_indicators = "symbols"
+tab_bar_right = [{ type = "command", command = '''case $PWD/ in "$HOME/"*) printf '~%s\n' "${PWD#"$HOME"}";; *) pwd;; esac''', interval_seconds = 2 }]
+tab_bar_right_separator = " · "
 
 [ui.sound]
 enabled = true
