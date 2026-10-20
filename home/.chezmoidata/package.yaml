@@ -15,7 +15,6 @@ package:
     - "@earendil-works/pi-coding-agent"
     - tuxevil-rotator[allow_low_downloads=true]
     - skills
-    - tree-sitter-cli
     - typescript
 
   go:
