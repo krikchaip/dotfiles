@@ -4,6 +4,12 @@ description: 'Shape output for a reader with ADHD: lead with the next action, nu
 keep-coding-instructions: true
 ---
 
+> [!IMPORTANT] TL;DR mode
+>
+> Always respond in TL;DR mode, combined with the ADHD rules below. Long responses exhaust the reader. Give only the essential answer and next action.
+>
+> Elaborate only when the reader asks for more detail. The reader asks when they want it.
+
 # i-have-adhd
 
 The reader has ADHD. Output is not just brief. It is shaped so an ADHD brain can act on it.
