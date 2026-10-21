@@ -4,11 +4,11 @@ Use this reference when the current harness is Claude Code. Claude Code sets `CL
 
 ## Build a fixed transcript
 
-Use `scripts/analyze-claude-code-session.mjs` from this skill directory. Create one private temporary directory outside the workspace, then run the analyzer once per Retrospective source:
+Use `scripts/analyze-claude-code-session.mjs` from this skill directory. Create one private temporary directory outside the workspace, then run the analyzer once per Reflection source:
 
 ```bash
 umask 077
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/retrospective-claude-code.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/reflect-claude-code.XXXXXX")
 chmod 700 "$TEMP_DIR"
 node scripts/analyze-claude-code-session.mjs --output "$TEMP_DIR/<source-number>.jsonl" "<session-identifier>"
 ```
@@ -30,7 +30,7 @@ Two write patterns fork the chain on the active branch, and the analyzer rejoins
 - One API response is written as one entry per content block. The analyzer merges them into one assistant record and lists every source entry in `entryIds`.
 - A parallel tool result points at the entry that issued its call, not at the previous result. The analyzer keeps every result whose call is on the active branch.
 
-The normalized JSONL contains one `retrospective_session` metadata record, then message records in transcript order. Each record has a stable `position` for evidence citations and a `role`:
+The normalized JSONL contains one `reflection_session` metadata record, then message records in transcript order. Each record has a stable `position` for evidence citations and a `role`:
 
 | Role         | Content                                                                                                                                                                                                                                              |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,7 +45,7 @@ Treat `user` and `command` records as the user's messages and `assistant` record
 The analyzer excludes assistant thinking, compaction summaries, abandoned branches, subagent sidechains, and other harness attachments such as hook output and reminders. These metadata fields cover what it leaves out:
 
 - `abandonedMessageCount`: messages on rewound or edited branches. Read the raw source only when a rewind itself is evidence.
-- `unbridgedCompaction` and `forkedFromSessionIds`: a forked session copies only the history after the source's last compaction. Earlier messages live in the source session; ask whether to add it as a Retrospective source.
+- `unbridgedCompaction` and `forkedFromSessionIds`: a forked session copies only the history after the source's last compaction. Earlier messages live in the source session; ask whether to add it as a Reflection source.
 - `subagentTranscripts`: raw transcripts of delegated agents. Their hand-back reports are already `harness` records; read a subagent transcript only when its internal work is evidence.
 - `persistedToolResults`: oversized tool outputs stored outside the transcript. The matching tool result names its file.
 
@@ -98,4 +98,4 @@ Inventory command names and descriptions to prevent duplicate New prompt templat
 
 Use the source session's `cwd` to determine workspace-local scope. Ask the user to choose global or workspace-local placement for every proposed new skill or prompt template.
 
-Delete the exact temporary directory created for this run after the proposal report is complete. Never delete a path that was not created by this Retrospective run.
+Delete the exact temporary directory created for this run after the proposal report is complete. Never delete a path that was not created by this Reflection run.

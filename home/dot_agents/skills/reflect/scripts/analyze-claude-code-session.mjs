@@ -674,7 +674,7 @@ export function analyzeClaudeCodeSession(identifier, options = {}) {
   const active = new Set(branch.map((entry) => entry.uuid));
 
   const metadata = {
-    type: "retrospective_session",
+    type: "reflection_session",
     harness: "claude-code",
     sessionId,
     sessionName: customTitle ?? aiTitle,

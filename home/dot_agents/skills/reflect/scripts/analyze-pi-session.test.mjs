@@ -55,7 +55,7 @@ function makeSession(root, directory, id, entries) {
 }
 
 test("keeps raw messages on both sides of compaction and selects only the active branch", () => {
-  const root = mkdtempSync(join(tmpdir(), "retrospective-pi-"));
+  const root = mkdtempSync(join(tmpdir(), "reflect-pi-"));
   makeSession(root, "project", "session-active", [
     message("u1", null, "user", [
       { type: "text", text: "before compaction" },
@@ -128,7 +128,7 @@ test("keeps raw messages on both sides of compaction and selects only the active
 });
 
 test("resolves an exact ID before prefixes and rejects ambiguous prefixes", () => {
-  const root = mkdtempSync(join(tmpdir(), "retrospective-pi-"));
+  const root = mkdtempSync(join(tmpdir(), "reflect-pi-"));
   const exactPath = makeSession(root, "one", "abc", [message("u1", null, "user", "exact")]);
   makeSession(root, "two", "abcdef-one", [message("u2", null, "user", "one")]);
   makeSession(root, "three", "abcdef-two", [message("u3", null, "user", "two")]);
@@ -177,7 +177,7 @@ test("fails on malformed completed lines and broken active-branch parents", () =
     /Malformed JSON on completed line 2/,
   );
 
-  const root = mkdtempSync(join(tmpdir(), "retrospective-pi-"));
+  const root = mkdtempSync(join(tmpdir(), "reflect-pi-"));
   makeSession(root, "broken", "broken", [message("u1", "missing", "user", "orphan")]);
   assert.throws(
     () => analyzePiSession("broken", { sessionRoots: [root] }),

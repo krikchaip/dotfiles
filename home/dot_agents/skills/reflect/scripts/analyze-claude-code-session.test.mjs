@@ -100,7 +100,7 @@ function makeSession(root, project, id, entries) {
 }
 
 test("bridges compaction, merges split assistant entries, keeps parallel tool results, and drops private material", () => {
-  const root = mkdtempSync(join(tmpdir(), "retrospective-claude-code-"));
+  const root = mkdtempSync(join(tmpdir(), "reflect-claude-code-"));
   const path = makeSession(root, "-work-project", "session-main", [
     attachment("at01", null, {
       type: "instructions",
@@ -259,7 +259,7 @@ test("bridges compaction, merges split assistant entries, keeps parallel tool re
 });
 
 test("follows the newest message after a rewind and honors a later last-prompt branch switch", () => {
-  const root = mkdtempSync(join(tmpdir(), "retrospective-claude-code-"));
+  const root = mkdtempSync(join(tmpdir(), "reflect-claude-code-"));
   const base = [
     user("us01", null, "first"),
     assistant("as02", "us01", "msg-1", [{ type: "text", text: "first reply" }]),
@@ -307,7 +307,7 @@ test("follows the newest message after a rewind and honors a later last-prompt b
 });
 
 test("keeps a forked session whose compaction parent was not copied", () => {
-  const root = mkdtempSync(join(tmpdir(), "retrospective-claude-code-"));
+  const root = mkdtempSync(join(tmpdir(), "reflect-claude-code-"));
   const forkedFrom = { sessionId: "source-session", messageUuid: "x" };
   makeSession(root, "-work-project", "forked", [
     entry("sy01", null, "system", {
@@ -340,7 +340,7 @@ test("keeps a forked session whose compaction parent was not copied", () => {
 });
 
 test("resolves an exact ID before prefixes, then a session title, and rejects ambiguity", () => {
-  const root = mkdtempSync(join(tmpdir(), "retrospective-claude-code-"));
+  const root = mkdtempSync(join(tmpdir(), "reflect-claude-code-"));
   const exactPath = makeSession(root, "-one", "abc", [
     user("us01", null, "exact"),
   ]);
@@ -401,7 +401,7 @@ test("rejects malformed lines, an in-progress tail, and a broken parent chain", 
     /Malformed JSON on completed line 2/,
   );
 
-  const root = mkdtempSync(join(tmpdir(), "retrospective-claude-code-"));
+  const root = mkdtempSync(join(tmpdir(), "reflect-claude-code-"));
   makeSession(root, "-work-project", "broken", [
     user("us01", "missing", "orphan"),
   ]);

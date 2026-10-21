@@ -332,7 +332,7 @@ export function analyzePiSession(identifier, options = {}) {
   }
 
   const metadata = {
-    type: "retrospective_session",
+    type: "reflection_session",
     harness: "pi",
     sessionId: parsed.header.id,
     sessionName,

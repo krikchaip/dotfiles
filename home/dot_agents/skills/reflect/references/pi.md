@@ -4,11 +4,11 @@ Use this reference when the current harness is Pi. Pi sets `AI_AGENT=pi` and `PI
 
 ## Build a fixed transcript
 
-Use `scripts/analyze-pi-session.mjs` from this skill directory. Create one private temporary directory outside the workspace, then run the analyzer once per Retrospective source:
+Use `scripts/analyze-pi-session.mjs` from this skill directory. Create one private temporary directory outside the workspace, then run the analyzer once per Reflection source:
 
 ```bash
 umask 077
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/retrospective-pi.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/reflect-pi.XXXXXX")
 chmod 700 "$TEMP_DIR"
 node scripts/analyze-pi-session.mjs --output "$TEMP_DIR/<source-number>.jsonl" "<session-identifier>"
 ```
@@ -31,12 +31,12 @@ A Pi session file is a JSONL tree. The final physical entry is Pi's active leaf 
 
 The normalized JSONL contains:
 
-1. One `retrospective_session` metadata record.
+1. One `reflection_session` metadata record.
 2. Every raw `user` and `assistant` message on the active branch, both before and after compaction entries.
 3. User and tool-result images extracted as private files, referenced by their normalized message records.
-4. Tool calls, tool-result messages, and bash-execution messages so the Retrospective can retain only those needed as evidence.
+4. Tool calls, tool-result messages, and bash-execution messages so the Reflection can retain only those needed as evidence.
 
-The analyzer excludes assistant thinking, compaction summaries, branch summaries, abandoned branches, and extension state. A compaction count is metadata only; compaction never replaces raw messages in a Retrospective.
+The analyzer excludes assistant thinking, compaction summaries, branch summaries, abandoned branches, and extension state. A compaction count is metadata only; compaction never replaces raw messages in a Reflection.
 
 Each normalized message has a stable `position` for evidence citations. Inspect every user and assistant message. Inspect tool material enough to decide whether it proves a candidate, explains a wrong direction, shows repeated friction, or preserves a useful fact. Do not quote routine tool output in the report.
 
@@ -84,4 +84,4 @@ Inventory template names and descriptions to prevent duplicate New prompt templa
 
 Use the source session's `cwd` to determine workspace-local scope. Ask the user to choose global or workspace-local placement for every proposed new skill or prompt template.
 
-Delete the exact temporary directory created for this run after the proposal report is complete. Never delete a path that was not created by this Retrospective run.
+Delete the exact temporary directory created for this run after the proposal report is complete. Never delete a path that was not created by this Reflection run.
