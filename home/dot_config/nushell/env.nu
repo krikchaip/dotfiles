@@ -53,6 +53,9 @@ $env.CPPFLAGS = $"-I (brew --prefix openssl)/include"
 # ref: https://github.com/jesseduffield/lazygit/issues/4924
 $env.TMPDIR = (getconf DARWIN_USER_TEMP_DIR)
 
+# use Neovim with the NvChad config as the default editor; local .env files can override it
+$env.EDITOR = "env NVIM_APPNAME=nvchad nvim"
+
 # load environment from .env files if they exist
 [".env.toml", ".env.yaml", ".env.yml", ".env.json"]
   | each { |file|
