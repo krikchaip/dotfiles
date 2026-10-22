@@ -24,6 +24,13 @@ window_title = "{workspace}: {tab}"
 
 [ui.sound]
 enabled = true
+done_path = "sounds/silent.mp3"
 
 [ui.toast]
 delivery = "herdr"
+
+[ui.toast.clipboard]
+position = "top-right"
+
+[ui.toast.herdr]
+position = "top-right"
