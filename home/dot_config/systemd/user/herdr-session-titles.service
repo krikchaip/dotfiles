@@ -1,0 +1,13 @@
+[Unit]
+Description=Herdr Claude session titles
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+Environment="PATH=%h/.local/bin:%h/.local/share/mise/shims:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/usr/bin/env mise exec -- uv run --locked --script "%h/.config/herdr/session-titles/claude_titles.py"
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

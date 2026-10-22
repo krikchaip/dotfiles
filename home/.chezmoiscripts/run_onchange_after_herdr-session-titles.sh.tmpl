@@ -1,0 +1,43 @@
+#!/bin/sh
+set -eu
+
+# config hash: {{ include "dot_config/herdr/config.toml" | sha256sum }}
+# manifest hash: {{ include "dot_config/herdr/session-titles/herdr-plugin.toml" | sha256sum }}
+# resolver hash: {{ include "dot_config/herdr/session-titles/session_titles.py" | sha256sum }}
+# watcher hash: {{ include "dot_config/herdr/session-titles/claude_titles.py" | sha256sum }}
+# SDK lock hash: {{ include "dot_config/herdr/session-titles/claude_titles.py.lock" | sha256sum }}
+# watcher service hash: {{ include "Library/LaunchAgents/com.r3nniw.herdr-session-titles.plist.tmpl" | sha256sum }}
+# Linux service hash: {{ include "dot_config/systemd/user/herdr-session-titles.service" | sha256sum }}
+
+{{ if not (or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux")) }}
+printf '%s\n' 'Herdr session-title supervision requires macOS or Linux with systemd.' >&2
+exit 1
+{{ end }}
+{{ if eq .chezmoi.os "linux" }}
+# Fail before installing dependencies if this login has no systemd user manager.
+systemctl --user daemon-reload
+{{ end }}
+
+herdr plugin link "{{ .chezmoi.homeDir }}/.config/herdr/session-titles" --enabled
+
+mise exec -- uv sync --locked --script "{{ .chezmoi.homeDir }}/.config/herdr/session-titles/claude_titles.py"
+
+{{ if eq .chezmoi.os "darwin" }}
+domain="gui/$(id -u)"
+service="$domain/com.r3nniw.herdr-session-titles"
+
+if launchctl print "$service" >/dev/null 2>&1; then
+    launchctl kickstart -k "$service"
+else
+    launchctl bootstrap "$domain" "{{ .chezmoi.homeDir }}/Library/LaunchAgents/com.r3nniw.herdr-session-titles.plist"
+fi
+{{ else if eq .chezmoi.os "linux" }}
+systemctl --user enable herdr-session-titles.service
+systemctl --user restart herdr-session-titles.service
+{{ end }}
+
+# Never retarget the UI-focused session from an unrelated shell.
+if [ "${HERDR_ENV:-}" = 1 ] && [ -n "${HERDR_SOCKET_PATH:-}" ]; then
+    herdr plugin action invoke dotfiles.session-titles.refresh
+    herdr server reload-config
+fi

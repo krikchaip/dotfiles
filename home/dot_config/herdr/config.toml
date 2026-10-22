@@ -22,6 +22,16 @@ tab_bar_right = [{ type = "command", command = '''case $PWD/ in "$HOME/"*) print
 tab_bar_right_separator = " · "
 window_title = "{workspace}: {tab}"
 
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", "machine", { token = "$session_label", fg = "#c0caf5", bold = false, dim = false }, { token = "$session_fallback", fg = "#c0caf5", bold = false, dim = false }],
+  [
+    { token = "$agent_icon", fg = "#565f89", bold = false, dim = false, rules = [{ equals = "✳", fg = "#d97757" }, { equals = "π", fg = "#9362f4" }] },
+    { token = "workspace", fg = "#565f89", bold = false, dim = false },
+    { token = "tab", fg = "#565f89", bold = false, dim = false },
+  ],
+]
+
 [ui.sound]
 enabled = true
 done_path = "sounds/silent.mp3"

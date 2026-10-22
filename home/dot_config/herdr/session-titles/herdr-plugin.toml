@@ -1,0 +1,39 @@
+id = "dotfiles.session-titles"
+name = "Session titles"
+version = "1.0.0"
+min_herdr_version = "0.9.5"
+description = "Keep session-first agent labels current across native session and pane changes"
+platforms = ["macos", "linux"]
+
+[[startup]]
+command = ["python3", "session_titles.py", "refresh"]
+
+[[actions]]
+id = "refresh"
+title = "Refresh session labels"
+contexts = ["workspace"]
+command = ["python3", "session_titles.py", "refresh"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["python3", "session_titles.py", "refresh"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["python3", "session_titles.py", "refresh"]
+
+[[events]]
+on = "pane.exited"
+command = ["python3", "session_titles.py", "refresh"]
+
+[[events]]
+on = "pane.closed"
+command = ["python3", "session_titles.py", "refresh"]
+
+[[events]]
+on = "pane.moved"
+command = ["python3", "session_titles.py", "refresh"]
+
+[[events]]
+on = "tab.moved"
+command = ["python3", "session_titles.py", "refresh"]

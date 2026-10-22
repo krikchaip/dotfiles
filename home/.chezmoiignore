@@ -12,3 +12,10 @@
 
 .config/yazi/plugins/kitty-popup.yazi/__pycache__/
 .config/yazi/plugins/kitty-popup.yazi/test/
+
+{{ if ne .chezmoi.os "darwin" }}
+Library/LaunchAgents/com.r3nniw.herdr-session-titles.plist
+{{ end }}
+{{ if ne .chezmoi.os "linux" }}
+.config/systemd/user/herdr-session-titles.service
+{{ end }}
