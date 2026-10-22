@@ -116,6 +116,7 @@ export default function (pi: ExtensionAPI) {
   const originalShowStatus = InteractiveMode.prototype.showStatus;
 
   const filteredShowStatus: typeof originalShowStatus = function (
+    this: InteractiveMode,
     message,
     options,
   ) {
