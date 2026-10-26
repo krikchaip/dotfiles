@@ -1,0 +1,20 @@
+id = "dotfiles.navigation"
+name = "Navigation"
+version = "1.0.0"
+min_herdr_version = "0.9.5"
+description = "Return to the last active tab or workspace with bounded, on-demand focus-log reads"
+platforms = ["macos", "linux"]
+
+[[actions]]
+id = "last-tab"
+title = "Go to last active tab"
+description = "Toggle recent open tabs within the current workspace; scan at most 256 KiB"
+contexts = ["workspace"]
+command = ["python3", "navigation.py", "last-tab"]
+
+[[actions]]
+id = "last-workspace"
+title = "Go to last active workspace"
+description = "Toggle recent open workspaces within this session; scan at most 256 KiB"
+contexts = ["workspace"]
+command = ["python3", "navigation.py", "last-workspace"]

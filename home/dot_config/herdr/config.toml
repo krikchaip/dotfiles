@@ -68,8 +68,14 @@ toggle_sidebar = "prefix+b"
 [[keys.command]]
 key = "alt+shift+tab"
 type = "plugin_action"
-command = "dotfiles.last-tab.toggle"
+command = "dotfiles.navigation.last-tab"
 description = "Go to last active tab"
+
+[[keys.command]]
+key = "prefix+;"
+type = "plugin_action"
+command = "dotfiles.navigation.last-workspace"
+description = "Go to last active workspace"
 
 [session]
 resume_agents_on_restore = true
