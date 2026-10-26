@@ -1,0 +1,12 @@
+id = "dotfiles.last-tab"
+name = "Last tab"
+version = "1.0.0"
+min_herdr_version = "0.9.5"
+description = "Return to the last active tab using bounded, on-demand focus-log reads"
+platforms = ["macos", "linux"]
+
+[[actions]]
+id = "toggle"
+title = "Go to last active tab"
+contexts = ["workspace"]
+command = ["python3", "last_tab.py"]

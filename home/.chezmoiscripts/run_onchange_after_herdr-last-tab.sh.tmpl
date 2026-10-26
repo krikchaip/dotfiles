@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+# config hash: {{ include "dot_config/herdr/config.toml" | sha256sum }}
+# manifest hash: {{ include "dot_config/herdr/last-tab/herdr-plugin.toml" | sha256sum }}
+# action hash: {{ include "dot_config/herdr/last-tab/last_tab.py" | sha256sum }}
+
+herdr plugin link "{{ .chezmoi.homeDir }}/.config/herdr/last-tab" --enabled
+
+# Reload only the invoking Herdr session, not another client's focused session.
+if [ "${HERDR_ENV:-}" = 1 ] && [ -n "${HERDR_SOCKET_PATH:-}" ]; then
+    herdr server reload-config
+fi
