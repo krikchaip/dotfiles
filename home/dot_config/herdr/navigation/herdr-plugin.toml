@@ -1,8 +1,8 @@
 id = "dotfiles.navigation"
 name = "Navigation"
-version = "1.0.0"
+version = "1.1.0"
 min_herdr_version = "0.9.5"
-description = "Return to the last active tab or workspace with bounded, on-demand focus-log reads"
+description = "Navigate recent tabs and workspaces, and move complete live tabs between workspaces"
 platforms = ["macos", "linux"]
 
 [[actions]]
@@ -18,3 +18,41 @@ title = "Go to last active workspace"
 description = "Toggle recent open workspaces within this session; scan at most 256 KiB"
 contexts = ["workspace"]
 command = ["python3", "navigation.py", "last-workspace"]
+
+[[actions]]
+id = "move-tab-to-workspace"
+title = "Move tab to workspace"
+description = "Pick a workspace and move the current tab with all its live panes"
+contexts = ["workspace"]
+command = ["python3", "move_ui.py", "open-existing"]
+
+[[actions]]
+id = "move-tab-to-new-workspace"
+title = "Move tab to new workspace"
+description = "Name a workspace and move the current tab with all its live panes"
+contexts = ["workspace"]
+command = ["python3", "move_ui.py", "open-new"]
+
+[[actions]]
+id = "finish-tab-move"
+title = "Resume pending tab transfer"
+description = "Finish a prepared transfer outside its source-tab popup"
+contexts = ["workspace"]
+command = ["python3", "tab_move.py"]
+
+# Continue the frame before each title so its text aligns with popup content.
+[[panes]]
+id = "move-tab"
+title = "─ Move tab to workspace"
+placement = "popup"
+width = 84
+height = 25
+command = ["python3", "move_ui.py", "existing"]
+
+[[panes]]
+id = "new-workspace-from-tab"
+title = "─ Move tab to new workspace"
+placement = "popup"
+width = 84
+height = 25
+command = ["python3", "move_ui.py", "new"]

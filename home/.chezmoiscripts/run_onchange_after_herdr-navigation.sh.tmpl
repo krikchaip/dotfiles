@@ -4,6 +4,8 @@ set -eu
 # config hash: {{ include "dot_config/herdr/config.toml" | sha256sum }}
 # manifest hash: {{ include "dot_config/herdr/navigation/herdr-plugin.toml" | sha256sum }}
 # action hash: {{ include "dot_config/herdr/navigation/navigation.py" | sha256sum }}
+# move engine hash: {{ include "dot_config/herdr/navigation/tab_move.py" | sha256sum }}
+# move dialogs hash: {{ include "dot_config/herdr/navigation/move_ui.py" | sha256sum }}
 
 herdr plugin link "{{ .chezmoi.homeDir }}/.config/herdr/navigation" --enabled
 
