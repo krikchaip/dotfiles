@@ -78,16 +78,16 @@ command = "dotfiles.navigation.last-workspace"
 description = "Go to last active workspace"
 
 [[keys.command]]
-key = "prefix+alt+s"
+key = "prefix+m"
 type = "plugin_action"
-command = "dotfiles.navigation.move-tab-to-workspace"
-description = "Move tab and panes to workspace"
+command = "dotfiles.navigation.move-pane"
+description = "Move focused pane to another tab or workspace"
 
 [[keys.command]]
-key = "prefix+alt+shift+s"
+key = "prefix+shift+m"
 type = "plugin_action"
-command = "dotfiles.navigation.move-tab-to-new-workspace"
-description = "Move tab and panes to new workspace"
+command = "dotfiles.navigation.move-tab"
+description = "Move tab and panes to another or a new workspace"
 
 [session]
 resume_agents_on_restore = true

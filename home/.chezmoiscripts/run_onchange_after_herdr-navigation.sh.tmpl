@@ -6,6 +6,9 @@ set -eu
 # action hash: {{ include "dot_config/herdr/navigation/navigation.py" | sha256sum }}
 # move engine hash: {{ include "dot_config/herdr/navigation/tab_move.py" | sha256sum }}
 # move dialogs hash: {{ include "dot_config/herdr/navigation/move_ui.py" | sha256sum }}
+# pane move engine hash: {{ include "dot_config/herdr/navigation/pane_move.py" | sha256sum }}
+# pane move dialog hash: {{ include "dot_config/herdr/navigation/pane_ui.py" | sha256sum }}
+# move worker hash: {{ include "dot_config/herdr/navigation/finish_move.py" | sha256sum }}
 
 herdr plugin link "{{ .chezmoi.homeDir }}/.config/herdr/navigation" --enabled
 

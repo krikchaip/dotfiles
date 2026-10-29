@@ -10,6 +10,8 @@
 
 **/nushell/history.txt
 
+.config/herdr/navigation/__pycache__/
+
 .config/yazi/plugins/kitty-popup.yazi/__pycache__/
 .config/yazi/plugins/kitty-popup.yazi/test/
 

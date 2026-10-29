@@ -1,8 +1,8 @@
 id = "dotfiles.navigation"
 name = "Navigation"
-version = "1.1.0"
+version = "1.3.0"
 min_herdr_version = "0.9.5"
-description = "Navigate recent tabs and workspaces, and move complete live tabs between workspaces"
+description = "Navigate recent tabs and workspaces, and move live tabs or panes"
 platforms = ["macos", "linux"]
 
 [[actions]]
@@ -20,39 +20,40 @@ contexts = ["workspace"]
 command = ["python3", "navigation.py", "last-workspace"]
 
 [[actions]]
-id = "move-tab-to-workspace"
-title = "Move tab to workspace"
-description = "Pick a workspace and move the current tab with all its live panes"
+id = "move-tab"
+title = "Move tab"
+description = "Move the current tab and its live panes to another or a new workspace"
 contexts = ["workspace"]
-command = ["python3", "move_ui.py", "open-existing"]
+command = ["python3", "move_ui.py", "open"]
 
 [[actions]]
-id = "move-tab-to-new-workspace"
-title = "Move tab to new workspace"
-description = "Name a workspace and move the current tab with all its live panes"
+id = "move-pane"
+title = "Move focused pane"
+description = "Browse workspaces and tabs, or create a destination for the focused pane"
 contexts = ["workspace"]
-command = ["python3", "move_ui.py", "open-new"]
+command = ["python3", "pane_ui.py", "open"]
 
 [[actions]]
-id = "finish-tab-move"
-title = "Resume pending tab transfer"
-description = "Finish a prepared transfer outside its source-tab popup"
+id = "finish-move"
+title = "Finish pending move"
+description = "Finish a queued tab or pane move after its popup closes"
 contexts = ["workspace"]
-command = ["python3", "tab_move.py"]
+command = ["python3", "finish_move.py"]
 
 # Continue the frame before each title so its text aligns with popup content.
 [[panes]]
 id = "move-tab"
-title = "─ Move tab to workspace"
+title = "─ Move tab"
 placement = "popup"
-width = 84
-height = 25
-command = ["python3", "move_ui.py", "existing"]
+width = 76
+height = 20
+command = ["python3", "move_ui.py"]
 
 [[panes]]
-id = "new-workspace-from-tab"
-title = "─ Move tab to new workspace"
+id = "move-pane"
+title = "─ Move focused pane"
 placement = "popup"
-width = 84
-height = 25
-command = ["python3", "move_ui.py", "new"]
+width = 88
+height = 22
+command = ["python3", "pane_ui.py"]
+

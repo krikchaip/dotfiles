@@ -20,12 +20,14 @@ def _paths(herdr, state_dir):
 
 
 @contextmanager
-def _locked(herdr, state_dir):
+def _locked(herdr, state_dir, *, allow_pane_move=False):
     state_dir = Path(state_dir)
     state_dir.mkdir(parents=True, exist_ok=True)
     lock_path, journal_path = _paths(herdr, state_dir)
     with lock_path.open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
+        if not allow_pane_move and lock_path.with_suffix(".pane-move.json").exists():
+            raise RuntimeError("A pane move is pending. Reopen the pane move shortcut to finish it first.")
         yield journal_path
 
 
@@ -285,7 +287,7 @@ def request_move(herdr, state_dir, source_tab_id, *, workspace_id=None,
         plan = _prepare(herdr, source_tab_id, workspace_id, workspace_name)
         plan["dialog_pid"] = dialog_pid
         _save(path, plan)
-    herdr.call("plugin.action.invoke", {"action_id": "dotfiles.navigation.finish-tab-move"})
+    herdr.call("plugin.action.invoke", {"action_id": "dotfiles.navigation.finish-move"})
 
 
 def request_resume(herdr, state_dir, *, dialog_pid):
@@ -295,7 +297,7 @@ def request_resume(herdr, state_dir, *, dialog_pid):
             raise RuntimeError("There is no interrupted tab move to resume.")
         plan["dialog_pid"] = dialog_pid
         _save(path, plan)
-    herdr.call("plugin.action.invoke", {"action_id": "dotfiles.navigation.finish-tab-move"})
+    herdr.call("plugin.action.invoke", {"action_id": "dotfiles.navigation.finish-move"})
 
 
 def main():
@@ -324,10 +326,6 @@ def main():
         herdr.notify("Move tab", f"Moved {plan['label']} and all {plan['pane_count']} panes.")
         print(f"Moved tab to {result['target_tab_id']}")
     except Exception as error:
-        advice = " Reopen either move shortcut to resume." if pending_move(herdr, state_dir) else ""
+        advice = " Reopen the tab move shortcut to resume." if pending_move(herdr, state_dir) else ""
         herdr.notify("Move tab paused", f"{error}{advice}")
         raise
-
-
-if __name__ == "__main__":
-    main()
