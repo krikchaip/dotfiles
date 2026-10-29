@@ -88,7 +88,7 @@ def destinations(snapshot, source_tab_id):
 def choose_destination(screen, context, groups, styles):
     """Pick a workspace on the left, then a tab or new workspace name on the right."""
     source_label, source_workspace = context
-    query, name, name_cursor = "", "", 0
+    query, name, name_cursor, tab_name, tab_name_cursor = "", "", 0, "", 0
     workspace_index = next((i for i, group in enumerate(groups)
                             if group["id"] == source_workspace["id"]), 0)
     tab_index, placement, focus = 0, "right", "workspaces"
@@ -102,6 +102,7 @@ def choose_destination(screen, context, groups, styles):
         tab_index = min(tab_index, max(0, len(tabs) - 1))
         tab = tabs[tab_index] if tabs else None
         is_tab = tab is not None and tab["destination"]["type"] == "tab"
+        new_tab = tab is not None and not is_tab
         if creating:
             destination = {"type": "new_workspace", "label": name.strip()}
             route = f"{name.strip()} / first tab"
@@ -112,10 +113,15 @@ def choose_destination(screen, context, groups, styles):
             if is_tab:
                 destination["split"] = placement
                 route += f" · split {'below' if placement == 'down' else 'right of'} {tab['anchor']}"
+            elif tab_name.strip() and focus == "tab_name":
+                destination["label"] = tab_name.strip()
+                route = f"{workspace['label']} / {tab_name.strip()}"
             valid = True
         if focus == "tabs" and creating:
             focus = "name"
         elif focus == "name" and not creating:
+            focus = "tabs"
+        elif focus == "tab_name" and not new_tab:
             focus = "tabs"
         ready = valid and focus != "workspaces"
 
@@ -184,12 +190,21 @@ def choose_destination(screen, context, groups, styles):
             detail_x = right_x + 4 + min(label_width, right_width // 3) + 3
             for index in range(start, min(len(tabs), start + count)):
                 item = tabs[index]
+                y = first + index - start
+                if focus == "tab_name" and index == tab_index:
+                    # The name field takes the "+ New tab" row's place.
+                    tab_name_panel = ui._input(screen, y, right_x, right_width, tab_name,
+                                               tab_name_cursor, "Name the new tab", "›", styles)
+                    input_panel = tab_name_panel
+                    hits.append(((right_x, y, right_width, 1), "tab_name"))
+                    continue
                 active = focus == "tabs" and index == tab_index
                 split = ""
                 if active and is_tab:
                     split = f"split {'below' if placement == 'down' else 'right'}"
-                area = ui._row(screen, first + index - start, right_x, right_width, item["label"],
-                            styles, state="active" if active else None,
+                state = "inactive" if focus == "tab_name" else "active" if active else None
+                area = ui._row(screen, y, right_x, right_width, item["label"],
+                            styles, state=state,
                             detail=item["detail"], detail_x=detail_x, trailing=split)
                 hits.append((area, ("tab", index)))
                 if split:
@@ -204,6 +219,8 @@ def choose_destination(screen, context, groups, styles):
             hints = [("↑↓", "select"), ("←", "workspaces")]
             if is_tab:
                 hints.append(("Tab", "right/below"))
+            elif new_tab:
+                hints.append(("Tab", "name it"))
             hints.append(("Esc", "cancel"))
         else:
             hints = [("Ctrl-U", "clear"), ("Esc", "back")]
@@ -213,6 +230,8 @@ def choose_destination(screen, context, groups, styles):
 
         if focus == "name":
             ui._refresh_input(screen, input_panel, name, name_cursor)
+        elif focus == "tab_name":
+            ui._refresh_input(screen, input_panel, tab_name, tab_name_cursor)
         else:
             ui._refresh_input(screen, input_panel, query, len(query))
         key = ui._key(screen, None)
@@ -222,6 +241,8 @@ def choose_destination(screen, context, groups, styles):
         if key == "\x1b":
             if focus == "name":
                 focus = "workspaces"
+            elif focus == "tab_name":
+                focus = "tabs"
             elif focus == "workspaces" and query:
                 query, workspace_index = "", 0
             else:
@@ -257,10 +278,20 @@ def choose_destination(screen, context, groups, styles):
                 focus = "workspaces"
             elif key in ("\t", " ") and is_tab:
                 action = "split"
+            elif key == "\t" and new_tab:
+                # Enter keeps Herdr's generated name; Tab names the tab first.
+                focus, tab_name, tab_name_cursor = "tab_name", "", 0
             elif key in ui.ENTER:
                 action = "move"
             elif isinstance(key, str) and key.isprintable():
                 focus, query, workspace_index, tab_index = "workspaces", query + key, 0, 0
+        elif focus == "tab_name":
+            if key in ui.ENTER:
+                action = "move"
+            elif key in (curses.KEY_UP, curses.KEY_BTAB):
+                focus = "tabs"
+            else:
+                tab_name, tab_name_cursor = ui._edit(tab_name, tab_name_cursor, key)
         elif key in ui.ENTER:
             action = "move"
         elif key in (curses.KEY_UP, curses.KEY_BTAB):
@@ -277,6 +308,8 @@ def choose_destination(screen, context, groups, styles):
         elif action == "name":
             focus = "name"
             name_cursor = ui._click_cursor(name, name_panel, x)
+        elif action == "tab_name":
+            tab_name_cursor = ui._click_cursor(tab_name, tab_name_panel, x)
         elif isinstance(action, tuple):
             kind, index = action
             if kind == "workspace":
