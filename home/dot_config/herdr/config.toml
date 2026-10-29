@@ -107,6 +107,30 @@ type = "plugin_action"
 command = "dotfiles.navigation.move-tab"
 description = "Move tab and panes to another or a new workspace"
 
+[[keys.command]]
+key = "prefix+f"
+type = "popup"
+command = "exec nu"
+description = "Open floating terminal"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
+key = "alt+y"
+type = "popup"
+command = "exec yazi"
+description = "Open Yazi"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
+key = "alt+g"
+type = "popup"
+command = "exec lazygit-recent"
+description = "Open Lazygit"
+width = "80%"
+height = "80%"
+
 [session]
 resume_agents_on_restore = true
 
