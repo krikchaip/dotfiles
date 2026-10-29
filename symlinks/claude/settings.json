@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/Applications/Claude Code.app/Contents/MacOS/terminal-notifier\" -title \"Claude Code\" -message \"\\\\$(jq -r .message)\" -sound Blow -activate net.kovidgoyal.kitty"
+            "command": "[ \"$HERDR_ENV\" = 1 ] || \"$HOME/Applications/Claude Code.app/Contents/MacOS/terminal-notifier\" -title \"Claude Code\" -message \"\\\\$(jq -r .message)\" -sound Blow -activate net.kovidgoyal.kitty"
           }
         ]
       }

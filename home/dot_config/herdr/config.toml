@@ -125,6 +125,7 @@ rows = [
 [ui.sound]
 enabled = true
 done_path = "sounds/silent.mp3"
+request_path = "sounds/blow.mp3"
 
 [ui.toast]
 delivery = "herdr"
