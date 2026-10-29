@@ -6,7 +6,7 @@ pane_history = false
 [keys]
 prefix = "ctrl+;"
 help = "prefix+?"
-settings = "prefix+,"
+settings = "prefix+ctrl+,"
 new_workspace = "prefix+shift+t"
 new_worktree = ""
 open_worktree = ""
@@ -22,7 +22,7 @@ navigate_pane_down = "j"
 navigate_pane_up = "k"
 navigate_pane_right = "l"     # right arrow always focuses the pane to the right
 detach = "prefix+d"
-reload_config = "prefix+shift+,"
+reload_config = "prefix+ctrl+shift+,"
 open_notification_target = "prefix+o"
 previous_workspace = "prefix+p"
 next_workspace = "prefix+n"
@@ -72,7 +72,7 @@ command = "dotfiles.navigation.last-tab"
 description = "Go to last active tab"
 
 [[keys.command]]
-key = "prefix+;"
+key = "prefix+,"
 type = "plugin_action"
 command = "dotfiles.navigation.last-workspace"
 description = "Go to last active workspace"
