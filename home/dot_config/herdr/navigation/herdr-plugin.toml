@@ -1,9 +1,55 @@
 id = "dotfiles.navigation"
 name = "Navigation"
-version = "1.3.0"
+version = "1.4.0"
 min_herdr_version = "0.9.5"
 description = "Navigate recent tabs and workspaces, and move live tabs or panes"
 platforms = ["macos", "linux"]
+
+[[events]]
+on = "tab.closed"
+command = ["python3", "navigation.py", "closed"]
+
+# Natural shell exit emits pane.exited, not tab.closed, in Herdr 0.9.5.
+[[events]]
+on = "pane.exited"
+command = ["python3", "navigation.py", "closed"]
+
+[[events]]
+on = "pane.closed"
+command = ["python3", "navigation.py", "closed"]
+
+# Tabs from the mouse button, the API, or pane moves; new-tab places its own.
+[[events]]
+on = "tab.created"
+command = ["python3", "navigation.py", "created"]
+
+[[actions]]
+id = "new-tab"
+title = "New tab beside current"
+contexts = ["workspace"]
+command = ["python3", "navigation.py", "new-tab"]
+
+[[actions]]
+id = "close-pane"
+title = "Close pane"
+description = "Close the pane; a last pane returns to the most recent tab"
+contexts = ["workspace"]
+command = ["python3", "navigation.py", "close-pane"]
+
+[[actions]]
+id = "close-tab"
+title = "Confirm close tab"
+contexts = ["workspace"]
+command = ["python3", "navigation.py", "close-tab"]
+
+[[panes]]
+id = "close-tab"
+# Herdr requires a title; a rule keeps the top border unbroken like its native prompt.
+title = "─"
+placement = "popup"
+width = 64
+height = 6
+command = ["python3", "navigation.py", "confirm-close-tab"]
 
 [[actions]]
 id = "last-tab"

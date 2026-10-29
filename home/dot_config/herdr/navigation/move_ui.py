@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
 """Interactive, invocation-pinned whole-tab relocation popup.
 
-Popup roles use the terminal's ANSI palette and Kitty's live theme tokens.
-The fill uses Kitty's remote-control socket directly, with a 100 ms local I/O
-deadline and a 64 KiB response limit. No color-query process or watcher is started.
-Protocol: https://sw.kovidgoyal.net/kitty/rc_protocol/
-Herdr owns the outer frame; spacing and font weights remain cell-based.
-Filled controls use explicit palette slots rather than the default background.
+Popup roles use Herdr's active theme tokens (herdr_theme), styled like Herdr's
+own list overlays. Herdr owns the outer frame; spacing and font weights remain
+cell-based. Every cell has an explicit background, so nothing behind shows through.
 """
 
 import curses
+import functools
 import json
 import os
 from pathlib import Path
-import socket
 import sys
 import textwrap
-import time
 import unicodedata
 
+from herdr_theme import tokens
 from navigation import Herdr
 
 
@@ -44,10 +41,11 @@ def line(screen, row, text, attribute=0):
 
 def frame(screen, heading, details, footer):
     screen.erase()
-    line(screen, 0, heading, curses.A_BOLD)
+    styles = _styles()
+    line(screen, 0, heading, styles["normal"] | curses.A_BOLD)
     for row, detail in enumerate(details, 1):
-        line(screen, row, detail)
-    line(screen, screen.getmaxyx()[0] - 1, footer, curses.A_DIM)
+        line(screen, row, detail, styles["normal"])
+    line(screen, screen.getmaxyx()[0] - 1, footer, styles["muted"])
 
 
 def choose(screen, heading, details, choices):
@@ -62,7 +60,7 @@ def choose(screen, heading, details, choices):
         for row, (label, _) in enumerate(choices[first:first + count], start):
             index = first + row - start
             line(screen, row, ("> " if index == selected else "  ") + label,
-                 curses.A_REVERSE if index == selected else 0)
+                 _styles()["selected_label" if index == selected else "normal"])
         screen.refresh()
         key = screen.get_wch()
         if key in CANCEL:
@@ -107,78 +105,30 @@ def _put(screen, row, column, text, width, attribute=0):
                 pass  # A resize can invalidate the measured rectangle.
 
 
-def _kitty_surface():
-    """Read a live surface token directly, without starting the Kitty CLI."""
-    endpoint = os.environ.get("KITTY_LISTEN_ON")
-    if not endpoint:
-        return None
-    window_id = os.environ.get("KITTY_WINDOW_ID")
-    if window_id:
-        if not window_id.isascii() or not window_id.isdecimal():
-            return None
-        payload = {"match": f"id:{window_id}"}
-    else:
-        # The active window may belong to another client.
-        payload = {"configured": True}
-    request = {"cmd": "get-colors", "version": [0, 14, 2], "payload": payload}
-    prefix, suffix = b"\x1bP@kitty-cmd", b"\x1b\\"
-    deadline = time.monotonic() + 0.1
-    try:
-        if endpoint.startswith("unix:"):
-            connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        elif endpoint.startswith("tcp:"):
-            host, port = endpoint[4:].rsplit(":", 1)
-            connection = socket.create_connection((host.strip("[]"), int(port)), timeout=0.1)
+def _slot_color(value, slots):
+    """Return a curses color for a theme token; RGB tokens get palette slots."""
+    if value is None:
+        return -1
+    if isinstance(value, int):
+        return value if value < curses.COLORS else value % 8
+    if value not in slots:
+        if curses.can_change_color() and 16 + len(slots) < curses.COLORS:
+            slot = 16 + len(slots)
+            # Herdr keeps a redefined slot inside the popup's terminal.
+            # Round up because its 1000-to-255 conversion truncates.
+            curses.init_color(slot, *((channel * 1000 + 254) // 255 for channel in value))
+            slots[value] = slot
+        elif curses.COLORS >= 256:
+            red, green, blue = (round(channel / 255 * 5) for channel in value)
+            slots[value] = 16 + 36 * red + 6 * green + blue
         else:
-            return None
-        with connection:
-            connection.settimeout(0.1)
-            if endpoint.startswith("unix:"):
-                address = endpoint[5:]
-                if address.startswith("@"):
-                    address = "\0" + address[1:]
-                connection.connect(address)
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                return None
-            connection.settimeout(remaining)
-            connection.sendall(prefix + json.dumps(request).encode() + suffix)
-            connection.shutdown(socket.SHUT_WR)
-            response = bytearray()
-            while not response.endswith(suffix):
-                remaining = deadline - time.monotonic()
-                if remaining <= 0 or len(response) >= 65536:
-                    return None
-                connection.settimeout(remaining)
-                chunk = connection.recv(min(8192, 65536 - len(response)))
-                if not chunk:
-                    return None
-                response.extend(chunk)
-        if not response.startswith(prefix):
-            return None
-        result = json.loads(response[len(prefix):-len(suffix)])
-        if not isinstance(result, dict) or result.get("ok") is not True:
-            return None
-        colors = result.get("data")
-        if not isinstance(colors, str):
-            return None
-    except (OSError, ValueError, OverflowError, RecursionError):
-        return None  # Theme lookup must not prevent a tab move.
-    for line in colors.splitlines():
-        fields = line.split()
-        if len(fields) == 2 and fields[0] == "inactive_border_color":
-            value = fields[1]
-            if len(value) == 7 and value.startswith("#"):
-                try:
-                    return tuple(bytes.fromhex(value[1:]))
-                except ValueError:
-                    pass
-            return None
-    return None
+            slots[value] = -1
+    return slots[value]
 
 
+@functools.cache
 def _styles():
-    """Bind semantic roles without changing the terminal's global palette."""
+    """Bind semantic roles to Herdr's theme tokens, as its list overlays use them."""
     styles = dict(normal=0, accent=curses.A_BOLD, muted=curses.A_DIM,
                   dim=curses.A_DIM, border=curses.A_DIM, field=0,
                   field_accent=curses.A_BOLD, placeholder=curses.A_DIM,
@@ -190,49 +140,35 @@ def _styles():
         try:
             curses.start_color()
             curses.use_default_colors()
-            bright = 8 if curses.COLORS >= 16 else 0
-            tokens = {
-                "background": curses.COLOR_BLACK,
-                "text": curses.COLOR_WHITE + bright,
-                "muted": curses.COLOR_WHITE,
-                "surface": curses.COLOR_BLACK + bright,
-                "control_surface": curses.COLOR_BLACK,
-                "border": curses.COLOR_BLACK + bright if bright else curses.COLOR_WHITE,
-                "accent": curses.COLOR_BLUE,
-                "success": curses.COLOR_GREEN,
-            }
-            if curses.can_change_color() and curses.COLORS > 16:
-                surface = _kitty_surface()
-                if surface is not None:
-                    # Herdr keeps this slot inside the popup's terminal.
-                    # Round up because its 1000-to-255 conversion truncates.
-                    curses.init_color(16, *((channel * 1000 + 254) // 255
-                                            for channel in surface))
-                    tokens["control_surface"] = 16
+            theme = tokens()
+            # Herdr's contrast(): text on accent fills uses the panel color.
+            theme["contrast"] = (theme["panel_bg"] if theme["panel_bg"] is not None
+                                 else theme["surface_dim"])
             pairs = {
-                "normal": ("text", "background"),
-                "accent": ("accent", "background"),
-                "muted": ("muted", "background"),
-                "dim": ("muted", "background"),
-                "border": ("border", "background"),
-                "field": ("text", "control_surface"),
-                "field_accent": ("accent", "control_surface"),
-                "placeholder": ("muted", "control_surface"),
-                "selected": ("text", "control_surface"),
-                "selected_label": ("accent", "control_surface"),
-                "selected_muted": ("muted", "control_surface"),
-                "selected_dim": ("muted", "control_surface"),
-                "success": ("success", "background"),
-                "key": ("text", "surface"),
-                "edge": ("control_surface", "background"),
-                "button": ("background", "accent"),
-                "disabled": ("muted", "surface"),
+                "normal": ("text", "panel_bg"),
+                "accent": ("accent", "panel_bg"),
+                "muted": ("overlay1", "panel_bg"),
+                "dim": ("overlay0", "panel_bg"),
+                "border": ("surface1", "panel_bg"),
+                "field": ("text", "surface0"),
+                "field_accent": ("accent", "surface0"),
+                "placeholder": ("overlay0", "surface0"),
+                "selected": ("contrast", "accent"),
+                "selected_label": ("contrast", "accent"),
+                "selected_muted": ("contrast", "accent"),
+                "selected_dim": ("contrast", "accent"),
+                "success": ("green", "panel_bg"),
+                "key": ("text", "surface0"),
+                "edge": ("accent", "panel_bg"),
+                "button": ("contrast", "accent"),
+                "disabled": ("overlay0", "surface0"),
             }
+            bold = ("selected_label", "key", "button")
+            slots = {}
             for index, (name, (foreground, background)) in enumerate(pairs.items(), 1):
-                curses.init_pair(index, tokens[foreground], tokens[background])
-                styles[name] = curses.color_pair(index)
-                if name in ("dim", "placeholder", "selected_dim", "disabled"):
-                    styles[name] |= curses.A_DIM
+                curses.init_pair(index, _slot_color(theme[foreground], slots),
+                                 _slot_color(theme[background], slots))
+                styles[name] = curses.color_pair(index) | (curses.A_BOLD if name in bold else 0)
         except curses.error:
             pass  # Keep the available terminal styling; keyboard input still works.
     try:
@@ -358,7 +294,7 @@ def _header(screen, styles, title, origin):
     """Draw the subject on the left, its origin on the right, and a rule."""
     width = screen.getmaxyx()[1]
     origin_width = min(_cells(origin), width // 2)
-    _put(screen, 0, 2, title, width - origin_width - 6, curses.A_BOLD)
+    _put(screen, 0, 2, title, width - origin_width - 6, styles["normal"] | curses.A_BOLD)
     _put(screen, 0, width - origin_width - 2, origin, origin_width, styles["dim"])
     _put(screen, 1, 0, "─" * width, width, styles["border"])
 
@@ -388,8 +324,8 @@ def _too_small(screen, min_width, min_height):
     height, width = screen.getmaxyx()
     if width >= min_width and height >= min_height:
         return False
-    line(screen, 0, "Enlarge the terminal to use this dialog.", curses.A_BOLD)
-    line(screen, height - 1, "Esc/Ctrl-C cancel", curses.A_DIM)
+    line(screen, 0, "Enlarge the terminal to use this dialog.", _styles()["normal"] | curses.A_BOLD)
+    line(screen, height - 1, "Esc/Ctrl-C cancel", _styles()["muted"])
     _refresh_input(screen, None, "", 0)
     return None if _key(screen, None) in CANCEL else True
 
@@ -568,6 +504,7 @@ def run(screen):
     try:
         from tab_move import pending_move, request_move, request_resume
         styles = _styles()
+        screen.bkgd(" ", styles["normal"])  # Pending and error screens use the panel too.
         herdr = Herdr(os.environ["HERDR_SOCKET_PATH"])
         state_dir = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
         pending = pending_move(herdr, state_dir)

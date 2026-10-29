@@ -1,0 +1,11 @@
+# Herdr palettes for dot_config/herdr/navigation/herdr_theme.py; the version in the URL refetches on upgrade.
+{{- if lookPath "herdr" }}
+{{-   $version := output "herdr" "--version" | trim | splitList " " | last }}
+[".config/herdr/navigation/herdr-src/state.rs"]
+  type = "file"
+  url = "https://raw.githubusercontent.com/herdrdev/herdr/v{{ $version }}/src/app/state.rs"
+
+[".config/herdr/navigation/herdr-src/theme.rs"]
+  type = "file"
+  url = "https://raw.githubusercontent.com/herdrdev/herdr/v{{ $version }}/src/config/theme.rs"
+{{- end }}

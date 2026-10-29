@@ -30,7 +30,7 @@ previous_agent = "prefix+k"
 next_agent = "prefix+j"
 focus_agent = "prefix+1..9"
 remote_image_paste = "ctrl+v" # only active in herdr --remote; empty disables raw-key image paste
-new_tab = "prefix+t"
+new_tab = ""
 rename_tab = "prefix+r"
 previous_tab = ["prefix+h", "alt+shift+["]
 next_tab = ["prefix+l", "alt+shift+]"]
@@ -38,7 +38,7 @@ move_tab_previous = "prefix+shift+["
 move_tab_next = "prefix+shift+]"
 switch_tab = "alt+shift+1..9"
 switch_workspace = "prefix+shift+1..9"
-close_tab = "prefix+shift+q"
+close_tab = ""
 rename_pane = "prefix+alt+r"
 edit_scrollback = "prefix+e"
 clear_pane = "prefix+ctrl+k"
@@ -56,7 +56,7 @@ cycle_pane_previous = ""
 last_pane = "alt+tab"
 split_vertical = "prefix+v"
 split_horizontal = "prefix+s"
-close_pane = "prefix+q"
+close_pane = ""
 zoom = "prefix+z"
 resize_mode = "prefix+shift+s"
 resize_pane_left = ""
@@ -64,6 +64,24 @@ resize_pane_down = ""
 resize_pane_up = ""
 resize_pane_right = ""
 toggle_sidebar = "prefix+b"
+
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "dotfiles.navigation.new-tab"
+description = "New tab beside current"
+
+[[keys.command]]
+key = "prefix+q"
+type = "plugin_action"
+command = "dotfiles.navigation.close-pane"
+description = "Close pane"
+
+[[keys.command]]
+key = "prefix+shift+q"
+type = "plugin_action"
+command = "dotfiles.navigation.close-tab"
+description = "Confirm closing current tab"
 
 [[keys.command]]
 key = "alt+shift+tab"
@@ -97,10 +115,11 @@ default_shell = "nu"
 
 [theme]
 name = "tokyo-night"
+auto_switch = false
 
 [ui]
 pane_borders = "always"
-status_indicators = "symbols"
+status_indicators = "dots"
 tab_bar_right = [{ type = "command", command = '''case $PWD/ in "$HOME/"*) printf '~%s\n' "${PWD#"$HOME"}";; *) pwd;; esac''', interval_seconds = 2 }]
 tab_bar_right_separator = " · "
 window_title = "{workspace}: {tab}"

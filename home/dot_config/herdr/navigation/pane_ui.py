@@ -169,7 +169,8 @@ def choose_destination(screen, context, groups, styles):
 
         # Right column: tabs in the chosen workspace, or the new workspace name.
         if creating:
-            ui._put(screen, top, right_x + 4, "New workspace", right_width - 4, curses.A_BOLD)
+            ui._put(screen, top, right_x + 4, "New workspace", right_width - 4,
+                    styles["normal"] | curses.A_BOLD)
             name_panel = ui._input(screen, first, right_x, right_width, name, name_cursor,
                                 query or "Name, e.g. build-tools", "›", styles)
             if focus == "name":
@@ -179,7 +180,7 @@ def choose_destination(screen, context, groups, styles):
                     right_width - 4, styles["dim"])
         else:
             ui._put(screen, top, right_x + 4, workspace["label"], right_width - 4,
-                    curses.A_BOLD)
+                    styles["normal"] | curses.A_BOLD)
             count = max(1, stop - first)
             start = ui._window(tab_index, len(tabs), count)
             if len(tabs) > count:
@@ -338,6 +339,7 @@ def run(screen):
     try:
         from pane_move import pending_move, request_move, request_resume
         styles = ui._styles()
+        screen.bkgd(" ", styles["normal"])  # Pending and error screens use the panel too.
         herdr = Herdr(os.environ["HERDR_SOCKET_PATH"])
         state_dir = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
         pending = pending_move(herdr, state_dir)

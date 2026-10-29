@@ -82,8 +82,164 @@ class Herdr:
         self.call("notification.show", {"title": title, "body": body})
 
 
+def focus_records(endpoint):
+    """Share the bounded native history reader with lifecycle hooks."""
+    with Path(endpoint).with_name("herdr-server.log").open("rb") as stream:
+        return [match for line in reverse_lines(stream)
+                if (match := FOCUS.search(line)) is not None]
+
+
+def restore_closed_tab(herdr, event):
+    """Ignore native fallback focus, but never override a later logged visit."""
+    workspace_id = event["data"]["workspace_id"]
+    records = focus_records(herdr.endpoint)
+    latest = next((record for record in records
+                   if record[1] == b"tab" and record[2].decode() == workspace_id), None)
+    if latest is None:
+        return
+    closed = latest[3].decode()
+    if event["event"] == "tab_closed" and closed != event["data"]["tab_id"]:
+        return
+    snapshot = herdr.call("session.snapshot")["snapshot"]
+    live = {tab["tab_id"] for tab in snapshot["tabs"]
+            if tab["workspace_id"] == workspace_id}
+    if closed in live or snapshot["focused_workspace_id"] != workspace_id:
+        return
+    target = next((record[3].decode() for record in records
+                   if record[1] == b"tab" and record[2].decode() == workspace_id
+                   and record[3].decode() in live), None)
+    if target is None or snapshot["focused_tab_id"] == target:
+        return
+    # Commands are asynchronous: a newer explicit visit invalidates this hook.
+    newest = focus_records(herdr.endpoint)
+    if not newest or newest[0].string != records[0].string:
+        return
+    herdr.call("tab.focus", {"tab_id": target})
+
+
+def recent_sibling(herdr, snapshot, tab_id):
+    """Return the most recently visited live tab beside tab_id in its workspace."""
+    workspace_id = next(tab["workspace_id"] for tab in snapshot["tabs"] if tab["tab_id"] == tab_id)
+    live = {tab["tab_id"] for tab in snapshot["tabs"]
+            if tab["workspace_id"] == workspace_id and tab["tab_id"] != tab_id}
+    if not live:
+        return None
+    try:
+        with Path(herdr.endpoint).with_name("herdr-server.log").open("rb") as stream:
+            return previous_focus(stream, "tab", tab_id, live, workspace_id)
+    except FileNotFoundError:
+        return None
+
+
+def leave_tab(herdr, snapshot, tab_id):
+    """Focus the recent sibling first, so Herdr never draws its neighbor fallback."""
+    if snapshot["focused_tab_id"] != tab_id:
+        return
+    target = recent_sibling(herdr, snapshot, tab_id)
+    if target is not None:
+        herdr.call("tab.focus", {"tab_id": target})
+
+
+def new_tab(herdr, workspace_id):
+    """Open a tab right of the active one with its pane's CWD, like tmux new-window -a."""
+    snapshot = herdr.call("session.snapshot")["snapshot"]
+    # Read the active tab under the lock: a rapid second press then follows
+    # the first new tab rather than the tab both keypresses started from.
+    source_id = next(item["active_tab_id"] for item in snapshot["workspaces"]
+                     if item["workspace_id"] == workspace_id)
+    tabs = [tab["tab_id"] for tab in snapshot["tabs"] if tab["workspace_id"] == workspace_id]
+    layout = next((item for item in snapshot["layouts"] if item["tab_id"] == source_id), {})
+    pane = next((item for item in snapshot["panes"]
+                 if item["pane_id"] == layout.get("focused_pane_id")), {})
+    params = {"workspace_id": workspace_id, "focus": True}
+    if pane.get("foreground_cwd") or pane.get("cwd"):
+        params["cwd"] = pane.get("foreground_cwd") or pane.get("cwd")
+    # Herdr draws an unfocused creation at the end of the bar at once, but
+    # draws a focused one only after its shell starts. Move it before then.
+    created = herdr.call("tab.create", params)["tab"]["tab_id"]
+    insert_index = tabs.index(source_id) + 1
+    if insert_index < len(tabs):
+        herdr.call("tab.move", {"tab_id": created, "insert_index": insert_index})
+
+
+def place_created_tab(herdr, event):
+    """Move a tab from another surface (mouse, API, pane move) beside its source.
+
+    The new-tab action places its own tab before Herdr draws it. Other surfaces
+    append, so this hook can only correct them after one drawn frame.
+    """
+    created = event["data"]["tab"]
+    target, workspace_id = created["tab_id"], created["workspace_id"]
+    snapshot = herdr.call("session.snapshot")["snapshot"]
+    tabs = [tab["tab_id"] for tab in snapshot["tabs"] if tab["workspace_id"] == workspace_id]
+    if len(tabs) < 2 or tabs[-1] != target:
+        return
+    source = recent_sibling(herdr, snapshot, target)
+    if source is not None and tabs.index(source) != len(tabs) - 2:
+        herdr.call("tab.move", {"tab_id": target, "insert_index": tabs.index(source) + 1})
+
+
+def close_pane(herdr, pane_id):
+    """Close a pane; when it is the last pane, leave its tab like tab close does."""
+    snapshot = herdr.call("session.snapshot")["snapshot"]
+    pane = next(item for item in snapshot["panes"] if item["pane_id"] == pane_id)
+    tab = next(item for item in snapshot["tabs"] if item["tab_id"] == pane["tab_id"])
+    if tab["pane_count"] == 1:
+        leave_tab(herdr, snapshot, tab["tab_id"])
+    herdr.call("pane.close", {"pane_id": pane_id})
+
+
+def open_close_dialog(herdr, tab_id):
+    """Open the prompt at Herdr's native size; Herdr pins it to the invoking pane."""
+    herdr.call("plugin.pane.open", {
+        "plugin_id": "dotfiles.navigation", "entrypoint": "close-tab",
+        "placement": "popup", "env": {"NAV_CLOSE_TAB_ID": tab_id},
+    })
+
+
+def confirm_close_tab(herdr):
+    from confirm_ui import confirm
+
+    target = os.environ["NAV_CLOSE_TAB_ID"]
+    snapshot = herdr.call("session.snapshot")["snapshot"]
+    tab = next((item for item in snapshot["tabs"] if item["tab_id"] == target), None)
+    if tab is None:
+        return
+    count = tab["pane_count"]
+    detail = f'{tab.get("label") or target} — {count} {"pane" if count == 1 else "panes"}'
+    if not confirm("Close tab?", detail, "confirm"):
+        return
+    # A tab may exit or move while its confirmation is on screen.
+    snapshot = herdr.call("session.snapshot")["snapshot"]
+    if any(item["tab_id"] == target for item in snapshot["tabs"]):
+        leave_tab(herdr, snapshot, target)
+        herdr.call("tab.close", {"tab_id": target})
+
+
 def main():
     action = sys.argv[1]
+    if action in ("closed", "created", "new-tab", "close-pane", "close-tab", "confirm-close-tab"):
+        herdr = Herdr(os.environ["HERDR_SOCKET_PATH"])
+        context = json.loads(os.environ.get("HERDR_PLUGIN_CONTEXT_JSON") or "{}")
+        if action == "closed":
+            restore_closed_tab(herdr, json.loads(os.environ["HERDR_PLUGIN_EVENT_JSON"]))
+        elif action == "confirm-close-tab":
+            confirm_close_tab(herdr)
+        elif action == "close-tab":
+            open_close_dialog(herdr, context.get("tab_id") or os.environ["HERDR_TAB_ID"])
+        else:
+            state_dir = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
+            key = hashlib.sha256(herdr.endpoint.encode()).hexdigest()[:16]
+            # Serialize rapid keypresses so each one reads the previous result.
+            with (state_dir / f"{key}.lock").open("a") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                if action == "created":
+                    place_created_tab(herdr, json.loads(os.environ["HERDR_PLUGIN_EVENT_JSON"]))
+                elif action == "new-tab":
+                    new_tab(herdr, context.get("workspace_id") or os.environ["HERDR_WORKSPACE_ID"])
+                else:
+                    close_pane(herdr, context.get("pane_id") or os.environ["HERDR_PANE_ID"])
+        return
     if action not in ("last-tab", "last-workspace"):
         raise ValueError(f"unknown navigation action: {action}")
     kind = "tab" if action == "last-tab" else "workspace"
