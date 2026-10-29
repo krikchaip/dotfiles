@@ -114,7 +114,7 @@ resume_agents_on_restore = true
 default_shell = "nu"
 
 [theme]
-name = "tokyo-night"
+name = "terminal"
 auto_switch = false
 
 [ui]

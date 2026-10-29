@@ -133,7 +133,7 @@ def _styles():
                   dim=curses.A_DIM, border=curses.A_DIM, field=0,
                   field_accent=curses.A_BOLD, placeholder=curses.A_DIM,
                   selected=curses.A_REVERSE, selected_label=curses.A_REVERSE,
-                  selected_muted=curses.A_REVERSE, selected_dim=curses.A_REVERSE,
+                  selected_muted=curses.A_REVERSE, selected_marker=curses.A_REVERSE,
                   success=0, key=curses.A_REVERSE, edge=0,
                   button=curses.A_BOLD | curses.A_REVERSE, disabled=curses.A_DIM)
     if curses.has_colors():
@@ -144,6 +144,9 @@ def _styles():
             # Herdr's contrast(): text on accent fills uses the panel color.
             theme["contrast"] = (theme["panel_bg"] if theme["panel_bg"] is not None
                                  else theme["surface_dim"])
+            # Herdr's sidebar cursor: selection_bg, or active_row_bg when it is Reset.
+            theme["selection"] = (theme["selection_bg"] if theme["selection_bg"] is not None
+                                  else theme["active_row_bg"])
             pairs = {
                 "normal": ("text", "panel_bg"),
                 "accent": ("accent", "panel_bg"),
@@ -153,13 +156,13 @@ def _styles():
                 "field": ("text", "surface0"),
                 "field_accent": ("accent", "surface0"),
                 "placeholder": ("overlay0", "surface0"),
-                "selected": ("contrast", "accent"),
-                "selected_label": ("contrast", "accent"),
-                "selected_muted": ("contrast", "accent"),
-                "selected_dim": ("contrast", "accent"),
+                "selected": ("text", "selection"),
+                "selected_label": ("text", "selection"),
+                "selected_muted": ("overlay1", "selection"),
+                "selected_marker": ("accent", "selection"),
                 "success": ("green", "panel_bg"),
                 "key": ("text", "surface0"),
-                "edge": ("accent", "panel_bg"),
+                "edge": ("selection", "panel_bg"),
                 "button": ("contrast", "accent"),
                 "disabled": ("overlay0", "surface0"),
             }
@@ -252,7 +255,7 @@ def _row(screen, y, x, width, label, styles, *, state=None, detail="", detail_x=
         _put(screen, y, x, " " * width, width, styles["selected"])
         _put(screen, y, x, "│", 1, styles["accent"])
         _put(screen, y, x + width - 1, "▌", 1, styles["edge"])
-        _put(screen, y, x + 2, "›", 1, styles["selected_label"])
+        _put(screen, y, x + 2, "›", 1, styles["selected_marker"])
     elif state == "parent":
         _put(screen, y, x + 2, "›", 1, styles["muted"])
     label_style = (styles["selected_label"] if active else
