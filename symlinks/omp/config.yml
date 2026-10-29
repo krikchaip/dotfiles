@@ -81,10 +81,12 @@ steeringMode: all
 followUpMode: all
 interruptMode: wait
 treeFilterMode: no-tools
+ask:
+  notify: "off"
 completion:
   notify: "off"
 error:
-  notify: "on"
+  notify: "off"
 recap:
   idleSeconds: 600
 collab:
