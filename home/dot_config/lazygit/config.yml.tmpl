@@ -51,11 +51,15 @@ gui:
 
 git:
   diffRenderers:
+    # --detect-dark-light=never: delta must not query the terminal for its colors.
+    # The reply races lazygit's own tty reader, which delays every diff by ~1s and
+    # can leak the reply into lazygit as keystrokes (e.g. ':' opens "Shell command").
     - colorArg: always
       command: >-
-        delta --paging=never \
-              --color-only   \
-              --hyperlinks   \
+        delta --paging=never                \
+              --color-only                  \
+              --detect-dark-light=never     \
+              --hyperlinks                  \
               --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
   commit:
     autoWrapWidth: 80
