@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# lazygit-nvim - lazygit editor command for nvchad
+#
+# Usage: lazygit-nvim PATH [LINE]
+#
+# Outside Neovim: open PATH in a new nvchad.
+# Inside a Neovim terminal ($NVIM is set): hide the lazygit terminal with <M-g>,
+# then open PATH in that Neovim.
+#
+# A script, not an inline command, so it does not depend on lazygit's $SHELL
+# (nu in Herdr panes, zsh in Herdr popups).
+
+set -euo pipefail
+
+path="$1"
+line="${2:-}"
+
+export NVIM_APPNAME=nvchad
+
+if [[ -z "${NVIM:-}" ]]; then
+    exec nvim ${line:+"+$line"} -- "$path"
+fi
+
+nvim --server "$NVIM" --remote-send '<M-g>'
+nvim --server "$NVIM" --remote "$path"
+
+if [[ -n "$line" ]]; then
+    nvim --server "$NVIM" --remote-send ":${line}<CR>"
+fi

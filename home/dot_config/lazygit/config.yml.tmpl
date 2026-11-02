@@ -74,15 +74,16 @@ confirmOnQuit: false
 os:
   editPreset: nvim-remote
 
-  # remap nvim term close key to '<M-g>' instead of 'q'
+  # lazygit runs these with $SHELL, which can be nu (Herdr panes) or zsh (Herdr popups).
+  # Keep them plain commands, valid in any shell.
+  # lazygit-nvim remaps the nvim term close key to '<M-g>' instead of 'q'
   # ref: https://github.com/jesseduffield/lazygit/blob/master/pkg/config/editor_presets.go#L58-L67
-  # {{ if eq .config.shell "nu" }}
-  edit: 'if ($env.NVIM? | is-empty) { env NVIM_APPNAME=nvchad nvim -- {{ "{{" }}filename{{ "}}" }} } else { env NVIM_APPNAME=nvchad nvim --server $env.NVIM --remote-send "<M-g>"; env NVIM_APPNAME=nvchad nvim --server $env.NVIM --remote {{ "{{" }}filename{{ "}}" }} }'
-  editAtLine: 'if ($env.NVIM? | is-empty) { env NVIM_APPNAME=nvchad nvim +{{ "{{" }}line{{ "}}" }} -- {{ "{{" }}filename{{ "}}" }} } else { env NVIM_APPNAME=nvchad nvim --server $env.NVIM --remote-send "<M-g>"; env NVIM_APPNAME=nvchad nvim --server $env.NVIM --remote {{ "{{" }}filename{{ "}}" }}; env NVIM_APPNAME=nvchad nvim --server $env.NVIM --remote-send ":{{ "{{" }}line{{ "}}" }}<CR>" }'
-  open: '^open {{ "{{" }}filename{{ "}}" }}'
-  openLink: '^open {{ "{{" }}link{{ "}}" }}'
-  openDirInEditor: 'if ($env.NVIM? | is-empty) { env NVIM_APPNAME=nvchad nvim -- {{ "{{" }}dir{{ "}}" }} } else { env NVIM_APPNAME=nvchad nvim --server $env.NVIM --remote-send "<M-g>"; env NVIM_APPNAME=nvchad nvim --server $env.NVIM --remote {{ "{{" }}dir{{ "}}" }} }'
-  # {{ end }}
+  edit: 'lazygit-nvim {{ "{{" }}filename{{ "}}" }}'
+  editAtLine: 'lazygit-nvim {{ "{{" }}filename{{ "}}" }} {{ "{{" }}line{{ "}}" }}'
+  openDirInEditor: 'lazygit-nvim {{ "{{" }}dir{{ "}}" }}'
+  # env runs the external open, not the nu builtin open
+  open: 'env open {{ "{{" }}filename{{ "}}" }}'
+  openLink: 'env open {{ "{{" }}link{{ "}}" }}'
 
 disableStartupPopups: false
 promptToReturnFromSubprocess: false
