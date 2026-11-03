@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>grill · grill-with-ui skill · Inbox (clean)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f4ee; --panel: #ffffff; --ink: #1f1c18; --ink-2: #625b51; --ink-3: #9a9285;
+    --rule: #e6e0d4; --accent: #9a3a26; --ok: #3d6b4a; --stage: #b8791f; --stage-soft: #f8ecd2;
+    --serif: "Fraunces", Georgia, serif; --sans: "IBM Plex Sans", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--sans); font-size: 15px; line-height: 1.5; color: var(--ink); background: var(--bg);
+    display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: 260px minmax(0, 1fr) 33vw; height: 100vh;
+  }
+
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--rule); background: var(--panel); }
+  header h1 { font-family: var(--serif); font-weight: 500; font-size: 20px; margin: 0; }
+  header .path { color: var(--ink-3); font-size: 13px; }
+  header .status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  .dot.working { background: var(--stage); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  nav { border-right: 1px solid var(--rule); overflow-y: auto; padding: 10px 0 24px; }
+  nav .round { padding: 16px 20px 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; justify-content: space-between; }
+  nav .round.current { color: var(--accent); }
+  .item { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: baseline; padding: 8px 20px; cursor: pointer; }
+  .item:hover { background: #efebe3; }
+  .item.selected { background: var(--panel); box-shadow: inset 3px 0 0 var(--accent); }
+  .item .id { font-size: 12px; color: var(--ink-3); }
+  .item .t { font-size: 14px; }
+  .item .mark { font-size: 11px; color: var(--ink-3); }
+  .mark.answered { color: var(--ok); }
+  .mark.open { color: var(--accent); }
+  .mark.staged { color: var(--stage); font-weight: 600; }
+  .item.updated .t::after { content: "updated"; font-size: 10px; color: var(--stage); margin-left: 6px; letter-spacing: .06em; text-transform: uppercase; }
+
+  main { overflow-y: auto; padding: 36px 44px 60px; background: var(--panel); }
+  .card { max-width: 680px; }
+  .crumb { font-size: 12px; color: var(--ink-3); display: flex; gap: 12px; }
+  .crumb a { color: var(--accent); text-decoration: none; }
+  .card h2 { font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1.15; margin: 8px 0 12px; }
+  .card .body { font-size: 15px; color: var(--ink-2); max-width: 62ch; margin: 0; }
+  .opts { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 8px; }
+  .opt { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); cursor: pointer; }
+  .opt:hover { border-color: var(--ink-3); }
+  .opt .k { font-family: var(--serif); font-size: 18px; line-height: 1.2; color: var(--ink-3); }
+  .opt.rec { border-color: var(--accent); }
+  .opt.rec .k { color: var(--accent); }
+  .opt .tag { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+  .opt.chosen { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
+  .opt.staged { border-color: var(--stage); box-shadow: 0 0 0 1px var(--stage); background: var(--stage-soft); }
+  .why { margin: 14px 0 0; font-size: 14px; color: var(--ink-2); }
+  .why b { color: var(--accent); font-weight: 600; }
+  .answered-line { margin-top: 18px; font-size: 14px; color: var(--ok); }
+  .answered-line .against { color: var(--accent); margin-left: 6px; }
+  .answer-row { display: flex; gap: 8px; margin-top: 20px; align-items: flex-start; }
+  textarea { width: 100%; min-height: 60px; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); resize: vertical; color: var(--ink); }
+  textarea:focus { outline: none; border-color: var(--ink-3); }
+  button { font-family: var(--sans); font-weight: 500; font-size: 14px; padding: 9px 14px; border-radius: 8px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  button:hover { border-color: var(--ink-3); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { border-color: var(--accent); }
+  button.primary:disabled { background: var(--ink-3); border-color: var(--ink-3); cursor: default; }
+
+  aside { border-left: 1px solid var(--rule); display: grid; grid-template-rows: auto 1fr auto; min-height: 0; }
+  aside .head { padding: 20px 22px 12px; }
+  aside .head h3 { margin: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  aside .head .sub { font-family: var(--serif); font-size: 16px; margin-top: 4px; }
+  aside .head .count { font-size: 12px; color: var(--ink-3); margin-left: 8px; font-family: var(--sans); }
+  aside .msgs { overflow-y: auto; padding: 0 22px 12px; }
+  .msg { padding: 12px 0; border-top: 1px solid var(--rule); }
+  .msg .who { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+  .msg.user .who { color: var(--stage); }
+  .msg.agent .who { color: var(--accent); }
+  .msg.staged { background: var(--stage-soft); margin: 8px -10px 0; padding: 10px; border-radius: 6px; border-top: 0; }
+  .msg .text { font-size: 14px; }
+  .empty { padding: 12px 0; font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--rule); }
+  aside .compose { padding: 12px 22px 18px; border-top: 1px solid var(--rule); display: grid; gap: 8px; }
+  aside .compose button { justify-self: end; }
+
+  footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 12px 24px; border-top: 1px solid var(--rule); background: var(--panel); }
+  footer .staged-list { font-size: 13px; color: var(--ink-2); flex: 1; }
+  footer .staged-list b { color: var(--stage); }
+  footer .hint { font-size: 12px; color: var(--ink-3); }
+  .toast { position: fixed; right: 24px; bottom: 72px; padding: 10px 14px; background: var(--ink); color: #fff; font-size: 13px; border-radius: 6px; opacity: 0; transform: translateY(6px); transition: .25s; }
+  .toast.show { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>grill-with-ui skill</h1>
+  <span class="path" id="doc-path"></span>
+  <span class="status"><span class="dot" id="agent-dot"></span><span id="agent-status">Agent waiting for you · since 22:41</span></span>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<aside id="aside"></aside>
+<footer>
+  <span class="staged-list" id="staged-list">Nothing staged. Pick an option, accept a recommendation, or write in the discussion.</span>
+  <span class="hint">⌘↩ send</span>
+  <button id="finish">Finish grill</button>
+  <button class="primary" id="send" disabled>Send to Agent</button>
+</footer>
+<div class="toast" id="toast"></div>
+<script>
+// Sample data: the real grill-with-ui design session of 2026-09-06, lightly compressed.
+const SESSION = {
+  topic: "grill-with-ui skill",
+  project: "~/Projects/grill-with-ui",
+  doc: "docs/design.md",
+  agent: { status: "waiting", since: "22:41" },
+  terms: [
+    { term: "Round", def: "One agent turn's worth of new questions: the current frontier.", avoid: ["batch", "wave"] },
+    { term: "Frontier", def: "Questions whose prerequisites are all settled and can be asked now.", avoid: ["queue", "next up"] },
+    { term: "Send", def: "One press of Send to Agent: every staged action shipped as a single event.", avoid: ["submit", "reply"] },
+    { term: "Durable decision", def: "Hard to reverse, surprising without context, a real trade-off. Goes under Locked decisions.", avoid: ["ADR", "big decision"] },
+  ],
+  rounds: [
+    { n: 1, ids: ["q1"] }, { n: 2, ids: ["q2"] }, { n: 3, ids: ["q3", "q4"] },
+    { n: 4, ids: ["q5", "q6", "q7"] }, { n: 5, ids: ["q8", "q9"] }, { n: 6, ids: ["q10", "q11"] },
+    { n: 7, ids: ["q12", "q13", "q14"] }, { n: 8, ids: ["q15", "q16", "q17"] },
+  ],
+  questions: {
+    q1: { id: "q1", round: 1, title: "UI surface", deps: [],
+      body: "What is the UI surface, and how does it talk to the running session? This is the root decision; state format, threads and resume all hang off it.",
+      options: [
+        { k: "A", text: "Local browser app. A tiny bundled server serves a page and reads/writes one state file per session. Terminal stays a parallel input." },
+        { k: "B", text: "Read-only side panel. Claude re-renders an HTML summary each turn; you still answer in the terminal by number." },
+        { k: "C", text: "MCP app panel. Only if Claude Code renders it. Heavier to build and install." },
+        { k: "D", text: "Terminal TUI. Doesn't solve scrollback. Listed to rule out." },
+      ],
+      rec: { option: "A", why: "Works in any terminal today, nothing to install, and the file protocol is agent-neutral so a Codex version is packaging, not a rewrite." },
+      status: "answered", answer: { kind: "accept", option: "A", text: "A is exactly what I was thinking" }, durable: true, thread: [] },
+    q2: { id: "q2", round: 2, title: "Transport", deps: ["q1"],
+      body: "How does a browser answer reach the running Claude session? Docs check: Monitor wakes an idle session; a background shell exiting does not; Channels need a launch flag.",
+      options: [
+        { k: "A", text: "Persistent Monitor on the server's WebSocket. Every browser action is one event and one Claude turn." },
+        { k: "B", text: "Claude Code Channels. Officially blessed, but needs a startup flag and a plugin." },
+        { k: "C", text: "Manual nudge: answer in the browser, type 'go' in the terminal." },
+      ],
+      rec: { option: "A", why: "No startup flags, works from inside the skill. Live test fired while idle: verified." },
+      status: "answered", answer: { kind: "text", text: "Simpler: the web app writes to a local JSON and the agent has a file-change watcher on it." },
+      durable: true,
+      thread: [
+        { who: "agent", text: "Yes, and simpler than what I proposed. Refinement: two files, not one. state.json written only by the agent; events.jsonl appended only by the web app, watched with plain tail -F." },
+      ] },
+    q3: { id: "q3", round: 3, title: "Questions per turn", deps: ["q2"],
+      body: "When Claude replies to a batch, how many new questions does it post on top of the thread replies?",
+      options: [
+        { k: "A", text: "Exactly one new primary question per turn. Keeps 'resolve dependencies one by one'." },
+        { k: "B", text: "Up to a few new questions when they're independent. Fewer round trips; recommendations can go stale." },
+      ],
+      rec: { option: "A", why: "You already batch on your side; keeping Claude to one at a time is what makes recommendations trustworthy." },
+      status: "answered", answer: { kind: "option", option: "B", text: "" }, durable: false, thread: [] },
+    q4: { id: "q4", round: 3, title: "Thread context", deps: ["q1"],
+      body: "What does 'chat more about a question without losing context' mean mechanically?",
+      options: [
+        { k: "A", text: "One Claude session; threads are labeled messages. Nothing is separate under the hood." },
+        { k: "B", text: "A subagent per thread, seeded with a summary. Isolation, but loses exactly the context you want." },
+      ],
+      rec: { option: "A", why: "The thing you're missing is navigation, not isolation. The page provides that." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: true, thread: [] },
+    q5: { id: "q5", round: 4, title: "Question card shape", deps: ["q4"],
+      body: "What does a question look like on the page, and how do you answer it? This fixes the state schema.",
+      options: [
+        { k: "A", text: "Structured card: title, body, lettered options, a recommendation pointing at one, a rationale. Answer by option, Accept, or free text. Thread box separate." },
+        { k: "B", text: "Free text everywhere. Simpler schema, no one-click accept." },
+      ],
+      rec: { option: "A", why: "Grilling already produces lettered options and a named recommendation, so structure costs nothing." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q6: { id: "q6", round: 4, title: "Terminal role", deps: ["q1"],
+      body: "What does the terminal do while a grill runs in the page?",
+      options: [
+        { k: "A", text: "One-line status per turn, plus the URL. Terminal typing still works and is recorded into state." },
+        { k: "B", text: "Terminal goes silent. Launch only." },
+        { k: "C", text: "Terminal mirrors the full text. Defeats the purpose." },
+      ],
+      rec: { option: "A", why: "Same scrollback cost as silence, and it gives you the 'Claude is waiting' signal where you're already looking." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q7: { id: "q7", round: 4, title: "Server lifecycle", deps: ["q2"],
+      body: "Who starts and stops the local server, and how do we guarantee it dies? Orphaned processes have bitten this machine before.",
+      options: [
+        { k: "A", text: "The server is the monitor. It lives exactly as long as the monitor: killed at session end or on Finish. Nothing to orphan." },
+        { k: "B", text: "Server in the background, separate tail watcher. Needs its own shutdown story; every option is a way to leak." },
+      ],
+      rec: { option: "A", why: "Same file-based design, with writer and watcher collapsed into one process the harness already manages." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: true, thread: [] },
+    q8: { id: "q8", round: 5, title: "Finish + deliverable", deps: ["q5"],
+      body: "How does a grill end, and what's the deliverable? Past grills all ended as design docs.",
+      options: [
+        { k: "A", text: "Explicit Finish button; Claude writes a markdown decisions doc from state. Doc path asked once at start." },
+        { k: "B", text: "No explicit end; the state file is the record." },
+      ],
+      rec: { option: "A", why: "Writing from a structured state file is more faithful than writing from a long transcript." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false,
+      thread: [
+        { who: "user", text: "Can you also look up Matt Pocock's grill-with-docs skill to see what we can borrow for the docs part, and compare it to the docs we already generate?" },
+        { who: "agent", text: "Fetched it. It's one line: run grilling + domain-modeling. The docs part writes a repo-wide CONTEXT.md glossary and sparse ADRs gated on hard-to-reverse, surprising, real trade-off. Your docs are the opposite shape: one exhaustive topic doc builders consume as the spec. Turned into Q9." },
+      ] },
+    q9: { id: "q9", round: 5, title: "What Finish writes", deps: ["q8"],
+      body: "Your exhaustive topic doc, Matt's sparse ADRs and glossary, or both?",
+      options: [
+        { k: "A", text: "Your design doc, with two borrows: a per-decision durable flag (Locked vs Routine sections) and a Terms section with Avoid lists." },
+        { k: "B", text: "Your design doc plus ADRs in docs/adr and a root CONTEXT.md. Two places to keep in sync." },
+        { k: "C", text: "Matt's files only. Rejected: builders need the exhaustive doc." },
+      ],
+      rec: { option: "A", why: "The durable flag and the terms section fix two real problems; repo-wide files can be an opt-in flag later." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: true, thread: [] },
+    q10: { id: "q10", round: 6, title: "State location + resume", deps: ["q7"],
+      body: "Where does session state live, and how does resume work? Several worktrees per project here.",
+      options: [
+        { k: "A", text: "Per-session folder under home, keyed by git common root (working directory when not in git). Resume lists unfinished sessions for the project." },
+        { k: "B", text: "Inside the repo, gitignored. Lives in one worktree; ws reset wipes it." },
+      ],
+      rec: { option: "A", why: "Worktree independence decides it here; for adopters it also means zero repo changes." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: true,
+      thread: [
+        { who: "user", text: "Hm, what would be easier for other people to adopt?" },
+        { who: "agent", text: "Outside the repo, by a wider margin: zero repo changes, one mental model, works outside git, resume is discoverable anyway. Only loss: sessions don't travel with a clone, which is a non-goal." },
+      ] },
+    q11: { id: "q11", round: 6, title: "Stack", deps: ["q10"],
+      body: "What is the server and page built with? Must run the moment the skill is installed.",
+      options: [
+        { k: "A", text: "Plain Node, no dependencies, no build step. One server script, one self-contained HTML page." },
+        { k: "B", text: "Bun. Nicer API, not on most machines." },
+        { k: "C", text: "React with a build step." },
+      ],
+      rec: { option: "A", why: "Claude Code requires Node, so every adopter has it. Polish comes from CSS, not the framework." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q12: { id: "q12", round: 7, title: "Relation to grilling skills", deps: ["q9"],
+      body: "How does grill-with-ui relate to the grilling and grill-me skills you already have?",
+      options: [
+        { k: "A", text: "Self-contained new skill with its own interview prompt (frontier-per-round) plus the page protocol. Developed in its own repo, symlinked in." },
+        { k: "B", text: "Composition, Matt-style: invoke grilling plus a protocol skill. Two skills fighting over output format." },
+        { k: "C", text: "A flag on grill-me." },
+      ],
+      rec: { option: "A", why: "One folder, one prompt, nothing to depend on. Publishable later without extraction." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q13: { id: "q13", round: 7, title: "Agent neutrality", deps: ["q11"],
+      body: "Claude Code only, or agent-neutral from the start? Codex has no Monitor; Bedrock/Vertex Claude Code lacks it too.",
+      options: [
+        { k: "A", text: "Add a blocking wait mode to the server now: blocks in the foreground until the next Send, prints it, exits. About twenty lines." },
+        { k: "B", text: "Claude Code only for v1." },
+      ],
+      rec: { option: "A", why: "Cheap, also the fallback for Claude Code without Monitor, keeps the no-lock-in promise." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q14: { id: "q14", round: 7, title: "Build order", deps: ["q13"],
+      body: "What gets built first? One assumption is unverified: the harness labels monitor events 'not user input'; the skill prompt says Send events are your answers.",
+      options: [
+        { k: "A", text: "Spike the wake-up path first: minimal server, one-textarea page, stub prompt with only the event rule. One real round." },
+        { k: "B", text: "Build everything, then test end to end." },
+      ],
+      rec: { option: "A", why: "The only piece that can't be reasoned out from what we already know." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q15: { id: "q15", round: 8, title: "Page visual direction", deps: ["q11"],
+      body: "Three mockups are on the table. Which layout carries forward into the spike page?",
+      options: [
+        { k: "A", text: "Inbox: question list on the left, one detail card on the right, sticky send bar." },
+        { k: "B", text: "Scroll: single column of cards grouped by round, outline rail for jumping." },
+        { k: "C", text: "Tree + focus: dependency tree on the left, one focused card, thread drawer." },
+      ],
+      rec: { option: "A", why: "Best fit for 'go back to an earlier question' and it keeps the current question in view while you read history." },
+      status: "open", answer: null, durable: false, thread: [] },
+    q16: { id: "q16", round: 8, title: "Doc template sections", deps: ["q9"],
+      body: "Section order for the generated design doc: Terms, Why, Locked decisions, Routine choices, Deferred, Follow-ups?",
+      options: [
+        { k: "A", text: "That order, with the header carrying the locked-decision count and the date." },
+        { k: "B", text: "Decisions first, Terms at the end as an appendix." },
+      ],
+      rec: { option: "A", why: "Terms first is what makes cold re-entry work; the header count is your existing convention." },
+      status: "open", answer: null, durable: false, updated: true, thread: [] },
+    q17: { id: "q17", round: 8, title: "Keyboard shortcuts", deps: ["q15"],
+      body: "j/k to move between questions, a/b/c to pick an option, enter to stage, cmd+enter to send?",
+      options: [
+        { k: "A", text: "Yes, all of them, shown in a footer hint." },
+        { k: "B", text: "Defer to after the spike." },
+      ],
+      rec: { option: "B", why: "Zero cost to add later; not on the critical path." },
+      status: "deferred", answer: null, durable: false, thread: [] },
+  },
+};
+
+</script>
+<script>
+const S = SESSION; const staged = {}; // qid -> {answer?, thread?:[]}
+let selected = "q15";
+document.getElementById("doc-path").textContent = S.doc;
+const stagedCount = () => Object.values(staged).reduce((n, s) => n + (s.answer ? 1 : 0) + (s.thread ? s.thread.length : 0), 0);
+function renderNav() {
+  const nav = document.getElementById("nav"); nav.innerHTML = "";
+  for (const r of S.rounds) {
+    const isCur = r.n === S.rounds.length;
+    const h = document.createElement("div"); h.className = "round" + (isCur ? " current" : "");
+    h.innerHTML = `<span>Round ${r.n}${isCur ? " · current" : ""}</span><span>${r.ids.length}</span>`; nav.appendChild(h);
+    for (const id of r.ids) {
+      const q = S.questions[id]; const st = staged[id];
+      const el = document.createElement("div");
+      el.className = "item" + (id === selected ? " selected" : "") + (q.updated ? " updated" : "");
+      const mark = st ? `<span class="mark staged">staged</span>` : `<span class="mark ${q.status}">${q.status === "answered" ? (q.answer.option || "text") : q.status}</span>`;
+      el.innerHTML = `<span class="id">${id.toUpperCase()}</span><span class="t">${q.title}</span>${mark}`;
+      el.onclick = () => { selected = id; render(); };
+      nav.appendChild(el);
+    }
+  }
+}
+function renderMain() {
+  const q = S.questions[selected]; const st = staged[selected] || {};
+  const deps = q.deps.length ? `<span>after ${q.deps.map(d => `<a href="#" data-go="${d}">${d.toUpperCase()}</a>`).join(", ")}</span>` : `<span>root</span>`;
+  const opts = q.options.map(o => {
+    const isRec = q.rec.option === o.k; const chosen = q.answer && q.answer.option === o.k; const isStaged = st.answer && st.answer.option === o.k;
+    return `<li class="opt ${isRec ? "rec" : ""} ${chosen ? "chosen" : ""} ${isStaged ? "staged" : ""}" data-opt="${o.k}"><span class="k">${o.k}</span><span>${isRec ? `<div class="tag">Recommended</div>` : ""}${o.text}</span></li>`;
+  }).join("");
+  let answerBlock = "";
+  if (q.status === "answered") {
+    const against = q.answer.option && q.answer.option !== q.rec.option ? `<span class="against">against rec ${q.rec.option}</span>` : "";
+    answerBlock = `<div class="answered-line">Answered: ${q.answer.kind === "accept" ? `accepted recommendation <b>${q.answer.option}</b>` : q.answer.option ? `chose <b>${q.answer.option}</b>` : ""}${q.answer.text ? ` “${q.answer.text}”` : ""}${against}</div>`;
+  }
+  document.getElementById("main").innerHTML = `
+    <article class="card">
+      <div class="crumb"><span>${q.id.toUpperCase()} · round ${q.round}</span>${deps}${q.durable ? `<span>durable</span>` : ""}</div>
+      <h2>${q.title}</h2>
+      <p class="body">${q.body}</p>
+      <ul class="opts">${opts}</ul>
+      <p class="why"><b>Why ${q.rec.option}.</b> ${q.rec.why}</p>
+      ${answerBlock}
+      <div class="answer-row">
+        <textarea id="free" placeholder="${q.status === "answered" ? "Change your answer, or add nuance…" : "Free-text answer, if none of the options fit…"}">${st.answer && st.answer.text || ""}</textarea>
+        <button id="accept">Accept ${q.rec.option}</button>
+        <button id="stage-text">Stage text</button>
+      </div>
+    </article>`;
+  document.querySelectorAll("[data-go]").forEach(a => a.onclick = e => { e.preventDefault(); selected = a.dataset.go; render(); });
+  document.querySelectorAll(".opt").forEach(o => o.onclick = () => stage(q.id, { answer: { kind: "option", option: o.dataset.opt } }));
+  document.getElementById("accept").onclick = () => stage(q.id, { answer: { kind: "accept", option: q.rec.option } });
+  document.getElementById("stage-text").onclick = () => { const t = document.getElementById("free").value.trim(); if (t) stage(q.id, { answer: { kind: "text", text: t } }); };
+}
+function renderAside() {
+  const q = S.questions[selected]; const st = staged[selected] || {};
+  const msgs = q.thread.map(m => `<div class="msg ${m.who}"><div class="who">${m.who}</div><div class="text">${m.text}</div></div>`).join("") +
+    (st.thread || []).map(t => `<div class="msg user staged"><div class="who">you · staged</div><div class="text">${t}</div></div>`).join("");
+  document.getElementById("aside").innerHTML = `
+    <div class="head"><h3>Discussion</h3><div class="sub">${q.id.toUpperCase()} · ${q.title}<span class="count">${q.thread.length} message${q.thread.length === 1 ? "" : "s"}</span></div></div>
+    <div class="msgs">${msgs || `<div class="empty">Nothing yet. Ask anything about this question; the agent answers here on the next send.</div>`}</div>
+    <div class="compose"><textarea id="thread-in" placeholder="Dig deeper on ${q.id.toUpperCase()}…"></textarea><button id="stage-thread">Add to discussion</button></div>`;
+  document.getElementById("stage-thread").onclick = () => { const t = document.getElementById("thread-in").value.trim(); if (t) { staged[q.id] = staged[q.id] || {}; (staged[q.id].thread = staged[q.id].thread || []).push(t); render(); } };
+}
+function stage(id, patch) { staged[id] = Object.assign(staged[id] || {}, patch); render(); }
+function renderFooter() {
+  const n = stagedCount(); const send = document.getElementById("send"); send.disabled = n === 0;
+  const parts = Object.entries(staged).map(([id, s]) => `${id.toUpperCase()}${s.answer ? ` ${s.answer.option ? "→ " + s.answer.option : "→ text"}` : ""}${s.thread ? ` +${s.thread.length} msg` : ""}`);
+  document.getElementById("staged-list").innerHTML = n ? `<b>${n} staged</b> · ${parts.join(" · ")}` : "Nothing staged. Pick an option, accept a recommendation, or write in the discussion.";
+  send.textContent = n ? `Send ${n} to Agent` : "Send to Agent";
+}
+function render() { renderNav(); renderMain(); renderAside(); renderFooter(); const sel = document.querySelector(".item.selected"); if (sel) sel.scrollIntoView({ block: "nearest" }); }
+document.getElementById("send").onclick = () => {
+  const n = stagedCount(); for (const k in staged) delete staged[k];
+  const dot = document.getElementById("agent-dot"), s = document.getElementById("agent-status"), t = document.getElementById("toast");
+  dot.classList.add("working"); s.textContent = "Agent working on your batch…"; t.textContent = `Sent ${n} action${n > 1 ? "s" : ""} as one event`; t.classList.add("show");
+  render(); setTimeout(() => { t.classList.remove("show"); }, 1800);
+  setTimeout(() => { dot.classList.remove("working"); s.textContent = "Agent waiting for you · just now"; }, 2600);
+};
+document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") document.getElementById("send").click(); });
+render();
+</script>
+</body>
+</html>

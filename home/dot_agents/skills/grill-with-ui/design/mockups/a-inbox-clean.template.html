@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>grill · grill-with-ui skill · Inbox (clean)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f4ee; --panel: #ffffff; --ink: #1f1c18; --ink-2: #625b51; --ink-3: #9a9285;
+    --rule: #e6e0d4; --accent: #9a3a26; --ok: #3d6b4a; --stage: #b8791f; --stage-soft: #f8ecd2;
+    --serif: "Fraunces", Georgia, serif; --sans: "IBM Plex Sans", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--sans); font-size: 15px; line-height: 1.5; color: var(--ink); background: var(--bg);
+    display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: 260px minmax(0, 1fr) 33vw; height: 100vh;
+  }
+
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--rule); background: var(--panel); }
+  header h1 { font-family: var(--serif); font-weight: 500; font-size: 20px; margin: 0; }
+  header .path { color: var(--ink-3); font-size: 13px; }
+  header .status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  .dot.working { background: var(--stage); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  nav { border-right: 1px solid var(--rule); overflow-y: auto; padding: 10px 0 24px; }
+  nav .round { padding: 16px 20px 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; justify-content: space-between; }
+  nav .round.current { color: var(--accent); }
+  .item { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: baseline; padding: 8px 20px; cursor: pointer; }
+  .item:hover { background: #efebe3; }
+  .item.selected { background: var(--panel); box-shadow: inset 3px 0 0 var(--accent); }
+  .item .id { font-size: 12px; color: var(--ink-3); }
+  .item .t { font-size: 14px; }
+  .item .mark { font-size: 11px; color: var(--ink-3); }
+  .mark.answered { color: var(--ok); }
+  .mark.open { color: var(--accent); }
+  .mark.staged { color: var(--stage); font-weight: 600; }
+  .item.updated .t::after { content: "updated"; font-size: 10px; color: var(--stage); margin-left: 6px; letter-spacing: .06em; text-transform: uppercase; }
+
+  main { overflow-y: auto; padding: 36px 44px 60px; background: var(--panel); }
+  .card { max-width: 680px; }
+  .crumb { font-size: 12px; color: var(--ink-3); display: flex; gap: 12px; }
+  .crumb a { color: var(--accent); text-decoration: none; }
+  .card h2 { font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1.15; margin: 8px 0 12px; }
+  .card .body { font-size: 15px; color: var(--ink-2); max-width: 62ch; margin: 0; }
+  .opts { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 8px; }
+  .opt { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); cursor: pointer; }
+  .opt:hover { border-color: var(--ink-3); }
+  .opt .k { font-family: var(--serif); font-size: 18px; line-height: 1.2; color: var(--ink-3); }
+  .opt.rec { border-color: var(--accent); }
+  .opt.rec .k { color: var(--accent); }
+  .opt .tag { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+  .opt.chosen { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
+  .opt.staged { border-color: var(--stage); box-shadow: 0 0 0 1px var(--stage); background: var(--stage-soft); }
+  .why { margin: 14px 0 0; font-size: 14px; color: var(--ink-2); }
+  .why b { color: var(--accent); font-weight: 600; }
+  .answered-line { margin-top: 18px; font-size: 14px; color: var(--ok); }
+  .answered-line .against { color: var(--accent); margin-left: 6px; }
+  .answer-row { display: flex; gap: 8px; margin-top: 20px; align-items: flex-start; }
+  textarea { width: 100%; min-height: 60px; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); resize: vertical; color: var(--ink); }
+  textarea:focus { outline: none; border-color: var(--ink-3); }
+  button { font-family: var(--sans); font-weight: 500; font-size: 14px; padding: 9px 14px; border-radius: 8px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  button:hover { border-color: var(--ink-3); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { border-color: var(--accent); }
+  button.primary:disabled { background: var(--ink-3); border-color: var(--ink-3); cursor: default; }
+
+  aside { border-left: 1px solid var(--rule); display: grid; grid-template-rows: auto 1fr auto; min-height: 0; }
+  aside .head { padding: 20px 22px 12px; }
+  aside .head h3 { margin: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  aside .head .sub { font-family: var(--serif); font-size: 16px; margin-top: 4px; }
+  aside .head .count { font-size: 12px; color: var(--ink-3); margin-left: 8px; font-family: var(--sans); }
+  aside .msgs { overflow-y: auto; padding: 0 22px 12px; }
+  .msg { padding: 12px 0; border-top: 1px solid var(--rule); }
+  .msg .who { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+  .msg.user .who { color: var(--stage); }
+  .msg.agent .who { color: var(--accent); }
+  .msg.staged { background: var(--stage-soft); margin: 8px -10px 0; padding: 10px; border-radius: 6px; border-top: 0; }
+  .msg .text { font-size: 14px; }
+  .empty { padding: 12px 0; font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--rule); }
+  aside .compose { padding: 12px 22px 18px; border-top: 1px solid var(--rule); display: grid; gap: 8px; }
+  aside .compose button { justify-self: end; }
+
+  footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 12px 24px; border-top: 1px solid var(--rule); background: var(--panel); }
+  footer .staged-list { font-size: 13px; color: var(--ink-2); flex: 1; }
+  footer .staged-list b { color: var(--stage); }
+  footer .hint { font-size: 12px; color: var(--ink-3); }
+  .toast { position: fixed; right: 24px; bottom: 72px; padding: 10px 14px; background: var(--ink); color: #fff; font-size: 13px; border-radius: 6px; opacity: 0; transform: translateY(6px); transition: .25s; }
+  .toast.show { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>grill-with-ui skill</h1>
+  <span class="path" id="doc-path"></span>
+  <span class="status"><span class="dot" id="agent-dot"></span><span id="agent-status">Agent waiting for you · since 22:41</span></span>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<aside id="aside"></aside>
+<footer>
+  <span class="staged-list" id="staged-list">Nothing staged. Pick an option, accept a recommendation, or write in the discussion.</span>
+  <span class="hint">⌘↩ send</span>
+  <button id="finish">Finish grill</button>
+  <button class="primary" id="send" disabled>Send to Agent</button>
+</footer>
+<div class="toast" id="toast"></div>
+<script>
+/*__DATA__*/
+</script>
+<script>
+const S = SESSION; const staged = {}; // qid -> {answer?, thread?:[]}
+let selected = "q15";
+document.getElementById("doc-path").textContent = S.doc;
+const stagedCount = () => Object.values(staged).reduce((n, s) => n + (s.answer ? 1 : 0) + (s.thread ? s.thread.length : 0), 0);
+function renderNav() {
+  const nav = document.getElementById("nav"); nav.innerHTML = "";
+  for (const r of S.rounds) {
+    const isCur = r.n === S.rounds.length;
+    const h = document.createElement("div"); h.className = "round" + (isCur ? " current" : "");
+    h.innerHTML = `<span>Round ${r.n}${isCur ? " · current" : ""}</span><span>${r.ids.length}</span>`; nav.appendChild(h);
+    for (const id of r.ids) {
+      const q = S.questions[id]; const st = staged[id];
+      const el = document.createElement("div");
+      el.className = "item" + (id === selected ? " selected" : "") + (q.updated ? " updated" : "");
+      const mark = st ? `<span class="mark staged">staged</span>` : `<span class="mark ${q.status}">${q.status === "answered" ? (q.answer.option || "text") : q.status}</span>`;
+      el.innerHTML = `<span class="id">${id.toUpperCase()}</span><span class="t">${q.title}</span>${mark}`;
+      el.onclick = () => { selected = id; render(); };
+      nav.appendChild(el);
+    }
+  }
+}
+function renderMain() {
+  const q = S.questions[selected]; const st = staged[selected] || {};
+  const deps = q.deps.length ? `<span>after ${q.deps.map(d => `<a href="#" data-go="${d}">${d.toUpperCase()}</a>`).join(", ")}</span>` : `<span>root</span>`;
+  const opts = q.options.map(o => {
+    const isRec = q.rec.option === o.k; const chosen = q.answer && q.answer.option === o.k; const isStaged = st.answer && st.answer.option === o.k;
+    return `<li class="opt ${isRec ? "rec" : ""} ${chosen ? "chosen" : ""} ${isStaged ? "staged" : ""}" data-opt="${o.k}"><span class="k">${o.k}</span><span>${isRec ? `<div class="tag">Recommended</div>` : ""}${o.text}</span></li>`;
+  }).join("");
+  let answerBlock = "";
+  if (q.status === "answered") {
+    const against = q.answer.option && q.answer.option !== q.rec.option ? `<span class="against">against rec ${q.rec.option}</span>` : "";
+    answerBlock = `<div class="answered-line">Answered: ${q.answer.kind === "accept" ? `accepted recommendation <b>${q.answer.option}</b>` : q.answer.option ? `chose <b>${q.answer.option}</b>` : ""}${q.answer.text ? ` “${q.answer.text}”` : ""}${against}</div>`;
+  }
+  document.getElementById("main").innerHTML = `
+    <article class="card">
+      <div class="crumb"><span>${q.id.toUpperCase()} · round ${q.round}</span>${deps}${q.durable ? `<span>durable</span>` : ""}</div>
+      <h2>${q.title}</h2>
+      <p class="body">${q.body}</p>
+      <ul class="opts">${opts}</ul>
+      <p class="why"><b>Why ${q.rec.option}.</b> ${q.rec.why}</p>
+      ${answerBlock}
+      <div class="answer-row">
+        <textarea id="free" placeholder="${q.status === "answered" ? "Change your answer, or add nuance…" : "Free-text answer, if none of the options fit…"}">${st.answer && st.answer.text || ""}</textarea>
+        <button id="accept">Accept ${q.rec.option}</button>
+        <button id="stage-text">Stage text</button>
+      </div>
+    </article>`;
+  document.querySelectorAll("[data-go]").forEach(a => a.onclick = e => { e.preventDefault(); selected = a.dataset.go; render(); });
+  document.querySelectorAll(".opt").forEach(o => o.onclick = () => stage(q.id, { answer: { kind: "option", option: o.dataset.opt } }));
+  document.getElementById("accept").onclick = () => stage(q.id, { answer: { kind: "accept", option: q.rec.option } });
+  document.getElementById("stage-text").onclick = () => { const t = document.getElementById("free").value.trim(); if (t) stage(q.id, { answer: { kind: "text", text: t } }); };
+}
+function renderAside() {
+  const q = S.questions[selected]; const st = staged[selected] || {};
+  const msgs = q.thread.map(m => `<div class="msg ${m.who}"><div class="who">${m.who}</div><div class="text">${m.text}</div></div>`).join("") +
+    (st.thread || []).map(t => `<div class="msg user staged"><div class="who">you · staged</div><div class="text">${t}</div></div>`).join("");
+  document.getElementById("aside").innerHTML = `
+    <div class="head"><h3>Discussion</h3><div class="sub">${q.id.toUpperCase()} · ${q.title}<span class="count">${q.thread.length} message${q.thread.length === 1 ? "" : "s"}</span></div></div>
+    <div class="msgs">${msgs || `<div class="empty">Nothing yet. Ask anything about this question; the agent answers here on the next send.</div>`}</div>
+    <div class="compose"><textarea id="thread-in" placeholder="Dig deeper on ${q.id.toUpperCase()}…"></textarea><button id="stage-thread">Add to discussion</button></div>`;
+  document.getElementById("stage-thread").onclick = () => { const t = document.getElementById("thread-in").value.trim(); if (t) { staged[q.id] = staged[q.id] || {}; (staged[q.id].thread = staged[q.id].thread || []).push(t); render(); } };
+}
+function stage(id, patch) { staged[id] = Object.assign(staged[id] || {}, patch); render(); }
+function renderFooter() {
+  const n = stagedCount(); const send = document.getElementById("send"); send.disabled = n === 0;
+  const parts = Object.entries(staged).map(([id, s]) => `${id.toUpperCase()}${s.answer ? ` ${s.answer.option ? "→ " + s.answer.option : "→ text"}` : ""}${s.thread ? ` +${s.thread.length} msg` : ""}`);
+  document.getElementById("staged-list").innerHTML = n ? `<b>${n} staged</b> · ${parts.join(" · ")}` : "Nothing staged. Pick an option, accept a recommendation, or write in the discussion.";
+  send.textContent = n ? `Send ${n} to Agent` : "Send to Agent";
+}
+function render() { renderNav(); renderMain(); renderAside(); renderFooter(); const sel = document.querySelector(".item.selected"); if (sel) sel.scrollIntoView({ block: "nearest" }); }
+document.getElementById("send").onclick = () => {
+  const n = stagedCount(); for (const k in staged) delete staged[k];
+  const dot = document.getElementById("agent-dot"), s = document.getElementById("agent-status"), t = document.getElementById("toast");
+  dot.classList.add("working"); s.textContent = "Agent working on your batch…"; t.textContent = `Sent ${n} action${n > 1 ? "s" : ""} as one event`; t.classList.add("show");
+  render(); setTimeout(() => { t.classList.remove("show"); }, 1800);
+  setTimeout(() => { dot.classList.remove("working"); s.textContent = "Agent waiting for you · just now"; }, 2600);
+};
+document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") document.getElementById("send").click(); });
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Grill — Scroll</title><style>
+*{box-sizing:border-box}.card:focus{outline:2px solid var(--accent);outline-offset:3px}.mobile-doc{display:none} :root{--bg:#f3f3ed;--surface:#fffefa;--ink:#263e37;--muted:#65736c;--line:#dce1d8;--accent:#23664e;--tint:#eaf2e9;--warning:#996024;--warm:#fbefd9;--nav:300px} body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,textarea{font:inherit}button,a,summary{-webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation}button{cursor:pointer}button:disabled{cursor:default;opacity:.42}a{color:var(--accent)}button:focus-visible,a:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}button{color:inherit} .masthead{height:86px;border-bottom:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 32px;position:sticky;top:0;z-index:10}.identity{display:flex;align-items:center;gap:14px}.brand{width:38px;height:38px;background:var(--ink);color:var(--surface);border-radius:11px;display:grid;place-items:center;font:22px Georgia,serif}.eyebrow,.kicker{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;font-weight:750}.eyebrow{color:var(--muted)}.topic{font-weight:650;font-size:17px}.header-actions{display:flex;align-items:center;gap:22px}.agent{font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:7px}.agent:before{content:'';width:7px;height:7px;background:#609778;border-radius:50%}.agent.working:before{background:#d59c3a;animation:pulse .75s infinite alternate}@keyframes pulse{to{opacity:.3}}.quiet{border:1px solid var(--line);border-radius:7px;background:transparent;padding:9px 14px;font-weight:600;font-size:12px}.workspace{display:grid;grid-template-columns:var(--nav) minmax(0,1fr);max-width:1680px;margin:auto;min-height:calc(100vh - 167px)}.rail{border-right:1px solid var(--line);padding:28px 18px 32px;position:sticky;top:86px;height:calc(100vh - 167px);overflow:auto;scrollbar-width:thin}.rail-head{padding:0 12px 20px}.rail-head h2{margin:0 0 4px;font-size:16px}.muted{color:var(--muted)}.rail-head p{margin:0;font-size:12px}.progress{height:3px;background:var(--line);margin:15px 0 5px;overflow:hidden;border-radius:4px}.progress span{display:block;background:var(--accent);height:100%}.round-label{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;margin:23px 12px 9px}.round-label.current{color:var(--accent)}.nav-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;color:var(--ink);text-decoration:none;border:1px solid transparent;border-radius:7px;margin:2px 0}.nav-item:hover{background:var(--tint)}.nav-item.active{background:var(--surface);border-color:var(--line);box-shadow:0 2px 4px #172e2206}.nav-dot{width:16px;flex-shrink:0;text-align:center;font-size:12px;color:var(--accent);margin-top:1px}.nav-dot.deferred{color:var(--muted)}.nav-copy{flex:1;min-width:0}.nav-title{font-size:12px;font-weight:550}.qid{color:var(--muted);font-size:10px;font-family:ui-monospace,SFMono-Regular,monospace;margin-right:5px}.nav-info{display:block;font-size:10px;color:var(--muted);margin-top:3px}.nav-stage{display:inline-block;color:var(--warning);font-size:10px;font-weight:700;margin-left:5px}.main{padding:36px 48px 50px;min-width:0}.section-top{display:flex;align-items:center;justify-content:space-between;margin:0 auto 24px;max-width:850px}.section-top h1{font-size:24px;letter-spacing:-.6px;margin:2px 0 0;font-weight:600}.section-top .count{font-size:12px;color:var(--muted)}.card{max-width:850px;margin:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:30px;box-shadow:0 3px 12px #23342c03;scroll-margin-top:108px}.card-top{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.tag{font-size:10px;font-weight:650;padding:3px 8px;border-radius:5px;border:1px solid var(--line);color:var(--muted)}.tag.open{color:var(--accent);background:var(--tint);border-color:transparent}.tag.staged,.tag.updated,.tag.diff{color:var(--warning);background:var(--warm);border-color:transparent}.card h2{font-size:28px;line-height:1.2;letter-spacing:-.8px;margin:0 0 15px;font-weight:600}.body-copy{color:var(--muted);font-size:14px;line-height:1.8;margin:0 0 16px}.deps{font-size:11px;color:var(--muted);display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding-bottom:24px}.deps a{background:var(--bg);border:1px solid var(--line);padding:2px 7px;border-radius:4px;text-decoration:none}.field-label{font-size:10px;letter-spacing:1.25px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:10px;color:var(--muted)}.options{display:grid;gap:10px}.option{display:flex;align-items:flex-start;gap:13px;width:100%;border:1px solid var(--line);background:transparent;border-radius:8px;text-align:left;padding:16px;line-height:1.6}.option:hover{border-color:var(--accent);background:var(--tint)}.option.recommended{border-color:var(--accent);background:var(--tint)}.option.selected{box-shadow:inset 0 0 0 2px var(--accent)}.letter{display:grid;place-items:center;flex-shrink:0;width:27px;height:27px;background:var(--surface);border:1px solid var(--line);border-radius:5px;font:600 12px/1 ui-monospace,SFMono-Regular,monospace}.recommended .letter{background:var(--accent);color:var(--surface);border-color:var(--accent)}.option-content{flex:1;min-width:0;font-size:13px}.option-label{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;font-weight:700;color:var(--accent);margin-bottom:4px}.rationale{display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.7}.rationale strong{color:var(--accent)}.accept-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:15px}.primary{background:var(--accent);border:1px solid var(--accent);color:var(--surface);font-weight:650;font-size:12px;border-radius:7px;padding:10px 17px}.hint{font-size:11px;color:var(--muted)}.answer-record{margin:20px 0;background:var(--bg);border-left:3px solid var(--accent);padding:13px 16px;font-size:12px}.answer-record p{margin:5px 0 0}.text-response{border-top:1px solid var(--line);margin-top:24px;padding-top:22px}textarea{display:block;resize:vertical;width:100%;min-height:80px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);padding:12px;font-size:12px;line-height:1.6}textarea::placeholder{color:var(--muted);opacity:.8}.form-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:9px}.thread{border-top:1px solid var(--line);padding-top:22px;margin-top:25px}.thread-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:18px}.thread-heading h3{font-size:14px;margin:0}.thread-heading span{font-size:11px;color:var(--muted)}.message{margin:0 0 18px;display:flex;gap:10px}.avatar{width:25px;height:25px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:10px;flex-shrink:0;background:var(--tint)}.message-content{flex:1;min-width:0}.message-who{font-size:11px;font-weight:700}.message p{margin:3px 0 0;color:var(--muted);font-size:12px;line-height:1.75;overflow-wrap:anywhere}.empty-thread{font-size:12px;color:var(--muted);padding:0 0 8px}.composer{margin-top:16px}.sendbar{position:fixed;bottom:0;left:0;right:0;z-index:20;border-top:1px solid var(--line);background:var(--surface);min-height:81px;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;gap:18px}.send-summary{display:flex;align-items:center;gap:12px}.stage-count{background:var(--tint);color:var(--accent);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700}.send-copy{font-size:12px;font-weight:600}.send-copy small{display:block;font-size:11px;color:var(--muted);font-weight:400}.send-actions{display:flex;align-items:center;gap:22px}.doc{font:11px ui-monospace,SFMono-Regular,monospace;color:var(--muted)}#send{min-width:155px;padding:12px 20px}.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:8px;background:var(--ink);color:var(--surface);box-shadow:0 4px 25px #0002;z-index:30;font-size:12px}.toast:empty{display:none}body{padding-bottom:81px}.thread-toggle{cursor:pointer;color:var(--accent);font-size:12px;font-weight:650;padding:18px 0 0}.inline-thread{border-top:1px solid var(--line);margin-top:24px}.inline-thread .thread{border:0;margin:0;padding-top:20px}.drawer{padding:28px 22px;border-left:1px solid var(--line);position:sticky;top:86px;height:calc(100vh - 167px);overflow:auto;background:var(--surface)}.drawer .thread{border:0;padding:0;margin:0}.drawer-context{font-size:11px;color:var(--muted);padding-bottom:24px}.tree-list,.tree-list ul{list-style:none;padding:0;margin:0}.tree-list ul{margin-left:15px;border-left:1px solid var(--line);padding-left:8px}.tree-list .nav-item{padding:8px 7px;position:relative}.tree-list ul .nav-item:before{content:'';position:absolute;left:-9px;top:21px;width:8px;border-top:1px solid var(--line)}.tree-list .nav-info{font-size:9px}.tree-legend{padding:17px 9px;font-size:10px;color:var(--muted);border-top:1px solid var(--line);margin-top:18px}.round-section{margin-bottom:48px}.round-heading{display:flex;align-items:center;gap:15px;margin:0 0 21px}.round-heading h2{margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase}.round-heading:after{content:'';height:1px;background:var(--line);flex:1}.round-heading span{color:var(--muted);font-size:11px}.scroll-intro{margin-bottom:40px;padding-bottom:27px;border-bottom:1px solid var(--line)}.scroll-intro h1{font:44px/1.15 Georgia,serif;margin:10px 0 14px;letter-spacing:-1px}.scroll-intro p{font-size:13px;color:var(--muted)}
+body.scroll{--bg:#f4f0e9;--surface:#fcfaf6;--ink:#433c34;--muted:#80766a;--line:#ded7cb;--accent:#995039;--tint:#f5e9df;--nav:240px}.scroll .main{max-width:940px;padding:42px 64px 60px}.scroll .card{border-radius:2px;padding:32px;margin-bottom:20px;box-shadow:0 4px 0 #e9e2d73b}.scroll .card h2{font:29px/1.2 Georgia,serif;letter-spacing:-.4px}.scroll .card.active{border-top:3px solid var(--accent)}.scroll .brand{border-radius:50%;background:var(--accent)}.scroll .nav-item.active{background:var(--tint);border-color:transparent}.scroll .round-label{margin-top:18px}.scroll .nav-item{padding:6px 10px}.scroll .rail{background:var(--bg)}.scroll .section-top{display:none}.scroll .option{border-radius:3px}.scroll .primary{border-radius:3px}.scroll .card-top .tag{border-radius:2px}
+body.tree{--bg:#131c23;--surface:#1a252e;--ink:#e0e7e9;--muted:#98aab3;--line:#34434c;--accent:#9ad9bd;--tint:#243c36;--warning:#e6bd7e;--warm:#3d3328;--nav:310px}.tree .workspace{grid-template-columns:310px minmax(390px,1fr) 300px;max-width:1900px}.tree .masthead{background:#141e26}.tree .brand{background:var(--accent);color:var(--bg);border-radius:6px}.tree .main{padding:28px 26px 50px}.tree .card{padding:25px;border-radius:8px;box-shadow:none}.tree .card h2{font-size:25px}.tree .section-top h1{font-size:19px}.tree .kicker,.tree .eyebrow,.tree .field-label{font-family:ui-monospace,SFMono-Regular,monospace}.tree .primary,.tree .recommended .letter{color:#152c24}.tree .nav-item.active{border-color:#548571;background:var(--tint)}.tree .rail-head{padding-left:7px}.tree .rail{padding:26px 14px}.tree .sendbar{background:#141e26}.tree .option{padding:13px}.tree .option-content{font-size:12px}.tree .rationale{font-size:11px}.tree .tag{font-size:9px}.tree .body-copy{font-size:13px}.tree .doc{color:var(--muted)}
+@media(min-width:1600px){.tree .workspace{grid-template-columns:340px minmax(450px,1fr) 340px}.tree .main{padding:35px 50px}.tree .card{padding:32px}}@media(max-width:1150px){.tree .workspace{grid-template-columns:250px minmax(0,1fr)}.tree .drawer{grid-column:2;position:static;height:auto;border:0;margin:0 26px 35px;border-radius:8px}.tree .main{padding-bottom:24px}.main{padding:28px}.scroll .main{padding:35px}.tree .rail{grid-row:1 / span 2}}@media(max-width:760px){.mobile-doc{display:block;font:9px ui-monospace,SFMono-Regular,monospace;color:var(--muted);margin-top:3px}.masthead{height:auto;min-height:82px;padding:14px 18px;align-items:flex-start}.identity{gap:9px}.brand{width:29px;height:29px}.topic{font-size:14px}.eyebrow{font-size:8px}.header-actions{gap:8px;flex-direction:column;align-items:flex-end}.header-actions .quiet{padding:5px 10px}.agent{font-size:10px}.workspace,.tree .workspace{display:block}.rail,.tree .rail{position:relative;top:auto;height:220px;border-right:0;border-bottom:1px solid var(--line);padding:14px}.rail-head{display:none}.main,.scroll .main,.tree .main{padding:24px 16px}.card,.scroll .card,.tree .card{padding:21px}.card h2{font-size:24px}.section-top{margin-bottom:18px}.sendbar{padding:12px 16px;min-height:81px;gap:10px}.send-actions{gap:0}.doc{display:none}.send-copy small{max-width:145px;font-size:10px}.send-summary{gap:7px}.stage-count{width:25px;height:25px;flex-shrink:0}#send{min-width:130px;padding:11px}.send-copy{font-size:11px}.scroll-intro h1{font-size:34px}.tree .drawer{margin:0 16px 26px}.card{scroll-margin-top:110px}.form-foot .hint{max-width:60%}.toast{width:calc(100% - 32px);text-align:center}.option{padding:12px;gap:10px}}
+</style></head>
+<body class="scroll" data-layout="scroll">
+<header class="masthead"><div class="identity"><div class="brand" aria-hidden="true">g</div><div><div class="eyebrow">Grill session / Scroll</div><div class="topic"></div><span class="mobile-doc" data-doc></span></div></div><div class="header-actions"><span class="agent" role="status" aria-live="polite">Agent waiting</span><button class="quiet" type="button">Finish grill</button></div></header>
+<div class="workspace"><nav class="rail" aria-label="Question navigation"></nav><main class="main"></main></div>
+<footer class="sendbar"><div class="send-summary"><span class="stage-count">0</span><div class="send-copy"></div></div><div class="send-actions"><span class="doc" title="Target document"><span class="project" hidden></span>↳ <span data-doc></span></span><button id="send" class="primary" type="button" disabled>Send to Agent</button></div></footer><div class="toast" role="status" aria-live="polite"></div>
+<script>// Sample data: the real grill-with-ui design session of 2026-09-06, lightly compressed.
+const SESSION = {
+  topic: "grill-with-ui skill",
+  project: "~/Projects/grill-with-ui",
+  doc: "docs/design.md",
+  agent: { status: "waiting", since: "22:41" },
+  terms: [
+    { term: "Round", def: "One agent turn's worth of new questions: the current frontier.", avoid: ["batch", "wave"] },
+    { term: "Frontier", def: "Questions whose prerequisites are all settled and can be asked now.", avoid: ["queue", "next up"] },
+    { term: "Send", def: "One press of Send to Agent: every staged action shipped as a single event.", avoid: ["submit", "reply"] },
+    { term: "Durable decision", def: "Hard to reverse, surprising without context, a real trade-off. Goes under Locked decisions.", avoid: ["ADR", "big decision"] },
+  ],
+  rounds: [
+    { n: 1, ids: ["q1"] }, { n: 2, ids: ["q2"] }, { n: 3, ids: ["q3", "q4"] },
+    { n: 4, ids: ["q5", "q6", "q7"] }, { n: 5, ids: ["q8", "q9"] }, { n: 6, ids: ["q10", "q11"] },
+    { n: 7, ids: ["q12", "q13", "q14"] }, { n: 8, ids: ["q15", "q16", "q17"] },
+  ],
+  questions: {
+    q1: { id: "q1", round: 1, title: "UI surface", deps: [],
+      body: "What is the UI surface, and how does it talk to the running session? This is the root decision; state format, threads and resume all hang off it.",
+      options: [
+        { k: "A", text: "Local browser app. A tiny bundled server serves a page and reads/writes one state file per session. Terminal stays a parallel input." },
+        { k: "B", text: "Read-only side panel. Claude re-renders an HTML summary each turn; you still answer in the terminal by number." },
+        { k: "C", text: "MCP app panel. Only if Claude Code renders it. Heavier to build and install." },
+        { k: "D", text: "Terminal TUI. Doesn't solve scrollback. Listed to rule out." },
+      ],
+      rec: { option: "A", why: "Works in any terminal today, nothing to install, and the file protocol is agent-neutral so a Codex version is packaging, not a rewrite." },
+      status: "answered", answer: { kind: "accept", option: "A", text: "A is exactly what I was thinking" }, durable: true, thread: [] },
+    q2: { id: "q2", round: 2, title: "Transport", deps: ["q1"],
+      body: "How does a browser answer reach the running Claude session? Docs check: Monitor wakes an idle session; a background shell exiting does not; Channels need a launch flag.",
+      options: [
+        { k: "A", text: "Persistent Monitor on the server's WebSocket. Every browser action is one event and one Claude turn." },
+        { k: "B", text: "Claude Code Channels. Officially blessed, but needs a startup flag and a plugin." },
+        { k: "C", text: "Manual nudge: answer in the browser, type 'go' in the terminal." },
+      ],
+      rec: { option: "A", why: "No startup flags, works from inside the skill. Live test fired while idle: verified." },
+      status: "answered", answer: { kind: "text", text: "Simpler: the web app writes to a local JSON and the agent has a file-change watcher on it." },
+      durable: true,
+      thread: [
+        { who: "agent", text: "Yes, and simpler than what I proposed. Refinement: two files, not one. state.json written only by the agent; events.jsonl appended only by the web app, watched with plain tail -F." },
+      ] },
+    q3: { id: "q3", round: 3, title: "Questions per turn", deps: ["q2"],
+      body: "When Claude replies to a batch, how many new questions does it post on top of the thread replies?",
+      options: [
+        { k: "A", text: "Exactly one new primary question per turn. Keeps 'resolve dependencies one by one'." },
+        { k: "B", text: "Up to a few new questions when they're independent. Fewer round trips; recommendations can go stale." },
+      ],
+      rec: { option: "A", why: "You already batch on your side; keeping Claude to one at a time is what makes recommendations trustworthy." },
+      status: "answered", answer: { kind: "option", option: "B", text: "" }, durable: false, thread: [] },
+    q4: { id: "q4", round: 3, title: "Thread context", deps: ["q1"],
+      body: "What does 'chat more about a question without losing context' mean mechanically?",
+      options: [
+        { k: "A", text: "One Claude session; threads are labeled messages. Nothing is separate under the hood." },
+        { k: "B", text: "A subagent per thread, seeded with a summary. Isolation, but loses exactly the context you want." },
+      ],
+      rec: { option: "A", why: "The thing you're missing is navigation, not isolation. The page provides that." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: true, thread: [] },
+    q5: { id: "q5", round: 4, title: "Question card shape", deps: ["q4"],
+      body: "What does a question look like on the page, and how do you answer it? This fixes the state schema.",
+      options: [
+        { k: "A", text: "Structured card: title, body, lettered options, a recommendation pointing at one, a rationale. Answer by option, Accept, or free text. Thread box separate." },
+        { k: "B", text: "Free text everywhere. Simpler schema, no one-click accept." },
+      ],
+      rec: { option: "A", why: "Grilling already produces lettered options and a named recommendation, so structure costs nothing." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q6: { id: "q6", round: 4, title: "Terminal role", deps: ["q1"],
+      body: "What does the terminal do while a grill runs in the page?",
+      options: [
+        { k: "A", text: "One-line status per turn, plus the URL. Terminal typing still works and is recorded into state." },
+        { k: "B", text: "Terminal goes silent. Launch only." },
+        { k: "C", text: "Terminal mirrors the full text. Defeats the purpose." },
+      ],
+      rec: { option: "A", why: "Same scrollback cost as silence, and it gives you the 'Claude is waiting' signal where you're already looking." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q7: { id: "q7", round: 4, title: "Server lifecycle", deps: ["q2"],
+      body: "Who starts and stops the local server, and how do we guarantee it dies? Orphaned processes have bitten this machine before.",
+      options: [
+        { k: "A", text: "The server is the monitor. It lives exactly as long as the monitor: killed at session end or on Finish. Nothing to orphan." },
+        { k: "B", text: "Server in the background, separate tail watcher. Needs its own shutdown story; every option is a way to leak." },
+      ],
+      rec: { option: "A", why: "Same file-based design, with writer and watcher collapsed into one process the harness already manages." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: true, thread: [] },
+    q8: { id: "q8", round: 5, title: "Finish + deliverable", deps: ["q5"],
+      body: "How does a grill end, and what's the deliverable? Past grills all ended as design docs.",
+      options: [
+        { k: "A", text: "Explicit Finish button; Claude writes a markdown decisions doc from state. Doc path asked once at start." },
+        { k: "B", text: "No explicit end; the state file is the record." },
+      ],
+      rec: { option: "A", why: "Writing from a structured state file is more faithful than writing from a long transcript." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false,
+      thread: [
+        { who: "user", text: "Can you also look up Matt Pocock's grill-with-docs skill to see what we can borrow for the docs part, and compare it to the docs we already generate?" },
+        { who: "agent", text: "Fetched it. It's one line: run grilling + domain-modeling. The docs part writes a repo-wide CONTEXT.md glossary and sparse ADRs gated on hard-to-reverse, surprising, real trade-off. Your docs are the opposite shape: one exhaustive topic doc builders consume as the spec. Turned into Q9." },
+      ] },
+    q9: { id: "q9", round: 5, title: "What Finish writes", deps: ["q8"],
+      body: "Your exhaustive topic doc, Matt's sparse ADRs and glossary, or both?",
+      options: [
+        { k: "A", text: "Your design doc, with two borrows: a per-decision durable flag (Locked vs Routine sections) and a Terms section with Avoid lists." },
+        { k: "B", text: "Your design doc plus ADRs in docs/adr and a root CONTEXT.md. Two places to keep in sync." },
+        { k: "C", text: "Matt's files only. Rejected: builders need the exhaustive doc." },
+      ],
+      rec: { option: "A", why: "The durable flag and the terms section fix two real problems; repo-wide files can be an opt-in flag later." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: true, thread: [] },
+    q10: { id: "q10", round: 6, title: "State location + resume", deps: ["q7"],
+      body: "Where does session state live, and how does resume work? Several worktrees per project here.",
+      options: [
+        { k: "A", text: "Per-session folder under home, keyed by git common root (working directory when not in git). Resume lists unfinished sessions for the project." },
+        { k: "B", text: "Inside the repo, gitignored. Lives in one worktree; ws reset wipes it." },
+      ],
+      rec: { option: "A", why: "Worktree independence decides it here; for adopters it also means zero repo changes." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: true,
+      thread: [
+        { who: "user", text: "Hm, what would be easier for other people to adopt?" },
+        { who: "agent", text: "Outside the repo, by a wider margin: zero repo changes, one mental model, works outside git, resume is discoverable anyway. Only loss: sessions don't travel with a clone, which is a non-goal." },
+      ] },
+    q11: { id: "q11", round: 6, title: "Stack", deps: ["q10"],
+      body: "What is the server and page built with? Must run the moment the skill is installed.",
+      options: [
+        { k: "A", text: "Plain Node, no dependencies, no build step. One server script, one self-contained HTML page." },
+        { k: "B", text: "Bun. Nicer API, not on most machines." },
+        { k: "C", text: "React with a build step." },
+      ],
+      rec: { option: "A", why: "Claude Code requires Node, so every adopter has it. Polish comes from CSS, not the framework." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q12: { id: "q12", round: 7, title: "Relation to grilling skills", deps: ["q9"],
+      body: "How does grill-with-ui relate to the grilling and grill-me skills you already have?",
+      options: [
+        { k: "A", text: "Self-contained new skill with its own interview prompt (frontier-per-round) plus the page protocol. Developed in its own repo, symlinked in." },
+        { k: "B", text: "Composition, Matt-style: invoke grilling plus a protocol skill. Two skills fighting over output format." },
+        { k: "C", text: "A flag on grill-me." },
+      ],
+      rec: { option: "A", why: "One folder, one prompt, nothing to depend on. Publishable later without extraction." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q13: { id: "q13", round: 7, title: "Agent neutrality", deps: ["q11"],
+      body: "Claude Code only, or agent-neutral from the start? Codex has no Monitor; Bedrock/Vertex Claude Code lacks it too.",
+      options: [
+        { k: "A", text: "Add a blocking wait mode to the server now: blocks in the foreground until the next Send, prints it, exits. About twenty lines." },
+        { k: "B", text: "Claude Code only for v1." },
+      ],
+      rec: { option: "A", why: "Cheap, also the fallback for Claude Code without Monitor, keeps the no-lock-in promise." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q14: { id: "q14", round: 7, title: "Build order", deps: ["q13"],
+      body: "What gets built first? One assumption is unverified: the harness labels monitor events 'not user input'; the skill prompt says Send events are your answers.",
+      options: [
+        { k: "A", text: "Spike the wake-up path first: minimal server, one-textarea page, stub prompt with only the event rule. One real round." },
+        { k: "B", text: "Build everything, then test end to end." },
+      ],
+      rec: { option: "A", why: "The only piece that can't be reasoned out from what we already know." },
+      status: "answered", answer: { kind: "accept", option: "A" }, durable: false, thread: [] },
+    q15: { id: "q15", round: 8, title: "Page visual direction", deps: ["q11"],
+      body: "Three mockups are on the table. Which layout carries forward into the spike page?",
+      options: [
+        { k: "A", text: "Inbox: question list on the left, one detail card on the right, sticky send bar." },
+        { k: "B", text: "Scroll: single column of cards grouped by round, outline rail for jumping." },
+        { k: "C", text: "Tree + focus: dependency tree on the left, one focused card, thread drawer." },
+      ],
+      rec: { option: "A", why: "Best fit for 'go back to an earlier question' and it keeps the current question in view while you read history." },
+      status: "open", answer: null, durable: false, thread: [] },
+    q16: { id: "q16", round: 8, title: "Doc template sections", deps: ["q9"],
+      body: "Section order for the generated design doc: Terms, Why, Locked decisions, Routine choices, Deferred, Follow-ups?",
+      options: [
+        { k: "A", text: "That order, with the header carrying the locked-decision count and the date." },
+        { k: "B", text: "Decisions first, Terms at the end as an appendix." },
+      ],
+      rec: { option: "A", why: "Terms first is what makes cold re-entry work; the header count is your existing convention." },
+      status: "open", answer: null, durable: false, updated: true, thread: [] },
+    q17: { id: "q17", round: 8, title: "Keyboard shortcuts", deps: ["q15"],
+      body: "j/k to move between questions, a/b/c to pick an option, enter to stage, cmd+enter to send?",
+      options: [
+        { k: "A", text: "Yes, all of them, shown in a footer hint." },
+        { k: "B", text: "Defer to after the spike." },
+      ],
+      rec: { option: "B", why: "Zero cost to add later; not on the critical path." },
+      status: "deferred", answer: null, durable: false, thread: [] },
+  },
+};
+</script>
+<script>
+const mode = document.body.dataset.layout;
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const base = SESSION.questions;
+const storageKey = 'grill-codex-mockup-v1-' + mode;
+let state = { actions: [], answers: {}, messages: {}, drafts: {} };
+try { const saved = JSON.parse(localStorage.getItem(storageKey)); if (saved && Array.isArray(saved.actions) && saved.answers && saved.messages && saved.drafts) state = saved; } catch (_) {}
+let selected = 'q15';
+let working = false;
+let toastTimer;
+const expanded = new Set(['q15']);
+const save = () => { try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch (_) {} };
+const pending = id => state.actions.filter(a => a.q === id);
+const stagedAnswer = id => state.actions.find(a => a.q === id && a.type === 'answer');
+const committedAnswer = q => state.answers[q.id] || q.answer;
+const currentAnswer = q => stagedAnswer(q.id) || committedAnswer(q);
+const status = q => state.answers[q.id] ? 'answered' : q.status;
+const messages = q => [...q.thread, ...(state.messages[q.id] || []), ...pending(q.id).filter(a => a.type === 'thread').map(a => ({who:'user', text:a.text, staged:true}))];
+const symbol = q => status(q) === 'answered' ? '✓' : status(q) === 'deferred' ? '−' : '○';
+function navItem(q, tree = false) {
+  const info = tree ? `Round ${q.round} · ${status(q)}${q.durable ? ' · Durable' : ''}` : `${status(q)}${q.durable ? ' · Durable' : ''}${q.updated ? ' · Recommendation updated' : ''}`;
+  return `<a class="nav-item ${selected === q.id ? 'active' : ''}" href="#${q.id}" data-go="${q.id}" ${selected === q.id ? 'aria-current="true"' : ''}><span class="nav-dot ${status(q)}" aria-hidden="true">${symbol(q)}</span><span class="nav-copy"><span class="nav-title"><span class="qid">${q.id.toUpperCase()}</span>${esc(q.title)}</span><span class="nav-info">${info}${pending(q.id).length ? `<span class="nav-stage">${pending(q.id).length} staged</span>` : ''}</span></span></a>`;
+}
+function navigation() {
+  const answered = Object.values(base).filter(q => status(q) === 'answered').length;
+  const heading = mode === 'tree' ? 'Design dependencies' : mode === 'scroll' ? 'Session outline' : 'Questions';
+  let html = `<div class="rail-head"><h2>${heading}</h2><p>${answered} answered · ${17-answered} remaining</p><div class="progress"><span style="width:${answered/17*100}%"></span></div><p>8 rounds of decisions</p></div>`;
+  if (mode === 'tree') {
+    // Each dependency creates an edge. Shared descendants appear under each parent.
+    const children = id => Object.values(base).filter(q => q.deps.includes(id));
+    const branch = (q, seen = new Set()) => {
+      if (seen.has(q.id)) return '';
+      const path = new Set(seen); path.add(q.id);
+      const next = children(q.id);
+      return `<li>${navItem(q,true)}${next.length ? `<ul>${next.map(child => branch(child,path)).join('')}</ul>` : ''}</li>`;
+    };
+    html += `<ul class="tree-list">${Object.values(base).filter(q => !q.deps.length).map(q => branch(q)).join('')}</ul><div class="tree-legend">Each branch follows a question’s prerequisites.<br>✓ Answered &nbsp; ○ Open &nbsp; − Deferred</div>`;
+  } else {
+    html += SESSION.rounds.map(r => `<div class="round-label ${r.n === 8 ? 'current' : ''}"><span>Round ${String(r.n).padStart(2,'0')}</span><span>${r.n === 8 ? 'Current' : r.ids.length + ' questions'}</span></div>${r.ids.map(id => navItem(base[id])).join('')}`).join('');
+  }
+  document.querySelector('.rail').innerHTML = html;
+}
+function thread(q) {
+  const list = messages(q);
+  return `<section class="thread" aria-label="Discussion for ${q.id}"><div class="thread-heading"><h3>Discussion</h3><span>${list.length} message${list.length === 1 ? '' : 's'}</span></div>${list.length ? list.map(m => `<div class="message"><span class="avatar" aria-hidden="true">${m.who === 'agent' ? 'A' : 'Y'}</span><div class="message-content"><span class="message-who">${m.who === 'agent' ? 'Agent' : esc(m.who === 'user' ? 'You' : m.who)}</span>${m.staged ? ' <span class="tag staged">Staged</span>' : ''}<p>${esc(m.text)}</p></div></div>`).join('') : '<p class="empty-thread">No messages yet. Explore a trade-off or ask for more context.</p>'}<form class="composer" data-form="thread" data-q="${q.id}"><label class="field-label" for="thread-${q.id}">Add to the discussion</label><textarea id="thread-${q.id}" data-draft="thread:${q.id}" placeholder="Ask a question or add context…" required>${esc(state.drafts['thread:'+q.id] || '')}</textarea><div class="form-foot"><span class="hint">Held here until you send.</span><button class="quiet" type="submit">Stage message</button></div></form></section>`;
+}
+function answerRecord(q) {
+  const answer = currentAnswer(q);
+  if (!answer) return '';
+  const staged = !!stagedAnswer(q.id);
+  const different = answer.option ? answer.option !== q.rec.option : true;
+  const option = q.options.find(o => o.k === answer.option);
+  return `<div class="answer-record"><strong>${staged ? 'Staged answer' : 'Chosen answer'}${answer.option ? ' · '+esc(answer.option) : ' · Free text'}</strong> ${different ? `<span class="tag diff">${answer.option ? 'Differs from recommendation' : 'Custom answer'}</span>` : ''}${option ? `<p>${esc(option.text)}</p>` : ''}${answer.text ? `<p>${esc(answer.text)}</p>` : ''}${staged ? '<p class="hint">Waiting for Send to Agent.</p>' : ''}</div>`;
+}
+function card(q) {
+  const answer = currentAnswer(q);
+  return `<article class="card ${q.id === selected ? 'active' : ''}" id="${q.id}" tabindex="-1" aria-labelledby="title-${q.id}"><div class="card-top"><span class="qid">${q.id.toUpperCase()} / ROUND ${q.round}</span><span class="tag ${status(q)}">${status(q)}</span>${q.durable ? '<span class="tag">◆ Durable</span>' : ''}${q.updated ? '<span class="tag updated">↻ Recommendation updated</span>' : ''}${pending(q.id).length ? `<span class="tag staged">${pending(q.id).length} staged</span>` : ''}</div><h2 id="title-${q.id}">${esc(q.title)}</h2><p class="body-copy">${esc(q.body)}</p><div class="deps"><span>${q.deps.length ? 'Depends on' : 'Root decision · no prerequisites'}</span>${q.deps.map(id => `<a href="#${id}" data-go="${id}">${id.toUpperCase()} · ${esc(base[id].title)}</a>`).join('')}</div><span class="field-label">Choose a direction</span><div class="options">${q.options.map(o => `<button type="button" class="option ${o.k === q.rec.option ? 'recommended' : ''} ${answer?.option === o.k ? 'selected' : ''}" data-option="${o.k}" data-q="${q.id}" aria-pressed="${answer?.option === o.k}" aria-label="Choose ${o.k} for ${q.id}"><span class="letter">${esc(o.k)}</span><span class="option-content"><span class="option-label">${o.k === q.rec.option ? '<span>✦ Recommended</span>' : ''}${answer?.option === o.k ? `<span>✓ ${stagedAnswer(q.id) ? 'Staged choice' : 'Chosen'}</span>` : ''}</span>${esc(o.text)}${o.k === q.rec.option ? `<span class="rationale"><strong>Why this direction.</strong> ${esc(q.rec.why)}</span>` : ''}</span></button>`).join('')}</div><div class="accept-row"><button type="button" class="primary" data-accept="${q.id}">Accept ${esc(q.rec.option)} <span aria-hidden="true">↗</span></button><span class="hint">Stage the agent’s recommendation</span></div>${answerRecord(q)}<form class="text-response" data-form="answer" data-q="${q.id}"><label class="field-label" for="answer-${q.id}">Or write your own answer</label><textarea id="answer-${q.id}" data-draft="answer:${q.id}" placeholder="A different direction, or a refinement…" required>${esc(state.drafts['answer:'+q.id] || '')}</textarea><div class="form-foot"><span class="hint">Your answer stays local until Send.</span><button class="quiet" type="submit">Stage answer</button></div></form>${mode === 'inbox' ? thread(q) : mode === 'scroll' ? `<details class="inline-thread" data-thread="${q.id}" ${expanded.has(q.id) ? 'open' : ''}><summary class="thread-toggle">Discussion · ${messages(q).length} messages</summary>${thread(q)}</details>` : ''}</article>`;
+}
+function chrome() {
+  const count = state.actions.length;
+  document.querySelector('.stage-count').textContent = count;
+  document.querySelector('.send-copy').innerHTML = `${count ? count + ' action' + (count === 1 ? '' : 's') + ' staged' : 'Nothing staged'}<small>${count ? 'Ready when you are. Send them together.' : 'Answers and messages wait for your Send.'}</small>`;
+  const send = document.querySelector('#send');
+  send.disabled = !count || working;
+  send.textContent = count ? `Send ${count} to Agent` : 'Send to Agent';
+  document.querySelector('.agent').textContent = working ? 'Agent working' : 'Agent waiting';
+  document.querySelector('.agent').classList.toggle('working', working);
+}
+function render() {
+  navigation();
+  if (mode === 'scroll') {
+    document.querySelector('.main').innerHTML = `<div class="scroll-intro"><span class="kicker">The decision journal</span><h1>A little clarity,<br>one question at a time.</h1><p>Follow the conversation from the first decision to the current round.<br>Every answer is held until you’re ready to send.</p><span class="doc">Writing toward ${esc(SESSION.doc)}</span></div>${SESSION.rounds.map(r => `<section class="round-section" aria-labelledby="round-${r.n}"><div class="round-heading"><h2 id="round-${r.n}">Round ${String(r.n).padStart(2,'0')}</h2><span>${r.n === 8 ? 'Current round' : r.ids.length+' decisions'}</span></div>${r.ids.map(id => card(base[id])).join('')}</section>`).join('')}`;
+  } else {
+    const q = base[selected];
+    document.querySelector('.main').innerHTML = `<div class="section-top"><div><span class="kicker">${mode === 'tree' ? 'Decision in focus' : 'The conversation'}</span><h1>Round ${String(q.round).padStart(2,'0')}</h1></div><span class="count">${q.id.toUpperCase()} of ${Object.keys(base).length}</span></div>${card(q)}`;
+    if (mode === 'tree') document.querySelector('.drawer').innerHTML = `<div class="drawer-context"><span class="kicker">Question thread</span><p>${q.id.toUpperCase()} · ${esc(q.title)}</p></div>${thread(q)}`;
+  }
+  document.querySelectorAll('details[data-thread]').forEach(d => d.addEventListener('toggle', () => d.open ? expanded.add(d.dataset.thread) : expanded.delete(d.dataset.thread)));
+  chrome();
+}
+function go(id, focus = true) {
+  if (!base[id]) return;
+  selected = id;
+  if (mode === 'scroll') {
+    navigation();
+    document.querySelectorAll('.card').forEach(el => el.classList.toggle('active',el.id === id));
+  } else render();
+  const target = document.getElementById(id);
+  if (focus) target.focus({preventScroll:true});
+  if (mode === 'scroll' || window.innerWidth <= 760) target.scrollIntoView({block:'start'});
+  else window.scrollTo(0,0);
+  const active = document.querySelector('.rail .active');
+  if (active) { const rail = document.querySelector('.rail'); rail.scrollTop += active.getBoundingClientRect().top - rail.getBoundingClientRect().top - rail.clientHeight/2 + active.clientHeight/2; }
+}
+function toast(message) {
+  clearTimeout(toastTimer);
+  document.querySelector('.toast').textContent = message;
+  toastTimer = setTimeout(() => document.querySelector('.toast').textContent = '', 2800);
+}
+function refreshKeepingPosition(focusSpec) {
+  const y = window.scrollY, railY = document.querySelector('.rail').scrollTop;
+  render(); window.scrollTo(0,y); document.querySelector('.rail').scrollTop = railY;
+  if (focusSpec) document.querySelector(focusSpec)?.focus({preventScroll:true});
+}
+function stageAnswer(id, answer, focusSpec) {
+  state.actions = state.actions.filter(a => !(a.q === id && a.type === 'answer'));
+  state.actions.push({q:id,type:'answer',...answer});
+  save(); refreshKeepingPosition(focusSpec); toast(`${id.toUpperCase()} answer staged. Send when you’re ready.`);
+}
+document.addEventListener('input', e => { if (e.target.dataset.draft) { state.drafts[e.target.dataset.draft] = e.target.value; save(); } });
+document.addEventListener('click', e => {
+  const link = e.target.closest('[data-go]');
+  if (link) { e.preventDefault(); go(link.dataset.go); return; }
+  const option = e.target.closest('[data-option]');
+  if (option) stageAnswer(option.dataset.q,{kind:'option',option:option.dataset.option},`[data-q="${option.dataset.q}"][data-option="${option.dataset.option}"]`);
+  const accept = e.target.closest('[data-accept]');
+  if (accept) stageAnswer(accept.dataset.accept,{kind:'accept',option:base[accept.dataset.accept].rec.option},`[data-accept="${accept.dataset.accept}"]`);
+});
+document.addEventListener('submit', e => {
+  const form = e.target.closest('[data-form]'); if (!form) return;
+  e.preventDefault();
+  const input = form.querySelector('textarea'); const text = input.value.trim();
+  if (!text) { input.setCustomValidity('Write something before staging.'); input.reportValidity(); input.addEventListener('input', () => input.setCustomValidity(''), {once:true}); return; }
+  const id = form.dataset.q;
+  delete state.drafts[input.dataset.draft];
+  if (form.dataset.form === 'answer') stageAnswer(id,{kind:'text',text},`#answer-${id}`);
+  else { state.actions.push({q:id,type:'thread',text}); expanded.add(id); save(); refreshKeepingPosition(`#thread-${id}`); toast(`${id.toUpperCase()} message staged. Send when you’re ready.`); }
+});
+document.querySelector('#send').addEventListener('click', () => {
+  if (!state.actions.length || working) return;
+  const count = state.actions.length;
+  for (const a of state.actions) {
+    if (a.type === 'answer') state.answers[a.q] = {kind:a.kind,option:a.option,text:a.text};
+    if (a.type === 'thread') (state.messages[a.q] ||= []).push({who:'user',text:a.text});
+  }
+  state.actions = []; working = true; save(); refreshKeepingPosition();
+  toast(`${count} action${count === 1 ? '' : 's'} sent · simulated agent turn`);
+  setTimeout(() => { working = false; chrome(); },2200);
+});
+document.querySelector('.topic').textContent = SESSION.topic;
+document.querySelectorAll('[data-doc]').forEach(el => el.textContent = SESSION.doc);
+document.querySelector('.project').textContent = SESSION.project;
+render();
+requestAnimationFrame(() => go('q15'));
+</script>
+</body></html>

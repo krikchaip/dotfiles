@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>grill · grill-with-ui skill · Tree + Focus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Atkinson+Hyperlegible:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #0b1730; --navy-2: #10203f; --navy-3: #172a4f; --line: #24406e; --line-2: #2f5390; --fg: #eef3ff; --fg-2: #a9b8d8; --fg-3: #63769c;
+    --gold: #ffd166; --gold-dim: rgba(255,209,102,.16); --ice: #7ee8fa; --ice-dim: rgba(126,232,250,.14); --mint: #8ef0b4; --mint-dim: rgba(142,240,180,.14); --rose: #ff8fa3;
+    --display: "Bricolage Grotesque", system-ui, sans-serif; --body: "Atkinson Hyperlegible", system-ui, sans-serif; --mono: "Fira Code", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: var(--body); background: var(--navy); color: var(--fg); font-size: 15px; line-height: 1.55; height: 100vh; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: 300px 1fr 360px; overflow: hidden;
+    background-image: linear-gradient(rgba(126,232,250,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(126,232,250,.06) 1px, transparent 1px); background-size: 24px 24px; }
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 12px 22px; border-bottom: 1px solid var(--line); background: rgba(11,23,48,.8); }
+  header h1 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0; letter-spacing: -.02em; font-variation-settings: "opsz" 96; }
+  header h1 span { color: var(--ice); font-weight: 300; }
+  header .k { font-family: var(--mono); font-size: 11px; color: var(--fg-3); letter-spacing: .08em; text-transform: uppercase; }
+  header .agent { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--mint); }
+  header .agent.working { color: var(--gold); }
+  header .agent::before { content: "◉ "; }
+  aside.tree { border-right: 1px solid var(--line); overflow-y: auto; padding: 16px 12px 24px 16px; }
+  aside.tree .lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); margin: 0 0 10px 6px; }
+  ul.t { list-style: none; margin: 0; padding: 0 0 0 16px; position: relative; }
+  ul.t.root { padding-left: 0; }
+  ul.t:not(.root)::before { content: ""; position: absolute; left: 4px; top: 0; bottom: 12px; width: 1px; background: var(--line-2); }
+  ul.t li { position: relative; }
+  ul.t:not(.root) li::before { content: ""; position: absolute; left: -12px; top: 15px; width: 10px; height: 1px; background: var(--line-2); }
+  .node { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 13.5px; color: var(--fg-2); }
+  .node:hover { background: var(--navy-3); color: var(--fg); }
+  .node.focus { background: var(--ice-dim); color: var(--fg); outline: 1px solid rgba(126,232,250,.4); }
+  .node .id { font-family: var(--mono); font-size: 11px; color: var(--fg-3); width: 30px; }
+  .node .s { width: 8px; height: 8px; border-radius: 50%; margin-left: auto; flex: none; }
+  .s.answered { background: var(--mint); } .s.open { background: var(--gold); box-shadow: 0 0 10px var(--gold); } .s.deferred { background: var(--fg-3); } .s.staged { background: var(--ice); box-shadow: 0 0 10px var(--ice); }
+  .node.frontier { color: var(--fg); }
+  .legend { margin-top: 18px; padding: 10px 8px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 10px; color: var(--fg-3); display: grid; gap: 4px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  main { overflow-y: auto; padding: 36px 48px 120px; }
+  .focus-card { max-width: 720px; margin: 0 auto; animation: reveal .4s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes reveal { from { opacity: 0; transform: translateY(10px) scale(.995); } }
+  .meta { display: flex; gap: 14px; font-family: var(--mono); font-size: 11px; color: var(--fg-3); letter-spacing: .06em; align-items: center; }
+  .meta .pill { padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+  .pill.open { background: var(--gold-dim); color: var(--gold); } .pill.answered { background: var(--mint-dim); color: var(--mint); } .pill.deferred { background: var(--navy-3); color: var(--fg-2); } .pill.staged { background: var(--ice-dim); color: var(--ice); } .pill.durable { border: 1px solid var(--line-2); color: var(--fg-2); }
+  .meta .deps a { color: var(--ice); text-decoration: none; }
+  .focus-card h2 { font-family: var(--display); font-size: 44px; font-weight: 800; letter-spacing: -.03em; line-height: 1; margin: 14px 0 16px; font-variation-settings: "opsz" 96; }
+  .focus-card .body { font-size: 17px; color: var(--fg-2); max-width: 62ch; }
+  .opts { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 8px; }
+  .opt { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; padding: 14px 16px; border-radius: 10px; background: var(--navy-2); border: 1px solid var(--line); cursor: pointer; transition: .15s; }
+  .opt:hover { border-color: var(--line-2); transform: translateX(3px); }
+  .opt .k { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1; color: var(--fg-3); font-variation-settings: "opsz" 96; }
+  .opt.rec { border-color: var(--gold); background: linear-gradient(90deg, var(--gold-dim), var(--navy-2) 45%); } .opt.rec .k { color: var(--gold); }
+  .opt.rec .tag { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 3px; }
+  .opt.chosen { outline: 2px solid var(--mint); } .opt.stg { outline: 2px solid var(--ice); }
+  .why { margin: 16px 0 0; padding: 14px 18px; border-radius: 10px; background: var(--gold-dim); color: var(--fg); font-size: 15px; }
+  .why b { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 4px; }
+  .ans { margin-top: 16px; padding: 12px 16px; border-radius: 10px; background: var(--mint-dim); color: var(--mint); display: flex; gap: 12px; align-items: baseline; }
+  .ans .lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+  .ans .against { font-family: var(--mono); font-size: 11px; color: var(--rose); margin-left: auto; }
+  .row { display: flex; gap: 10px; margin-top: 18px; align-items: flex-start; }
+  textarea { flex: 1; min-height: 60px; font: inherit; font-size: 15px; color: var(--fg); background: var(--navy-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; resize: vertical; }
+  textarea:focus { outline: none; border-color: var(--ice); box-shadow: 0 0 0 3px var(--ice-dim); }
+  button { font-family: var(--display); font-weight: 700; font-size: 14px; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--navy-3); color: var(--fg); cursor: pointer; white-space: nowrap; letter-spacing: -.01em; }
+  button:hover { border-color: var(--ice); }
+  button.accept { border-color: var(--gold); color: var(--gold); }
+  button.primary { background: var(--ice); color: #062230; border-color: var(--ice); font-size: 15px; }
+  button.primary:disabled { background: var(--navy-3); color: var(--fg-3); border-color: var(--line); cursor: default; }
+  button.ghost { background: transparent; border-color: var(--line); color: var(--fg-2); }
+  .pager { display: flex; justify-content: space-between; margin-top: 28px; font-family: var(--mono); font-size: 12px; color: var(--fg-3); }
+  .pager a { color: var(--fg-2); text-decoration: none; } .pager a:hover { color: var(--ice); }
+
+  aside.drawer { border-left: 1px solid var(--line); overflow-y: auto; padding: 18px 18px 120px; background: rgba(16,32,63,.5); display: flex; flex-direction: column; }
+  aside.drawer .lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); margin: 0 0 6px; }
+  aside.drawer h3 { font-family: var(--display); font-weight: 700; font-size: 18px; margin: 0 0 14px; letter-spacing: -.02em; }
+  aside.drawer h3 span { color: var(--ice); }
+  .msg { padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; font-size: 14px; background: var(--navy-2); border: 1px solid var(--line); }
+  .msg .who { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 4px; }
+  .msg.agent { border-color: rgba(255,209,102,.35); } .msg.agent .who { color: var(--gold); }
+  .msg.user { margin-left: 22px; } .msg.user .who { color: var(--ice); }
+  .msg.stg { border-color: var(--ice); background: var(--ice-dim); }
+  .empty { color: var(--fg-3); font-size: 14px; font-style: italic; }
+  .drawer .row { margin-top: auto; flex-direction: column; }
+  .drawer textarea { min-height: 84px; }
+  .terms { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .term { font-size: 13px; color: var(--fg-2); margin-bottom: 8px; } .term b { color: var(--fg); font-weight: 700; } .term i { color: var(--fg-3); font-style: normal; font-family: var(--mono); font-size: 11px; }
+
+  footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 12px 22px; border-top: 1px solid var(--line); background: rgba(11,23,48,.9); }
+  footer .list { flex: 1; font-family: var(--mono); font-size: 12px; color: var(--fg-2); } footer .list b { color: var(--ice); }
+  footer .hint { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .toast { position: fixed; right: 24px; bottom: 76px; padding: 10px 14px; background: var(--ice); color: #062230; font-family: var(--mono); font-size: 12px; font-weight: 600; border-radius: 8px; opacity: 0; transform: translateY(6px); transition: .25s; }
+  .toast.show { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>grill <span>/</span> grill-with-ui skill</h1>
+  <span class="k" id="doc-path"></span>
+  <span class="agent" id="agent">agent waiting for you · since 22:41</span>
+</header>
+<aside class="tree">
+  <p class="lbl">Design tree · frontier lit</p>
+  <div id="tree"></div>
+  <div class="legend"><span><i style="background:var(--mint)"></i>settled</span><span><i style="background:var(--gold)"></i>open (frontier)</span><span><i style="background:var(--ice)"></i>staged</span><span><i style="background:var(--fg-3)"></i>deferred</span></div>
+</aside>
+<main id="main"></main>
+<aside class="drawer" id="drawer"></aside>
+<footer>
+  <span class="list" id="staged-list">Nothing staged.</span>
+  <span class="hint">j/k move · a·b·c pick · ⌘↩ send</span>
+  <button class="ghost" id="finish">Finish grill</button>
+  <button class="primary" id="send" disabled>Send to Agent</button>
+</footer>
+<div class="toast" id="toast"></div>
+<script>
+/*__DATA__*/
+</script>
+<script>
+const S = SESSION; const staged = {}; let focus = "q15";
+const order = S.rounds.flatMap(r => r.ids);
+document.getElementById("doc-path").textContent = "→ " + S.doc;
+const count = () => Object.values(staged).reduce((n, s) => n + (s.answer ? 1 : 0) + (s.thread ? s.thread.length : 0), 0);
+const stateOf = id => staged[id] ? "staged" : S.questions[id].status;
+function children(pid) { return order.filter(id => S.questions[id].deps[0] === pid); }
+function treeHtml(ids, root) {
+  return `<ul class="t ${root ? "root" : ""}">` + ids.map(id => { const q = S.questions[id];
+    return `<li><div class="node ${id === focus ? "focus" : ""} ${q.status === "open" ? "frontier" : ""}" data-go="${id}"><span class="id">${id.toUpperCase()}</span><span>${q.title}</span><span class="s ${stateOf(id)}"></span></div>${children(id).length ? treeHtml(children(id)) : ""}</li>`; }).join("") + `</ul>`;
+}
+function renderTree() { document.getElementById("tree").innerHTML = treeHtml(order.filter(id => !S.questions[id].deps.length), true); document.querySelectorAll("[data-go]").forEach(n => n.onclick = () => { focus = n.dataset.go; render(); }); }
+function renderMain() {
+  const q = S.questions[focus]; const st = staged[focus] || {}; const i = order.indexOf(focus);
+  const opts = q.options.map(o => `<li class="opt ${q.rec.option === o.k ? "rec" : ""} ${q.answer && q.answer.option === o.k ? "chosen" : ""} ${st.answer && st.answer.option === o.k ? "stg" : ""}" data-opt="${o.k}"><span class="k">${o.k}</span><span>${q.rec.option === o.k ? `<span class="tag">Recommended</span>` : ""}${o.text}</span></li>`).join("");
+  const ans = q.status === "answered" ? `<div class="ans"><span class="lbl">answered</span><span>${q.answer.kind === "accept" ? `Accepted recommendation <b>${q.answer.option}</b>.` : q.answer.option ? `Chose <b>${q.answer.option}</b>.` : ""} ${q.answer.text ? `“${q.answer.text}”` : ""}</span>${q.answer.option && q.answer.option !== q.rec.option ? `<span class="against">against rec ${q.rec.option}</span>` : ""}</div>` : "";
+  document.getElementById("main").innerHTML = `<article class="focus-card" data-id="${q.id}">
+    <div class="meta"><span>${q.id.toUpperCase()} · round ${q.round}</span><span class="pill ${stateOf(q.id)}">${stateOf(q.id)}</span>${q.durable ? `<span class="pill durable">durable</span>` : ""}${q.updated ? `<span class="pill open">rec updated</span>` : ""}<span class="deps">${q.deps.length ? "after " + q.deps.map(d => `<a href="#" data-go2="${d}">${d.toUpperCase()}</a>`).join(", ") : "root"}</span></div>
+    <h2>${q.title}</h2>
+    <p class="body">${q.body}</p>
+    <ul class="opts">${opts}</ul>
+    <div class="why"><b>Why ${q.rec.option}</b>${q.rec.why}</div>
+    ${ans}
+    <div class="row"><textarea id="free" placeholder="${q.status === "answered" ? "Change your answer or add nuance…" : "Free-text answer, if none of the options fit…"}">${st.answer && st.answer.text || ""}</textarea><button class="accept" id="accept">Accept ${q.rec.option}</button><button id="stage-text">Stage text</button></div>
+    <div class="pager"><a href="#" data-go2="${order[i - 1] || ""}">${i > 0 ? "← " + order[i - 1].toUpperCase() + " " + S.questions[order[i - 1]].title : ""}</a><a href="#" data-go2="${order[i + 1] || ""}">${i < order.length - 1 ? S.questions[order[i + 1]].title + " " + order[i + 1].toUpperCase() + " →" : ""}</a></div>
+  </article>`;
+  document.querySelectorAll("[data-go2]").forEach(a => a.onclick = e => { e.preventDefault(); if (a.dataset.go2) { focus = a.dataset.go2; render(); } });
+  document.querySelectorAll(".opt").forEach(o => o.onclick = () => stage(q.id, { answer: { kind: "option", option: o.dataset.opt } }));
+  document.getElementById("accept").onclick = () => stage(q.id, { answer: { kind: "accept", option: q.rec.option } });
+  document.getElementById("stage-text").onclick = () => { const t = document.getElementById("free").value.trim(); if (t) stage(q.id, { answer: { kind: "text", text: t } }); };
+}
+function renderDrawer() {
+  const q = S.questions[focus]; const st = staged[focus] || {};
+  const msgs = q.thread.map(m => `<div class="msg ${m.who}"><div class="who">${m.who}</div>${m.text}</div>`).join("") + (st.thread || []).map(t => `<div class="msg user stg"><div class="who">you · staged</div>${t}</div>`).join("");
+  document.getElementById("drawer").innerHTML = `<p class="lbl">Thread</p><h3>Dig into <span>${q.id.toUpperCase()}</span> ${q.title}</h3>${msgs || `<p class="empty">No discussion yet. Anything you write here goes to the agent with full session context, tagged to this question.</p>`}
+    <div class="row"><textarea id="thread-in" placeholder="Ask a follow-up, push back, or request a lookup…"></textarea><button id="stage-thread">Add to thread</button></div>
+    <div class="terms"><p class="lbl">Terms sharpened this session</p>${S.terms.map(t => `<div class="term"><b>${t.term}</b> · ${t.def} <i>avoid: ${t.avoid.join(", ")}</i></div>`).join("")}</div>`;
+  document.getElementById("stage-thread").onclick = () => { const t = document.getElementById("thread-in").value.trim(); if (t) { staged[focus] = staged[focus] || {}; (staged[focus].thread = staged[focus].thread || []).push(t); render(); } };
+}
+function stage(id, patch) { staged[id] = Object.assign(staged[id] || {}, patch); render(); }
+function renderFooter() {
+  const n = count(); const send = document.getElementById("send"); send.disabled = !n; send.textContent = n ? `Send ${n} to Agent` : "Send to Agent";
+  document.getElementById("staged-list").innerHTML = n ? `<b>${n} staged</b> · ` + Object.entries(staged).map(([id, s]) => `${id.toUpperCase()}${s.answer ? " → " + (s.answer.option || "text") : ""}${s.thread ? ` +${s.thread.length} msg` : ""}`).join(" · ") : "Nothing staged. Everything stays local until you send.";
+}
+function render() { renderTree(); renderMain(); renderDrawer(); renderFooter(); }
+document.getElementById("send").onclick = () => {
+  const n = count(); for (const k in staged) delete staged[k]; const a = document.getElementById("agent"), t = document.getElementById("toast");
+  a.classList.add("working"); a.textContent = "agent working on your batch…"; t.textContent = `Sent ${n} action${n > 1 ? "s" : ""} as one event`; t.classList.add("show"); render();
+  setTimeout(() => t.classList.remove("show"), 1800); setTimeout(() => { a.classList.remove("working"); a.textContent = "agent waiting for you · just now"; }, 2600);
+};
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "TEXTAREA") { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") document.getElementById("send").click(); return; }
+  const i = order.indexOf(focus);
+  if (e.key === "j" && i < order.length - 1) { focus = order[i + 1]; render(); }
+  if (e.key === "k" && i > 0) { focus = order[i - 1]; render(); }
+  const q = S.questions[focus]; const k = e.key.toUpperCase();
+  if (q.options.some(o => o.k === k)) stage(focus, { answer: { kind: "option", option: k } });
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") document.getElementById("send").click();
+});
+render();
+</script>
+</body>
+</html>

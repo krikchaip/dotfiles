@@ -1,0 +1,358 @@
+<!--
+  Topic: Question importance + recommendation ratings (grill-with-ui page).
+  v1, prototype of the real grill page (page.html chrome + styles copied), sample grill
+  "Offline sync for the notes app". Reflects:
+    Q1 level = stakes combined with closeness, reason line says which drove it
+    Q2 REOPENED by v2 feedback; drawn as three axes: user experience, technical correctness (absorbs maintainability), risk (absorbs reversibility as lock-in)
+    Q3 every option rated, on the card
+    Q4 levels Skim / Check / Decide carefully / Your call
+    Q5 REOPENED by v1 feedback; drawn as the feedback asks: full-word chips across the bottom
+       of each option, light green / yellow / red, no legend
+    Q6 default five; full axis names on the chips replace the header legend; no chip where an axis does not apply
+    Q7 durable not shown on the page
+    Q8 level mark on each sidebar row; rows sort by level within a round
+    Q9 why names the recommendation's weakest axis
+    Q10 Your-call card: "My lean", no ratings
+    Q11 no per-mark reasons; hover shows only axis + rating
+    Q12 (doc ratings table) is not on the page; not drawn
+  Assumed regions: none (Q2 and Q5 answered).
+  v9 change: per feedback ('blue adds too many colors'), the dark-mode accent is a neutral warm off-white (#d9d1c3), not blue.
+  v8 change: dark-mode accent is now a soft blue (#8fb4e3) instead of red, so red in dark mode means only Decide carefully (and red rating chips). The level has its own --careful variables; light mode is unchanged. Sidebar words default to Q20's answer: Decide carefully + Your call.
+  v7 change: per feedback ('only show it for Decide carefully'), the sidebar word appears only on Decide carefully rows by default; Skim and Check rows carry no mark (sorting still orders them). 'Sidebar words:' switch compares Decide carefully only / + Your call / Every level. The card pill still names every level.
+  v6 change: sidebar importance mark candidates per feedback ('bars look like a phone signal'): Words (default), Dot, Icons, Bars, switchable from 'Mark:' in the header; the card pill follows.
+  v5 change: dark mode. page.html's #8 palette (light-dark() variables) plus light/dark pairs for every new colour (level pills, taste purple, chips); a Theme button in the header cycles system / light / dark.
+  v4 change: a fourth chip, Cost (ongoing: money, tokens, latency per use; not build effort), proposed in Q2 (assumed).
+  v3 change: three axes (user experience, technical correctness incl. maintainability, risk incl. lock-in) per v2 feedback; Q2 reopened.
+  v2 change: rating marks + axis-initial columns + key + Axes legend replaced by full-word
+  coloured chips under each option's text.
+  Fonts: system stacks, same as page.html.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>grill · prototype</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    /* page.html's palette after #8 (dark theme) */
+    --bg: light-dark(#f7f4ee, #16130f); --panel: light-dark(#ffffff, #1e1a15); --ink: light-dark(#1f1c18, #ece7dd);
+    --ink-2: light-dark(#625b51, #b3aa9c); --ink-3: light-dark(#9a9285, #7d7568); --rule: light-dark(#e6e0d4, #322c24); --hover: light-dark(#efebe3, #2a241d);
+    --accent: light-dark(#9a3a26, #d9d1c3); --ok: light-dark(#3d6b4a, #7fb08d); --ok-soft: light-dark(#e3eee5, #1f2b22);
+    --stage: light-dark(#b8791f, #d9a441); --stage-soft: light-dark(#f8ecd2, #2e2616); --warn-soft: light-dark(#fbe9e4, #38211b);
+    --on-fill: light-dark(#ffffff, #16130f);
+    /* NEW for importance levels + rating chips: every colour is a light/dark pair */
+    --taste: light-dark(#5d4a86, #b4a2e0); --taste-soft: light-dark(#f1edf7, #251f33); --taste-line: light-dark(#d6cde6, #3d3352);
+    --accent-soft: light-dark(#fbefeb, #2c2720); --accent-line: light-dark(#e7c9c0, #4a4238);
+    --careful: light-dark(#9a3a26, #e0785c); --careful-soft: light-dark(#fbefeb, #38211b); --careful-line: light-dark(#e7c9c0, #5a2e24); --stage-line: light-dark(#ecd6ae, #4a3a1c);
+    --chip-g-bg: light-dark(#e3eee5, #1f2b22); --chip-g-ink: light-dark(#2f5a3b, #8fc29d); --chip-g-line: light-dark(#c7dccb, #2f4a36);
+    --chip-x-bg: light-dark(#f8ecd2, #2e2616); --chip-x-ink: light-dark(#7f5413, #e0b45a); --chip-x-line: light-dark(#ead3a2, #4a3a1c);
+    --chip-p-bg: light-dark(#fbe4dd, #38211b); --chip-p-ink: light-dark(#9a3a26, #ec8b72); --chip-p-line: light-dark(#f0c7bb, #5a2e24);
+    --serif: "Iowan Old Style", Charter, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  #theme-toggle { font-size: 12px; padding: 4px 10px; }
+  /* v6: sidebar mark candidates (switch with "Mark:" in the header) */
+  .mk-switch { display: inline-flex; align-items: center; gap: 0; font-size: 12px; color: var(--ink-3); }
+  .mk-switch span.lab { margin-right: 6px; }
+  .mk-switch button { font-size: 12px; padding: 4px 9px; border-radius: 0; margin-left: -1px; }
+  .mk-switch button:first-of-type { border-radius: 8px 0 0 8px; } .mk-switch button:last-of-type { border-radius: 0 8px 8px 0; }
+  .mk-switch button.on { border-color: var(--accent); color: var(--accent); position: relative; z-index: 1; }
+  .lvc-careful { color: var(--careful); } .lvc-yours { color: var(--taste); } .lvc-check { color: var(--stage); } .lvc-skim { color: var(--ink-3); }
+  .sword { display: block; font-size: 11px; font-weight: 600; letter-spacing: .02em; margin-top: 1px; }
+  .sdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .sdot.yours { border-radius: 1px; transform: rotate(45deg); width: 8px; height: 8px; }
+  .sdot.skim { background: transparent; border: 1.5px solid currentColor; }
+  .sico { display: inline-flex; width: 14px; height: 14px; } .sico svg { width: 14px; height: 14px; display: block; }
+  body.mk-words .item { grid-template-columns: 26px 1fr auto; padding-left: 20px; }
+  .item .mk { align-self: center; display: inline-flex; justify-content: center; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: var(--sans); font-size: 15px; line-height: 1.5; color: var(--ink); background: var(--bg);
+    display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: 260px minmax(0, 1fr) 30vw; height: 100vh; }
+  header { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; padding: 12px 24px; border-bottom: 1px solid var(--rule); background: var(--panel); position: relative; }
+  header h1 { font-family: var(--serif); font-weight: 500; font-size: 20px; margin: 0; }
+  header .path { color: var(--ink-3); font-size: 13px; }
+  header .status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  button { font-family: var(--sans); font-weight: 500; font-size: 14px; padding: 9px 14px; border-radius: 8px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  button:hover { border-color: var(--ink-3); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-fill); }
+  .hbtn { font-size: 12px; padding: 4px 10px; }
+  .hbtn.on { border-color: var(--accent); color: var(--accent); }
+  .pop { display: none; position: absolute; top: 100%; width: 400px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,.08); z-index: 5; font-size: 13px; }
+  .pop.show { display: block; }
+  .pop h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .pop .row { display: grid; grid-template-columns: 34px 1fr; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--rule); }
+  .pop .row:last-of-type { border-bottom: 0; }
+  .pop .ab { font-weight: 600; color: var(--ink-2); font-size: 12px; }
+  .pop .scale { display: flex; gap: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rule); color: var(--ink-2); }
+  .pop .scale span { display: inline-flex; align-items: center; gap: 5px; }
+  .pop .from { margin-top: 8px; color: var(--ink-3); font-size: 12px; }
+  #axes-pop { right: 110px; } #levels-pop { right: 200px; }
+  .lv-row { display: grid; grid-template-columns: 22px 120px 1fr; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+  .lv-row:last-child { border-bottom: 0; }
+  .lv-row b { font-weight: 600; font-size: 13px; }
+  .lv-row span.d { color: var(--ink-2); }
+
+  /* importance glyphs: bars climb with attention; Your call is a diamond */
+  .lv { display: inline-flex; align-items: flex-end; gap: 1.5px; height: 11px; width: 13px; flex-shrink: 0; }
+  .lv i { display: block; width: 3px; background: currentColor; border-radius: 1px; opacity: .25; }
+  .lv i:nth-child(1) { height: 4px; } .lv i:nth-child(2) { height: 7px; } .lv i:nth-child(3) { height: 11px; }
+  .lv.skim { color: var(--ink-3); } .lv.skim i:nth-child(1) { opacity: 1; }
+  .lv.check { color: var(--stage); } .lv.check i:nth-child(-n+2) { opacity: 1; }
+  .lv.careful { color: var(--careful); } .lv.careful i { opacity: 1; }
+  .lv.yours { color: var(--taste); align-items: center; }
+  .lv.yours::before { content: ""; width: 8px; height: 8px; background: currentColor; transform: rotate(45deg); margin: 0 auto; }
+  .lv.yours i { display: none; }
+
+  /* rating marks: good = filled, mixed = half, poor = ring */
+  .m { width: 11px; height: 11px; border-radius: 50%; display: inline-block; border: 1.6px solid currentColor; }
+  .m.g { color: var(--good); background: currentColor; }
+  .m.x { color: var(--mixed); background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+  .m.p { color: var(--poor); background: transparent; }
+  .m.na { border: 0; width: 11px; height: 2px; background: var(--rule); border-radius: 1px; vertical-align: middle; }
+
+  nav { border-right: 1px solid var(--rule); overflow-y: auto; padding: 10px 0 24px; }
+  nav .round { padding: 16px 20px 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; justify-content: space-between; }
+  nav .round.current { color: var(--accent); }
+  .item { display: grid; grid-template-columns: 13px 26px 1fr auto; gap: 8px; align-items: baseline; padding: 8px 20px 8px 14px; cursor: pointer; }
+  .item .lv { align-self: center; }
+  .item:hover { background: var(--hover); }
+  .item.selected { background: var(--panel); box-shadow: inset 3px 0 0 var(--accent); }
+  .item .id { font-size: 12px; color: var(--ink-3); }
+  .item .t { font-size: 14px; }
+  .item.done .t { color: var(--ink-2); } .item.done .lv, .item.done .mk, .item.done .sword { opacity: .45; }
+  .item .mark { font-size: 11px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 4px; }
+  .mark.answered { color: var(--ok); } .mark.open { color: var(--accent); } .mark.staged { color: var(--stage); font-weight: 600; }
+  .mark svg { width: 12px; height: 12px; display: block; }
+
+  main { overflow-y: auto; padding: 32px 44px 60px; background: var(--panel); }
+  .card { max-width: 700px; }
+  .crumb { font-size: 12px; color: var(--ink-3); display: flex; gap: 12px; flex-wrap: wrap; }
+  .crumb a { text-decoration: none; color: var(--accent); }
+  .imp { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 4px 10px 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid; }
+  .imp b { font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; }
+  .imp .why-l { color: var(--ink-2); }
+  .imp.careful { color: var(--careful); border-color: var(--careful-line); background: var(--careful-soft); }
+  .imp.check { color: var(--stage); border-color: var(--stage-line); background: var(--stage-soft); }
+  .imp.skim { color: var(--ink-3); border-color: var(--rule); background: var(--bg); }
+  .imp.yours { color: var(--taste); border-color: var(--taste-line); background: var(--taste-soft); }
+  .title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 10px 0 12px; }
+  .card h2 { font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1.15; margin: 0; }
+  .ex { font-size: 13px; padding: 6px 12px; }
+  .card .body { font-size: 15px; color: var(--ink-2); max-width: 62ch; margin: 0; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .chip { font-size: 11.5px; line-height: 1; padding: 4px 8px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+  .chip.g { background: var(--chip-g-bg); color: var(--chip-g-ink); border-color: var(--chip-g-line); }
+  .chip.x { background: var(--chip-x-bg); color: var(--chip-x-ink); border-color: var(--chip-x-line); }
+  .chip.p { background: var(--chip-p-bg); color: var(--chip-p-ink); border-color: var(--chip-p-line); }
+  .opts.assumed { position: relative; outline: 1.5px dashed var(--stage); outline-offset: 6px; border-radius: 8px; margin-top: 34px; }
+  .opts.assumed::before { content: "assumed · Q2, Q5 open"; position: absolute; top: -18px; right: 0; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--stage); background: var(--panel); padding: 0 4px; }
+  .axhead { display: grid; grid-template-columns: 28px 1fr var(--rw) 20px; gap: 12px; margin: 22px 0 4px; padding: 0 15px; }
+  .axhead .cols { display: grid; grid-template-columns: repeat(5, 22px); justify-items: center; }
+  .axhead .cols span { font-size: 10px; letter-spacing: .06em; color: var(--ink-3); font-weight: 600; cursor: help; }
+  .opts { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; --rw: 110px; }
+  .card { --rw: 110px; }
+  .opt { display: grid; grid-template-columns: 28px 1fr 20px; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); cursor: pointer; }
+  .opts.norate .opt, .opts.norate + * .opt { grid-template-columns: 28px 1fr 20px; }
+  .opt:hover { border-color: var(--ink-3); }
+  .opt .k { font-family: var(--serif); font-size: 18px; line-height: 1.2; color: var(--ink-3); }
+  .opt.rec { border-color: var(--accent); } .opt.rec .k { color: var(--accent); }
+  .opt.lean { border-color: var(--taste); } .opt.lean .k { color: var(--taste); }
+  .opt .tag { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+  .opt.lean .tag { color: var(--taste); }
+  .opt .rates { display: grid; grid-template-columns: repeat(5, 22px); justify-items: center; align-self: center; }
+  .opt .check { width: 20px; height: 20px; color: var(--ok); visibility: hidden; align-self: center; }
+  .opt .check svg { display: block; width: 100%; height: 100%; }
+  .opt.chosen { background: var(--ok-soft); border-color: var(--ok); } .opt.chosen .k, .opt.chosen .tag { color: var(--ok); } .opt.chosen .check { visibility: visible; }
+  .opt.staged { border-color: var(--stage); box-shadow: 0 0 0 1px var(--stage); background: var(--stage-soft); }
+  .card.picked .body, .card.picked .why, .card.picked .opt:not(.chosen):not(.staged) { opacity: .45; }
+  .key { display: flex; gap: 14px; margin-top: 8px; padding: 0 15px; font-size: 12px; color: var(--ink-3); justify-content: flex-end; }
+  .key span { display: inline-flex; align-items: center; gap: 5px; }
+  .why { margin: 14px 0 0; font-size: 14px; color: var(--ink-2); } .why b { color: var(--accent); font-weight: 600; }
+  .why.lean b { color: var(--taste); }
+  .why .weak { background: var(--accent-soft); color: var(--accent); padding: 0 4px; border-radius: 3px; }
+  .note-taste { margin-top: 10px; font-size: 13px; color: var(--taste); }
+  .staged-line { margin-top: 10px; font-size: 14px; color: var(--stage); }
+  textarea { width: 100%; min-height: 60px; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); resize: vertical; }
+  .answer-row { display: flex; gap: 8px; margin-top: 20px; align-items: flex-start; }
+  .links { margin-top: 12px; font-size: 13px; display: flex; gap: 14px; } .links a { color: var(--ink-3); text-decoration: none; }
+
+  aside { border-left: 1px solid var(--rule); display: grid; grid-template-rows: auto 1fr auto; min-height: 0; }
+  aside .head { padding: 20px 22px 12px; }
+  aside .head h3 { margin: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  aside .head .sub { font-family: var(--serif); font-size: 16px; margin-top: 4px; }
+  aside .msgs { overflow-y: auto; padding: 0 22px 12px; }
+  .msg { padding: 12px 0; border-top: 1px solid var(--rule); }
+  .msg .who { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+  .msg.user .who { color: var(--stage); } .msg.agent .who { color: var(--accent); }
+  .msg .text { font-size: 14px; }
+  .empty-thread { padding: 12px 0; font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--rule); }
+  aside .compose { padding: 12px 22px 18px; border-top: 1px solid var(--rule); display: grid; gap: 8px; } aside .compose button { justify-self: end; }
+
+  footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 12px 24px; border-top: 1px solid var(--rule); background: var(--panel); }
+  footer .staged-list { font-size: 13px; color: var(--ink-2); flex: 1; } footer .staged-list b { color: var(--stage); }
+  footer .hint { font-size: 12px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Offline sync for the notes app</h1>
+  <span class="path">→ docs/offline-sync-design.md</span>
+  <button class="hbtn" id="t-levels" type="button">Levels</button>
+  <button class="hbtn" type="button">Terms</button>
+  <button class="hbtn" type="button">Visualize</button>
+  <span class="mk-switch" id="mk-switch"><span class="lab">Sidebar words:</span><button type="button" data-mk="careful">Decide carefully only</button><button type="button" data-mk="careful-yours">+ Your call</button><button type="button" data-mk="all">Every level</button></span>
+  <button class="hbtn" id="theme-toggle" type="button">Theme: system</button>
+  <span class="status"><span class="dot"></span>waiting for you · handled send #3</span>
+  <div class="pop" id="levels-pop">
+    <h4>Importance levels</h4>
+    <div class="lv-row"><span class="lv-slot" data-l="careful"></span><b>Decide carefully</b><span class="d">High stakes and a close call: your judgement changes the outcome.</span></div>
+    <div class="lv-row"><span class="lv-slot" data-l="yours"></span><b>Your call</b><span class="d">Taste or preference; the agent only has a lean.</span></div>
+    <div class="lv-row"><span class="lv-slot" data-l="check"></span><b>Check</b><span class="d">Stakes are real but the answer is clear: read the why and confirm.</span></div>
+    <div class="lv-row"><span class="lv-slot" data-l="skim"></span><b>Skim</b><span class="d">Low stakes: accept unless something jumps out.</span></div>
+  </div>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<aside id="aside"></aside>
+<footer>
+  <span class="staged-list" id="staged">Nothing staged</span>
+  <span class="hint">⌘↩ send</span>
+  <button type="button">Finish</button>
+  <button class="primary" type="button">Send to Agent</button>
+</footer>
+<script>
+"use strict";
+const CHECK = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M6 10.4l2.6 2.6L14 7.4" stroke="var(--on-fill)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const AXES = [["UX", "User experience"], ["CO", "Technical correctness"], ["RI", "Risk"], ["CT", "Cost"]];
+const RATE = { g: "good", x: "mixed", p: "poor", "-": "does not apply" };
+const LEVEL = { careful: "Decide carefully", yours: "Your call", check: "Check", skim: "Skim" };
+const ORDER = { careful: 0, yours: 1, check: 2, skim: 3 };
+const Q = [
+  { id: "q1", round: 1, level: "skim", reason: "low stakes", title: "Which notes sync first?", status: "answered", answer: "A",
+    body: "When a device comes back online with a backlog, something has to go first.",
+    options: [{ k: "A", t: "Most recently edited first", r: "gggg" }, { k: "B", t: "Oldest change first", r: "xggg" }],
+    rec: "A", why: "Recent edits are what you are looking at. It gives up nothing that matters: order is invisible once the backlog clears." },
+  { id: "q2", round: 1, level: "check", reason: "high stakes, clear answer", title: "Where is the source of truth?", status: "answered", answer: "A",
+    body: "Each device keeps a full copy; one place has to win when copies disagree on what exists.",
+    options: [{ k: "A", t: "The server; devices hold replicas", r: "ggxx" }, { k: "B", t: "Each device; the server only relays", r: "xppg" }],
+    rec: "A", why: "Every later decision gets simpler with one authority. Its weakest axis is risk: moving to peer-to-peer later means a migration (lock-in)." },
+  { id: "q3", round: 1, level: "careful", reason: "high stakes, close call", title: "Do edits queue on the device or stream?", status: "answered", answer: "B",
+    body: "Offline edits have to wait somewhere.",
+    options: [{ k: "A", t: "One queue row per keystroke batch", r: "xgxx" }, { k: "B", t: "A per-note pending snapshot", r: "gxgg" }],
+    rec: "B", why: "Snapshots survive app restarts with no replay logic. It gives up technical correctness: two quick edits on two devices collapse into one conflict." },
+  { id: "q4", round: 2, level: "check", reason: "high stakes, clear answer", title: "How long do deleted notes stay recoverable?", status: "open",
+    body: "A delete on one device propagates everywhere, so a mistaken delete reaches every copy.",
+    options: [{ k: "A", t: "30 days in a Recently deleted folder", r: "ggxx" }, { k: "B", t: "Gone at once; rely on backups", r: "pgpg" }, { k: "C", t: "Forever, hidden", r: "gxxp" }],
+    rec: "A", why: "Thirty days covers nearly every regret at a small storage cost. Its weakest axis is risk: shortening the window later deletes notes people expected to keep." },
+  { id: "q5", round: 2, level: "careful", reason: "high stakes, close call", title: "Where do sync conflicts get resolved?", status: "open", deps: ["q2", "q3"],
+    body: "With the server as the source of truth (Q2) and per-note snapshots (Q3), two devices editing the same note offline will collide. What happens decides whether anyone ever loses words.",
+    options: [{ k: "A", t: "Server keeps the last write; the other is dropped", r: "pxpg" }, { k: "B", t: "Merge paragraphs automatically (CRDT per note)", r: "ggxx" }, { k: "C", t: "Keep both; the person picks on next open", r: "xggg" }],
+    rec: "B", why: "Nobody loses words and nobody gets interrupted; that is what a notes app owes its users. Its weakest axis is risk: once notes are stored as CRDT documents, leaving that format is a full migration (lock-in). C is the honest alternative if that lock-in is unacceptable." },
+  { id: "q6", round: 2, level: "yours", reason: "taste; no axis separates the options", title: "What do we call a note that has not synced yet?", status: "open",
+    body: "The label shows on the note's corner while it waits. All three are clear enough; this is voice.",
+    options: [{ k: "A", t: "Not synced" }, { k: "B", t: "Local only" }, { k: "C", t: "Waiting to sync" }],
+    lean: "B", why: "Says where the note is, not what went wrong, which reads calmer when you are on a plane." },
+  { id: "q7", round: 2, level: "skim", reason: "low stakes", title: "Where does the sync indicator sit?", status: "open",
+    body: "A small cloud icon shows sync state.",
+    options: [{ k: "A", t: "Top right of the note list", r: "gggg" }, { k: "B", t: "In the status bar at the bottom", r: "xggg" }],
+    rec: "A", why: "It is where the eye already looks for account state. It costs nothing on any axis; moving it later is a one-line change." },
+];
+const threads = { q5: [
+  { who: "user", text: "Isn't a CRDT overkill for a notes app?" },
+  { who: "agent", text: "For single-paragraph notes, yes. The case it earns its keep is two devices editing different paragraphs of one long note offline: last-write-wins silently drops one of them, and the ratings show it (user experience and risk are red for A). If that case is rare for you, C gets most of the safety with no format lock-in." } ] };
+let sel = "q5"; const staged = {};
+
+const bars = (l) => `<span class="lv ${l}" title="${LEVEL[l]}"><i></i><i></i><i></i></span>`;
+const SVG = (d) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICONS = {
+  skim: SVG('<path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="1.8"/>'),
+  check: SVG('<circle cx="7" cy="7" r="4.3"/><path d="M10.2 10.2 14 14"/>'),
+  careful: SVG('<path d="M8 1.8 14.6 13.6H1.4z"/><path d="M8 6.2v3.4"/><circle cx="8" cy="11.6" r=".4" fill="currentColor"/>'),
+  yours: SVG('<circle cx="8" cy="5.2" r="2.8"/><path d="M2.6 14.2c.8-2.9 2.9-4.3 5.4-4.3s4.6 1.4 5.4 4.3"/>'),
+};
+let markStyle = "careful-yours";
+const wordsMode = () => ["careful", "careful-yours", "all"].includes(markStyle);
+const showWord = (l) => markStyle === "all" || l === "careful" || (markStyle === "careful-yours" && l === "yours");
+const lvGlyph = (l) => markStyle === "bars" ? bars(l) : markStyle === "dot" ? `<span class="sdot ${l} lvc-${l}" title="${LEVEL[l]}"></span>` : markStyle === "icons" ? `<span class="sico lvc-${l}" title="${LEVEL[l]}">${ICONS[l]}</span>` : "";
+const mark = (c, ax) => `<i class="m ${c === "-" ? "na" : c}" title="${ax}: ${RATE[c]}"></i>`;
+
+function nav() {
+  const rs = [...new Set(Q.map((q) => q.round))].sort();
+  const cur = Math.max(...rs);
+  let h = "";
+  for (const r of rs) {
+    const list = Q.filter((q) => q.round === r).sort((a, b) => ORDER[a.level] - ORDER[b.level]);
+    h += `<div class="round${r === cur ? " current" : ""}"><span>Round ${r}${r === cur ? " · current" : ""}</span><span>${list.length}</span></div>`;
+    for (const q of list) {
+      const st = staged[q.id] ? `<span class="mark staged">staged</span>` : q.status === "answered" ? `<span class="mark answered">${CHECK}${q.answer}</span>` : `<span class="mark open">open</span>`;
+      h += `<div class="item${q.id === sel ? " selected" : ""}${q.status === "answered" ? " done" : ""}" data-q="${q.id}" title="${LEVEL[q.level]} · ${q.reason}">${wordsMode() ? "" : `<span class="mk">${lvGlyph(q.level)}</span>`}<span class="id">${q.id.toUpperCase()}</span><span class="t">${q.title}${wordsMode() && showWord(q.level) ? `<span class="sword lvc-${q.level}">${LEVEL[q.level]}</span>` : ""}</span>${st}</div>`;
+    }
+  }
+  const n = document.getElementById("nav"); n.innerHTML = h;
+  n.querySelectorAll(".item").forEach((el) => (el.onclick = () => { sel = el.dataset.q; render(); }));
+}
+
+function card() {
+  const q = Q.find((x) => x.id === sel);
+  const taste = q.level === "yours";
+  const pick = staged[q.id] || (q.status === "answered" ? q.answer : null);
+  const crumb = [`${q.id.toUpperCase()} · round ${q.round}`, q.deps ? `<span>after ${q.deps.map((d) => `<a href="#" data-go="${d}">${d.toUpperCase()}</a>`).join(", ")}</span>` : "<span>root</span>"];
+  const head = "";
+  const opts = q.options.map((o) => {
+    const isRec = (q.rec || q.lean) === o.k;
+    const cls = ["opt", isRec ? (taste ? "lean" : "rec") : "", pick === o.k ? (staged[q.id] ? "staged" : "chosen") : ""].join(" ");
+    const tag = isRec ? `<div class="tag">${taste ? "My lean" : "Recommended"}</div>` : "";
+    const chips = taste ? "" : `<div class="chips">${[...o.r].map((c, i) => c === "-" ? "" : `<span class="chip ${c}" title="${AXES[i][1]}: ${RATE[c]}">${AXES[i][1]}</span>`).join("")}</div>`;
+    return `<li class="${cls}" data-k="${o.k}"><span class="k">${o.k}</span><span>${tag}${o.t}${chips}</span><span class="check">${CHECK}</span></li>`;
+  }).join("");
+  const key = "";
+  const whyHtml = q.why.replace(/(It gives up [a-z ]+|Its weakest axis is [a-z ]+)/, '<span class="weak">$1</span>');
+  const why = taste ? `<p class="why lean"><b>Leaning ${q.lean}.</b> ${q.why}</p><p class="note-taste">This one is yours: the axes do not separate these options, so there are no ratings.</p>`
+    : `<p class="why"><b>Why ${q.rec}.</b> ${whyHtml}</p>`;
+  const m = document.getElementById("main");
+  m.innerHTML = `<article class="card${pick ? " picked" : ""}">
+    <div class="crumb">${crumb.join("")}</div>
+    <div class="imp ${q.level}">${lvGlyph(q.level)}<b>${LEVEL[q.level]}</b><span class="why-l">${q.reason}</span></div>
+    <div class="title-row"><h2>${q.title}</h2><button class="ex" type="button">Explore deeper</button></div>
+    <p class="body">${q.body}</p>
+    <ul class="opts${taste ? " norate" : ""}" style="${taste ? "margin-top:22px" : ""}">${opts}</ul>
+    ${why}
+    ${staged[q.id] ? `<div class="staged-line">Staged: option ${staged[q.id]}</div>` : ""}
+    <div class="answer-row"><textarea placeholder="Free-text answer, if none of the options fit…"></textarea><button type="button">Stage text</button></div>
+    <div class="links"><a href="#">Defer this question</a></div>
+  </article>`;
+  m.querySelectorAll(".opt").forEach((o) => (o.onclick = () => { if (q.status === "answered") return; staged[q.id] = o.dataset.k; render(); }));
+  m.querySelectorAll("[data-go]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); sel = a.dataset.go; render(); }));
+}
+
+function aside() {
+  const q = Q.find((x) => x.id === sel);
+  const t = threads[q.id] || [];
+  document.getElementById("aside").innerHTML = `<div class="head"><h3>Discussion</h3><div class="sub">${q.id.toUpperCase()} · ${q.title}</div></div>
+    <div class="msgs">${t.length ? t.map((m) => `<div class="msg ${m.who}"><div class="who">${m.who === "user" ? "You" : "Agent"}</div><div class="text">${m.text}</div></div>`).join("") : `<div class="empty-thread">No discussion yet.</div>`}</div>
+    <div class="compose"><textarea placeholder="Ask about this question…"></textarea><button type="button">Stage</button></div>`;
+}
+
+function footer() {
+  const k = Object.keys(staged);
+  document.getElementById("staged").innerHTML = k.length ? `<b>${k.length} staged</b> · ${k.map((x) => `${x.toUpperCase()} → ${staged[x]}`).join(", ")}` : "Nothing staged";
+}
+function levelsPop() { document.querySelectorAll(".lv-slot").forEach((el) => { const l = el.dataset.l; el.innerHTML = wordsMode() ? `<span class="sdot ${l} lvc-${l}"></span>` : lvGlyph(l); }); }
+function render() { document.body.className = wordsMode() ? "mk-words" : "mk-" + markStyle; document.querySelectorAll("#mk-switch button").forEach((b) => b.classList.toggle("on", b.dataset.mk === markStyle)); levelsPop(); nav(); card(); aside(); footer(); }
+document.querySelectorAll("#mk-switch button").forEach((b) => (b.onclick = () => { markStyle = b.dataset.mk; render(); }));
+function toggle(btn, pop, other) {
+  document.getElementById(btn).onclick = () => { document.getElementById(other).classList.remove("show"); document.getElementById(pop).classList.toggle("show"); };
+}
+document.getElementById("t-levels").onclick = () => document.getElementById("levels-pop").classList.toggle("show");
+const THEMES = ["system", "light", "dark"]; let theme = "system";
+document.getElementById("theme-toggle").onclick = (e) => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; document.documentElement.dataset.theme = theme; e.target.textContent = "Theme: " + theme; };
+render();
+</script>
+</body>
+</html>
