@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+
+# config hash: {{ include "dot_config/herdr/config.toml" | sha256sum }}
+# manifest hash: {{ include "dot_config/herdr/toggle-popup/herdr-plugin.toml" | sha256sum }}
+# toggle hash: {{ include "dot_config/herdr/toggle-popup/toggle_popup.py" | sha256sum }}
+# proxy hash: {{ include "dot_config/herdr/toggle-popup/proxy.py" | sha256sum }}
+# keys hash: {{ include "dot_config/herdr/toggle-popup/keys.py" | sha256sum }}
+# herdr api hash: {{ include "dot_config/herdr/toggle-popup/herdr_api.py" | sha256sum }}
+# config reader hash: {{ include "dot_config/herdr/toggle-popup/herdr_config.py" | sha256sum }}
+# popup records hash: {{ include "dot_config/herdr/toggle-popup/popups.py" | sha256sum }}
+# hooks hash: {{ include "dot_config/herdr/toggle-popup/hooks.py" | sha256sum }}
+# python check hash: {{ include "dot_config/herdr/toggle-popup/python_guard.py" | sha256sum }}
+# launcher hash: {{ include "dot_config/herdr/toggle-popup/launch.py" | sha256sum }}
+
+herdr plugin link "{{ .chezmoi.homeDir }}/.config/herdr/toggle-popup" --enabled
+
+# Reload only the invoking Herdr session, not another client's focused session.
+if [ "${HERDR_ENV:-}" = 1 ] && [ -n "${HERDR_SOCKET_PATH:-}" ]; then
+    herdr server reload-config
+fi

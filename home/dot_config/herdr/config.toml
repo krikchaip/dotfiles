@@ -109,27 +109,21 @@ description = "Move tab and panes to another or a new workspace"
 
 [[keys.command]]
 key = "prefix+f"
-type = "popup"
-command = "exec nu"
-description = "Open floating terminal"
-width = "80%"
-height = "80%"
+type = "shell"
+description = "Toggle floating shell"
+command = 'python3 ~/.config/herdr/toggle-popup/toggle_popup.py --name floating --toggle-key prefix+f -d "$HERDR_ACTIVE_PANE_CWD" -- nu'
 
 [[keys.command]]
 key = "alt+y"
-type = "popup"
-command = "exec yazi"
-description = "Open Yazi"
-width = "80%"
-height = "80%"
+type = "shell"
+description = "Toggle Yazi"
+command = 'python3 ~/.config/herdr/toggle-popup/toggle_popup.py --name yazi --toggle-key alt+y -d "$HERDR_ACTIVE_PANE_CWD" -- yazi'
 
 [[keys.command]]
 key = "alt+g"
-type = "popup"
-command = "exec lazygit-recent"
-description = "Open Lazygit"
-width = "80%"
-height = "80%"
+type = "shell"
+description = "Toggle lazygit for the Git root"
+command = 'root=$(git -C "$HERDR_ACTIVE_PANE_CWD" rev-parse --show-toplevel 2>/dev/null || printf %s "$HERDR_ACTIVE_PANE_CWD"); exec python3 ~/.config/herdr/toggle-popup/toggle_popup.py --name lazygit --scope pwd --toggle-key alt+g -d "$root" -- lazygit-recent'
 
 [session]
 resume_agents_on_restore = true

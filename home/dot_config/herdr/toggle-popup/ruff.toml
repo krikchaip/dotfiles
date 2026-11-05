@@ -1,0 +1,12 @@
+# Lint settings for the plugin and its tests. `src` makes the import order
+# the same from every folder: test modules such as `fakes` are first party.
+line-length = 100
+src = [".", "test", "test/e2e"]
+
+[lint]
+select = ["F", "B", "E", "W", "I"]
+
+[lint.per-file-ignores]
+# The entry points check the Python version before they import the other
+# plugin modules (see python_guard.py). E402 allows a sys.path change already.
+"{toggle_popup,proxy,hooks}.py" = ["E402"]

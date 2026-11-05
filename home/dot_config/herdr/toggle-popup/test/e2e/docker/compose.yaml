@@ -1,0 +1,27 @@
+# E2E tests in Linux containers. Run them with ./run-docker.sh.
+name: toggle-popup-e2e
+
+x-service: &service
+  image: toggle-popup-e2e
+  build: .
+  init: true
+  volumes:
+    - ../../..:/plugin:ro
+    # The user's other plugins, next to /plugin as in the repo.
+    - ../../../../navigation:/navigation:ro
+    - ../../../../session-titles:/session-titles:ro
+
+services:
+  remote:
+    <<: *service
+    command: ["/usr/sbin/sshd", "-D", "-e"]
+
+  client:
+    <<: *service
+    user: tester
+    depends_on: [remote]
+    working_dir: /plugin/test/e2e
+    environment:
+      E2E_REMOTE: remote
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: ["python3", "-m", "unittest", "-v", "test_popups"]

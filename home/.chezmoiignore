@@ -12,6 +12,10 @@
 
 .config/herdr/navigation/__pycache__/
 
+.config/herdr/toggle-popup/__pycache__/
+.config/herdr/toggle-popup/ruff.toml
+.config/herdr/toggle-popup/test/
+
 .config/yazi/plugins/kitty-popup.yazi/__pycache__/
 .config/yazi/plugins/kitty-popup.yazi/test/
 
