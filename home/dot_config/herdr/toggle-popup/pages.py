@@ -237,9 +237,10 @@ def picker_columns(rows, cols):
     return place_x, min(command_x, 2 * cols // 3)
 
 
-def picker_page(rows, cols, query, found, total, selected, columns):
+def picker_page(rows, cols, query, cursor, found, total, selected, columns):
     """The picker. `found` are the (row, hits) that match `query`, of `total`
-    popups. `selected` is the index of the selected row in `found`."""
+    popups. `cursor` is the index in `query` of the input cursor. `selected`
+    is the index of the selected row in `found`."""
     canvas = Canvas(rows, cols)
     hints = [("↑↓", "move"), ("enter", "show"), ("esc", "clear" if query else "stay")]
     header_footer(canvas, "Switch popup", f"{len(found)} of {total}", hints)
@@ -247,11 +248,15 @@ def picker_page(rows, cols, query, found, total, selected, columns):
     canvas.fill(3, 1, cols - 2, "surface0")
     canvas.put(3, 3, "›", "accent", "surface0", True)
     room = max(1, cols - 8)
-    shown = query
+    # Scroll a long filter so that the cursor cell stays in the field.
+    start = 0
+    while cells(query[start:cursor]) > room - 1:
+        start += 1
+    shown = query[start:]
     while cells(shown) > room:
-        shown = shown[1:]
+        shown = shown[:-1]
     canvas.put(3, 5, shown or "Filter popups", "text" if query else "overlay0", "surface0")
-    canvas.cursor = (3, min(5 + cells(shown), cols - 1))
+    canvas.cursor = (3, min(5 + cells(query[start:cursor]), cols - 1))
     if not found:
         x = canvas.put(5, 5, "No popup matches ", "overlay1")
         canvas.put(5, x, fit(f"“{query}”", cols - x - 2), "text", bold=True)

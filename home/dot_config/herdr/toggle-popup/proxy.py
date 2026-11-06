@@ -656,18 +656,36 @@ def typed_char(key):
     return char if char is not None and char.isprintable() else None
 
 
-def edit_filter(query, key):
-    """The picker filter after a key: backspace, ctrl+w, ctrl+u, or typed text."""
+def edit_filter(query, cursor, key):
+    """The picker filter and its cursor after a key, as navigation's input edits.
+
+    Left/right, home/end and ctrl+a/ctrl+e move. Backspace and ctrl+w delete
+    before the cursor, delete after it, and ctrl+u clears. Text goes in at
+    the cursor.
+    """
     combo = key.combo
+    if combo in (Combo("left", 0), Combo("right", 0)):
+        step = -1 if combo.name == "left" else 1
+        return query, min(len(query), max(0, cursor + step))
+    if combo in (Combo("home", 0), Combo("a", CTRL)):
+        return query, 0
+    if combo in (Combo("end", 0), Combo("e", CTRL)):
+        return query, len(query)
     if combo in (Combo("backspace", 0), Combo("h", CTRL)):
-        return query[:-1]
+        start = max(0, cursor - 1)
+        return query[:start] + query[cursor:], start
+    if combo == Combo("delete", 0):
+        return query[:cursor] + query[cursor + 1:], cursor
     if combo == Combo("w", CTRL):
-        # Delete the last word, as a shell does.
-        return query.rstrip().rpartition(" ")[0]
+        # Delete the word before the cursor, as a shell does.
+        start = len(query[:cursor].rstrip().rpartition(" ")[0])
+        return query[:start] + query[cursor:], start
     if combo == Combo("u", CTRL):
-        return ""
+        return "", 0
     char = typed_char(key)
-    return query + char if char is not None else query
+    if char is None:
+        return query, cursor
+    return query[:cursor] + char + query[cursor:], cursor + 1
 
 
 class Next(enum.Enum):
@@ -940,14 +958,16 @@ class Proxy:
             return None, False
         tokens = pages.theme()
         here = next((n for n, row in enumerate(rows) if row.current), 0)
-        query, selected = "", here
+        query, cursor, selected = "", 0, here
         key_filter = self.key_filter(to_program=False)
         while True:
             found = pages.matches(rows, query)
             selected = min(selected, max(0, len(found) - 1))
-            self.screen.draw(lambda height, width, query=query, found=found, selected=selected:
-                             pages.picker_page(height, width, query, found, len(rows), selected,
-                                               pages.picker_columns(rows, width)).render(tokens))
+            self.screen.draw(lambda height, width, query=query, cursor=cursor, found=found,
+                             selected=selected:
+                             pages.picker_page(height, width, query, cursor, found, len(rows),
+                                               selected, pages.picker_columns(rows, width))
+                             .render(tokens))
             key = self.screen.read_key(key_filter)
             if isinstance(key, Action):
                 if key is Action.PICKER:
@@ -962,7 +982,7 @@ class Proxy:
             if combo == Combo("esc", 0):
                 if not query:
                     break
-                query, selected = "", here
+                query, cursor, selected = "", 0, here
             elif combo in (Combo("down", 0), Combo("n", CTRL)):
                 selected = (selected + 1) % max(1, len(found))
             elif combo in (Combo("up", 0), Combo("p", CTRL)):
@@ -978,7 +998,7 @@ class Proxy:
                     return None, True
                 break
             else:
-                edited = edit_filter(query, key)
+                edited, cursor = edit_filter(query, cursor, key)
                 if edited != query:
                     query = edited
                     selected = 0 if query else here

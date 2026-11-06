@@ -734,6 +734,23 @@ class Pages(ShellPopups, StageCase):
         s.wait_screen("beta-ready")
         self.assertIn(self.s.popup_id("beta"), trace_ids(s, "switch"))
 
+    def test_the_filter_cursor_moves_and_edits_in_place(self):
+        s = self.s
+        self.open_picker()
+        s.text("bta-")
+        s.wait_screen("› bta-")
+        # Back to after "b", then type the missing "e" there.
+        s.keys("Left", "Left", "Left")
+        s.text("e")
+        s.wait_screen("› beta-")
+        # The terminal cursor is after "be", inside the field.
+        start = s.popup_lines()[3].index("›") + 2
+        self.assertEqual(s.popup_cursor(), (3, start + 2))
+        # Home, delete, End, backspace: "eta".
+        s.keys("Home", "DC", "End", "BSpace")
+        s.wait_screen("› eta ")
+        self.assertEqual(s.popup_cursor(), (3, start + 3))
+
     def test_esc_clears_the_filter_then_keeps_this_popup(self):
         s = self.s
         self.open_picker()

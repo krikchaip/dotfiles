@@ -546,13 +546,30 @@ class FilterEdits(unittest.TestCase):
         return keys.Tokenizer().feed(data)[0].key
 
     def test_keys_edit_the_filter(self):
-        cases = [("ab", b"\x7f", "a"), ("ab", b"\x08", "a"), ("ab cd", b"\x17", "ab"),
-                 ("ab ", b"\x17", ""), ("ab", b"\x15", ""), ("ab", b"c", "abc"),
-                 ("", b"Q", "Q"), ("", b"?", "?"), ("", b" ", " "),
-                 ("ab", b"\x1b[A", "ab"), ("ab", b"\x01", "ab")]
-        for query, data, edited in cases:
-            with self.subTest(query=query, data=data):
-                self.assertEqual(proxy.edit_filter(query, self.press(data)), edited)
+        # (filter, cursor, key) -> (filter, cursor). "|" marks the cursor.
+        cases = [("ab|", b"\x7f", "a|"), ("ab|", b"\x08", "a|"), ("ab cd|", b"\x17", "ab|"),
+                 ("ab |", b"\x17", "|"), ("ab|", b"\x15", "|"), ("ab|", b"c", "abc|"),
+                 ("|", b"Q", "Q|"), ("|", b"?", "?|"), ("|", b" ", " |"),
+                 ("ab|", b"\x1b[A", "ab|"), ("|ab", b"\x7f", "|ab"), ("ab|", b"\x1b[3~", "ab|")]
+        for before, data, after in cases:
+            with self.subTest(before=before, data=data):
+                self.assertEqual(self.edit(before, data), after)
+
+    def test_the_cursor_moves_and_edits_in_place(self):
+        cases = [("abc|", b"\x1b[D", "ab|c"), ("|abc", b"\x1b[D", "|abc"),
+                 ("ab|c", b"\x1b[C", "abc|"), ("abc|", b"\x1b[C", "abc|"),
+                 ("ab|c", b"\x1b[H", "|abc"), ("ab|c", b"\x01", "|abc"),
+                 ("a|bc", b"\x1b[F", "abc|"), ("a|bc", b"\x05", "abc|"),
+                 ("b|ta", b"e", "be|ta"), ("ab|c", b"\x7f", "a|c"), ("a|bc", b"\x1b[3~", "a|c"),
+                 ("ab cd| ef", b"\x17", "ab| ef"), ("ab|cd", b"\x15", "|")]
+        for before, data, after in cases:
+            with self.subTest(before=before, data=data):
+                self.assertEqual(self.edit(before, data), after)
+
+    def edit(self, before, data):
+        query, cursor = proxy.edit_filter(before.replace("|", ""), before.index("|"),
+                                          self.press(data))
+        return query[:cursor] + "|" + query[cursor:]
 
     def test_kitty_keys_type_their_characters(self):
         self.assertEqual(proxy.typed_char(self.press(b"\x1b[97u")), "a")

@@ -120,8 +120,10 @@ Picker:
   count. `j`, `k` and `q` are filter text.
 - A new filter selects the first match. An empty filter selects the open
   popup again.
-- `↑`/`↓` or `ctrl+n`/`ctrl+p` move. `Enter` switches. `Backspace`,
-  `ctrl+w`, `ctrl+u` edit the filter.
+- `↑`/`↓` or `ctrl+n`/`ctrl+p` move. `Enter` switches.
+- The filter edits at its cursor: `←`/`→`, `Home`/`End` and
+  `ctrl+a`/`ctrl+e` move it. `Backspace` and `ctrl+w` delete before it,
+  `Delete` after it. `ctrl+u` clears the filter.
 - `Esc` clears the filter; with an empty filter it cancels. `ctrl+c`
   cancels.
 - Toggle keys and `prefix` `q`, `?`, `e` also work here. They come before

@@ -134,11 +134,11 @@ class Pages(unittest.TestCase):
         keys = proxy.help_rows(["ctrl+;"], ["prefix+f"], ["prefix+e"])
         return pages.help_page(rows, cols, "floating popup", "7151f9 · prefix ctrl+;", keys)
 
-    def picker(self, query="", rows=24, cols=120, data=ROWS):
+    def picker(self, query="", rows=24, cols=120, data=ROWS, cursor=None):
         found = pages.matches(data, query)
         current = next((n for n, (row, _) in enumerate(found) if row.current and not query), 0)
-        return pages.picker_page(rows, cols, query, found, len(data), current,
-                                 pages.picker_columns(data, cols))
+        return pages.picker_page(rows, cols, query, len(query) if cursor is None else cursor,
+                                 found, len(data), current, pages.picker_columns(data, cols))
 
     def test_every_color_is_a_theme_token(self):
         tokens = theme(TOKENS)
@@ -184,6 +184,20 @@ class Pages(unittest.TestCase):
                          ["accent", "text", "text", "text", "accent", "text", "text"])
         self.assertEqual(canvas.cursor, (3, 7))
         self.assertIn("esc  clear", rows[-2])
+
+    def test_the_input_cursor_shows_where_text_goes_in(self):
+        self.assertEqual(self.picker("lazy", cursor=1).cursor, (3, 6))
+        # A filter longer than the field scrolls, so the cursor stays in the field.
+        query = "abcdefghij" * 3
+        for cursor in (0, 15, 30):
+            with self.subTest(cursor=cursor):
+                canvas = self.picker(query, cols=20, cursor=cursor)
+                row = text_rows(canvas)[3]
+                self.assertLessEqual(canvas.cursor[1], 17)
+                self.assertGreaterEqual(canvas.cursor[1], 5)
+                # The character at the cursor is the one after the cursor in the filter.
+                if cursor < len(query):
+                    self.assertEqual(row[canvas.cursor[1]], query[cursor])
 
     def test_no_match_shows_a_note(self):
         rows = text_rows(self.picker("qqq"))

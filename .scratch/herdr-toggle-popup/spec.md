@@ -169,7 +169,7 @@ The outer key and the toggle keys are independent. The `key` in `[[keys.command]
   - **Picker contents:** the `prefix` `g` picker lists only the popups of this Herdr session, like Herdr's goto list. The first group holds the `pwd` and `session` popups, under the session name. A `pwd` popup shows its folder, for example `~/proj/shop`. Then come the workspace groups, holding the `workspace` and `tab` popups, in the session's workspace order. The picker runs the sweep first.
   - **Picker keys and filter:** the `prefix` `g` picker has a filter field. Typed text filters the list with an fzf-style match: the letters must appear in order. The match checks the label, the command, the folder, and the group name, and the matched letters show in the accent color.
     - Up/down and `ctrl+n`/`ctrl+p` move. Enter switches.
-    - Backspace, `ctrl+w` and `ctrl+u` edit the filter.
+    - The filter edits at its cursor: left/right, home/end and `ctrl+a`/`ctrl+e` move it. Backspace and `ctrl+w` delete before it, and delete after it. `ctrl+u` clears the filter.
     - Esc clears the filter. When the filter is empty, Esc cancels, as in `navigation`'s move dialog. `ctrl+c` cancels.
     - The toggle keys and `prefix` `q`, `?` and `e` still work, and they come before filter text. `j`, `k` and `q` are filter text.
   - **Page look:** the help page and the picker use look A of the prototype (`.scratch/herdr-toggle-popup/prototypes/pages.py`).

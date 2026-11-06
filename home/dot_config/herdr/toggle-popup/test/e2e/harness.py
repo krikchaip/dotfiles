@@ -489,6 +489,15 @@ class Stage:
             rows.append(line[start + 1:end].rstrip())
         return rows
 
+    def popup_cursor(self, target="main"):
+        """The terminal cursor as (row, column) inside the popup frame, as popup_lines() counts."""
+        lines = self.screen(target).splitlines()
+        top = next(index for index, line in enumerate(lines) if POPUP_FRAME.search(line))
+        start = POPUP_FRAME.search(lines[top]).start()
+        y, x = map(int, self.tmux("display-message", "-p", "-t", target,
+                                  "#{cursor_y} #{cursor_x}").split())
+        return y - top - 1, x - start - 1
+
     def wait_popup_closed(self, target="main"):
         self.wait(lambda: not self.popup_visible(target), f"the popup frame on {target} to go")
 
