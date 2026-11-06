@@ -4,11 +4,14 @@ Each entry point calls require_python() before it imports another plugin
 module. Keep this file valid for old Python 3 versions, so that the check can
 run there: use only the standard library, and no new syntax.
 
-Herdr runs shell keys with `/bin/sh -lc`. On macOS the login PATH puts
-/usr/bin first, so `python3` is /usr/bin/python3 (3.9). The check then runs
-the entry point again with the newest `python3.N` (N >= 11) on PATH that
-works. When there is no such Python, it stops with one error. A toggle or a
-popup shows the error as a toast; a hook only writes it to stderr.
+The entry points are toggle_popup.py and hooks.py. Herdr runs them with
+the PATH of its server, and on macOS that PATH puts /usr/bin first, so
+`python3` is /usr/bin/python3 (3.9). toggle.sh runs the Homebrew python3
+when it exists, else `python3` from a login shell. The hooks and other
+hosts can still start on an old Python. The check then runs the entry point again with the newest
+`python3.N` (N >= 11) on PATH that works. When there is no such Python, it
+stops with one error. A toggle shows the error as a toast; a hook only
+writes it to stderr.
 
 A key press must feel instant, so this file imports only os and sys on the
 way to a newer Python, and the check of a candidate (a full Python start)
@@ -18,7 +21,7 @@ Python that passed it. It is plain text: on the system Python of macOS,
 
 The check runs again on the interpreter file itself, not on the candidate.
 A candidate can be the shim of a version manager (pyenv, asdf, mise): a
-script that selects a Python from the current folder. A shell key runs in
+script that selects a Python from the current folder. A popup key runs in
 the folder of the focused pane, so the same shim can fail in the next
 folder. The shim also takes time to start.
 """
@@ -37,7 +40,7 @@ CHECKED_FILE = "python-checked.txt"
 
 
 def plugin_state_path():
-    """The plugin state folder. Shell keys do not get HERDR_PLUGIN_STATE_DIR."""
+    """The plugin state folder. Popup keys do not get HERDR_PLUGIN_STATE_DIR."""
     path = os.environ.get("HERDR_PLUGIN_STATE_DIR")
     if path:
         return path

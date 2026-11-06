@@ -1,7 +1,7 @@
-"""The Python version guard of the three entry points, on a Python older than 3.11.
+"""The Python version guard of the two entry points, on a Python older than 3.11.
 
-macOS shell keys run `python3` as /usr/bin/python3 (3.9). These tests run the
-real entry files on that Python in a subprocess.
+On macOS, Herdr finds `python3` as /usr/bin/python3 (3.9). These tests run
+the real entry files on that Python in a subprocess.
 """
 
 import json
@@ -16,7 +16,6 @@ import unittest
 import unittest.mock
 
 PLUGIN = pathlib.Path(__file__).resolve().parents[1]
-ENTRY_POINTS = ("toggle_popup.py", "proxy.py", "hooks.py")
 MESSAGE = "toggle-popup needs Python 3.11+ (found {})"
 
 
@@ -218,14 +217,12 @@ class OldPython(unittest.TestCase):
         path.chmod(0o755)
         return path
 
-    def test_without_a_newer_python_a_toggle_or_popup_shows_one_clear_toast(self):
+    def test_without_a_newer_python_a_toggle_shows_one_clear_toast(self):
         message = MESSAGE.format(OLD_VERSION)
-        for name in ("toggle_popup.py", "proxy.py"):
-            with self.subTest(entry=name):
-                result, toasts = self.run_with_toasts(name)
-                self.assertEqual(result.returncode, 1)
-                self.assertIn(message, result.stderr)
-                self.assertEqual(toasts, [message])
+        result, toasts = self.run_with_toasts("toggle_popup.py")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(message, result.stderr)
+        self.assertEqual(toasts, [message])
 
     def test_without_a_newer_python_a_hook_writes_only_to_stderr(self):
         result, toasts = self.run_with_toasts("hooks.py")
@@ -235,9 +232,9 @@ class OldPython(unittest.TestCase):
 
     def test_a_newer_python_on_the_path_runs_the_entry_point_again(self):
         # The plugin then runs on the newer Python. Without HERDR_SOCKET_PATH,
-        # the toggle and the proxy fail in their own code, and the hook does nothing.
+        # the toggle fails in its own code, and the hook does nothing.
         (self.bin / f"python3.{sys.version_info.minor}").symlink_to(sys.executable)
-        expected = {"toggle_popup.py": 1, "proxy.py": 1, "hooks.py": 0}
+        expected = {"toggle_popup.py": 1, "hooks.py": 0}
         for name, code in expected.items():
             with self.subTest(entry=name):
                 result = self.run_entry(name)

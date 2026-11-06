@@ -4,15 +4,17 @@
 Usage: bench_toggle.py [RUNS [POLL_MS]]
 
 It starts an isolated stage (its own tmux server and Herdr sessions, as in
-the E2E tests), binds alt+1 to a popup, and presses the key. It measures
-the time from the key to the popup frame, and to the program's text in it.
-The first show also starts the popup server and the program (cold). Each
-later show finds the popup running (warm).
+the E2E tests), binds alt+1 to a popup that runs toggle.sh, as the repo
+config does, and presses the key. It measures the time from the key to the
+popup frame, and to the program's text in it. The first show also starts
+the popup server and the program (cold). Each later show finds the popup
+running (warm).
 
 It runs twice: with the stage's PATH, and with /usr/bin first on the PATH
-of the Herdr servers. On macOS both find /usr/bin/python3 (3.9) for the
-key: Herdr runs keys with `/bin/sh -lc`, and the login shell puts /usr/bin
-first. On Linux only the second run does.
+of the Herdr servers, as on a Mac where Herdr starts from a login shell.
+toggle.sh runs /opt/homebrew/bin/python3 when it exists, so on such a Mac
+the two runs are the same. Elsewhere the second run can find an old
+python3, and the version check then runs.
 
 Python keeps the bytecode of the plugin, as it does in ~/.config/herdr, but
 in the stage folder. The bench polls the screen each POLL_MS (default 2).
@@ -20,7 +22,6 @@ Each poll starts a tmux process, so a short interval loads the machine.
 """
 
 import os
-import shlex
 import statistics
 import sys
 import time
@@ -71,9 +72,8 @@ def bench(runs, usr_bin_first):
         stage.env["PATH"] = "/usr/bin:" + stage.env.get("PATH", os.defpath)
     try:
         stage.start()
-        argv = ["exec", "python3", str(harness.PLUGIN / "toggle_popup.py"),
-                "--toggle-key", "alt+1", "--", "/bin/sh", "-c", f"echo {READY}; exec cat"]
-        (stage.slots / "alt-1.sh").write_text(shlex.join(argv) + "\n", encoding="utf-8")
+        stage.slot("alt+1", "--toggle-key", "alt+1", "--",
+                   "/bin/sh", "-c", f"echo {READY}; exec cat")
         cold = show(stage)
         hide(stage)
         warm = []

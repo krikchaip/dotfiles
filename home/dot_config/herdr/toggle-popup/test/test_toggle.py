@@ -6,7 +6,9 @@ import io
 import json
 import os
 import pathlib
+import select
 import shlex
+import signal
 import socket
 import subprocess
 import sys
@@ -23,6 +25,7 @@ import herdr_config
 import keys
 import launch
 import popups
+import proxy
 import toggle_popup
 from fakes import FakeOwners, FakePopupSession, FakeServerProcess
 from herdr_api import HerdrError
@@ -49,14 +52,17 @@ class Flags(unittest.TestCase):
         self.assertEqual(options.toggle_keys, ["prefix+f", "ctrl+z"])
         self.assertEqual(options.directory, "/tmp/x")
         self.assertEqual(options.command, ["nu"])
-        self.assertEqual((options.width, options.height), ("80%", "80%"))
 
-    def test_equals_form_sizes_scope_and_command_arguments(self):
-        options = parse_args(["--scope=pwd", "-w", "120", "-h", "50%", "--",
-                              "lazygit", "-p", "--", "x"])
+    def test_equals_form_scope_and_command_arguments(self):
+        options = parse_args(["--scope=pwd", "--", "lazygit", "-p", "--", "x"])
         self.assertEqual(options.scope, "pwd")
-        self.assertEqual((options.width, options.height), (120, "50%"))
         self.assertEqual(options.command, ["lazygit", "-p", "--", "x"])
+
+    def test_the_bind_sets_the_size_not_a_flag(self):
+        for argv in (["-w", "80%"], ["-h", "80%"]):
+            with self.subTest(argv=argv):
+                with self.assertRaisesRegex(UsageError, "unrecognized arguments"):
+                    parse_args(argv)
 
     def test_no_command_means_the_default_shell(self):
         self.assertIsNone(parse_args(["--name", "x"]).command)
@@ -72,9 +78,8 @@ class Flags(unittest.TestCase):
                 self.assertEqual(parse_args(["--scope", scope]).scope, scope)
 
     def test_bad_values_are_usage_errors(self):
-        for argv in (["--toggle-key", "ctrl+nope"], ["-w", "0"], ["-h", "120%"],
-                     ["--bogus"], ["--name", ""], ["--"], ["--scope", "git"],
-                     ["--id", "x"]):
+        for argv in (["--toggle-key", "ctrl+nope"], ["--bogus"], ["--name", ""], ["--"],
+                     ["--scope", "git"], ["--id", "x"]):
             with self.subTest(argv=argv):
                 with self.assertRaises(UsageError):
                     parse_args(argv)
@@ -162,10 +167,9 @@ class PopupIdentity(unittest.TestCase):
         self.assertEqual(identity("--toggle-key", "alt+g", "--toggle-key", "ctrl+z")[0],
                          identity("--toggle-key", "ctrl+z", "--toggle-key", "alt+g")[0])
 
-    def test_label_size_and_folder_are_not_part_of_the_id(self):
+    def test_label_and_folder_are_not_part_of_the_id(self):
         base = identity("--", "nu")[0]
-        self.assertEqual(identity("--name", "floating", "-w", "50%", "-h", "20", "-d", "/tmp",
-                                  "--", "nu")[0], base)
+        self.assertEqual(identity("--name", "floating", "-d", "/tmp", "--", "nu")[0], base)
 
     def test_another_split_of_the_same_words_is_another_popup(self):
         self.assertNotEqual(identity("--", "sh -c", "x")[0], identity("--", "sh", "-c x")[0])
@@ -332,11 +336,15 @@ class RealConfig(unittest.TestCase):
 
     def test_each_toggle_popup_bind_has_valid_flags(self):
         binds = tomllib.loads(self.PATH.read_text(encoding="utf-8"))["keys"]["command"]
-        commands = [bind["command"] for bind in binds if "toggle_popup.py" in bind["command"]]
-        self.assertEqual(len(commands), 3)
-        for command in commands:
-            with self.subTest(command=command):
-                options = parse_args(shlex.split(command.split("toggle_popup.py", 1)[1]))
+        binds = [bind for bind in binds if "toggle-popup/" in bind["command"]]
+        self.assertEqual(len(binds), 3)
+        for bind in binds:
+            with self.subTest(command=bind["command"]):
+                # Herdr's own popup runs toggle.sh, at the size of the bind.
+                self.assertEqual((bind["type"], bind["width"], bind["height"]),
+                                 ("popup", "80%", "80%"))
+                self.assertIn("exec ~/.config/herdr/toggle-popup/toggle.sh ", bind["command"])
+                options = parse_args(shlex.split(bind["command"].split("toggle.sh", 1)[1]))
                 self.assertTrue(options.toggle_keys)
                 for text in options.toggle_keys:
                     keys.parse_binding(text)
@@ -412,75 +420,90 @@ class FakeMain:
         self.call("notification.show", {"title": title, "body": body})
 
 
-class OpenEnv(unittest.TestCase):
-    def test_the_proxy_gets_the_popup_id_and_the_keys(self):
-        main = FakeMain()
-        for default_shell, text in ((None, "null"), ("/opt/bin/nu", '"/opt/bin/nu"')):
-            with self.subTest(default_shell=default_shell):
-                toggle_popup.open_popup(main, "a3f9c2", parse_args(["--name", "x"]),
-                                        HerdrConfig(["ctrl+;"], ["prefix+e"], default_shell))
-                method, params = main.calls[-1]
-                self.assertEqual(method, "plugin.pane.open")
-                self.assertEqual(params["env"], {"TOGGLE_POPUP_ID": "a3f9c2",
-                                                 "TOGGLE_POPUP_PREFIX": '["ctrl+;"]',
-                                                 "TOGGLE_POPUP_SCROLLBACK": '["prefix+e"]',
-                                                 "TOGGLE_POPUP_MAIN_DEFAULT_SHELL": text,
-                                                 "TOGGLE_POPUP_PYTHON": sys.executable})
-                self.assertEqual(herdr_api.read_proxy_env(params["env"]),
-                                 ("a3f9c2", ["ctrl+;"], ["prefix+e"], default_shell))
+class ToggleScript(unittest.TestCase):
+    """toggle.sh, which the popup binds run, starts toggle_popup.py on a Python."""
 
-    def test_a_bad_default_shell_value_is_an_error(self):
-        env = herdr_api.proxy_env("a3f9c2", [], [], None)
-        env["TOGGLE_POPUP_MAIN_DEFAULT_SHELL"] = "[1]"
-        with self.assertRaisesRegex(ValueError, "TOGGLE_POPUP_MAIN_DEFAULT_SHELL must be"):
-            herdr_api.read_proxy_env(env)
-
-
-class PopupCommand(unittest.TestCase):
-    """The manifest's popup command runs the proxy on the toggle's Python."""
-
-    MANIFEST = pathlib.Path(toggle_popup.__file__).resolve().parent / "herdr-plugin.toml"
+    SCRIPT = pathlib.Path(toggle_popup.__file__).resolve().parent / "executable_toggle.sh"
+    HOMEBREW = "/opt/homebrew/bin/python3"
 
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         self.folder = pathlib.Path(folder.name)
-        # Each fake Python prints its name and its arguments.
-        for name in ("python3", "toggle-python"):
-            fake = self.folder / name
-            fake.write_text(f'#!/bin/sh\necho {name} "$@"\n')
-            fake.chmod(0o755)
+        self.plugin = self.folder / "plugin dir"
+        self.plugin.mkdir()
+        # Each Python prints its file and its arguments.
+        (self.plugin / "toggle_popup.py").write_text(
+            "import os, sys\nprint(os.path.realpath(sys.executable), *sys.argv)\n",
+            encoding="utf-8")
+        # A python3 that only the login profile puts on PATH, as ~/.local/bin on Debian.
+        self.home = self.folder / "home"
+        login_bin = self.home / ".local" / "bin"
+        login_bin.mkdir(parents=True)
+        fake = login_bin / "python3"
+        fake.write_text('#!/bin/sh\necho fake-python3 "$@"\n', encoding="utf-8")
+        fake.chmod(0o755)
+        (self.home / ".profile").write_text(f'PATH="{login_bin}:$PATH"\n', encoding="utf-8")
+        self.log = self.folder / "herdr.log"
+        herdr = self.folder / "herdr"
+        herdr.write_text(f'#!/bin/sh\nprintf "%s\\n" "$@" > {shlex.quote(str(self.log))}\n',
+                         encoding="utf-8")
+        herdr.chmod(0o755)
+        self.env = {"PATH": "/usr/bin:/bin", "HOME": str(self.home),
+                    "HERDR_BIN_PATH": str(herdr), "PYTHONDONTWRITEBYTECODE": "1"}
 
-    def run_command(self, **env):
-        """Run the popup command as Herdr does: in the plugin root, with the popup's env."""
-        [pane] = tomllib.loads(self.MANIFEST.read_text(encoding="utf-8"))["panes"]
-        return subprocess.run(pane["command"], cwd=self.MANIFEST.parent, capture_output=True,
-                              text=True, timeout=10, check=True,
-                              env={"PATH": f"{self.folder}:/usr/bin:/bin", **env}).stdout
+    def script(self, *changes):
+        """A copy of toggle.sh with CHANGES: (old, new) text pairs."""
+        text = self.SCRIPT.read_text(encoding="utf-8")
+        for old, new in changes:
+            self.assertIn(old, text)
+            text = text.replace(old, new)
+        script = self.plugin / "toggle.sh"
+        script.write_text(text, encoding="utf-8")
+        script.chmod(0o755)
+        return script
 
-    def test_the_proxy_runs_on_the_python_of_the_toggle(self):
-        python = herdr_api.proxy_env("a3f9c2", [], [], None)["TOGGLE_POPUP_PYTHON"]
-        self.assertEqual(python, sys.executable)
-        self.assertEqual(self.run_command(TOGGLE_POPUP_PYTHON=str(self.folder / "toggle-python")),
-                         "toggle-python proxy.py\n")
+    def run_script(self, script):
+        # Herdr runs the bind with `/bin/sh -c` in the folder of the focused pane.
+        return subprocess.run(
+            ["/bin/sh", "-c", f"exec {shlex.quote(str(script))} --name 'a b' -- nu"],
+            cwd=self.folder, env=self.env, capture_output=True, text=True, timeout=30)
 
-    def test_without_the_value_python3_and_the_version_check_run(self):
-        self.assertEqual(self.run_command(), "python3 proxy.py\n")
+    def test_it_runs_the_homebrew_python3_or_else_python3_of_the_login_shell(self):
+        result = self.run_script(self.script())
+        if os.access(self.HOMEBREW, os.X_OK):
+            python = os.path.realpath(self.HOMEBREW)
+        else:
+            python = "fake-python3"
+        self.assertEqual(result.stdout,
+                         f"{python} {self.plugin}/toggle_popup.py --name a b -- nu\n")
+
+    def test_without_homebrew_it_runs_python3_of_the_login_shell(self):
+        missing = str(self.folder / "no-homebrew" / "python3")
+        result = self.run_script(self.script(("p=/opt/homebrew/bin/python3", f"p={missing}")))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout,
+                         f"fake-python3 {self.plugin}/toggle_popup.py --name a b -- nu\n")
+
+    def test_without_python3_it_shows_a_toast(self):
+        missing = str(self.folder / "no-homebrew" / "python3")
+        # macOS always has /usr/bin/python3, so the copy looks for another name.
+        script = self.script(("p=/opt/homebrew/bin/python3", f"p={missing}"),
+                             ("command -v python3", "command -v no-such-python3"),
+                             ('exec python3 "$0"', 'exec no-such-python3 "$0"'))
+        result = self.run_script(script)
+        self.assertEqual(result.returncode, 127)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "toggle-popup: python3 not found\n")
+        self.assertEqual(self.log.read_text(encoding="utf-8").splitlines(), [
+            "notification", "show", "Toggle popup",
+            "--body", "python3 not found: toggle-popup needs Python 3.11+"])
 
 
-class OpenErrors(unittest.TestCase):
-    def open_with(self, error):
-        toggle_popup.open_popup(FakeMain(error), "p", parse_args(["--name", "x"]),
-                                HerdrConfig(["ctrl+b"], ["prefix+e"], None))
-
-    def test_busy_ui_asks_to_close_the_open_popup(self):
-        with self.assertRaisesRegex(HerdrError, "^Close the open popup first.$"):
-            self.open_with(HerdrError("plugin.pane.open: a popup pane is already open", "ui_busy"))
-
-    def test_other_errors_keep_their_message_even_when_they_name_a_popup(self):
-        error = HerdrError("plugin.pane.open: entrypoint 'popup' not found", "entrypoint_not_found")
-        with self.assertRaisesRegex(HerdrError, "entrypoint 'popup' not found"):
-            self.open_with(error)
+def keep_hang_up_handlers(case):
+    """toggle_popup.main() sets the SIGHUP and SIGTERM handlers: restore them after a test."""
+    for signum in proxy.HANG_UP_SIGNALS:
+        case.addCleanup(signal.signal, signum, signal.getsignal(signum))
 
 
 def patch(case, patcher):
@@ -491,24 +514,51 @@ def patch(case, patcher):
 
 class ErrorsBecomeToasts(unittest.TestCase):
     def setUp(self):
+        keep_hang_up_handlers(self)
         self.main = FakeMain()
         patch(self, mock.patch.object(herdr_api, "Herdr", self.main))
         patch(self, mock.patch.dict(os.environ, HERDR_SOCKET_PATH=ENV["HERDR_SOCKET_PATH"]))
 
     def run_main(self, error):
-        def fail(argv, env):
+        def fail(argv, env, state):
             raise error
         patch(self, mock.patch.object(toggle_popup, "toggle", fail))
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
             code = toggle_popup.main([])
+        # stderr is the popup terminal: the toast tells the error.
+        self.assertEqual(stderr.getvalue(), "")
         return code, stderr.getvalue()
 
     def test_expected_errors_show_their_message(self):
-        code, stderr = self.run_main(UsageError("invalid size '0'"))
+        code, stderr = self.run_main(UsageError("invalid choice: 'git'"))
         self.assertEqual(code, 1)
-        self.assertEqual(self.main.toasts, [("Toggle popup", "invalid size '0'")])
-        self.assertNotIn("Traceback", stderr)
+        self.assertEqual(self.main.toasts, [("Toggle popup", "invalid choice: 'git'")])
+
+    def test_without_a_session_the_error_goes_to_stderr(self):
+        patch(self, mock.patch.dict(os.environ))
+        del os.environ["HERDR_SOCKET_PATH"]
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(toggle_popup.main([]), 1)
+        self.assertEqual(stderr.getvalue(), "toggle-popup: toggle: run this from a Herdr key "
+                                            "binding: HERDR_SOCKET_PATH is not set\n")
+        self.assertEqual(self.main.toasts, [])
+
+    def test_a_failed_toast_logs_the_error_too(self):
+        self.main.fail = HerdrError("notification.show: timed out")
+
+        def notify(title, body):
+            raise self.main.fail
+
+        patch(self, mock.patch.object(self.main, "notify", notify))
+        patch(self, mock.patch.object(toggle_popup, "toggle",
+                                      mock.Mock(side_effect=UsageError("bad flag"))))
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(toggle_popup.main([]), 1)
+        self.assertEqual(stderr.getvalue(), "toggle-popup: toggle: bad flag\n"
+                                            "toggle-popup: toast: notification.show: timed out\n")
 
     def test_unexpected_errors_are_toasts_too_without_a_traceback(self):
         for error in (KeyError("HERDR_ACTIVE_WORKSPACE_ID"), TypeError("bad"), OSError(5, "EIO")):
@@ -518,7 +568,6 @@ class ErrorsBecomeToasts(unittest.TestCase):
                 self.assertEqual(code, 1)
                 self.assertEqual(len(self.main.toasts), 1)
                 self.assertIn(type(error).__name__, self.main.toasts[0][1])
-                self.assertNotIn("Traceback", stderr)
 
 
 class PopupSessionConfig(unittest.TestCase):
@@ -780,8 +829,25 @@ class PreparePopup(unittest.TestCase):
 
 
 
+class FakeProxy:
+    """proxy.Proxy for the toggle tests: it records its values, and its run() calls `on_run`."""
+
+    started = []
+    on_run = None
+
+    def __init__(self, popup_id, prefix, scrollback, main_herdr, popup_herdr,
+                 default_shell=None, on_shown=None):
+        self.values = (popup_id, prefix, scrollback, main_herdr, popup_herdr, default_shell,
+                       on_shown)
+
+    def run(self):
+        self.started.append(self.values)
+        if self.on_run is not None:
+            self.on_run()
+
+
 class Toggle(unittest.TestCase):
-    """One toggle: the popup session, the main session, and the housekeeping sweep."""
+    """One toggle: the popup session, then the proxy in the same process."""
 
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
@@ -794,38 +860,194 @@ class Toggle(unittest.TestCase):
         patch(self, mock.patch.object(toggle_popup, "ensure_popup_server",
                                       lambda default_shell: self.session))
         patch(self, mock.patch.object(herdr_config, "read_main_config",
-                                      lambda: HerdrConfig(["ctrl+;"], ["prefix+e"], None)))
+                                      lambda: HerdrConfig(["ctrl+;"], ["prefix+e"], "nu")))
         self.main = FakeMain()
         patch(self, mock.patch.object(toggle_popup, "Herdr", self.main))
+        patch(self, mock.patch.object(FakeProxy, "started", []))
+        patch(self, mock.patch.object(toggle_popup.proxy, "Proxy", FakeProxy))
 
     def toggle(self, *argv):
-        toggle_popup.toggle(list(argv), ENV)
+        state = {}
+        toggle_popup.toggle(list(argv), ENV, state)
+        return state
 
-    def test_the_sweep_runs_after_the_popup_opens_and_under_the_lock(self):
-        # The proxy starts while the sweep runs, so the sweep does not make the popup slow.
-        steps = []
-        real_sweep = popups.sweep
-
-        def sweep(herdr, owner_timeout):
+    def test_the_toggle_becomes_the_proxy_of_the_popup_without_the_lock(self):
+        def run():
+            # The popup exists, and other keys and hooks can change the popup session.
+            self.assertEqual(len(popups.live_popups(self.session.snapshot())), 1)
             with (popups.plugin_state_dir() / "popups.lock").open("a") as lock:
-                with self.assertRaises(BlockingIOError):
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        patch(self, mock.patch.object(FakeProxy, "on_run", staticmethod(run)))
+        state = self.toggle("--name", "git", "--", "lazygit")
+        self.assertEqual(FakeProxy.started, [(state["popup_id"], ["ctrl+;"], ["prefix+e"],
+                                              self.main, self.session, "nu",
+                                              toggle_popup.sweep_in_background)])
+        # No Herdr popup opens: the bind's popup runs this process.
+        self.assertEqual(self.main.calls, [])
+
+    def test_a_failed_popup_start_does_not_start_the_proxy(self):
+        self.session.start_error = "cannot run no-such-program: No such file or directory"
+        with self.assertRaisesRegex(HerdrError, "cannot run no-such-program"):
+            self.toggle("--", "no-such-program")
+        self.assertEqual(FakeProxy.started, [])
+
+
+class HangUp(unittest.TestCase):
+    """Herdr can close the popup before the proxy runs: the toggle then ends with SystemExit."""
+
+    def setUp(self):
+        keep_hang_up_handlers(self)
+
+    def test_a_hang_up_runs_the_cleanup_of_a_half_made_popup(self):
+        cleanup = []
+
+        def toggle(argv, env, state):
+            try:
+                os.kill(os.getpid(), signal.SIGHUP)
+                time.sleep(5)
+            finally:
+                cleanup.append(True)
+
+        patch(self, mock.patch.object(toggle_popup, "toggle", toggle))
+        with self.assertRaises(SystemExit) as caught:
+            toggle_popup.main([])
+        self.assertEqual(caught.exception.code, 128 + signal.SIGHUP)
+        self.assertEqual(cleanup, [True])
+
+    def test_the_sigterm_after_the_sighup_does_not_stop_the_cleanup(self):
+        cleanup = []
+
+        def toggle(argv, env, state):
+            try:
+                os.kill(os.getpid(), signal.SIGHUP)
+                time.sleep(5)
+            finally:
+                # Herdr sends SIGTERM 250 ms after SIGHUP, as the cleanup runs.
+                os.kill(os.getpid(), signal.SIGTERM)
+                cleanup.append(True)
+
+        patch(self, mock.patch.object(toggle_popup, "toggle", toggle))
+        with self.assertRaises(SystemExit) as caught:
+            toggle_popup.main([])
+        self.assertEqual(caught.exception.code, 128 + signal.SIGHUP)
+        self.assertEqual(cleanup, [True])
+
+
+class SweepInBackground(unittest.TestCase):
+    """The toggle's sweep runs in a process of its own, after the popup shows its program."""
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.folder = pathlib.Path(folder.name)
+        patch(self, mock.patch.dict(os.environ, HERDR_PLUGIN_STATE_DIR=str(self.folder)))
+
+    def test_the_sweep_runs_in_its_own_session_under_the_lock_and_does_not_wait(self):
+        go, report = self.folder / "go", self.folder / "report.json"
+
+        def sweep(herdr):
+            # The caller goes on before the sweep ends.
+            deadline = time.monotonic() + 10
+            while not go.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            with (popups.plugin_state_dir() / "popups.lock").open("a") as lock:
+                try:
                     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            steps.append(("sweep", [method for method, _ in self.main.calls]))
-            real_sweep(herdr, owner_timeout)
+                    locked = False
+                except BlockingIOError:
+                    locked = True
+            devnull = os.stat(os.devnull).st_rdev
+            report.write_text(json.dumps({
+                "go": go.exists(), "locked": locked, "session": os.getsid(0),
+                "devnull": [os.fstat(fd).st_rdev == devnull for fd in (0, 1, 2)],
+                "hang_up": signal.getsignal(signal.SIGHUP)
+                == signal.SIG_DFL,
+                "endpoint": herdr.endpoint}))
 
-        patch(self, mock.patch.object(popups, "sweep", sweep))
-        self.toggle("--", "lazygit")
-        self.assertEqual(steps, [("sweep", ["plugin.pane.open"])])
+        patch(self, mock.patch.object(popups, "housekeeping_sweep", sweep))
+        toggle_popup.sweep_in_background()
+        go.write_text("")
+        result = wait_for_file(report)
+        self.assertEqual(result, {
+            "go": True, "locked": True, "session": result["session"],
+            "devnull": [True, True, True], "hang_up": True,
+            "endpoint": str(herdr_api.session_socket(herdr_api.POPUP_SESSION))})
+        self.assertNotEqual(result["session"], os.getsid(0))
 
-    def test_a_toggle_waits_only_briefly_for_owner_sessions(self):
-        self.toggle("--", "lazygit")
-        self.toggle("--", "lazygit")
+    def test_an_error_in_the_sweep_process_never_reaches_the_caller(self):
+        def sweep(herdr):
+            raise RuntimeError("boom")
+
+        patch(self, mock.patch.object(popups, "housekeeping_sweep", sweep))
+        toggle_popup.sweep_in_background()
+        # The caller goes on, with no child process left to reap.
+        with self.assertRaises(ChildProcessError):
+            os.waitpid(-1, os.WNOHANG)
+
+    def test_a_failed_fork_only_skips_the_sweep(self):
+        patch(self, mock.patch.object(os, "fork", side_effect=BlockingIOError(
+            35, "Resource temporarily unavailable")))
+        self.assertIsNone(toggle_popup.sweep_in_background())
+
+    def test_the_sweep_process_keeps_no_file_of_the_caller_open(self):
+        # As the viewer's pseudo-terminal: it must close when the proxy ends.
+        go, done = self.folder / "go", self.folder / "done.json"
+
+        def sweep(herdr):
+            deadline = time.monotonic() + 10
+            while not go.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            done.write_text("{}")
+
+        patch(self, mock.patch.object(popups, "housekeeping_sweep", sweep))
+        read_end, write_end = os.pipe()
+        try:
+            toggle_popup.sweep_in_background()
+            os.close(write_end)
+            # The sweep still runs. Only its copy of the write end could keep the pipe open.
+            ready, _, _ = select.select([read_end], [], [], 5)
+            self.assertEqual(ready, [read_end])
+            self.assertEqual(os.read(read_end, 1), b"")
+            self.assertFalse(done.exists())
+        finally:
+            go.write_text("")
+            os.close(read_end)
+        wait_for_file(done)
+
+
+def wait_for_file(path, timeout=10):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            return json.loads(path.read_text())
+        except (FileNotFoundError, ValueError):
+            time.sleep(0.01)
+    raise AssertionError(f"no {path}")
+
+
+class HousekeepingSweep(unittest.TestCase):
+    """The sweep of a key press: a short owner wait, and errors only in the log."""
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        patch(self, mock.patch.dict(os.environ, HERDR_PLUGIN_STATE_DIR=folder.name))
+        self.owners = FakeOwners()
+        self.owners.sessions[SOCKET] = ["w3"]
+        patch(self, mock.patch.object(popups, "Herdr", self.owners))
+        self.session = FakePopupSession()
+        toggle_popup.prepare_popup(self.session, "a3f9c2", parse_args(["--", "lazygit"]),
+                                   Owner(SOCKET, workspace_id="w3"), None)
+
+    def test_a_key_press_waits_only_briefly_for_owner_sessions(self):
+        popups.housekeeping_sweep(self.session)
         self.assertEqual(set(self.owners.timeouts), {popups.TOGGLE_OWNER_TIMEOUT})
+        self.assertEqual(list(popups.live_popups(self.session.snapshot())), ["a3f9c2"])
 
-    def test_a_failed_sweep_is_only_logged_and_the_popup_still_opens(self):
+    def test_a_failed_sweep_is_only_logged(self):
         # The sweep is housekeeping: an error on another stale popup must not
-        # stop this toggle key. It can come from Herdr, the state folder, or
-        # a record file.
+        # stop the popup. It can come from Herdr, the state folder, or a record file.
         cases = {
             HerdrError("workspace.close: timed out"): "workspace.close: timed out",
             PermissionError(13, "Permission denied"):
@@ -837,12 +1059,10 @@ class Toggle(unittest.TestCase):
                 def sweep(herdr, owner_timeout, error=error):
                     raise error
 
-                self.main.calls.clear()
                 stderr = io.StringIO()
                 with mock.patch.object(popups, "sweep", sweep), \
                         contextlib.redirect_stderr(stderr):
-                    self.toggle("--name", type(error).__name__, "--", "lazygit")
-                self.assertEqual([method for method, _ in self.main.calls], ["plugin.pane.open"])
+                    popups.housekeeping_sweep(self.session)
                 self.assertEqual(stderr.getvalue(), f"toggle-popup: sweep: {text}\n")
 
 

@@ -105,22 +105,21 @@ The outer key and the toggle keys are independent. The `key` in `[[keys.command]
 - **Which popups (Q3):** the floating shell, yazi, and lazygit. All three are persistent, and lazygit and yazi behave as close to tmux as possible. Pi quick chat is out.
 - **Floating shell scope (Q4): one per Herdr workspace.** This is the same as tmux's one per tmux session.
 - **Location (Q8): local plugin in dotfiles.** It goes in `home/dot_config/herdr/toggle-popup/` with plugin id `dotfiles.toggle-popup`. A `run_onchange_after_herdr-toggle-popup.sh.tmpl` script runs `herdr plugin link … --enabled`, like `navigation`. It moves to its own repo when it is stable.
-- **Runtime (Q10): Python 3.11+ standard library only** (`tomllib` reads `config.toml`). Herdr runs shell keys through `/bin/sh -lc`, and on macOS that finds `/usr/bin/python3` (3.9) first. So on a Python older than 3.11, each entry point runs itself again with the newest `python3.N` (N ≥ 11) on PATH that imports `tomllib`, and it never runs a macOS `/usr/bin` shim. If there is none, a toggle or popup shows one toast, "toggle-popup needs Python 3.11+ (found X.Y)", and a hook writes only to stderr. Modules used: (`socket`, `json`, `pty`, `termios`, `tty`, `fcntl`, `select`, `subprocess`), like `navigation` and `session-titles`. `herdr api` cannot send raw JSON, and some methods exist only on the socket (`popup.close`, `pane.focus <id>`). So the plugin uses a small socket client: one JSON line per request, one response line.
+- **Runtime (Q10, changed after the build: speed): Python 3.11+ standard library only** (`tomllib` reads `config.toml`). Herdr runs popup keys through `/bin/sh -c` with the PATH of the Herdr server, and on macOS that PATH can find `/usr/bin/python3` (3.9) first. So each bind runs `toggle.sh`, which starts `/opt/homebrew/bin/python3` when that file is executable, else `python3` from a login shell (`/bin/sh -lc`), so `python3` and the popup programs come from the login PATH, as with shell binds. Without `python3`, `toggle.sh` shows a toast. Homebrew moves that link to its newest Python on each upgrade, so the bind never names a Python version. On a Python older than 3.11, each entry point runs itself again with the newest `python3.N` (N ≥ 11) on PATH that imports `tomllib`, and it never runs a macOS `/usr/bin` shim. If there is none, a toggle or popup shows one toast, "toggle-popup needs Python 3.11+ (found X.Y)", and a hook writes only to stderr. Modules used: (`socket`, `json`, `pty`, `termios`, `tty`, `fcntl`, `select`, `subprocess`), like `navigation` and `session-titles`. `herdr api` cannot send raw JSON, and some methods exist only on the socket (`popup.close`, `pane.focus <id>`). So the plugin uses a small socket client: one JSON line per request, one response line.
 - **Pull-out targets (Q11): split right, split down, new tab beside the current tab.** These are recorded for when pull-out returns (see Deferred).
-- **Declaring popups (Q15): flags in each `[[keys.command]] type = "shell"` line, in tmux-toggle-popup style.** Herdr runs shell keys detached through `/bin/sh -lc`, with `HERDR_SOCKET_PATH`, `HERDR_BIN_PATH`, `HERDR_ACTIVE_WORKSPACE_ID`, `HERDR_ACTIVE_TAB_ID`, `HERDR_ACTIVE_PANE_ID`, and `HERDR_ACTIVE_PANE_CWD`. The toggle script parses its flags, makes sure the backing pane exists, and opens the popup with `herdr plugin pane open --plugin dotfiles.toggle-popup --entrypoint popup --placement popup --width W --height H --env …`. Stdout is discarded, so every error goes to a Herdr toast (`notification.show`). Flags:
+- **Declaring popups (Q15, changed after the build: speed): flags in each `[[keys.command]] type = "popup"` line, in tmux-toggle-popup style.** Herdr opens its built-in popup at the bind's `width` and `height` and runs the command in it, with `HERDR_SOCKET_PATH`, `HERDR_BIN_PATH`, `HERDR_ACTIVE_WORKSPACE_ID`, `HERDR_ACTIVE_TAB_ID`, `HERDR_ACTIVE_PANE_ID`, and `HERDR_ACTIVE_PANE_CWD`. One Python process does all the work: the toggle script parses its flags, makes sure the backing pane exists, and then becomes the key-filter proxy in the same process. This saves one Python start and one `plugin.pane.open` call on each key press (about 155 → 100 ms on this Mac). When the proxy ends, the popup closes. Every error goes to a Herdr toast (`notification.show`), and the popup closes. Flags:
   - `--scope tab|workspace|pwd|session`: optional, default `workspace`. It sets where the popup is shared (see Scope)
-  - `--name <label>`: optional. A label for the picker and the help header, which defaults to the command. It is not part of the popup id. The popup title is always a plain `─` rule, because Herdr 0.9.5 takes a popup title only from the manifest `[[panes]]` entry
+  - `--name <label>`: optional. A label for the picker and the help header, which defaults to the command. It is not part of the popup id. The popup border always shows the title `popup`: Herdr 0.9.5 takes the title from the popup terminal's label, and a popup command cannot set it
   - `--toggle-key <key>`: can be repeated. Uses Herdr key syntax, including `prefix+<key>` chords (for example `--toggle-key prefix+f`). `prefix` means Herdr's `[keys] prefix` (`ctrl+;`), read at popup open, so changing your Herdr prefix changes every prefix toggle key with no bind edits
-  - `-w <cells|N%>`, `-h <cells|N%>`: default `80%`
   - `-d <dir>`: start folder, used only when the popup is created (as in tmux)
   - `-- <command…>`: the program. Without it, the default shell runs.
 - **Popup session layout (Q16): one shared `toggle-popup` Herdr session** for all Herdr sessions on a machine, like tmux-toggle-popup's single `popup` tmux server. One crash or stop ends every popup. Remote machines are separate (see Q19).
-- **Scope and identity (Q17, Q18, changed after the build): `--scope`, with a computed popup id.** `--id` and the id format are removed. A key press means "find the popup with this popup id; show it if it exists, create it if not". The popup id is a hash of the scope key, the command, and the sorted `--toggle-key` flags, so `-d`, `-w`, `-h` and `--name` do not change which popup you get. Two binds with the same scope, command and toggle keys share one popup. If you change a bind's toggle keys, the next press opens a new popup, and the old one runs until its scope closes. Scope keys:
+- **Scope and identity (Q17, Q18, changed after the build): `--scope`, with a computed popup id.** `--id` and the id format are removed. A key press means "find the popup with this popup id; show it if it exists, create it if not". The popup id is a hash of the scope key, the command, and the sorted `--toggle-key` flags, so `-d`, `--name`, and the bind's `width` and `height` do not change which popup you get. Two binds with the same scope, command and toggle keys share one popup. If you change a bind's toggle keys, the next press opens a new popup, and the old one runs until its scope closes. Scope keys:
   - `tab`: the session and tab id. `workspace`: the session and workspace id. `pwd`: the session and the active pane's current folder (`HERDR_ACTIVE_PANE_CWD`). `session`: the session.
   - Example with `--scope pwd` in session `work`: from `~/proj/shop` in workspace `api` or `web`, you get the same popup. From `~/proj/shop/src`, or from session `personal`, you get another one.
   - **Cleanup:** manifest hooks `[[events]] on = "tab.closed"` and `on = "workspace.closed"` close the `tab` and `workspace` popups of that tab or workspace. `pwd` and `session` popups close when their Herdr session is gone.
-  - **Sweep for missed events:** a `[[startup]]` hook, and each toggle, close popups whose owner tab, workspace or Herdr session no longer exists. An owner session counts as gone only when its socket refuses or is missing; a timeout keeps the popups. The sweep also closes `toggle-popup` workspaces whose terminal does not match a saved record, such as empty shells that Herdr restores after the popup server restarts.
-  - **Two clients on one Herdr session:** clients on the same tab see the same popup. A client on another tab gets the "Close the open popup first." toast, because Herdr allows one popup per session. A viewer that cannot attach shows Herdr's reason as a toast.
+  - **Sweep for missed events:** a `[[startup]]` hook, and each toggle after the popup shows its program, close popups whose owner tab, workspace or Herdr session no longer exists. An owner session counts as gone only when its socket refuses or is missing; a timeout keeps the popups. The sweep also closes `toggle-popup` workspaces whose terminal does not match a saved record, such as empty shells that Herdr restores after the popup server restarts.
+  - **Two clients on one Herdr session:** clients on the same tab see the same popup. A client on another tab gets Herdr's "Action rejected" notice with "popup already open", because Herdr allows one popup per session. A viewer that cannot attach shows Herdr's reason as a toast.
 - **Remote machines (Q19): supported now.** Each Herdr machine runs its own server, and "custom commands and plugins advertised by the selected server still run there". In a remote workspace, the remote server runs the key and the plugin, and creates its own `toggle-popup` session on that host. Local and remote popups never mix. Requirements:
   - The code runs on macOS and Linux.
   - The remote host needs Python 3.11+ (as `python3` or `python3.N` on PATH), the plugin directory, the `[[keys.command]]` lines, and the link script, all installed by chezmoi.
@@ -128,33 +127,39 @@ The outer key and the toggle keys are independent. The `key` in `[[keys.command]
   - **Containers:** a Docker Compose pair, `client` and `remote` (sshd plus Herdr, Linux aarch64). The test runs a real Herdr client inside tmux in `client`: tmux is a test-only tool there. `tmux send-keys` presses keys and `tmux capture-pane` reads the screen. tmux `extended-keys` switches between legacy and kitty-style key encoding. `herdr machine add` runs only inside `client`, so it never writes the user's real saved-machine list.
   - **Mac host:** an isolated `herdr --session tp-e2e` with its own `HERDR_CONFIG_PATH`, never the default socket, and no `machine add`.
   - **Checks:** the screen, plus the backing panes in the `toggle-popup` session (`herdr --session toggle-popup pane read`), because a popup has no pane id.
-- **Keys and sizes (Q21):** toggle keys are free per popup. Inside and outside keys can match or differ, and `prefix+<key>` chords count. No `prefix+ctrl+<key>` binds. Planned binds in `home/dot_config/herdr/config.toml` (which replace the current `type = "popup"` entries):
+- **Keys and sizes (Q21, binds changed after the build: speed):** toggle keys are free per popup. Inside and outside keys can match or differ, and `prefix+<key>` chords count. No `prefix+ctrl+<key>` binds. Planned binds in `home/dot_config/herdr/config.toml`:
 
   ```toml
   [[keys.command]]
   key = "prefix+f"
-  type = "shell"
+  type = "popup"
   description = "Toggle floating shell"
-  command = 'python3 ~/.config/herdr/toggle-popup/toggle_popup.py --name floating --toggle-key prefix+f -d "$HERDR_ACTIVE_PANE_CWD" -- nu'
+  width = "80%"
+  height = "80%"
+  command = 'exec ~/.config/herdr/toggle-popup/toggle.sh --name floating --toggle-key prefix+f -d "$HERDR_ACTIVE_PANE_CWD" -- nu'
 
   [[keys.command]]
   key = "alt+y"
-  type = "shell"
+  type = "popup"
   description = "Toggle Yazi"
-  command = 'python3 ~/.config/herdr/toggle-popup/toggle_popup.py --name yazi --toggle-key alt+y -d "$HERDR_ACTIVE_PANE_CWD" -- yazi'
+  width = "80%"
+  height = "80%"
+  command = 'exec ~/.config/herdr/toggle-popup/toggle.sh --name yazi --toggle-key alt+y -d "$HERDR_ACTIVE_PANE_CWD" -- yazi'
 
   [[keys.command]]
   key = "alt+g"
-  type = "shell"
+  type = "popup"
   description = "Toggle lazygit for the Git root"
-  command = 'root=$(git -C "$HERDR_ACTIVE_PANE_CWD" rev-parse --show-toplevel 2>/dev/null || printf %s "$HERDR_ACTIVE_PANE_CWD"); exec python3 ~/.config/herdr/toggle-popup/toggle_popup.py --name lazygit --scope pwd --toggle-key alt+g -d "$root" -- lazygit-recent'
+  width = "80%"
+  height = "80%"
+  command = 'root=$(git -C "$HERDR_ACTIVE_PANE_CWD" rev-parse --show-toplevel 2>/dev/null || printf %s "$HERDR_ACTIVE_PANE_CWD"); exec ~/.config/herdr/toggle-popup/toggle.sh --name lazygit --scope pwd --toggle-key alt+g -d "$root" -- lazygit-recent'
   ```
 
-  The script name and path are fixed at build time. Sizes are all 80% × 80%. `ctrl+z` is not a toggle key, so it reaches the shell and yazi. The user adds second toggle keys later. With `--scope pwd`, lazygit is one popup per pane folder, not per repo (see Deferred: `--scope git`).
+  The script name and path are fixed at build time. Sizes are all 80% × 80%, set by the bind. `ctrl+z` is not a toggle key, so it reaches the shell and yazi. The user adds second toggle keys later. With `--scope pwd`, lazygit is one popup per pane folder, not per repo (see Deferred: `--scope git`).
 - **Scrollback (Q23):** only `prefix+e`, read from Herdr's `[keys] edit_scrollback`. It pauses the viewer and runs `herdr --session toggle-popup pane read <id> --source recent-unwrapped --lines N` into `$EDITOR` (nvim), with the cursor on the last line. Quitting returns to the live popup. `prefix+space` passes through to the program. If `edit_scrollback` is empty, a popup has no scrollback key.
 - **Start folder (set by the tmux-parity rule):** `-d` applies only when a popup is created. Reopening keeps the program's current folder, as in tmux's `new-session -As … -c dir`. herdr-scratch's follow-the-pane `cd` belongs to the parity phase.
 - **Errors and a popup that Herdr closes:**
-  - Hooks write every error only to stderr, never as a toast: no key press caused them, and the next toggle's sweep repairs what they missed. The toggle script and the proxy show errors as toasts. A failed sweep inside the picker is only logged.
+  - Hooks write every error only to stderr, never as a toast: no key press caused them, and the next toggle's sweep repairs what they missed. The toggle script and the proxy show errors as toasts. Herdr shows the popup before Python starts, so on an error the empty popup shows for a moment, closes, and then the toast shows. A failed sweep inside the picker is only logged.
   - When Herdr closes the popup at any point, also during the help page, the picker, or the editor (SIGHUP, then SIGTERM), the proxy ends quietly: no toast and no more output. Its cleanup still runs: it stops the viewer and removes the scrollback temp file, which can hold secrets from the program's output. The editor gets its own SIGHUP from Herdr.
   - A failed scrollback read shows a toast, and the popup returns to the live program. Keys typed before the editor starts are dropped, so they never reach the program.
 - **Program exit:** when the program exits (`exit`, or `q` in lazygit), its backing pane and workspace close, the viewer ends, and the popup closes. The next key press creates a new one. This is the same as tmux.
@@ -174,6 +179,7 @@ From the Herdr v0.9.5 source (`herdrdev/herdr`, tag `v0.9.5`) and the installed 
 - **Popup process lifecycle:** a popup always starts a new process (`popup.rs:99-170`). Closing it shuts down that process (`src/app/runtime.rs:30`).
 - **No popup-to-pane move:** a popup terminal can never be attached to a tiled pane (`state.rs:1290`). A popup has no pane id and sends no events.
 - **No moves between sessions:** each Herdr session is a separate server. No API adopts an existing terminal into a pane. `pane.move` works only inside one server (to a tab, a new tab, or a new workspace). Herdr has no hidden or detached terminals.
+- **Popup binds:** a `type = "popup"` command runs through `/bin/sh -c` (`src/platform/macos.rs:206`) with the same `HERDR_*` env as a shell key (`src/app/custom_commands.rs:243`), minus the pane identity (`src/app/popup.rs:139`). It starts in the active pane's folder (`popup.rs:133`). The border title is the popup terminal's label, else `popup` (`src/server/client_shell.rs:514`). A refused open shows the client notice "Action rejected" with Herdr's reason (`src/client/shell/actions.rs:560`).
 - **Opening and closing popups:** a popup opens only through `keys.command type = "popup"` or `plugin.pane.open` with `placement = "popup"`. There is no `popup.open` socket method. `popup.close` closes whichever popup is open.
 - **Input while a popup is open:** all key, text, and paste input goes to the popup before any keybinding check (`src/client/shell/input.rs:632`). The socket API and plugin event hooks still work.
 - **Viewer detach chord:** the `terminal attach` client has a fixed `ctrl+b q` detach chord (`src/client/attach.rs:63, 118-120`). Its CLI takes only `<terminal_id> [--takeover]`. The full client's `keys.detach` and `keys.prefix` can be changed (`src/config/model.rs:372`).
@@ -196,10 +202,10 @@ From the Herdr v0.9.5 source (`herdrdev/herdr`, tag `v0.9.5`) and the installed 
 - **One server for all popups:** if the `toggle-popup` server crashes or stops, every popup on that machine ends.
 - **Workspace id reuse:** a reused workspace id after a missed `workspace.closed` event could adopt an old popup. The sweep on startup and on each toggle reduces this risk.
 - **Moving a tab:** Herdr gives a tab a new tab id when it moves to another workspace, so the `tab` popups of that tab close.
-- **One popup at a time:** while any other popup is open (for example a `navigation` dialog), opening a popup fails with `ui_busy`. The toggle script shows a toast.
+- **One popup at a time:** while any other popup is open (for example a `navigation` dialog), Herdr refuses the popup key itself with "popup already open". The user sees Herdr's "Action rejected" notice, not a toggle-popup toast.
 - **Terminal size:** the attach client sets the terminal size, so a backing pane resizes to the popup size each time it is shown.
 - **The viewer's `ctrl+b q` chord** stays active in every popup. The user assumes it can be changed; see Open threads.
-- **Remote hosts** need Python 3.11+ and chezmoi before popup keys work. Until then, those keys fail with a visible missing-command error.
+- **Remote hosts** need Python 3.11+ and chezmoi before popup keys work. Until then, those keys show a toast: "python3 not found", or "toggle-popup needs Python 3.11+".
 
 ## Deferred
 

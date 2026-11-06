@@ -1,31 +1,21 @@
-#!/usr/bin/env python3
 """Key-filter proxy: the program inside each Herdr popup.
 
-It runs the viewer, `herdr terminal attach <id>` for the popup session (see
+toggle_popup.py becomes the proxy when the backing pane is ready. The proxy
+runs the viewer, `herdr terminal attach <id>` for the popup session (see
 herdr_api.popup_session_command()), in its own pseudo-terminal. Each attach
 adds --takeover, so the popup moves from another viewer of the same
 terminal. It sends every input byte to the viewer, except the popup's toggle
 keys, Herdr's [keys] edit_scrollback keys, and the prefix commands in
-keys.PREFIX_COMMANDS. The toggle keys hide the popup and the program keeps running. help_rows()
-lists every key on the help page.
+keys.PREFIX_COMMANDS. The toggle keys hide the popup and the program keeps
+running. help_rows() lists every key on the help page.
 """
-
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-
-# The version check runs first: the other modules need Python 3.11. An old
-# Python runs this file again on a newer one, so it imports nothing more.
-from python_guard import require_python
-
-require_python("popup")
 
 import collections
 import contextlib
 import enum
 import errno
 import fcntl
+import os
 import pty
 import select
 import signal
@@ -37,7 +27,7 @@ import typing
 
 import herdr_api
 import popups
-from herdr_api import Herdr, HerdrError
+from herdr_api import HerdrError
 from keys import (
     CTRL,
     MODIFIER_KEY,
@@ -163,16 +153,20 @@ class AttachNudge:
     So on the first output, send() sends one such request and does not wait
     for its answer. If no frame comes, send() runs again AGAIN seconds after
     the first output. Output more than FRAME_GAP after the first output is
-    the frame: the terminal setup comes in one burst.
+    the frame: the terminal setup comes in one burst. `shown` is then True.
+    The frame can also come in the same burst as the setup. So `shown` also
+    becomes True SHOWN_BY seconds after the first output.
     """
 
     AGAIN = (0.025, 0.05)
     FRAME_GAP = 0.005
+    SHOWN_BY = 0.1
 
     def __init__(self, send):
         self.send = send
         self.first = None
         self.again = []
+        self.shown = False
 
     def output(self, now):
         """The viewer wrote output at `now`."""
@@ -182,15 +176,21 @@ class AttachNudge:
             self.send()
         elif now - self.first >= self.FRAME_GAP:
             self.again = []
+            self.shown = True
 
     def timeout(self, now):
         """Seconds until tick() has work, or None."""
-        return max(self.again[0] - now, 0.0) if self.again else None
+        times = self.again[:1]
+        if self.first is not None and not self.shown:
+            times.append(self.first + self.SHOWN_BY)
+        return max(min(times) - now, 0.0) if times else None
 
     def tick(self, now):
         if self.again and now >= self.again[0]:
             self.again.pop(0)
             self.send()
+        if self.first is not None and now - self.first >= self.SHOWN_BY:
+            self.shown = True
 
 
 # A small request that the popup server's main loop handles (see AttachNudge).
@@ -640,10 +640,13 @@ class Next(enum.Enum):
 
 class Proxy:
     def __init__(self, popup_id, prefix, scrollback, main_herdr, popup_herdr, stdin=0, stdout=1,
-                 default_shell=None):
+                 default_shell=None, on_shown=None):
         """`main_herdr` is the Herdr session that shows the popup. `default_shell`
-        is the main config's default_shell: the picker names it as the label does."""
+        is the main config's default_shell: the picker names it as the label does.
+        `on_shown()` runs once, after the popup first shows the frame of its
+        program (see AttachNudge)."""
         self.popup_id = popup_id
+        self.on_shown = on_shown
         self.default_shell = default_shell
         self.stdin = stdin
         self.prefix = prefix
@@ -797,6 +800,9 @@ class Proxy:
                 if not data:
                     return None
                 self.screen.show(data)
+            if viewer.nudge.shown and self.on_shown is not None:
+                on_shown, self.on_shown = self.on_shown, None
+                on_shown()
         return None
 
     def act(self, action, popup):
@@ -945,24 +951,3 @@ class Proxy:
             if not self.input.ended:
                 self.set_modes(saved)
             os.unlink(path)
-
-
-def main():
-    """Run the proxy. Every error becomes a toast in the session that shows the popup."""
-    endpoint = os.environ.get("HERDR_SOCKET_PATH")
-    popup_id = os.environ.get(herdr_api.PROXY_ID_ENV, "")
-    try:
-        herdr_api.required_env(os.environ, "HERDR_SOCKET_PATH")
-        popup_id, prefix, scrollback, default_shell = herdr_api.read_proxy_env(os.environ)
-        Proxy(popup_id, prefix, scrollback, Herdr(endpoint), herdr_api.popup_herdr(),
-              default_shell=default_shell).run()
-    except Exception as error:
-        herdr_api.report_error("popup", error, endpoint)
-        with contextlib.suppress(OSError):
-            trace_event(popup_id, "error")
-        return 1
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

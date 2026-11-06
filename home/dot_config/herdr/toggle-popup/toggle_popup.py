@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """Show a persistent popup. Create its program first if it does not exist.
 
-Herdr runs this from a `[[keys.command]] type = "shell"` key. Herdr discards
-stdout, so every error shows as a Herdr toast.
+Herdr runs this in its built-in popup, from a `[[keys.command]] type =
+"popup"` key, through toggle.sh. The bind sets the popup size. This one
+process finds or creates the backing pane, and then becomes the key-filter
+proxy of the popup (see proxy.py). When it ends, the popup closes. Every
+error shows as a Herdr toast, and the popup closes.
 
 Usage:
   toggle_popup.py [--scope tab|workspace|pwd|session] [--name LABEL]
-                  [--toggle-key KEY]... [-w SIZE] [-h SIZE] [-d DIR] [-- COMMAND...]
+                  [--toggle-key KEY]... [-d DIR] [-- COMMAND...]
 
 The popup id is a hash of the scope key, the command, and the sorted toggle
-keys. The same id gives the same popup. --name, -w, -h and -d do not change it.
+keys. The same id gives the same popup. --name, -d and the popup size do not
+change it.
 """
 
 import os
@@ -24,10 +28,11 @@ from python_guard import require_python
 require_python("toggle")
 
 import argparse
+import contextlib
 import hashlib
 import json
-import re
 import shlex
+import signal
 import socket
 import time
 from pathlib import Path
@@ -35,6 +40,7 @@ from pathlib import Path
 import herdr_api
 import herdr_config
 import popups
+import proxy
 from herdr_api import POPUP_SESSION, Herdr, HerdrError
 from keys import parse_binding
 from launch import DEFAULT_SHELL_ENV, OWNER_SOCKET_ENV, START_ENV
@@ -43,7 +49,6 @@ from popups import SCOPES, Owner, PopupRecord
 # A toggle key must feel instant. So the modules that only a new popup or a
 # new popup server needs (shutil, subprocess, tempfile) are imported where
 # they are used.
-SIZE = re.compile(r"^(?:[1-9][0-9]*|(?:[1-9][0-9]?|100)%)$")
 POPUP_ID_LENGTH = 6
 LAUNCHER = Path(__file__).resolve().parent / "launch.py"
 SERVER_START_SECONDS = 5.0
@@ -60,12 +65,6 @@ class _Parser(argparse.ArgumentParser):
         raise UsageError(message)
 
 
-def _size(value):
-    if not SIZE.match(value):
-        raise UsageError(f"invalid size {value!r}: use cells (120) or a percentage (80%)")
-    return value if value.endswith("%") else int(value)
-
-
 def parse_args(argv):
     """Parse the toggle flags. Everything after `--` is the popup command."""
     argv = list(argv)
@@ -79,13 +78,10 @@ def parse_args(argv):
     parser.add_argument("--scope", choices=list(SCOPES), default="workspace")
     parser.add_argument("--name")
     parser.add_argument("--toggle-key", dest="toggle_keys", action="append", default=[])
-    parser.add_argument("-w", dest="width", default="80%")
-    parser.add_argument("-h", dest="height", default="80%")
     parser.add_argument("-d", dest="directory")
     options = parser.parse_args(argv)
     if options.name is not None and not options.name.strip():
         raise UsageError("--name must not be empty")
-    options.width, options.height = _size(options.width), _size(options.height)
     for key in options.toggle_keys:
         try:
             parse_binding(key)
@@ -342,49 +338,117 @@ def prepare_popup(herdr, popup_id, options, owner, default_shell):
         popups.save_record(record)
 
 
-def open_popup(main_herdr, popup_id, options, config):
-    """Open the Herdr popup that runs the key-filter proxy for this popup.
+def sweep_in_background():
+    """Run popups.housekeeping_sweep() in a new process, and return at once.
 
-    Herdr shows one plugin popup at a time. It refuses another with the code
-    "ui_busy".
+    The proxy calls this when the popup shows its program, so the sweep
+    does not make the popup slow, and the relay loop does not wait for it.
+    The sweep holds the popup lock, as each change to the popup session
+    does. It never closes the popup that shows: its owner session is live.
+
+    The sweep process starts its own session, so the signals that close the
+    popup do not stop it. Its stdin, stdout and stderr are /dev/null: the
+    popup closes when the proxy ends, and the popup must not show its log.
+    It closes all other files, such as the viewer's pseudo-terminal: it must
+    not keep them open after the proxy ends. A failed fork only skips the
+    sweep: the next toggle sweeps.
     """
     try:
-        main_herdr.call("plugin.pane.open", {
-            "plugin_id": herdr_api.PLUGIN_ID, "entrypoint": "popup", "placement": "popup",
-            "width": options.width, "height": options.height, "focus": True,
-            "env": herdr_api.proxy_env(popup_id, config.prefix, config.scrollback,
-                                       config.default_shell),
-        })
-    except HerdrError as error:
-        if error.code == "ui_busy":
-            raise HerdrError("Close the open popup first.") from error
-        raise
+        pid = os.fork()
+    except OSError:
+        return
+    if pid:
+        # The first child ends at once, after its own fork.
+        with contextlib.suppress(ChildProcessError):
+            os.waitpid(pid, 0)
+        return
+    try:
+        os.setsid()
+        if os.fork():
+            return
+        for signum in (*proxy.HANG_UP_SIGNALS, signal.SIGWINCH):
+            signal.signal(signum, signal.SIG_DFL)
+        devnull = os.open(os.devnull, os.O_RDWR)
+        for fd in (0, 1, 2):
+            os.dup2(devnull, fd)
+        close_other_files()
+        with popups.popup_lock():
+            popups.housekeeping_sweep(herdr_api.popup_herdr())
+    finally:
+        # Never run the caller's code after the fork: not its finally blocks,
+        # and not its exit handlers.
+        os._exit(0)
 
 
-def toggle(argv, env):
+def close_other_files():
+    """Close all file descriptors above 2.
+
+    /dev/fd lists the open ones on macOS and Linux. A loop up to the limit
+    can take 1048576 close() calls.
+    """
+    try:
+        fds = [int(name) for name in os.listdir("/dev/fd")]
+    except (OSError, ValueError):
+        os.closerange(3, 1024)
+        return
+    for fd in fds:
+        if fd > 2:
+            # The fd of the listdir() is closed already.
+            with contextlib.suppress(OSError):
+                os.close(fd)
+
+
+def end_on_hang_up():
+    """Until the proxy runs, end on SIGHUP or SIGTERM with SystemExit: Herdr closed the popup.
+
+    So the cleanup of a popup that is half made still runs (see create_popup()).
+    """
+    def hang_up(signum, _frame):
+        # Herdr sends SIGTERM after SIGHUP: do not stop the cleanup a second time.
+        for other in proxy.HANG_UP_SIGNALS:
+            signal.signal(other, signal.SIG_IGN)
+        raise SystemExit(128 + signum)
+
+    for signum in proxy.HANG_UP_SIGNALS:
+        signal.signal(signum, hang_up)
+
+
+def toggle(argv, env, state):
+    """Show the popup that the flags ask for, until the popup closes.
+
+    The popup id goes in state["popup_id"] as soon as it is known, for the
+    error trace.
+    """
     endpoint = env.get("HERDR_SOCKET_PATH")
     if not endpoint:
         raise UsageError("run this from a Herdr key binding: HERDR_SOCKET_PATH is not set")
     options = parse_args(argv)
     popup_id, owner = popup_identity(options, env)
+    state["popup_id"] = popup_id
     config = herdr_config.read_main_config()
     with popups.popup_lock():
         herdr = ensure_popup_server(config.default_shell)
         prepare_popup(herdr, popup_id, options, owner, config.default_shell)
-        open_popup(Herdr(endpoint), popup_id, options, config)
-        # The sweep comes last, so that it does not make the popup slow: the
-        # proxy starts meanwhile. It holds the lock, as each change to the
-        # popup session does. It never closes this popup: its owner is live.
-        popups.housekeeping_sweep(herdr)
+    proxy.Proxy(popup_id, config.prefix, config.scrollback, Herdr(endpoint), herdr,
+                default_shell=config.default_shell, on_shown=sweep_in_background).run()
 
 
 def main(argv=None):
-    """Run one toggle. Every error becomes a toast: Herdr discards the output."""
+    """Run one toggle. Every error becomes a toast in the session that shows the popup.
+
+    The error does not go to stderr: that is the popup terminal, which closes
+    when this process ends.
+    """
     argv = sys.argv[1:] if argv is None else argv
+    end_on_hang_up()
+    state = {}
     try:
-        toggle(argv, os.environ)
+        toggle(argv, os.environ, state)
     except Exception as error:
         herdr_api.report_error("toggle", error)
+        if "popup_id" in state:
+            with contextlib.suppress(OSError):
+                proxy.trace_event(state["popup_id"], "error")
         return 1
     return 0
 

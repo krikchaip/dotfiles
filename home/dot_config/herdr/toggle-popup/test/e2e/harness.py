@@ -30,11 +30,14 @@ TOAST_TITLE = f"● {TITLE}"
 REPO_CONFIG = PLUGIN.parent / "config.toml"
 # The user's other Herdr plugins, next to this one in the repo.
 OTHER_PLUGINS = (PLUGIN.parent / "navigation", PLUGIN.parent / "session-titles")
-POPUP_FRAME = re.compile("┌─{40,}┐")
+# The top border of a popup. Herdr shows the title `popup` in it (see the spec).
+POPUP_FRAME = re.compile("┌(?:popup)?─{40,}┐")
 TIMEOUT = float(os.environ.get("E2E_TIMEOUT", "15"))
 
-# Keys that run a slot file. A test writes the slot, then presses its key.
+# Popup keys that run a slot file. A test writes the slot, then presses its key.
 SLOT_KEYS = ("alt+1", "alt+2", "alt+3", "alt+4", "alt+5")
+# toggle.sh, as its chezmoi source file. It is not executable here: run it with sh.
+TOGGLE_SCRIPT = PLUGIN / "executable_toggle.sh"
 DROPPED_ENV = ("SSH_AUTH_SOCK", "TERM_PROGRAM", "TERM_PROGRAM_VERSION", "TMUX", "TMUX_PANE",
                "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "EDITOR", "VISUAL")
 
@@ -169,7 +172,8 @@ class Stage:
                  'edit_scrollback = "prefix+e"', ""]
         for key in SLOT_KEYS:
             slot = self.slots / f"{key.replace('+', '-')}.sh"
-            lines += ["[[keys.command]]", f"key = {json.dumps(key)}", 'type = "shell"',
+            lines += ["[[keys.command]]", f"key = {json.dumps(key)}", 'type = "popup"',
+                      'width = "80%"', 'height = "80%"',
                       f"command = {json.dumps('. ' + shlex.quote(str(slot)))}", ""]
         if real_binds:
             lines += self.real_binds()
@@ -192,19 +196,19 @@ class Stage:
 
     @staticmethod
     def real_binds():
-        """The repo's toggle-popup binds, with the script path pointed at this checkout."""
+        """The repo's toggle-popup binds, with toggle.sh pointed at this checkout."""
+        target = "~/.config/herdr/toggle-popup/toggle.sh"
         lines, block = [], []
         for line in REPO_CONFIG.read_text(encoding="utf-8").splitlines() + [""]:
             if line.startswith("[") and block:
-                if any("toggle_popup.py" in item for item in block):
+                if any(target in item for item in block):
                     lines += block
                 block = []
             if line.startswith("[[keys.command]]") or block:
                 block.append(line)
-        target = "~/.config/herdr/toggle-popup/"
-        if not lines or not all(target in line for line in lines if "toggle_popup.py" in line):
+        if not lines:
             raise AssertionError(f"toggle-popup binds not found in {REPO_CONFIG}")
-        text = "\n".join(lines).replace(target, str(PLUGIN) + "/")
+        text = "\n".join(lines).replace(target, f"/bin/sh {TOGGLE_SCRIPT}")
         return text.splitlines() + [""]
 
     def start(self):
@@ -345,10 +349,9 @@ class Stage:
 
     # Slots
 
-    def slot(self, key, *argv, cwd=None):
-        """Bind KEY to `toggle_popup.py ARGV...`."""
-        script = PLUGIN / "toggle_popup.py"
-        line = " ".join(shlex.quote(item) for item in ["exec", "python3", str(script), *argv])
+    def slot(self, key, *argv, cwd=None, script=TOGGLE_SCRIPT):
+        """Bind KEY to `toggle.sh ARGV...`, as the popup binds of the repo config do."""
+        line = shlex.join(["exec", "/bin/sh", str(script), *argv])
         if cwd:
             line = f"cd {shlex.quote(str(cwd))} && {line}"
         (self.slots / f"{key.replace('+', '-')}.sh").write_text(line + "\n", encoding="utf-8")

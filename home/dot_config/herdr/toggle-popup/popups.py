@@ -243,8 +243,9 @@ def close_owned(herdr, socket, workspace_id=None, tab_id=None):
 
 
 def housekeeping_sweep(herdr):
-    """sweep() for a key press. The toggle runs it after it opens the popup,
-    and the picker before it lists the popups.
+    """sweep() for a key press. The toggle runs it in the background when the
+    popup shows its program (see toggle_popup.sweep_in_background()), and
+    the picker runs it before it lists the popups.
 
     A missed close hook can leave popups whose owner is gone. That is
     housekeeping: its error goes only to the log, and the key press goes on.

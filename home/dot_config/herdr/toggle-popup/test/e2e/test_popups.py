@@ -10,6 +10,9 @@ import fcntl
 import json
 import os
 import re
+import shlex
+import shutil
+import signal
 import struct
 import subprocess
 import sys
@@ -401,6 +404,23 @@ class ShellPopups:
 class Scopes(ShellPopups, StageCase):
     """Where each scope shares a popup, and how Herdr's events close it."""
 
+    def test_a_popup_key_runs_the_homebrew_python3_or_else_python3(self):
+        # toggle.sh picks the Python. The popup session's shell script names it.
+        s = self.s
+        self.workspace("python")  # Its close removes the popup.
+        self.ready_slot("alt+1", "python")
+        self.show("alt+1", "python")
+        self.hide("python")
+        shell = s.state_home / "herdr" / "plugins" / "dotfiles.toggle-popup" / "popup-shell"
+        python = shlex.split(shell.read_text(encoding="utf-8").splitlines()[-1])[1]
+        homebrew = "/opt/homebrew/bin/python3"
+        if os.access(homebrew, os.X_OK):
+            expected = homebrew
+        else:
+            # Linux, as in the Docker tests.
+            expected = shutil.which("python3", path=s.env["PATH"])
+        self.assertEqual(os.path.realpath(python), os.path.realpath(expected))
+
     def test_tab_scope_gives_each_tab_its_own_popup(self):
         s = self.s
         first = s.focused_tab()
@@ -505,15 +525,35 @@ class Scopes(ShellPopups, StageCase):
         self.hide("everywhere")
         self.assertEqual(len(s.popup_ids("everywhere")), 1)
 
+    def test_without_python3_toggle_sh_shows_a_toast(self):
+        # Herdr shows the popup first, and it closes when toggle.sh exits.
+        s = self.s
+        script = s.root / "no-python-toggle.sh"
+        text = harness.TOGGLE_SCRIPT.read_text(encoding="utf-8")
+        # Every Mac has /usr/bin/python3, so the copy looks for another name.
+        for old, new in (("p=/opt/homebrew/bin/python3", "p=/no-such-folder/python3"),
+                         ("command -v python3", "command -v no-such-python3"),
+                         ('exec python3 "$0"', 'exec no-such-python3 "$0"')):
+            self.assertIn(old, text)
+            text = text.replace(old, new)
+        script.write_text(text, encoding="utf-8")
+        s.slot("alt+1", "--name", "nopython", "--", "/bin/sh", script=script)
+        s.keys("M-1")
+        toast = "python3 not found: toggle-popup needs Python 3.11+"
+        s.wait(lambda: s.screen() and any(toast in seen for seen in s.toasts),
+               "the no-python3 toast")
+        s.wait_popup_closed()
+        self.assertEqual(s.records(), {})
+
     def test_a_program_that_cannot_start_shows_a_toast(self):
+        # Herdr shows the popup first. On an error, the popup closes and the toast shows.
         s = self.s
         s.slot("alt+1", "--name", "missing", "--", "no-such-program-x")
         s.keys("M-1")
         toast = "cannot run no-such-program-x: No such file or directory"
         s.wait(lambda: s.screen() and any(toast in seen for seen in s.toasts),
                "the start error toast")
-        # The toast is wide too: the only frame on the screen must be the toast.
-        self.assertIn(s.popup_lines()[:1], ([], [harness.TOAST_TITLE]))
+        s.wait_popup_closed()
         s.wait(lambda: not s.started_popup_panes(), "no backing popup")
         self.assertEqual(s.records(), {})
 
@@ -523,6 +563,7 @@ class Scopes(ShellPopups, StageCase):
         s.keys("M-1")
         s.wait(lambda: s.screen() and any("invalid choice: 'git'" in toast for toast in s.toasts),
                "the usage error toast")
+        s.wait_popup_closed()
         self.assertEqual(s.started_popup_panes(), {})
 
 
@@ -676,6 +717,10 @@ class PopupServer(ShellPopups, StageCase):
             call(endpoint, "plugin.unlink", {"plugin_id": plugin_id})
 
     @staticmethod
+    def workspace_count(endpoint):
+        return len(call(endpoint, "session.snapshot")["snapshot"]["workspaces"])
+
+    @staticmethod
     def plugin_ids(endpoint):
         return {item["plugin_id"] for item in call(endpoint, "plugin.list")["plugins"]}
 
@@ -734,6 +779,10 @@ class PopupServer(ShellPopups, StageCase):
         self.show("alt+1", "first")
         self.hide("first")
         self.assertEqual(self.plugin_ids(s.popup_socket), set())
+        # The new server restores the old popup workspace with an empty shell.
+        # The sweep after the toggle closes it, so one workspace is left.
+        s.wait(lambda: self.workspace_count(s.popup_socket) == 1,
+               "the sweep to close the restored workspace")
         self.assertEqual(s.toasts, toasts)
 
     def test_a_new_shell_popup_uses_the_current_default_shell(self):
@@ -876,11 +925,26 @@ class StageDiagnostics(unittest.TestCase):
     def test_the_plugin_toasts_on_a_screen_are_kept(self):
         # The parser needs only the toast title and the frame column at its left.
         screen = (f"  ╭● {python_guard.TITLE} ─────╮\n"
-                  "  │Close the open      │\n  │popup first.        │\n"
+                  "  │invalid choice:     │\n  │'git'               │\n"
                   "  ╰────────────────────╯\n")
         with mock.patch.object(self.stage, "tmux", return_value=screen):
             self.stage.screen()
-        self.assertEqual(self.stage.toasts, ["main: Close the open popup first."])
+        self.assertEqual(self.stage.toasts, ["main: invalid choice: 'git'"])
+
+
+def drain_quietly(fd):
+    """Read a pseudo-terminal until it closes, so that its writer never blocks."""
+    with contextlib.suppress(OSError):
+        while os.read(fd, 65536):
+            pass
+
+
+def trace_ids(stage, event):
+    """The popup ids with `event` in the proxy event trace."""
+    if not stage.trace_path.exists():
+        return set()
+    lines = stage.trace_path.read_text(encoding="utf-8").splitlines()
+    return {line.split("\t")[0] for line in lines if line.endswith(f"\t{event}")}
 
 
 class OwnerSessions(unittest.TestCase):
@@ -926,12 +990,24 @@ class OwnerSessions(unittest.TestCase):
         workspace = call(endpoint, "workspace.create", {"cwd": str(s.root)})["workspace"]
         env = dict(s.env, HERDR_SOCKET_PATH=str(endpoint),
                    HERDR_ACTIVE_WORKSPACE_ID=workspace["workspace_id"])
-        # No client shows the popup, so only its backing program starts.
-        result = subprocess.run([sys.executable, str(PLUGIN / "toggle_popup.py"), "--name", name,
-                                 "--", "/bin/sh"], env=env, capture_output=True, text=True,
-                                timeout=30)
-        self.assertEqual(result.returncode, 0, f"toggle_popup.py failed: {result.stderr}")
-        popup_id = s.popup_id(name, endpoint)
+        # No client shows a popup, so the toggle runs in a pseudo-terminal of its own.
+        main, terminal = os.openpty()
+        toggle = subprocess.Popen(
+            [sys.executable, str(PLUGIN / "toggle_popup.py"), "--name", name, "--", "/bin/sh"],
+            env=env, stdin=terminal, stdout=terminal, stderr=terminal, start_new_session=True)
+        os.close(terminal)
+        drain = threading.Thread(target=drain_quietly, args=(main,), daemon=True)
+        drain.start()
+        try:
+            popup_id = s.popup_id(name, endpoint)
+            s.wait(lambda: popup_id in trace_ids(s, "open"), "the proxy of the popup")
+        finally:
+            # Herdr closes a popup with SIGHUP. The program keeps running.
+            toggle.send_signal(signal.SIGHUP)
+            status = toggle.wait(10)
+            drain.join(5)
+            os.close(main)
+        self.assertEqual(status, 128 + signal.SIGHUP)
         return endpoint, popup_id
 
     def test_toggle_sweeps_popups_of_a_stopped_session(self):
@@ -1008,11 +1084,13 @@ class TwoClients(ShellPopups, StageCase):
         self.ready_slot("alt+1", "busy")
         self.show("alt+1", "busy")
         self.assertFalse(s.popup_visible("second"))
+        toasts = list(s.toasts)
         s.keys("M-1", target="second")
-        s.wait(lambda: s.screen("second") and any(
-            toast == "second: Close the open popup first." for toast in s.toasts),
-            "the busy toast on the second client")
+        # Herdr refuses the popup key itself, with its own notice.
+        s.wait_screen("Action rejected", target="second")
+        s.wait_screen("popup already open", target="second")
         self.assertFalse(s.popup_visible("second"))
+        self.assertEqual(s.toasts, toasts)
         self.hide("busy")
 
     def attach(self, terminal_id, *flags):
@@ -1162,16 +1240,28 @@ prefix = "ctrl+;"
 
 [[keys.command]]
 key = "alt+1"
-type = "shell"
-command = 'exec python3 /plugin/toggle_popup.py --name remote --toggle-key ctrl+z \
+type = "popup"
+width = "80%"
+height = "80%"
+command = 'exec /bin/sh /plugin/executable_toggle.sh --name remote --toggle-key ctrl+z \
 -- python3 /plugin/test/e2e/keylog.py legacy /tmp/remote.log'
 
 [[keys.command]]
 key = "alt+2"
-type = "shell"
-command = 'exec python3 /plugin/toggle_popup.py --name herdr --toggle-key ctrl+z -- /bin/sh -c \
-"herdr workspace list > /tmp/remote-herdr.json; \
+type = "popup"
+width = "80%"
+height = "80%"
+command = 'exec /bin/sh /plugin/executable_toggle.sh --name herdr --toggle-key ctrl+z \
+-- /bin/sh -c "herdr workspace list > /tmp/remote-herdr.json; \
 echo pane=\\${HERDR_PANE_ID-unset} done-\\$((40+2)); exec /bin/sh"'
+
+[[keys.command]]
+key = "alt+3"
+type = "popup"
+width = "80%"
+height = "80%"
+command = 'exec /bin/sh /plugin/executable_toggle.sh --name login --toggle-key ctrl+z \
+-- login-path-program'
 
 [terminal]
 default_shell = "/home/tester/remote-shell.sh"
@@ -1192,6 +1282,10 @@ mkdir -p ~/.config/herdr
 cat > ~/.config/herdr/config.toml
 printf '#!/bin/sh\\nexport PS1="REMOTE$ "\\nexec /bin/sh -i\\n' > ~/remote-shell.sh
 chmod +x ~/remote-shell.sh
+# Debian's ~/.profile puts ~/.local/bin on PATH, but only for a login shell.
+mkdir -p ~/.local/bin
+printf '#!/bin/sh\necho login-path-$((40+2))\nexec /bin/sh\n' > ~/.local/bin/login-path-program
+chmod +x ~/.local/bin/login-path-program
 herdr plugin link /plugin --enabled >/dev/null
 """
 
@@ -1322,6 +1416,17 @@ class RemoteMachine(StageCase):
         listed = workspaces(self.ssh("cat /tmp/remote-herdr.json"))
         self.assertEqual(listed, workspaces(self.ssh("herdr workspace list")))
         self.assertNotIn(next(iter(self.remote_popups())), {label for _, label in listed})
+
+    def test_a_remote_popup_finds_programs_on_the_login_path(self):
+        # A popup bind runs `/bin/sh -c`, not a login shell. toggle.sh reads
+        # the login profile, as a shell bind (`/bin/sh -lc`) does.
+        s = self.s
+        s.wait_screen(f" {self.host} ", what="the remote machine in the sidebar")
+        s.wait(self.select_remote_workspace, "a remote workspace")
+        s.keys("M-3")
+        s.wait_screen("login-path-42")
+        s.keys("C-z")
+        s.wait_popup_closed()
 
     def test_one_key_keeps_a_popup_on_each_machine(self):
         # The same key is bound on both machines, as with one dotfiles repo.

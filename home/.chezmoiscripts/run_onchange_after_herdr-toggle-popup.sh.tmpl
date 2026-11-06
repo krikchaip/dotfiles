@@ -3,6 +3,7 @@ set -eu
 
 # config hash: {{ include "dot_config/herdr/config.toml" | sha256sum }}
 # manifest hash: {{ include "dot_config/herdr/toggle-popup/herdr-plugin.toml" | sha256sum }}
+# toggle script hash: {{ include "dot_config/herdr/toggle-popup/executable_toggle.sh" | sha256sum }}
 # toggle hash: {{ include "dot_config/herdr/toggle-popup/toggle_popup.py" | sha256sum }}
 # proxy hash: {{ include "dot_config/herdr/toggle-popup/proxy.py" | sha256sum }}
 # keys hash: {{ include "dot_config/herdr/toggle-popup/keys.py" | sha256sum }}

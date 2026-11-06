@@ -10,40 +10,41 @@ its reasons are in `.scratch/herdr-toggle-popup/spec.md`.
 
 ## Use
 
-Each popup is one `[[keys.command]] type = "shell"` line in
+Each popup is one `[[keys.command]] type = "popup"` block in
 `home/dot_config/herdr/config.toml`:
 
 ```toml
 [[keys.command]]
 key = "alt+y"
-type = "shell"
-command = 'python3 ~/.config/herdr/toggle-popup/toggle_popup.py --name yazi --toggle-key alt+y -d "$HERDR_ACTIVE_PANE_CWD" -- yazi'
+type = "popup"
+width = "80%"
+height = "80%"
+command = 'exec ~/.config/herdr/toggle-popup/toggle.sh --name yazi --toggle-key alt+y -d "$HERDR_ACTIVE_PANE_CWD" -- yazi'
 ```
 
 `key` opens the popup from a normal pane. `--toggle-key` hides it from
-inside. The proxy never reads `key`.
+inside. The proxy never reads `key`. `width` and `height` set the popup size.
 
 | Flag | Meaning |
 |---|---|
 | `--scope tab\|workspace\|pwd\|session` | Where one popup is shared. Default `workspace`. See [Scope](#scope). |
 | `--toggle-key <key>` | Hides the popup. Repeat it for more keys. Herdr key syntax; `prefix+f` uses Herdr's `[keys] prefix`. |
 | `--name <label>` | Label in the picker and the help header. Default: the command; without a command, the main `default_shell`, else `shell`. Not part of the popup id. |
-| `-w`, `-h <cells\|N%>` | Popup size. Default `80%`. |
 | `-d <dir>` | Start folder. Used only when the popup is created. |
 | `-- <command…>` | The program. Without it, the default shell runs. |
 
 Each toggle saves the current `--name`. A rename in `config.toml` shows on
 the next toggle, and the same program continues to run.
 
-The popup title is always a plain `─` rule. Herdr 0.9.5 takes a popup title
-only from the `[[panes]]` entry in `herdr-plugin.toml`.
+The popup border always shows the title `popup`. Herdr 0.9.5 takes it from
+the popup terminal's label, and a popup command cannot set that.
 
 ## Scope
 
 One key press finds the popup with its **popup id**: 6 hex characters of a
 hash of the scope key, the command, and the sorted toggle keys
-(`toggle_popup.popup_identity()`). `-d`, `-w`, `-h` and `--name` do not change
-it. If you change the toggle keys of a bind, the next press makes a new
+(`toggle_popup.popup_identity()`). `-d`, `--name`, `width` and `height` do not
+change it. If you change the toggle keys of a bind, the next press makes a new
 popup.
 
 | Scope | Shared by | Closes when |
@@ -109,15 +110,24 @@ Picker:
 
 ## Errors
 
-- The toggle script and the proxy show errors as Herdr toasts. Hooks write
-  only to stderr.
+- The toggle script and the proxy show errors as Herdr toasts. Herdr shows
+  the popup before Python starts, so on an error the empty popup shows for a
+  moment, closes, and then the toast shows. Hooks write only to stderr.
 - One popup per Herdr session: while another popup is open (also a
-  `navigation` dialog), a toggle shows "Close the open popup first."
+  `navigation` dialog), Herdr refuses the key itself. It shows its own
+  "Action rejected" notice with "popup already open".
 - A program that cannot start shows a toast, for example
   `cannot run no-such-program: No such file or directory`. A program that
   starts and then exits at once (for example lazygit outside a repo) shows
   "<program> exited at once" when it ends before the toggle checks its pane.
   When it ends later, the popup closes with no toast.
+- Python: Herdr runs a popup bind with `/bin/sh -c` and its server's
+  `PATH`, which on macOS can find `/usr/bin/python3` (3.9) first. So
+  `toggle.sh` runs `/opt/homebrew/bin/python3` when it exists (Homebrew
+  points it at its newest Python). Else it runs `python3` from a login shell
+  (`/bin/sh -lc`), so `python3` and the popup programs come from the login
+  `PATH`, for example `~/.local/bin` on Debian. Without `python3`, the toast
+  says "python3 not found".
 - Python older than 3.11: each entry point runs itself again with the newest
   `python3.N` (N ≥ 11) on `PATH`. If there is none, the toast says
   "toggle-popup needs Python 3.11+". See `python_guard.py`. It never runs a
@@ -127,10 +137,11 @@ Picker:
 ## How it works
 
 ```text
-key press ─► toggle_popup.py ─► popup server (Herdr session "toggle-popup")
-                │                  └─ one workspace per popup: the backing pane
-                └─► plugin.pane.open ─► proxy.py in the Herdr popup
-                                          └─ herdr terminal attach --takeover <terminal>
+key press ─► Herdr popup ─► toggle.sh ─► toggle_popup.py (one process)
+                              ├─ popup server (Herdr session "toggle-popup")
+                              │    └─ one workspace per popup: the backing pane
+                              └─ then the key-filter proxy (proxy.py)
+                                   └─ herdr terminal attach --takeover <terminal>
 ```
 
 - **Popup server:** one per machine, for all Herdr sessions. The toggle
@@ -156,28 +167,31 @@ key press ─► toggle_popup.py ─► popup server (Herdr session "toggle-popu
 - **Key-filter proxy:** while a popup is open, Herdr sends every key into
   it. `proxy.py` finds toggle keys and `prefix` commands in legacy, kitty and
   modifyOtherKeys encodings (`keys.py`). It passes every other byte through.
-- **Fast attach:** Herdr runs the proxy with the Python that runs the
-  toggle (`TOGGLE_POPUP_PYTHON` in the `herdr-plugin.toml` pane command), so
-  the proxy skips the version check. An idle popup server takes a new viewer
-  only on a loop pass, up to 250 ms later. So on the viewer's first output,
-  the proxy sends one `workspace.list` request that wakes the loop, and does
-  not wait for the answer (`proxy.AttachNudge`). A warm show takes about
-  165 ms from key to program text; about 60-80 ms of that is Herdr itself.
+- **One process:** Herdr's built-in popup runs `toggle_popup.py`. It finds
+  or creates the backing pane, then becomes the proxy in the same process.
+  So each key press starts Python once, with no `plugin.pane.open` call.
+- **Fast attach:** an idle popup server takes a new viewer only on a loop
+  pass, up to 250 ms later. So on the viewer's first output, the proxy sends
+  one `workspace.list` request that wakes the loop, and does not wait for
+  the answer (`proxy.AttachNudge`). A warm show takes about 105 ms from key
+  to program text; about 60-80 ms of that is Herdr itself.
 - **Two clients:** each attach uses `--takeover`. Clients on the same tab see
   one popup. A takeover by another viewer closes this popup quietly; the
   program keeps running.
 - **Cleanup:** the `tab.closed` and `workspace.closed` hooks close owned
   popups (`hooks.py`). Herdr sends no `tab.closed` for the tabs of a closed
   workspace, so `workspace.closed` also closes their `tab` popups. The
-  `[[startup]]` hook and each toggle (after the popup opens) run a sweep for
-  missed events. A Herdr
+  `[[startup]]` hook and each toggle run a sweep for missed events. The
+  toggle starts it in a background process once the popup shows its
+  program, so it does not slow the popup. A Herdr
   session counts as gone only when its socket is missing or refuses; a
   timeout keeps its popups.
 
 | Module | Job |
 |---|---|
-| `toggle_popup.py` | Entry point of a key: find or create the popup, then open the Herdr popup. |
-| `proxy.py` | The program in the Herdr popup: viewer, keys, help, picker, scrollback. |
+| `toggle.sh` | What a bind runs: picks the Python, then runs `toggle_popup.py`. |
+| `toggle_popup.py` | Entry point of a key: find or create the popup, then run the proxy. |
+| `proxy.py` | The key-filter proxy: viewer, keys, help, picker, scrollback. |
 | `keys.py` | Decode key input; find toggle keys and `prefix` chords. |
 | `popups.py` | Popup records, scopes, live popups, sweep. |
 | `hooks.py` | `tab-closed`, `workspace-closed`, `startup` hooks. |
@@ -226,8 +240,9 @@ suggests it. A server started by hand has your real config and plugins.
 `chezmoi apply` copies the plugin and runs
 `home/.chezmoiscripts/run_onchange_after_herdr-toggle-popup.sh.tmpl`. It
 runs `herdr plugin link … --enabled` when a module changes. A remote Herdr
-machine needs Python 3.11+, this folder, the key lines and the link script,
-all from chezmoi. Local and remote popups never mix.
+machine needs Python 3.11+ on its login `PATH`, and this folder, the key
+lines and the link script, all from chezmoi. Local and remote popups never
+mix.
 
 ## Tests
 

@@ -37,7 +37,7 @@ This is a design change. 6 spec parts change:
    ```
 3. **One popup at a time:** while another popup is open (for example a `navigation` dialog), Herdr refuses the key itself with "popup already open" (`src/app/popup.rs:52` in Herdr 0.9.5). The "Close the open popup first." toast no longer shows, and the key seems to do nothing.
 4. **Errors:** now an error shows only a toast. After: the popup opens first. On an error (for example, a program cannot start), the popup shows for a moment, closes, and then the toast shows.
-5. **Manifest:** the `[[panes]]` popup entry and the `TOGGLE_POPUP_PYTHON` launch command go away. The popup title is what Herdr shows for a built-in popup, not the plain `─` rule. Not checked yet.
+5. **Manifest:** the `[[panes]]` popup entry and the `TOGGLE_POPUP_PYTHON` launch command go away. The popup border shows the title `popup` at the top left, not the plain `─` rule. Herdr 0.9.5 sets it from the popup terminal's label, or `popup` (`src/server/client_shell.rs:514`). The popup process has no pane ID, so it cannot set the label.
 6. **Modules:** `toggle_popup.py` and `proxy.py` join into one entry point.
 
 These stay the same: scopes, the popup server, the picker, help, the hooks, remote machines, and the owner-session env for `herdr` in a popup.
@@ -48,3 +48,19 @@ These stay the same: scopes, the popup server, the picker, help, the hooks, remo
 - This design saves one Python start and the `plugin.pane.open` round trip.
 - The prototype was slow at first (197 ms) because the stage set `PYTHONDONTWRITEBYTECODE=1`. With the bytecode cache: 101 ms.
 - Measure with `test/e2e/bench_toggle.py`.
+
+## Exploration 2026-11-05
+
+Prototype: `/tmp/tpbase/one/one.py` (a copy of the plugin plus one entry point). Bench: `/tmp/tpbase/compare.py`, 20 warm shows each, `/usr/bin` first on PATH, bytecode cache on.
+
+| Setup | Warm median | Max |
+|---|---|---|
+| Plugin now (commit a2db3294) | 157 ms | 173 ms |
+| This design, bind runs `python3` | 121 ms | 140 ms |
+| This design, bind runs `/opt/homebrew/bin/python3.15` (with issue 01) | 102 ms | 117 ms |
+
+Facts from the Herdr 0.9.5 source:
+
+- A `type = "popup"` command runs with `/bin/sh -c`, not `-lc` (`src/platform/macos.rs:206`). PATH is the Herdr server's PATH.
+- The popup env has `HERDR_SOCKET_PATH`, `HERDR_BIN_PATH`, and `HERDR_ACTIVE_WORKSPACE_ID`, `HERDR_ACTIVE_TAB_ID`, `HERDR_ACTIVE_PANE_ID`, `HERDR_ACTIVE_PANE_CWD` (`src/app/custom_commands.rs:243`). Herdr removes the pane identity env (`src/app/popup.rs:139`).
+- The popup starts in the active pane's folder (`src/app/popup.rs:133`). The binds keep `-d`: it sets the backing pane's folder, and lazygit needs the Git root.

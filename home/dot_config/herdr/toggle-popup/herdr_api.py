@@ -1,6 +1,5 @@
 """Herdr access for the toggle-popup plugin: the socket client, session paths,
-the popup session command and its environment, the popup proxy's
-environment, and error toasts.
+the popup session command and its environment, and error toasts.
 """
 
 import json
@@ -19,13 +18,6 @@ from python_guard import PLUGIN_ID, TITLE
 from python_guard import plugin_state_path as _plugin_state_path
 
 POPUP_SESSION = "toggle-popup"
-# The values that the toggle gives the popup proxy (see proxy_env()).
-PROXY_ID_ENV = "TOGGLE_POPUP_ID"
-PROXY_PREFIX_ENV = "TOGGLE_POPUP_PREFIX"
-PROXY_SCROLLBACK_ENV = "TOGGLE_POPUP_SCROLLBACK"
-PROXY_DEFAULT_SHELL_ENV = "TOGGLE_POPUP_MAIN_DEFAULT_SHELL"
-# The Python that runs the proxy: the manifest's popup command reads it.
-PROXY_PYTHON_ENV = "TOGGLE_POPUP_PYTHON"
 # The user's values that launch.py puts back in the backing panes.
 USER_VALUES = ("XDG_CONFIG_HOME", "SHELL", "HERDR_CONFIG_PATH")
 # In the plugin state folder: the socket file of the popup server that the
@@ -131,7 +123,7 @@ def session_socket(name):
 
 
 def plugin_state_path():
-    """The plugin state folder. Shell keys do not get HERDR_PLUGIN_STATE_DIR."""
+    """The plugin state folder. Popup keys do not get HERDR_PLUGIN_STATE_DIR."""
     return Path(_plugin_state_path())
 
 
@@ -194,49 +186,6 @@ def popup_session_command(*args):
         USER_ENV: json.dumps(user),
     })
     return [herdr_bin(), *args], env
-
-
-def proxy_env(popup_id, prefix, scrollback, default_shell):
-    """The environment that the toggle gives the popup proxy: the popup id,
-    the prefix and scrollback keys as JSON lists, and the main config's
-    default_shell as JSON (a string or null). The picker names the default
-    shell with it, as the label does.
-
-    It also names this Python, which passed the version check: the proxy
-    starts on it at once, not on `python3` (/usr/bin/python3 3.9 on macOS),
-    which must find a newer Python and run again.
-    """
-    return {PROXY_ID_ENV: popup_id, PROXY_PREFIX_ENV: json.dumps(prefix),
-            PROXY_SCROLLBACK_ENV: json.dumps(scrollback),
-            PROXY_DEFAULT_SHELL_ENV: json.dumps(default_shell),
-            PROXY_PYTHON_ENV: sys.executable}
-
-
-def required_env(env, name):
-    """A value that the popup proxy needs. Herdr gives HERDR_SOCKET_PATH."""
-    value = env.get(name)
-    if not value:
-        raise ValueError(f"{name} is not set: open this popup with toggle_popup.py")
-    return value
-
-
-def _key_list_env(env, name):
-    value = json.loads(required_env(env, name))
-    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        raise ValueError(f"{name} must be a JSON list of keys")
-    return value
-
-
-def read_proxy_env(env):
-    """Read proxy_env() back. Return (popup_id, prefix, scrollback, default_shell).
-
-    Raise ValueError when a value is missing or has the wrong type.
-    """
-    default_shell = json.loads(required_env(env, PROXY_DEFAULT_SHELL_ENV))
-    if default_shell is not None and not isinstance(default_shell, str):
-        raise ValueError(f"{PROXY_DEFAULT_SHELL_ENV} must be a JSON string or null")
-    return (required_env(env, PROXY_ID_ENV), _key_list_env(env, PROXY_PREFIX_ENV),
-            _key_list_env(env, PROXY_SCROLLBACK_ENV), default_shell)
 
 
 def session_name(endpoint):
@@ -356,16 +305,19 @@ def log_error(context, error):
 
 
 def report_error(context, error, endpoint=None):
-    """Log an error to stderr and show it as a toast in the Herdr session.
+    """Show an error of a popup as a toast in the Herdr session.
 
-    `endpoint` is the session socket, by default $HERDR_SOCKET_PATH. A failed
-    toast is only logged: the error is already on its way out.
+    `endpoint` is the session socket, by default $HERDR_SOCKET_PATH. The
+    callers run in a popup, and stderr is its terminal. So the error goes to
+    stderr only when there is no session or the toast fails. A failed toast
+    is only logged: the error is already on its way out.
     """
-    text = log_error(context, error)
     endpoint = endpoint or os.environ.get("HERDR_SOCKET_PATH")
     if not endpoint:
+        log_error(context, error)
         return
     try:
-        Herdr(endpoint).notify(TITLE, text)
+        Herdr(endpoint).notify(TITLE, error_text(error))
     except HerdrError as toast_error:
+        log_error(context, error)
         print(f"toggle-popup: toast: {toast_error}", file=sys.stderr)

@@ -5,18 +5,9 @@ min_herdr_version = "0.9.5"
 description = "Named, persistent popups like tmux-toggle-popup, kept in a private popup session"
 platforms = ["macos", "linux"]
 
-# Keys open popups with toggle_popup.py from [[keys.command]] type = "shell" lines.
-# The popup runs the key-filter proxy, which shows one popup's backing pane.
-[[panes]]
-id = "popup"
-# Herdr requires a title; a rule keeps the top border unbroken.
-title = "─"
-placement = "popup"
-width = "80%"
-height = "80%"
-# toggle_popup.py gives the popup the Python that runs it, so that the proxy
-# starts on it at once. Without the value, python3 and the version check run.
-command = ["/bin/sh", "-c", 'exec "${TOGGLE_POPUP_PYTHON:-python3}" proxy.py']
+# Keys open popups with `[[keys.command]] type = "popup"` lines that run
+# toggle.sh (see toggle_popup.py). The plugin has no pane of its own: the
+# hooks close the popups of closed tabs and workspaces.
 
 [[events]]
 on = "tab.closed"

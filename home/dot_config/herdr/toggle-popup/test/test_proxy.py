@@ -27,10 +27,17 @@ import herdr_api
 import keys
 import popups
 import proxy
+import toggle_popup
 from fakes import FakeOwners, FakePopupSession
 from keys import Action, Combo
 from popups import Owner, PopupRecord
 from proxy import Next, ViewerEnd
+
+
+def keep_hang_up_handlers(case):
+    """toggle_popup.main() sets the SIGHUP and SIGTERM handlers: restore them after a test."""
+    for signum in proxy.HANG_UP_SIGNALS:
+        case.addCleanup(signal.signal, signum, signal.getsignal(signum))
 
 
 def patch(case, patcher):
@@ -798,7 +805,9 @@ class Nudges(unittest.TestCase):
         self.nudge.output(1.001)
         self.assertEqual(len(self.sent), 1)
         self.assertAlmostEqual(self.nudge.timeout(1.001), 0.024)
+        self.assertFalse(self.nudge.shown)
         self.nudge.output(1.010)
+        self.assertTrue(self.nudge.shown)
         self.assertIsNone(self.nudge.timeout(1.010))
         self.nudge.tick(2.0)
         self.assertEqual(len(self.sent), 1)
@@ -812,9 +821,60 @@ class Nudges(unittest.TestCase):
         self.assertAlmostEqual(self.nudge.timeout(1.025), 0.025)
         self.nudge.tick(1.050)
         self.assertEqual(len(self.sent), 3)
-        self.assertIsNone(self.nudge.timeout(1.050))
         self.nudge.tick(5.0)
         self.assertEqual(len(self.sent), 3)
+
+    def test_a_frame_in_the_burst_of_the_setup_counts_as_shown_later(self):
+        self.nudge.output(1.0)
+        self.nudge.tick(1.025)
+        self.nudge.tick(1.050)
+        self.assertEqual(len(self.sent), 3)
+        self.assertFalse(self.nudge.shown)
+        self.assertAlmostEqual(self.nudge.timeout(1.050), 0.05)
+        self.nudge.tick(1.1)
+        self.assertTrue(self.nudge.shown)
+        self.assertIsNone(self.nudge.timeout(1.1))
+
+
+class FirstFrame(RelayCase):
+    """on_shown() runs once, when the popup first shows the frame of its program."""
+
+    def test_on_shown_runs_once_after_the_frame(self):
+        shown = []
+        self.popup.on_shown = lambda: shown.append(self.drawn())
+        # Only the frame may show the popup here, not the time.
+        patch(self, mock.patch.object(proxy.AttachNudge, "SHOWN_BY", 60.0))
+        self.start(self.key_filter())
+        # The terminal setup of the viewer comes in one burst.
+        self.viewer.peer.sendall(b"setup")
+        time.sleep(0.05)
+        self.assertEqual(shown, [])
+        self.viewer.peer.sendall(b"frame")
+        wait_until(lambda: shown, "on_shown()")
+        self.assertEqual(shown, ["setupframe"])
+        self.viewer.peer.sendall(b"more")
+        time.sleep(0.05)
+        self.assertEqual(len(shown), 1)
+        self.assertIsNone(self.popup.on_shown)
+
+    def test_on_shown_runs_once_without_more_output(self):
+        # The frame came in the burst of the setup, and the program then waits.
+        shown = []
+        self.popup.on_shown = lambda: shown.append(self.drawn())
+        self.start(self.key_filter())
+        self.viewer.peer.sendall(b"setupframe")
+        wait_until(lambda: shown, "on_shown()")
+        self.assertEqual(shown, ["setupframe"])
+        time.sleep(0.05)
+        self.assertEqual(len(shown), 1)
+
+
+def wait_until(probe, what, timeout=5.0):
+    deadline = time.monotonic() + timeout
+    while not probe():
+        if time.monotonic() > deadline:
+            raise AssertionError(f"timed out waiting for {what}")
+        time.sleep(0.005)
 
 
 class ViewerProcess(unittest.TestCase):
@@ -932,7 +992,8 @@ class ScrollbackErrors(unittest.TestCase):
         with contextlib.redirect_stderr(stderr):
             self.assertIs(popup.act(Action.SCROLLBACK, SCROLLBACK_POPUP), Next.SHOW)
         self.assertEqual(toasts, [("/x/main.sock", "pane read: no such pane")])
-        self.assertIn("scrollback: pane read: no such pane", stderr.getvalue())
+        # stderr is the popup terminal, in raw mode: the toast is enough.
+        self.assertEqual(stderr.getvalue(), "")
 
 
 class ScrollbackInput(unittest.TestCase):
@@ -1123,65 +1184,15 @@ def fake_toasts(case):
     return toasts
 
 
-class StartErrors(unittest.TestCase):
-    """The proxy needs the environment that toggle_popup.py gives the popup."""
-
-    ENV = {"HERDR_SOCKET_PATH": "/x/herdr/sessions/work/herdr.sock", "TOGGLE_POPUP_ID": "p",
-           "TOGGLE_POPUP_PREFIX": '["ctrl+b"]', "TOGGLE_POPUP_SCROLLBACK": '["prefix+e"]',
-           "TOGGLE_POPUP_MAIN_DEFAULT_SHELL": '"nu"'}
-
-    def setUp(self):
-        self.toasts = fake_toasts(self)
-        patch(self, mock.patch.object(proxy.Proxy, "run",
-                                      lambda popup: self.fail("the proxy must not start")))
-
-    def run_main(self, **env):
-        with mock.patch.dict(os.environ, env, clear=True):
-            stderr = io.StringIO()
-            with contextlib.redirect_stderr(stderr):
-                code = proxy.main()
-        self.assertEqual(code, 1)
-        return stderr.getvalue()
-
-    def test_each_value_from_the_toggle_is_required(self):
-        for name in self.ENV:
-            with self.subTest(missing=name):
-                env = {key: value for key, value in self.ENV.items() if key != name}
-                self.assertIn(f"{name} is not set", self.run_main(**env))
-
-    def test_without_a_session_socket_there_is_no_toast(self):
-        env = dict(self.ENV)
-        del env["HERDR_SOCKET_PATH"]
-        self.run_main(**env)
-        self.assertEqual(self.toasts, [])
-
-    def test_the_proxy_starts_with_the_values_from_the_toggle(self):
-        started = []
-        with mock.patch.object(proxy.Proxy, "run", lambda popup: started.append(popup)):
-            with mock.patch.dict(os.environ, self.ENV, clear=True):
-                self.assertEqual(proxy.main(), 0)
-        self.assertEqual([(popup.popup_id, popup.prefix, popup.scrollback, popup.default_shell,
-                           popup.main.endpoint) for popup in started],
-                         [("p", ["ctrl+b"], ["prefix+e"], "nu", self.ENV["HERDR_SOCKET_PATH"])])
-        for popup in started:
-            os.close(popup.wake_read)
-            os.close(popup.wake_write)
-
-    def test_with_a_session_socket_the_error_is_a_toast(self):
-        env = dict(self.ENV, TOGGLE_POPUP_PREFIX="")
-        self.run_main(**env)
-        self.assertEqual(self.toasts, [(env["HERDR_SOCKET_PATH"], self.toasts[0][1])])
-        self.assertIn("TOGGLE_POPUP_PREFIX is not set", self.toasts[0][1])
-
-
 class InputErrors(unittest.TestCase):
     """Only a terminal that is gone ends the input. Another read error is a toast."""
 
     def setUp(self):
         self.toasts = fake_toasts(self)
+        keep_hang_up_handlers(self)
 
     def read_error(self, error):
-        """Run the proxy, whose first read of the popup input gets `error`."""
+        """Run the toggle, whose proxy gets `error` on its first read of the popup input."""
         real_read = os.read
 
         def read(fd, size):
@@ -1191,29 +1202,33 @@ class InputErrors(unittest.TestCase):
 
         ends = []
 
-        def run(popup):
+        def toggle(argv, env, state):
+            popup = proxy.Proxy("p", ["ctrl+b"], [], herdr_api.Herdr(SOCKET), None)
             self.addCleanup(os.close, popup.wake_read)
             self.addCleanup(os.close, popup.wake_write)
             ends.append(popup.input.read())
             ends.append(popup.input.ended)
 
         patch(self, mock.patch.object(proxy.os, "read", read))
-        patch(self, mock.patch.object(proxy.Proxy, "run", run))
-        with mock.patch.dict(os.environ, StartErrors.ENV, clear=True):
+        patch(self, mock.patch.object(toggle_popup, "toggle", toggle))
+        with mock.patch.dict(os.environ, {"HERDR_SOCKET_PATH": SOCKET}, clear=True):
             with contextlib.redirect_stderr(io.StringIO()) as stderr:
-                code = proxy.main()
+                code = toggle_popup.main([])
         return code, ends, stderr.getvalue()
 
     def test_an_unexpected_read_error_is_raised_and_shown(self):
         code, ends, stderr = self.read_error(OSError(errno.EINVAL, "Invalid argument"))
-        self.assertEqual((code, ends), (1, []))
-        self.assertIn("Invalid argument", stderr)
+        self.assertEqual((code, ends, stderr), (1, [], ""))
         self.assertEqual(len(self.toasts), 1)
+        self.assertEqual(self.toasts[0][0], SOCKET)
         self.assertIn("Invalid argument", self.toasts[0][1])
 
     def test_a_terminal_that_is_gone_ends_the_input_quietly(self):
         code, ends, stderr = self.read_error(OSError(errno.EIO, "Input/output error"))
         self.assertEqual((code, ends, stderr, self.toasts), (0, [False, True], "", []))
+
+
+SOCKET = "/x/herdr/sessions/work/herdr.sock"
 
 
 if __name__ == "__main__":
