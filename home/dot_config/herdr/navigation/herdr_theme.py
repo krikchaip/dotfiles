@@ -3,7 +3,7 @@
 Herdr 0.9.5 gives plugins no theme API, environment variable, or color-query
 reply. chezmoi fetches the palettes (src/app/state.rs) and theme-name aliases
 (src/config/theme.rs) for the installed version; see
-.chezmoiexternals/herdr.toml.tmpl. This module applies config.toml `[theme]`
+.chezmoiexternals/herdr.toml. This module applies config.toml `[theme]`
 like Herdr's resolve_effective_theme in src/app/mod.rs.
 
 A token is None for Color::Reset, an int for an ANSI color, or an RGB tuple.
@@ -75,9 +75,14 @@ def _palette(name):
 def _dark_appearance():
     # Herdr asks the host terminal and assumes dark without a reply; kitty
     # follows the macOS appearance, which this reads without a terminal.
-    result = subprocess.run(["defaults", "read", "-g", "AppleInterfaceStyle"],
-                            capture_output=True, text=True)
-    return result.returncode != 0 or result.stdout.strip() == "Dark"
+    # Other systems have no `defaults`: assume dark, as Herdr does.
+    try:
+        result = subprocess.run(["defaults", "read", "-g", "AppleInterfaceStyle"],
+                                capture_output=True, text=True)
+    except OSError:
+        return True
+    # Light mode has no AppleInterfaceStyle, so `defaults` fails there.
+    return result.stdout.strip() == "Dark"
 
 
 def tokens():

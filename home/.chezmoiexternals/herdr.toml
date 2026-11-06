@@ -1,11 +1,15 @@
-# Herdr palettes for dot_config/herdr/navigation/herdr_theme.py; the version in the URL refetches on upgrade.
+# Herdr palettes for each plugin's herdr_theme.py, which reads herdr-src/
+# next to itself. The version in the URL refetches on a Herdr upgrade.
 {{- if lookPath "herdr" }}
 {{-   $version := output "herdr" "--version" | trim | splitList " " | last }}
-[".config/herdr/navigation/herdr-src/state.rs"]
-  type = "file"
-  url = "https://raw.githubusercontent.com/herdrdev/herdr/v{{ $version }}/src/app/state.rs"
+{{-   $base := printf "https://raw.githubusercontent.com/herdrdev/herdr/v%s/src" $version }}
+{{-   $sources := dict "state.rs" "app/state.rs" "theme.rs" "config/theme.rs" }}
+{{-   range $plugin := list "navigation" "toggle-popup" }}
+{{-     range $file, $path := $sources }}
 
-[".config/herdr/navigation/herdr-src/theme.rs"]
+[".config/herdr/{{ $plugin }}/herdr-src/{{ $file }}"]
   type = "file"
-  url = "https://raw.githubusercontent.com/herdrdev/herdr/v{{ $version }}/src/config/theme.rs"
+  url = "{{ $base }}/{{ $path }}"
+{{-     end }}
+{{-   end }}
 {{- end }}

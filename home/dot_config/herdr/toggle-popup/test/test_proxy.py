@@ -119,9 +119,16 @@ def screen_rows(drawn):
     return [rows.get(row, "") for row in range(1, max(rows, default=0) + 1)]
 
 
+def picker_lines(rows):
+    """The list of a picker page: the rows between the filter field and the bottom rule."""
+    end = max(index for index, row in enumerate(rows) if row.startswith("─"))
+    return [row for row in rows[5:end] if row.strip()]
+
+
 def picker_labels(rows):
-    """The popup labels in the rows of a picker page."""
-    return [row.split("─ ", 1)[1][2:].split()[0] for row in rows if "─ " in row]
+    """The popup labels in the rows of a picker page. A group title starts at column 2."""
+    return [row[5:].split()[0] for row in picker_lines(rows)
+            if row[:5] == "     " or row[1] == "│"]
 
 
 # A popup for the scrollback tests: only its pane id counts.
@@ -283,7 +290,7 @@ class Relay(RelayCase):
         os.write(self.input_write, b"\x02?x")
         self.assertIs(self.popup.view(self.key_filter()), Action.HELP)
         page = self.popup.key_filter(to_program=False)
-        self.assertEqual(self.popup.screen.read_key(page), Combo("x", 0))
+        self.assertEqual(self.popup.screen.read_key(page).combo, Combo("x", 0))
 
 
 class Pages(RelayCase):
@@ -327,7 +334,7 @@ class Pages(RelayCase):
         self.assertIs(self.popup.view(self.key_filter()), Action.HELP)
         self.drawn()
         self.assertIs(self.popup.act(Action.HELP, self.live("p")), Next.SHOW)
-        self.assertTrue(screen_rows(self.drawn())[0].startswith(" Switch popup:"))
+        self.assertTrue(screen_rows(self.drawn())[0].startswith("  Switch popup "))
         self.assertEqual(self.events()[-2:], ["p", "picker"])
 
     def test_prefix_e_on_the_help_page_opens_the_scrollback(self):
@@ -346,7 +353,14 @@ class Pages(RelayCase):
         self.popup.record = popups.load_record("a3f9c2")
         os.write(self.input_write, b"x")
         self.assertIsNone(self.popup.help())
-        self.assertEqual(screen_rows(self.drawn())[0], " Popup floating (a3f9c2)")
+        rows = screen_rows(self.drawn())
+        title = "  floating popup"
+        origin = "a3f9c2 · prefix ctrl+b"
+        self.assertEqual(rows[0], title + origin.rjust(80 - 2 - len(title)))
+        self.assertEqual(rows[1], "─" * 80)
+        self.assertEqual(rows[3:6], ["  Popup", "     ctrl+b   q         kill this popup",
+                                     "     ctrl+b   g         switch to another popup"])
+        self.assertEqual(rows[-3:], ["─" * 80, "   any key  back to the program", ""])
 
     def test_the_picker_groups_this_sessions_popups(self):
         # Popups of another session never show, even with the same workspace ids.
@@ -362,26 +376,30 @@ class Pages(RelayCase):
                        tab_id="w1:t2")
         os.write(self.input_write, b"\x1b")
         self.assertEqual(self.popup.pick(), (None, False))
-        self.assertEqual(screen_rows(self.drawn())[:10], [
-            " Switch popup: j/k or arrows to move, enter to show, esc to stay", "",
-            " work",
-            "   ├─   lazygit  ~/proj    lazygit",
-            "   └─   notes              nvim notes.md",
-            " home",
-            "   ├─   htop     tab logs  htop",
-            "   └─ * p                  shell",
-            " notes",
-            "   └─   q                  shell"])
+        rows = screen_rows(self.drawn())
+        self.assertEqual(rows[0], "  Switch popup" + "5 of 5".rjust(80 - 2 - 14))
+        self.assertEqual(rows[3], "   › Filter popups")
+        self.assertEqual(picker_lines(rows), [
+            "  work session",
+            "     lazygit        ~/proj" + " " * 20 + "lazygit",
+            "     notes" + " " * 36 + "nvim notes.md",
+            "  home workspace",
+            "     htop           tab logs" + " " * 18 + "htop",
+            " │ › p ●" + " " * 38 + "shell" + " " * 27 + "▌",
+            "  notes workspace",
+            "     q" + " " * 40 + "shell"])
 
     def test_the_picker_names_the_default_shell_as_the_label_does(self):
         self.popup.default_shell = "nu"
         os.write(self.input_write, b"\x1b")
         self.popup.pick()
-        self.assertEqual(screen_rows(self.drawn())[2:6],
-                         [" home", "   └─ * p  nu", " notes", "   └─   q  nu"])
+        lines = picker_lines(screen_rows(self.drawn()))
+        self.assertEqual([line.split()[-1] for line in lines if "workspace" not in line],
+                         ["▌", "nu"])
+        self.assertIn(" nu ", lines[1])
 
     def test_a_picker_switch_shows_the_chosen_popup(self):
-        os.write(self.input_write, b"j\r")
+        os.write(self.input_write, b"\x1b[B\r")
         self.assertEqual(self.popup.pick(), (None, True))
         self.assertEqual(self.popup.popup_id, "q")
         self.assertEqual(self.events()[-2:], ["q", "switch"])
@@ -427,9 +445,9 @@ class Pages(RelayCase):
         os.write(self.input_write, b"\x1b")
         self.popup.pick()
         rows = screen_rows(self.drawn())
-        self.assertIn(" w1", rows)
-        self.assertIn(" w2", rows)
-        self.assertIn("   └─   t  tab w1:t2  shell", rows)
+        self.assertIn("  w1 workspace", rows)
+        self.assertIn("  w2 workspace", rows)
+        self.assertIn("     t              tab w1:t2" + " " * 17 + "shell", rows)
 
     def test_the_enter_release_after_a_switch_does_not_reach_the_new_viewer(self):
         # Kitty report-all-keys mode: a quick picker switch, all in one read.
@@ -437,8 +455,8 @@ class Pages(RelayCase):
             return f"\x1b[{code};{mods}:1u\x1b[{code};{mods}:3u".encode()
 
         a_key = press_release(97)
-        os.write(self.input_write, press_release(98, 5) + press_release(103) + press_release(106)
-                 + press_release(13) + a_key)
+        os.write(self.input_write, press_release(98, 5) + press_release(103)
+                 + press_release(110, 5) + press_release(13) + a_key)
         self.assertIs(self.popup.view(self.key_filter()), Action.PICKER)
         self.assertEqual(self.popup.pick(), (None, True))
         self.assertEqual(self.popup.popup_id, "q")
@@ -447,19 +465,117 @@ class Pages(RelayCase):
         self.assertEqual(self.received(len(a_key)), a_key)
 
 
+class PickerFilter(RelayCase):
+    """Typed text filters the picker. Popup keys still act, before filter text."""
+
+    def setUp(self):
+        super().setUp()
+        self.add_popup("g1", "workspace", "lazygit", command=["lazygit"], workspace_id="w1")
+
+    def pick(self, data):
+        os.write(self.input_write, data)
+        return self.popup.pick()
+
+    def test_typed_text_filters_and_enter_shows_the_first_match(self):
+        self.assertEqual(self.pick(b"lg\r"), (None, True))
+        self.assertEqual(self.popup.popup_id, "g1")
+
+    def test_a_filter_shows_the_count_and_the_matches(self):
+        self.assertEqual(self.pick(b"q\x1b\x1b"), (None, False))
+        rows = screen_rows(self.drawn())
+        # The last page: the filter is clear again.
+        self.assertEqual(picker_labels(rows), ["lazygit", "p", "q"])
+        self.assertTrue(rows[0].endswith("3 of 3"))
+
+    def test_esc_clears_the_filter_then_keeps_this_popup(self):
+        os.write(self.input_write, b"xx")
+        thread = threading.Thread(target=lambda: self.result.append(self.popup.pick()),
+                                  daemon=True)
+        self.result = []
+        thread.start()
+        self.wait_drawn("No popup matches “xx”")
+        os.write(self.input_write, b"\x1b")
+        self.wait_drawn("3 of 3")
+        self.assertEqual(self.result, [])
+        os.write(self.input_write, b"\x1b")
+        thread.join(5)
+        self.assertEqual(self.result, [(None, False)])
+        self.assertEqual(self.popup.popup_id, "p")
+
+    def test_no_match_shows_a_note_and_enter_does_nothing(self):
+        self.assertEqual(self.pick(b"xx\r\x03"), (None, False))
+        rows = screen_rows(self.drawn())
+        self.assertIn("     No popup matches “xx”", rows)
+        self.assertTrue(rows[0].endswith("0 of 3"))
+        self.assertEqual(self.events(), [])
+
+    def test_j_k_and_q_are_filter_text(self):
+        # "q" matches popup q only: j and k matched nothing before.
+        self.assertEqual(self.pick(b"\x15q\r"), (None, True))
+        self.assertEqual(self.popup.popup_id, "q")
+        self.popup.popup_id = "p"
+        self.assertEqual(self.pick(b"jk\x15\x0e\r"), (None, True))
+        self.assertEqual(self.popup.popup_id, "q")
+
+    def test_ctrl_n_and_ctrl_p_move_in_the_matches(self):
+        # The list: lazygit, p (selected), q.
+        self.assertEqual(self.pick(b"\x10\r"), (None, True))
+        self.assertEqual(self.popup.popup_id, "g1")
+
+    def test_a_toggle_key_comes_before_filter_text(self):
+        self.main.calls.clear()
+        os.write(self.input_write, b"ab\x1a")
+        self.assertIs(self.popup.act(Action.PICKER, self.live("p")), Next.CLOSE)
+        self.assertEqual(self.main.calls, ["popup.close"])
+
+    def test_prefix_q_comes_before_filter_text(self):
+        self.assertEqual(self.pick(b"a\x02q"), (Action.KILL, False))
+
+    def wait_drawn(self, text):
+        seen = []
+
+        def probe():
+            seen.append(self.drawn())
+            return text in "\n".join(screen_rows("".join(seen)))
+
+        wait_until(probe, repr(text))
+
+
+class FilterEdits(unittest.TestCase):
+    def press(self, data):
+        return keys.Tokenizer().feed(data)[0].key
+
+    def test_keys_edit_the_filter(self):
+        cases = [("ab", b"\x7f", "a"), ("ab", b"\x08", "a"), ("ab cd", b"\x17", "ab"),
+                 ("ab ", b"\x17", ""), ("ab", b"\x15", ""), ("ab", b"c", "abc"),
+                 ("", b"Q", "Q"), ("", b"?", "?"), ("", b" ", " "),
+                 ("ab", b"\x1b[A", "ab"), ("ab", b"\x01", "ab")]
+        for query, data, edited in cases:
+            with self.subTest(query=query, data=data):
+                self.assertEqual(proxy.edit_filter(query, self.press(data)), edited)
+
+    def test_kitty_keys_type_their_characters(self):
+        self.assertEqual(proxy.typed_char(self.press(b"\x1b[97u")), "a")
+        self.assertEqual(proxy.typed_char(self.press(b"\x1b[47;2:63u")), "?")
+        self.assertEqual(proxy.typed_char(self.press(b"\x1b[65;2u")), "A")
+        self.assertIsNone(proxy.typed_char(self.press(b"\x1b[97;5u")))
+
+
 class WindowSize(RelayCase):
     def test_a_resize_redraws_the_page(self):
         sizes = [(24, 40), (24, 60)]
         patch(self, mock.patch.object(proxy.Screen, "size", lambda screen: sizes[0]))
-        self.popup.screen.draw([("row", True)])
+        self.popup.screen.draw(lambda rows, cols: f"page {rows}x{cols};")
         sizes.pop(0)
         os.write(self.popup.wake_write, b"w")
         os.write(self.input_write, b"x")
-        self.assertEqual(self.popup.screen.read_key(self.popup.key_filter(to_program=False)),
+        self.assertEqual(self.popup.screen.read_key(self.popup.key_filter(to_program=False)).combo,
                          Combo("x", 0))
         drawn = self.drawn()
-        self.assertEqual(drawn.count("\x1b[?1049h"), 2)
-        self.assertIn("row".ljust(60), drawn.rsplit("\x1b[?1049h", 1)[1])
+        # One switch to the alternate screen: a redraw fills each cell again, with no clear.
+        self.assertEqual(drawn.count("\x1b[?1049h"), 1)
+        self.assertNotIn("\x1b[2J", drawn)
+        self.assertEqual(re.findall(r"page \d+x\d+;", drawn), ["page 24x40;", "page 24x60;"])
 
     def test_a_resize_signal_with_a_full_wake_pipe_is_no_error(self):
         # Many SIGWINCH signals while the relay loop is busy fill the pipe.
@@ -523,7 +639,7 @@ class Attaches(RelayCase):
 
     def test_after_a_picker_switch_the_other_popup_shows(self):
         self.plans = [{}, {"ended": True, "end": (0, "")}]
-        os.write(self.input_write, b"\x02gj\r")
+        os.write(self.input_write, b"\x02g\x1b[B\r")
         self.popup.viewer = None
         self.relay()
         self.assertEqual([viewer.terminal_id for viewer in self.viewers[1:]],
@@ -677,26 +793,32 @@ class TraceEvents(unittest.TestCase):
 
 class HelpRows(unittest.TestCase):
     def rows(self, prefix):
-        return dict(proxy.help_rows(prefix, ["ctrl+z", "prefix+f"], ["prefix+e", ""]))
+        return proxy.help_rows(prefix, ["ctrl+z", "prefix+f"], ["prefix+e", ""])
 
-    def test_every_prefix_command_has_its_row(self):
-        rows = self.rows(["ctrl+;"])
-        self.assertEqual(rows["ctrl+z, prefix f"], "hide this popup")
-        for combo, action in keys.PREFIX_COMMANDS:
-            with self.subTest(action=action):
-                self.assertEqual(rows[f"prefix {combo.label}"], proxy.ACTIONS[action].help)
-        self.assertEqual(rows["prefix e"], proxy.ACTIONS[Action.SCROLLBACK].help)
-        self.assertEqual(rows["prefix prefix"], "send the prefix key to the program")
+    def test_every_key_has_its_row_and_a_prefix_chord_has_two_chips(self):
+        hide = proxy.ACTIONS[Action.HIDE].help
+        self.assertEqual(self.rows(["ctrl+;"]), [
+            ("Popup", ["ctrl+z"], hide),
+            ("Popup", ["ctrl+;", "f"], hide),
+            ("Popup", ["ctrl+;", "q"], proxy.ACTIONS[Action.KILL].help),
+            ("Popup", ["ctrl+;", "g"], proxy.ACTIONS[Action.PICKER].help),
+            ("Popup", ["ctrl+;", "?"], proxy.ACTIONS[Action.HELP].help),
+            ("Popup", ["ctrl+b", "q"], "hide this popup (Herdr's viewer detach)"),
+            ("Program", ["ctrl+;", "e"], proxy.ACTIONS[Action.SCROLLBACK].help),
+            ("Program", ["ctrl+;", "ctrl+;"], "send the prefix key to the program")])
 
     def test_a_prefix_key_reads_as_the_parser_reads_it(self):
-        self.assertEqual(proxy.key_label(" Prefix+e"), "prefix e")
-        self.assertEqual(proxy.key_label("ctrl+z"), "ctrl+z")
+        rows = proxy.help_rows([" ", "ctrl+a"], [" Prefix+e"], [])
+        self.assertEqual(rows[0], ("Popup", ["ctrl+a", "e"], "hide this popup"))
         self.assertEqual(keys.split_prefix(" Prefix+e"), (True, "e"))
 
     def test_the_viewer_close_key_shows_only_when_no_prefix_takes_it(self):
-        self.assertIn("ctrl+b q", self.rows(["ctrl+;"]))
-        self.assertNotIn("ctrl+b q", self.rows(["ctrl+b"]))
-        self.assertNotIn("ctrl+b q", self.rows(["ctrl+a", "CTRL+b"]))
+        def detach(prefix):
+            return [chips for _, chips, text in self.rows(prefix) if "viewer detach" in text]
+
+        self.assertEqual(detach(["ctrl+;"]), [["ctrl+b", "q"]])
+        self.assertEqual(detach(["ctrl+b"]), [])
+        self.assertEqual(detach(["ctrl+a", "CTRL+b"]), [])
 
 
 class ScrollbackRead(unittest.TestCase):

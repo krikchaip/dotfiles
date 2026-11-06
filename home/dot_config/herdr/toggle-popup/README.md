@@ -97,16 +97,40 @@ Picker:
   after the session, has the `pwd` and `session` popups. Then come the
   workspace groups, in workspace order.
 - A row shows the label, the place, and the command. The place is the
-  folder for `pwd` and `tab <name>` for `tab`. `*` marks the popup that is
-  open now.
+  folder for `pwd` and `tab <name>` for `tab`. A green `●` marks the popup
+  that is open now. The header shows how many popups match the filter.
 
   ```text
-   work
-     └─ * lazygit   ~/proj/shop  lazygit-recent
+    Switch popup                                                  2 of 3
+  ────────────────────────────────────────────────────────────────────────
+
+     › lg
+
+    work session
+   │ › lazygit ●      ~/proj/shop               lazygit-recent          ▌
+
+    api workspace
+       logs           tab api                   tail -f app.log
+  ────────────────────────────────────────────────────────────────────────
+     ↑↓  move    enter  show    esc  clear
   ```
 
-- `↑`/`↓`, `ctrl+n`/`ctrl+p`, `j`/`k` move. `Enter` switches. `Esc`, `q`,
-  `ctrl+c` cancel. Toggle keys and `prefix` `q`, `?`, `e` also work here.
+- Type to filter, as in fzf: the letters must come in order through the
+  label, the command, the place and the group name. Case and spaces do not
+  count. `j`, `k` and `q` are filter text.
+- A new filter selects the first match. An empty filter selects the open
+  popup again.
+- `↑`/`↓` or `ctrl+n`/`ctrl+p` move. `Enter` switches. `Backspace`,
+  `ctrl+w`, `ctrl+u` edit the filter.
+- `Esc` clears the filter; with an empty filter it cancels. `ctrl+c`
+  cancels.
+- Toggle keys and `prefix` `q`, `?`, `e` also work here. They come before
+  filter text.
+
+The help page and the picker take their colors from the Herdr theme
+(`[theme]` in the main config), as the `navigation` dialogs do. A color
+that the theme does not give, for example when `herdr-src/` is missing,
+is the terminal's default color. See `pages.py`.
 
 ## Errors
 
@@ -192,6 +216,8 @@ key press ─► Herdr popup ─► toggle.sh ─► toggle_popup.py (one proces
 | `toggle.sh` | What a bind runs: picks the Python, then runs `toggle_popup.py`. |
 | `toggle_popup.py` | Entry point of a key: find or create the popup, then run the proxy. |
 | `proxy.py` | The key-filter proxy: viewer, keys, help, picker, scrollback. |
+| `pages.py` | Draws the help page and the picker; the picker filter. |
+| `herdr_theme.py` | Herdr theme tokens, from the palettes that chezmoi downloads into `herdr-src/` (`.chezmoiexternals/herdr.toml`). A copy of `navigation/herdr_theme.py`. |
 | `keys.py` | Decode key input; find toggle keys and `prefix` chords. |
 | `popups.py` | Popup records, scopes, live popups, sweep. |
 | `hooks.py` | `tab-closed`, `workspace-closed`, `startup` hooks. |
@@ -243,6 +269,10 @@ runs `herdr plugin link … --enabled` when a module changes. A remote Herdr
 machine needs Python 3.11+ on its login `PATH`, and this folder, the key
 lines and the link script, all from chezmoi. Local and remote popups never
 mix.
+
+chezmoi downloads the theme palettes into `herdr-src/` only when `herdr` is
+on `PATH` during `chezmoi apply` (`.chezmoiexternals/herdr.toml`). The
+version in the URL follows the installed Herdr.
 
 ## Tests
 

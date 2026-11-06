@@ -10,3 +10,5 @@ select = ["F", "B", "E", "W", "I"]
 # The entry points check the Python version before they import the other
 # plugin modules (see python_guard.py). E402 allows a sys.path change already.
 "{toggle_popup,proxy,hooks}.py" = ["E402"]
+# A copy of navigation/herdr_theme.py: keep it the same, also its import order.
+"herdr_theme.py" = ["I001"]

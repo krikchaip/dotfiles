@@ -82,6 +82,40 @@ def herdr_answers(endpoint):
     return True
 
 
+SGR = re.compile(r"\x1b\[([0-9;:]*)m")
+
+
+def colored_cells(line):
+    """The (character, foreground, background) cells of a `tmux capture-pane -e` line."""
+    cells, fg, bg = [], None, None
+    index = 0
+    for match in SGR.finditer(line):
+        cells += [(char, fg, bg) for char in line[index:match.start()]]
+        index = match.end()
+        codes = [int(code) for code in re.split("[;:]", match.group(1)) if code] or [0]
+        while codes:
+            code = codes.pop(0)
+            if code == 0:
+                fg = bg = None
+            elif code in (38, 48):
+                color = (tuple(codes[1:4]), 4) if codes[0] == 2 else (codes[1], 2)
+                del codes[:color[1]]
+                if code == 38:
+                    fg = color[0]
+                else:
+                    bg = color[0]
+            elif code == 39:
+                fg = None
+            elif code == 49:
+                bg = None
+            elif 30 <= code <= 37 or 90 <= code <= 97:
+                fg = code - 30 if code < 90 else code - 82
+            elif 40 <= code <= 47 or 100 <= code <= 107:
+                bg = code - 40 if code < 100 else code - 92
+    cells += [(char, fg, bg) for char in line[index:]]
+    return cells
+
+
 def close_popup(endpoint):
     """Close the open popup of a session. No open popup is no error."""
     try:
@@ -94,11 +128,13 @@ def close_popup(endpoint):
 class Stage:
     def __init__(self, name, prefix="ctrl+;", extended_keys="always", session="tp-e2e",
                  real_binds=False, width=200, height=50, xdg_config_home=True,
-                 plugins=(PLUGIN,)):
+                 plugins=(PLUGIN,), theme=None):
         """Without `xdg_config_home`, the stage has no XDG_CONFIG_HOME: Herdr
         then uses $HOME/.config, which is in the stage too. `plugins` are the
-        plugin folders that the main session links."""
+        plugin folders that the main session links. `theme` maps Herdr theme
+        tokens to colors for [theme.custom]."""
         self.name = name
+        self.theme = theme
         self.prefix = prefix
         self.session = session
         self.plugins = plugins
@@ -180,6 +216,10 @@ class Stage:
         # Show toasts in Herdr, as the user's config does.
         lines += ["[terminal]", f"default_shell = {json.dumps(str(self.shell()))}", "",
                   "[ui.toast]", 'delivery = "herdr"', ""]
+        if self.theme:
+            lines += ["[theme]", 'name = "catppuccin"', "", "[theme.custom]"]
+            lines += [f"{token} = {json.dumps(color)}" for token, color in self.theme.items()]
+            lines.append("")
         return "\n".join(lines)
 
     def shell(self):
@@ -413,6 +453,26 @@ class Stage:
     def popup_visible(self, target="main"):
         """True while a popup frame shows. Toasts are smaller than any test popup."""
         return any(POPUP_FRAME.search(line) for line in self.screen(target).splitlines())
+
+    def popup_cells(self, target="main"):
+        """The cells inside the popup frame: rows of (character, foreground, background).
+
+        A color is None for the default color, an int for a palette color, or
+        an (r, g, b) tuple.
+        """
+        plain = self.screen(target).splitlines()
+        top = next((index for index, line in enumerate(plain) if POPUP_FRAME.search(line)), None)
+        if top is None:
+            return []
+        start = POPUP_FRAME.search(plain[top]).start()
+        end = plain[top].index("┐", start)
+        colored = self.tmux("capture-pane", "-p", "-e", "-t", target).splitlines()
+        rows = []
+        for y in range(top + 1, len(plain)):
+            if plain[y][start:start + 1] != "│":
+                break
+            rows.append(colored_cells(colored[y])[start + 1:end])
+        return rows
 
     def popup_lines(self, target="main"):
         """The text rows inside the popup frame, without the frame and trailing spaces."""

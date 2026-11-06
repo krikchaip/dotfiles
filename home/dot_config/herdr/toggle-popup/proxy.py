@@ -34,6 +34,8 @@ from keys import (
     PREFIX,
     PREFIX_COMMANDS,
     PRESS,
+    SHIFT,
+    US_SHIFTED,
     Action,
     Combo,
     KeyFilter,
@@ -478,7 +480,8 @@ class Screen:
     def __init__(self, input_, stdout=1):
         self.input = input_
         self.stdout = stdout
-        self.lines = []
+        # The page that shows: render(rows, cols) gives its text.
+        self.render = None
 
     def show(self, data):
         """Write to the popup terminal. After Herdr closed it, write nothing."""
@@ -496,21 +499,21 @@ class Screen:
         rows, cols, _, _ = struct.unpack("HHHH", window_size(self.input.fd))
         return rows, cols
 
-    def draw(self, lines):
-        """Draw lines from the top. A (text, True) line shows in reverse video."""
-        self.lines = lines
+    def draw(self, render):
+        """Draw a page: `render(rows, cols)` gives the text of each cell.
+
+        The first page switches to the alternate screen. The page fills each
+        cell, so a later draw needs no clear and does not flicker.
+        """
+        entering = self.render is None
+        self.render = render
         rows, cols = self.size()
-        out = [self.RESET_KEYS, b"\x1b[?1049h\x1b[?25l\x1b[H\x1b[2J"]
-        for row, line in enumerate(lines[:rows]):
-            text, selected = line if isinstance(line, tuple) else (line, False)
-            text = text[:cols]
-            if selected:
-                text = f"\x1b[7m{text.ljust(cols)}\x1b[0m"
-            out.append(f"\x1b[{row + 1};1H{text}".encode())
+        out = [self.RESET_KEYS, b"\x1b[?1049h" if entering else b"",
+               render(rows, cols).encode()]
         self.show(b"".join(out))
 
     def read_key(self, key_filter):
-        """Wait for one key on a page. Return a popup Action, a key Combo, or None.
+        """Wait for one key on a page. Return a popup Action, a pressed Key, or None.
 
         `key_filter` is a page filter (to_program=False). Popup keys give their
         Action, as in the program. Another press gives its Combo. None means
@@ -527,12 +530,13 @@ class Screen:
                     return action
                 key = token.key
                 if data and key is not None and key.kind == PRESS and key.name != MODIFIER_KEY:
-                    return key.combo
-            input_.wait(lambda: self.draw(self.lines))
+                    return key
+            input_.wait(lambda: self.draw(self.render))
         return None
 
     def leave(self):
-        self.show(b"\x1b[2J\x1b[?25h\x1b[?1049l")
+        self.render = None
+        self.show(b"\x1b[0m\x1b[2J\x1b[?25h\x1b[?1049l")
 
 
 def trace_event(popup_id, event):
@@ -549,22 +553,31 @@ def trace_event(popup_id, event):
             stream.write(f"{popup_id}\t{event}\n")
 
 
-def key_label(text):
-    """Show `prefix+e` as `prefix e`, as the help lists prefix commands."""
-    needs_prefix, key = split_prefix(text)
-    return f"{PREFIX} {key}" if needs_prefix else key
+def prefix_keys(prefix):
+    """Herdr's prefix keys, without empty entries."""
+    return [text.strip() for text in prefix if text.strip()]
 
 
 def help_rows(prefix, toggle_keys, scrollback):
-    """The (keys, text) rows of the help page."""
-    rows = [(", ".join(key_label(key) for key in toggle_keys) or "(none)",
-             ACTIONS[Action.HIDE].help)]
-    rows += [(f"prefix {combo.label}", ACTIONS[action].help) for combo, action in PREFIX_COMMANDS]
-    rows += [(key_label(key), ACTIONS[Action.SCROLLBACK].help)
+    """The (section, key chips, text) rows of the help page.
+
+    A key is one chip. A prefix chord is two: the first prefix key, then the key.
+    """
+    lead = (prefix_keys(prefix) or [PREFIX])[0]
+
+    def chips(text):
+        needs_prefix, key = split_prefix(text)
+        return [lead, key] if needs_prefix else [key]
+
+    rows = [("Popup", chips(key), ACTIONS[Action.HIDE].help) for key in toggle_keys]
+    rows += [("Popup", [lead, combo.label], ACTIONS[action].help)
+             for combo, action in PREFIX_COMMANDS]
+    if all(parse_combo(text) != VIEWER_CLOSE_PREFIX for text in prefix_keys(prefix)):
+        rows.append(("Popup", [VIEWER_CLOSE_PREFIX.label, "q"],
+                     "hide this popup (Herdr's viewer detach)"))
+    rows += [("Program", chips(key), ACTIONS[Action.SCROLLBACK].help)
              for key in scrollback if key.strip()]
-    rows.append(("prefix prefix", "send the prefix key to the program"))
-    if all(parse_combo(text) != VIEWER_CLOSE_PREFIX for text in prefix if text.strip()):
-        rows.append((f"{VIEWER_CLOSE_PREFIX.label} q", "hide this popup (Herdr's viewer detach)"))
+    rows.append(("Program", [lead, lead], "send the prefix key to the program"))
     return rows
 
 
@@ -629,6 +642,32 @@ def picker_place(owner, tabs):
             folder = "~" + folder[len(home):]
         return folder
     return ""
+
+
+def typed_char(key):
+    """The character that a key press types, or None."""
+    name = key.name
+    if key.mods == 0:
+        char = name if len(name) == 1 else None
+    elif key.mods == SHIFT:
+        char = key.shifted or US_SHIFTED.get(name) or (name.upper() if len(name) == 1 else None)
+    else:
+        char = None
+    return char if char is not None and char.isprintable() else None
+
+
+def edit_filter(query, key):
+    """The picker filter after a key: backspace, ctrl+w, ctrl+u, or typed text."""
+    combo = key.combo
+    if combo in (Combo("backspace", 0), Combo("h", CTRL)):
+        return query[:-1]
+    if combo == Combo("w", CTRL):
+        # Delete the last word, as a shell does.
+        return query.rstrip().rpartition(" ")[0]
+    if combo == Combo("u", CTRL):
+        return ""
+    char = typed_char(key)
+    return query + char if char is not None else query
 
 
 class Next(enum.Enum):
@@ -842,13 +881,16 @@ class Proxy:
         action. Prefix ? and any other key only close help: the program does
         not get them.
         """
-        rows = help_rows(self.prefix, self.record.toggle_keys, self.scrollback)
-        width = max(len(key) for key, _ in rows)
-        lines = [f" Popup {self.record.label} ({self.popup_id})",
-                 f" prefix is {' / '.join(self.prefix)}", ""]
-        lines += [f"   {key.ljust(width)}  {text}" for key, text in rows]
-        lines += ["", " Another key goes back to the program."]
-        self.screen.draw(lines)
+        import pages
+
+        tokens = pages.theme()
+        title = pages.visible(f"{self.record.label} popup")
+        origin = f"{self.popup_id} · prefix {' / '.join(prefix_keys(self.prefix)) or PREFIX}"
+        rows = [(section, [pages.visible(key) for key in chips], text)
+                for section, chips, text in help_rows(self.prefix, self.record.toggle_keys,
+                                                      self.scrollback)]
+        self.screen.draw(lambda height, width: pages.help_page(
+            height, width, title, origin, rows).render(tokens))
         key = self.screen.read_key(self.key_filter(to_program=False))
         self.screen.leave()
         return key if isinstance(key, Action) and key is not Action.HELP else None
@@ -867,59 +909,79 @@ class Proxy:
         return workspaces, {item["tab_id"]: item.get("label") for item in snapshot.get("tabs", [])}
 
     def pick(self):
-        """Choose a popup of this session with j/k or arrows and enter. Esc or q keeps this one.
+        """Choose a popup of this session in a list with a filter.
 
-        Popup keys act as in the program. Return (popup Action or None,
-        True when the popup changed).
+        Typed text filters the list (pages.fuzzy). Up/down and ctrl+n/ctrl+p
+        move, and enter shows the selected popup. Backspace, ctrl+w and
+        ctrl+u edit the filter. Esc clears the filter. With an empty filter,
+        esc keeps this popup, as ctrl+c does. Popup keys act as in the
+        program, before filter text. Return (popup Action or None, True when
+        the popup changed).
         """
+        import pages
+
         with popups.popup_lock():
             popups.housekeeping_sweep(self.popup_herdr)
             records = {popup_id: popup.record for popup_id, popup in self.popups_live().items()}
         workspaces, tabs = self.session_view()
         groups = picker_groups(records, self.main.endpoint,
                                herdr_api.session_name(self.main.endpoint), workspaces)
-        ids = [popup_id for _, members in groups for popup_id in members]
-        if not ids:
+        rows = []
+        for group, members in groups:
+            shared = SCOPES[records[members[0]].scope].session_group
+            for popup_id in members:
+                record = records[popup_id]
+                rows.append(pages.PickerRow(
+                    popup_id, pages.visible(record.label),
+                    pages.visible(popups.program_text(record.command, self.default_shell)),
+                    pages.visible(picker_place(record.owner, tabs)), pages.visible(group),
+                    "session" if shared else "workspace", popup_id == self.popup_id))
+        if not rows:
             return None, False
-        index = ids.index(self.popup_id) if self.popup_id in ids else 0
-        labels = {popup_id: records[popup_id].label for popup_id in ids}
-        places = {popup_id: picker_place(records[popup_id].owner, tabs) for popup_id in ids}
-        commands = {popup_id: popups.program_text(records[popup_id].command, self.default_shell)
-                    for popup_id in ids}
-        label_width = max(map(len, labels.values())) + 2
-        place_width = max(map(len, places.values()))
-        place_width += 2 if place_width else 0
+        tokens = pages.theme()
+        here = next((n for n, row in enumerate(rows) if row.current), 0)
+        query, selected = "", here
         key_filter = self.key_filter(to_program=False)
         while True:
-            lines = [" Switch popup: j/k or arrows to move, enter to show, esc to stay", ""]
-            for label, members in groups:
-                lines.append(f" {label}")
-                for position, popup_id in enumerate(members):
-                    connector = "└─" if position == len(members) - 1 else "├─"
-                    current = "*" if popup_id == self.popup_id else " "
-                    lines.append((f"   {connector} {current} {labels[popup_id].ljust(label_width)}"
-                                  f"{places[popup_id].ljust(place_width)}{commands[popup_id]}",
-                                  ids[index] == popup_id))
-            self.screen.draw(lines)
+            found = pages.matches(rows, query)
+            selected = min(selected, max(0, len(found) - 1))
+            self.screen.draw(lambda height, width, query=query, found=found, selected=selected:
+                             pages.picker_page(height, width, query, found, len(rows), selected,
+                                               pages.picker_columns(rows, width)).render(tokens))
             key = self.screen.read_key(key_filter)
             if isinstance(key, Action):
                 if key is Action.PICKER:
                     continue
                 self.screen.leave()
                 return key, False
-            if key is None or key in (Combo("esc", 0), Combo("q", 0), Combo("c", CTRL)):
+            if key is None:
                 break
-            if key in (Combo("down", 0), Combo("j", 0), Combo("n", CTRL)):
-                index = (index + 1) % len(ids)
-            elif key in (Combo("up", 0), Combo("k", 0), Combo("p", CTRL)):
-                index = (index - 1) % len(ids)
-            elif key == Combo("enter", 0):
-                if ids[index] != self.popup_id:
-                    self.popup_id = ids[index]
+            combo = key.combo
+            if combo == Combo("c", CTRL):
+                break
+            if combo == Combo("esc", 0):
+                if not query:
+                    break
+                query, selected = "", here
+            elif combo in (Combo("down", 0), Combo("n", CTRL)):
+                selected = (selected + 1) % max(1, len(found))
+            elif combo in (Combo("up", 0), Combo("p", CTRL)):
+                selected = (selected - 1) % max(1, len(found))
+            elif combo == Combo("enter", 0):
+                if not found:
+                    continue
+                chosen = found[selected][0].popup_id
+                if chosen != self.popup_id:
+                    self.popup_id = chosen
                     trace_event(self.popup_id, "switch")
                     self.screen.leave()
                     return None, True
                 break
+            else:
+                edited = edit_filter(query, key)
+                if edited != query:
+                    query = edited
+                    selected = 0 if query else here
         self.screen.leave()
         return None, False
 

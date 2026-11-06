@@ -69,12 +69,14 @@ class StageCase(unittest.TestCase):
     REAL_BINDS = False
     XDG_CONFIG_HOME = True
     PLUGINS = (PLUGIN,)
+    THEME = None
 
     @classmethod
     def setUpClass(cls):
         cls.stage = Stage(cls.__name__.lower(), prefix=cls.PREFIX,
                           extended_keys=cls.EXTENDED_KEYS, real_binds=cls.REAL_BINDS,
-                          xdg_config_home=cls.XDG_CONFIG_HOME, plugins=cls.PLUGINS)
+                          xdg_config_home=cls.XDG_CONFIG_HOME, plugins=cls.PLUGINS,
+                          theme=cls.THEME)
         try:
             cls.stage.start()
         except BaseException:
@@ -245,10 +247,16 @@ class Scenarios:
     def test_prefix_question_mark_shows_the_keys(self):
         self.open_keylog("alt+1", "help", toggles=("ctrl+z", "prefix+f"))
         self.s.chord("?")
-        self.s.wait_screen(f"Popup help ({self.s.popup_id('help')})")
-        screen = self.s.screen()
-        self.assertIn("ctrl+z, prefix f", screen)
-        self.assertIn("prefix e", screen)
+        self.s.wait_screen("help popup")
+        rows = self.s.popup_lines()
+        self.assertTrue(rows[0].endswith(f"{self.s.popup_id('help')} · prefix {self.PREFIX}"),
+                        rows)
+        prefix = re.escape(self.PREFIX)
+        text = "\n".join(rows)
+        self.assertRegex(text, r"\n     ctrl\+z\s+hide this popup\n")
+        self.assertRegex(text, rf"\n     {prefix}   f\s+hide this popup\n")
+        self.assertRegex(text, rf"\n     {prefix}   e\s+edit the scrollback in \$EDITOR\n")
+        self.assertIn("any key  back to the program", text)
         self.s.text("j")
         self.s.wait_screen("keylog legacy ready")
         self.s.keys("C-z")
@@ -265,8 +273,9 @@ class Scenarios:
         self.s.wait_screen("keylog mok ready")
         self.s.chord("g")
         self.s.wait_screen("Switch popup")
-        self.assertIn("└─ * second ", self.s.screen())
-        self.s.text("k")
+        self.assertIn(" │ › second ● ", self.s.screen())
+        self.s.keys("Up")
+        self.s.wait_screen(" │ › first ")
         self.s.keys("Enter")
         self.s.wait_screen("keylog legacy ready")
         # The keys of the shown popup apply: ctrl+z hides "first", alt+s does not.
@@ -627,19 +636,118 @@ class TwoSessions(ShellPopups, StageCase):
                   for item in s.main_snapshot()["workspaces"]}
         tab_label = next(tab["label"] for tab in s.main_snapshot()["tabs"]
                          if tab["tab_id"] == build_tab)
-        rows = [row for row in s.popup_lines() if row.strip()][1:]
-        # Group headers and rows, with no folder or command columns.
-        shape = [re.sub(r"^(\s*[├└]─ [* ] \S+).*", r"\1", row) for row in rows]
+        rows = [row for row in s.popup_lines()[5:-3] if row.strip()]
+        # Group titles and rows, with no folder or command columns.
+        shape = [re.sub(r"^( {5}\S+| │ › \S+( ●)?).*", r"\1", row) for row in rows]
         self.assertEqual(shape, [
-            f" {s.session}", "   ├─   git", "   └─   notes",
-            f" {labels[self.home]}", "   └─ * shell",
-            f" {labels[build]}", "   └─   logs"])
+            f"  {s.session} session", "     git", "     notes",
+            f"  {labels[self.home]} workspace", " │ › shell ●",
+            f"  {labels[build]} workspace", "     logs"])
         self.assertIn(f"tab {tab_label}", rows[-1])
         self.assertIn(Path(s.root).name, rows[1])
         self.assertNotIn("theirs", s.screen())
         s.keys("Escape")
         s.wait_screen("Switch popup", present=False)
         self.hide("shell")
+
+
+# A theme with one color for each Herdr token. Without herdr-src, as in the
+# repo, the plugin gets each token from here.
+PAGE_THEME = {token: f"#{index:02x}{(index * 37) % 256:02x}{200 - index:02x}" for index, token in
+              enumerate(("accent", "panel_bg", "sidebar_bg", "active_row_bg", "selection_bg",
+                         "surface0", "surface1", "surface_dim", "overlay0", "overlay1", "text",
+                         "subtext0", "mauve", "green", "yellow", "red", "blue", "teal",
+                         "peach"), 1)}
+
+
+def rgb(color):
+    """The (r, g, b) of a #rrggbb color."""
+    return tuple(int(color[index:index + 2], 16) for index in (1, 3, 5))
+
+
+class Pages(ShellPopups, StageCase):
+    """The look of the help page and the picker, and the picker's filter."""
+
+    THEME = PAGE_THEME
+
+    def setUp(self):
+        super().setUp()
+        self.ready_slot("alt+1", "alpha")
+        self.ready_slot("alt+2", "beta")
+        self.show("alt+2", "beta")
+        self.hide("beta")
+        self.show("alt+1", "alpha")
+
+    def tearDown(self):
+        if self.s.popup_visible():
+            self.s.keys("C-z")
+            self.s.wait_popup_closed()
+
+    def open_picker(self):
+        self.s.chord("g")
+        self.s.wait_screen("Switch popup")
+        self.s.wait_screen("2 of 2")
+
+    def assert_theme_colors(self, page):
+        colors = {rgb(value) for value in PAGE_THEME.values()}
+        cells = self.s.popup_cells()
+        self.assertTrue(cells)
+        # The page is as wide as its rule. Herdr draws the column after it.
+        width = len("".join(char for char, _, _ in cells[1]).rstrip(" "))
+        self.assertGreater(width, 100)
+        cells = [row[:width] for row in cells]
+        wrong = {(y, x, char, fg, bg) for y, row in enumerate(cells)
+                 for x, (char, fg, bg) in enumerate(row) if fg not in colors or bg not in colors}
+        self.assertEqual(wrong, set(), f"colors on the {page} that are no theme token")
+        # Most cells have the panel color: the page fills each cell.
+        backgrounds = [bg for row in cells for _, _, bg in row]
+        self.assertGreater(backgrounds.count(rgb(PAGE_THEME["panel_bg"])), len(backgrounds) // 2)
+
+    def test_every_color_on_the_pages_is_a_theme_token(self):
+        s = self.s
+        s.chord("?")
+        s.wait_screen("alpha popup")
+        self.assert_theme_colors("help page")
+        s.text("x")
+        s.wait_screen("alpha popup", present=False)
+        self.open_picker()
+        self.assert_theme_colors("picker")
+        s.text("%%%")
+        s.wait_screen("No popup matches")
+        self.assert_theme_colors("picker without a match")
+        s.keys("C-c")
+        s.wait_screen("Switch popup", present=False)
+        s.wait_screen("alpha-ready")
+
+    def test_the_filter_narrows_the_list_and_enter_shows_the_match(self):
+        s = self.s
+        self.open_picker()
+        # The group label is a random folder name: only "beta-ready" has "-" after
+        # "beta". The letters match in order: "b" "e" "t" "a" in the label, "-" in the command.
+        s.text("beta-")
+        s.wait_screen("1 of 2")
+        rows = s.popup_lines()
+        self.assertEqual(rows[3].strip(), "› beta-")
+        self.assertTrue(any(row.startswith(" │ › beta ") for row in rows), rows)
+        self.assertFalse(any(" alpha " in row for row in rows), rows)
+        s.keys("Enter")
+        s.wait_screen("beta-ready")
+        self.assertIn(self.s.popup_id("beta"), trace_ids(s, "switch"))
+
+    def test_esc_clears_the_filter_then_keeps_this_popup(self):
+        s = self.s
+        self.open_picker()
+        # j, k and q are filter text now.
+        s.text("%jkq")
+        s.wait_screen("No popup matches “%jkq”")
+        s.wait_screen("0 of 2")
+        s.keys("Escape")
+        s.wait_screen("2 of 2")
+        s.wait_screen("Filter popups")
+        s.keys("Escape")
+        s.wait_screen("Switch popup", present=False)
+        s.wait_screen("alpha-ready")
+        self.assertNotIn("beta-ready", s.screen())
 
 
 class PopupServer(ShellPopups, StageCase):
@@ -1169,7 +1277,7 @@ class TwoClients(ShellPopups, StageCase):
         self.show("alt+1", "first")
         s.chord("g")
         s.wait_screen("Switch popup")
-        s.text("j")
+        s.keys("Down")
         s.keys("Enter")
         s.wait_screen("second-ready")
         _, errors = viewer.communicate(timeout=10)
@@ -1467,7 +1575,7 @@ class RemoteMachine(StageCase):
         s.chord("g")
         s.wait_screen("Switch popup")
         rows = s.popup_lines()
-        self.assertTrue(any("* remote" in row for row in rows), rows)
+        self.assertTrue(any("› remote ●" in row for row in rows), rows)
         self.assertFalse(any("local" in row for row in rows), rows)
         s.keys("Escape")
         s.wait_screen("Switch popup", present=False)

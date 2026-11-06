@@ -167,7 +167,19 @@ The outer key and the toggle keys are independent. The `key` in `[[keys.command]
   - **Popup session state:** each popup is one workspace in `toggle-popup`, labelled with its popup id. The `toggle-popup` session is where the plugin checks whether a popup exists, so a stale registry can never claim one that does not exist. A small per-popup JSON file in the plugin state directory stores the popup record (popup id, scope, label, terminal id, command, toggle keys, and the owner: session socket plus tab or workspace when the scope has one, or the folder for `pwd`), which the picker uses to load the keys of the popup it switches to.
   - **Starting the popup session:** the toggle script starts `herdr --session toggle-popup server` with a minimal config of its own (`HERDR_CONFIG_PATH`: no custom keys, onboarding off, and `[terminal] default_shell` copied from the main Herdr config, which is `nu` for this user). It removes `HERDR_SOCKET_PATH` from the environment first, as herdr-scratch does.
   - **Picker contents:** the `prefix` `g` picker lists only the popups of this Herdr session, like Herdr's goto list. The first group holds the `pwd` and `session` popups, under the session name. A `pwd` popup shows its folder, for example `~/proj/shop`. Then come the workspace groups, holding the `workspace` and `tab` popups, in the session's workspace order. The picker runs the sweep first.
-  - **Picker keys:** in the `prefix` `g` picker, up/down, `ctrl+n`/`ctrl+p` and `j`/`k` move, Enter switches, Esc, `q` and `ctrl+c` cancel.
+  - **Picker keys and filter:** the `prefix` `g` picker has a filter field. Typed text filters the list with an fzf-style match: the letters must appear in order. The match checks the label, the command, the folder, and the group name, and the matched letters show in the accent color.
+    - Up/down and `ctrl+n`/`ctrl+p` move. Enter switches.
+    - Backspace, `ctrl+w` and `ctrl+u` edit the filter.
+    - Esc clears the filter. When the filter is empty, Esc cancels, as in `navigation`'s move dialog. `ctrl+c` cancels.
+    - The toggle keys and `prefix` `q`, `?` and `e` still work, and they come before filter text. `j`, `k` and `q` are filter text.
+  - **Page look:** the help page and the picker use look A of the prototype (`.scratch/herdr-toggle-popup/prototypes/pages.py`).
+    - A bold title, a dim origin on the right, and a rule under them.
+    - A footer with key chips.
+    - The selected row looks like the rows in `navigation`'s dialogs.
+    - A green `●` marks the current popup.
+    - The picker shows an "N of M" counter. With no result it shows `No popup matches "…"`.
+    - All colors come from Herdr theme tokens. Nothing is hard-coded.
+  - **Theme:** the plugin has its own copy of `navigation/herdr_theme.py`, and `.chezmoiexternals/herdr.toml` also downloads Herdr's `state.rs` and `theme.rs` into `.config/herdr/toggle-popup/herdr-src/`. `navigation` stays unchanged. The proxy reads the theme only when the help page or the picker opens. The theme read runs `defaults` (about 20 ms), so the toggle key stays as fast as before.
   - **Test trace:** `TOGGLE_POPUP_TRACE=<file>` makes the proxy append event names (for example `open`, `toggle-key`, `switch`) to that file, for the E2E tests. It never writes raw input bytes, so typed text such as passwords is never logged. It is off by default.
   - **No plugins in the popup server:** Herdr loads plugins from `$XDG_CONFIG_HOME/herdr/plugins.json`. The toggle script starts the `toggle-popup` server with a private `XDG_CONFIG_HOME`, so the server loads no plugins, and `navigation` and `session-titles` need no change. `launch.py` gives each popup program the user's real `XDG_CONFIG_HOME`, `SHELL` and `HERDR_CONFIG_PATH`.
 
