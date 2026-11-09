@@ -6,7 +6,8 @@ plugins, and with the plugin's HERDR_CONFIG_PATH (see
 herdr_api.popup_session_command()). Its panes get both values. This launcher
 puts back the user's values from TOGGLE_POPUP_USER_ENV: it sets each value
 that the user had, and removes each value that the user did not have. Then
-the program runs in the launcher's place.
+the program runs in the launcher's place, with PWD set to its real folder
+(see fix_pwd()).
 
 A `herdr` command in a popup must reach the main Herdr session that owns
 the popup, as in a normal pane. So the launcher sets HERDR_SOCKET_PATH to
@@ -83,6 +84,29 @@ def use_owner_session(env):
         env.pop("HERDR_SOCKET_PATH", None)
 
 
+def fix_pwd(env):
+    """Make PWD name the folder that the program starts in, as a shell does.
+
+    Each pane inherits the popup server's PWD: the folder of the toggle that
+    started the server. Programs such as yazi trust PWD over the real folder,
+    so a stale PWD starts them in that old folder. A PWD that names the real
+    folder stays, so it keeps a symlink path.
+    """
+    try:
+        cwd = os.getcwd()
+    except OSError:
+        # The folder is gone: no PWD is right.
+        env.pop("PWD", None)
+        return
+    pwd = env.get("PWD", "")
+    try:
+        same = os.path.isabs(pwd) and os.path.samefile(pwd, cwd)
+    except OSError:
+        same = False
+    if not same:
+        env["PWD"] = cwd
+
+
 def main(argv):
     user = json.loads(os.environ.pop(USER_ENV, None) or "{}")
     default_shell = os.environ.pop(DEFAULT_SHELL_ENV, "").strip()
@@ -93,6 +117,7 @@ def main(argv):
         else:
             os.environ[name] = value
     use_owner_session(os.environ)
+    fix_pwd(os.environ)
     if argv:
         program, args = argv[0], argv
     else:

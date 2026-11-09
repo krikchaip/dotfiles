@@ -161,6 +161,34 @@ class Launcher(unittest.TestCase):
                                  "HERDR_BIN_PATH": "/opt/bin/herdr"})
         self.assertNotIn(launch.OWNER_SOCKET_ENV, env)
 
+    def test_pwd_names_the_folder_that_the_program_starts_in(self):
+        # Each pane inherits the PWD of the toggle that started the popup server.
+        # yazi trusts PWD, so a stale one started it in that old folder.
+        user = {"XDG_CONFIG_HOME": None, "SHELL": None, "HERDR_CONFIG_PATH": None}
+        with tempfile.TemporaryDirectory() as old, tempfile.TemporaryDirectory() as start:
+            real = os.path.realpath(start)
+            for pwd, expected in ((old, real), ("", real), ("relative", real),
+                                  ("/no/such/folder", real), (real, real)):
+                with self.subTest(pwd=pwd):
+                    result = subprocess.run(
+                        # Not a shell: a shell fixes PWD itself, as yazi does not.
+                        [sys.executable, str(LAUNCHER), "/usr/bin/printenv", "PWD"],
+                        cwd=start, capture_output=True, text=True, timeout=10,
+                        env={"PATH": os.environ["PATH"], "PWD": pwd,
+                             launch.USER_ENV: json.dumps(user)})
+                    self.assertEqual(result.stdout.strip(), expected, result.stderr)
+
+    def test_a_pwd_with_a_symlink_to_the_real_folder_stays(self):
+        with tempfile.TemporaryDirectory() as folder:
+            real = pathlib.Path(folder, "real")
+            real.mkdir()
+            link = pathlib.Path(folder, "link")
+            link.symlink_to(real)
+            with mock.patch.object(launch.os, "getcwd", return_value=str(real)):
+                env = {"PWD": str(link)}
+                launch.fix_pwd(env)
+                self.assertEqual(env, {"PWD": str(link)})
+
     def test_without_an_owner_socket_no_herdr_command_reaches_the_popup_server(self):
         env = {"HERDR_SOCKET_PATH": "/c/herdr/sessions/toggle-popup/herdr.sock",
                "HERDR_PANE_ID": "w1:p1"}

@@ -106,6 +106,12 @@ class StageCase(unittest.TestCase):
                     if "workspace_not_found" not in str(error):
                         raise
         self.s.wait(lambda: not self.s.started_popup_panes(), "no backing popups")
+        # The records of the closed popups stay until a sweep. A hook of a tab
+        # that a cleanup closed runs a sweep, but it can run before the popups
+        # close above. Then a record stays for the next test, and a test that
+        # runs no toggle never sweeps it.
+        for path in self.s.record_files():
+            path.unlink(missing_ok=True)
         self.s.wait_popup_closed()
         call(self.s.socket, "workspace.focus", {"workspace_id": self.home})
 
@@ -1323,6 +1329,26 @@ class RealBinds(StageCase):
         self.assertEqual(s.popup_ids("yazi"), [popup_id])
         s.keys("M-y")
         s.wait_popup_closed()
+
+    def test_yazi_starts_in_the_folder_of_the_focused_pane(self):
+        s = self.s
+        # A yazi in another workspace and folder must not decide where this one starts.
+        first, second = s.root / "first", s.root / "second"
+        (first / "first-marker").mkdir(parents=True, exist_ok=True)
+        (second / "second-marker").mkdir(parents=True, exist_ok=True)
+        s.new_workspace("first", first)
+        s.keys("M-y")
+        s.wait_screen("first-marker")
+        s.keys("M-y")
+        s.wait_popup_closed()
+        s.new_workspace("second", second)
+        for _ in range(2):
+            s.keys("M-y")
+            s.wait_screen("second-marker")
+            self.assertNotIn("first-marker", s.screen())
+            # Kill it: the next press starts a new yazi.
+            s.chord("q")
+            s.wait_popup_closed()
 
     def test_floating_shell_toggles_with_prefix_f(self):
         s = self.s
