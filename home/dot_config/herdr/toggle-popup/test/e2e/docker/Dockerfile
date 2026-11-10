@@ -4,9 +4,10 @@
 #   docker buildx imagetools inspect debian:trixie-slim
 FROM debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4
 
+# `file` is for yazi, in the image preview tests: yazi finds MIME types with it.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates curl git openssh-client openssh-server procps python3 tmux \
+        ca-certificates curl file git openssh-client openssh-server procps python3 tmux \
     && rm -rf /var/lib/apt/lists/*
 
 # Pinned Herdr release, checked against its SHA-256 sum.
@@ -22,6 +23,23 @@ RUN set -eu; \
         "https://github.com/herdrdev/herdr/releases/download/$HERDR_VERSION/herdr-linux-$arch"; \
     echo "$sum  /usr/local/bin/herdr" | sha256sum -c -; \
     chmod 755 /usr/local/bin/herdr
+
+# Pinned yazi release, for the image preview tests only, checked against its SHA-256 sum.
+ARG YAZI_VERSION=v26.9.1
+RUN set -eu; \
+    arch=$(uname -m); \
+    case "$arch" in \
+        aarch64) sum=02807f08d6b589b65b7516a4e259d83f5995d7a23bb12b3a155141385b370b3a ;; \
+        x86_64) sum=a02fe91d3304294048c681f010f1100856872a4e98ecf6927328e888d40a6ad2 ;; \
+        *) echo "no yazi build for $arch" >&2; exit 1 ;; \
+    esac; \
+    name="yazi-$arch-unknown-linux-gnu"; \
+    curl -fsSL -o /tmp/yazi.zip \
+        "https://github.com/sxyazi/yazi/releases/download/$YAZI_VERSION/$name.zip"; \
+    echo "$sum  /tmp/yazi.zip" | sha256sum -c -; \
+    python3 -m zipfile -e /tmp/yazi.zip /tmp/yazi; \
+    install -m 755 "/tmp/yazi/$name/yazi" "/tmp/yazi/$name/ya" /usr/local/bin/; \
+    rm -rf /tmp/yazi /tmp/yazi.zip
 
 # Both services share one SSH user key and one host key, so the client trusts remote.
 RUN useradd -m -s /bin/bash tester && mkdir -p /run/sshd && ssh-keygen -A

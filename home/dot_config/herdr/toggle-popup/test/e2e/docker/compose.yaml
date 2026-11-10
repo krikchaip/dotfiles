@@ -10,6 +10,8 @@ x-service: &service
     # The user's other plugins, next to /plugin as in the repo.
     - ../../../../navigation:/navigation:ro
     - ../../../../session-titles:/session-titles:ro
+    # The yazi config, for the image preview tests: /plugin/../../yazi.
+    - ../../../../../yazi:/yazi:ro
 
 services:
   remote:

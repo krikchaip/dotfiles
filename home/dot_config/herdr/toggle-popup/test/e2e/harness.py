@@ -7,17 +7,26 @@ screen with `tmux capture-pane`, and read backing panes with
 `herdr --session toggle-popup pane read`.
 """
 
+import base64
 import contextlib
+import fcntl
 import json
 import os
+import pty
 import re
+import select
 import shlex
 import shutil
+import signal
 import socket
+import struct
 import subprocess
 import sys
 import tempfile
+import termios
+import threading
 import time
+import zlib
 from pathlib import Path
 
 E2E = Path(__file__).resolve().parent
@@ -30,6 +39,8 @@ TOAST_TITLE = f"● {TITLE}"
 REPO_CONFIG = PLUGIN.parent / "config.toml"
 # The user's other Herdr plugins, next to this one in the repo.
 OTHER_PLUGINS = (PLUGIN.parent / "navigation", PLUGIN.parent / "session-titles")
+# The repo's yazi config folder (in Docker: /yazi), with the kitty-popup.yazi plugin.
+YAZI_CONFIG = PLUGIN.parent.parent / "yazi"
 # The top border of a popup. Herdr shows the title `popup` in it (see the spec).
 POPUP_FRAME = re.compile("┌(?:popup)?─{40,}┐")
 TIMEOUT = float(os.environ.get("E2E_TIMEOUT", "15"))
@@ -125,6 +136,200 @@ def close_popup(endpoint):
             raise
 
 
+# A kitty graphics command. A placement (a=p) follows the cursor move to its cell.
+GRAPHICS = re.compile(rb"(?:\x1b\[(\d+);(\d+)H)?\x1b_G([^;\x1b]*)")
+# A whole kitty graphics command: its keys and its payload.
+UPLOAD = re.compile(rb"\x1b_G([^;\x1b]*);?([^\x1b]*)\x1b\\")
+
+
+# An escape sequence: CSI, a string (OSC, APC, DCS) up to its end, or one more byte.
+ESCAPE = re.compile(rb"\x1b\[[0-?]*[ -/]*[@-~]|\x1b[\]_P^X].*?(?:\x07|\x1b\\)|\x1b.", re.S)
+
+# The output of a client: an escape sequence or a run of text.
+SCREEN_TOKEN = re.compile(ESCAPE.pattern + rb"|(?P<text>[^\x00-\x1f\x7f]+)|[\x00-\x1f]", re.S)
+
+
+class KittyClient:
+    """A Herdr client in a pseudo-terminal that looks like kitty, for image tests.
+
+    tmux shows no images, so Herdr sends it no kitty graphics. This terminal
+    says it is kitty, with cells of CELL pixels, so Herdr sends them. `out`
+    keeps all its output: graphics() reads the image commands in it.
+    """
+
+    CELL = (10, 20)
+
+    def __init__(self, stage, rows, cols):
+        env = {key: value for key, value in stage.env.items()
+               if key not in ("TMUX", "TMUX_PANE", "STY")}
+        env.update(TERM="xterm-kitty", TERM_PROGRAM="kitty", KITTY_WINDOW_ID="1")
+        argv = [stage.herdr_bin, "--session", stage.session]
+        self.pid, self.fd = pty.fork()
+        if self.pid == 0:
+            try:
+                self._set_size(0, rows, cols)
+                os.chdir(stage.root)
+                os.execvpe(argv[0], argv, env)
+            finally:
+                os._exit(127)
+        self.resize(rows, cols)
+        self.out = bytearray()
+        self.lock = threading.Lock()
+        self.thread = threading.Thread(target=self._read, daemon=True)
+        self.thread.start()
+
+    def _set_size(self, fd, rows, cols):
+        width, height = self.CELL
+        fcntl.ioctl(fd, termios.TIOCSWINSZ,
+                    struct.pack("HHHH", rows, cols, cols * width, rows * height))
+
+    def resize(self, rows, cols):
+        self.size = (rows, cols)
+        self._set_size(self.fd, rows, cols)
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(self.pid, signal.SIGWINCH)
+
+    def _read(self):
+        while True:
+            ready, _, _ = select.select([self.fd], [], [], 0.05)
+            if not ready:
+                continue
+            try:
+                data = os.read(self.fd, 65536)
+            except OSError:
+                return
+            if not data:
+                return
+            with self.lock:
+                self.out += data
+            # Herdr asks for the cell size in pixels.
+            if b"\x1b[16t" in data:
+                width, height = self.CELL
+                os.write(self.fd, f"\x1b[6;{height};{width}t".encode())
+
+    def press(self, data, pause=0.3):
+        """Type bytes. The pause keeps a lone Esc apart from the next key."""
+        os.write(self.fd, data)
+        time.sleep(pause)
+
+    def text(self, since=0):
+        """The output since `since` without its escape sequences."""
+        with self.lock:
+            data = bytes(self.out[since:])
+        return ESCAPE.sub(b"", data)
+
+    def screen(self):
+        """The screen as lines of text, from a small model of the output.
+
+        Herdr draws with cursor moves (CUP), one clear (ED) and text. The model
+        follows these and skips other escape sequences. Image cells stay blank.
+        """
+        rows, cols = self.size
+        grid = [[" "] * cols for _ in range(rows)]
+        row = col = 0
+        saved = (0, 0)
+        with self.lock:
+            data = bytes(self.out)
+        for match in SCREEN_TOKEN.finditer(data):
+            token = match[0]
+            if match["text"]:
+                for char in token.decode(errors="ignore"):
+                    if row < rows and col < cols:
+                        grid[row][col] = char
+                    col += 1
+            elif token.endswith(b"H") and token.startswith(b"\x1b["):
+                values = [int(item or 1) for item in token[2:-1].split(b";")] + [1, 1]
+                row, col = values[0] - 1, values[1] - 1
+            elif token == b"\x1b[2J":
+                grid = [[" "] * cols for _ in range(rows)]
+            elif token == b"\x1b7":
+                saved = (row, col)
+            elif token == b"\x1b8":
+                row, col = saved
+        return ["".join(line) for line in grid]
+
+    def mark(self):
+        """The current end of the output: graphics(since=mark()) reads what comes later."""
+        with self.lock:
+            return len(self.out)
+
+    def graphics(self, since=0):
+        """The kitty graphics commands since `since`: a dict of the keys of each
+        command, and "at" (row, column) for a placement."""
+        with self.lock:
+            data = bytes(self.out[since:])
+        found = []
+        for match in GRAPHICS.finditer(data):
+            keys = dict(item.split(b"=", 1) for item in match[3].split(b",") if b"=" in item)
+            command = {key.decode(): value.decode() for key, value in keys.items()}
+            if match[1]:
+                command["at"] = (int(match[1]), int(match[2]))
+            found.append(command)
+        return found
+
+    def uploads(self, since=0):
+        """The images that Herdr sent since `since`: a list of {"id", "size":
+        (width, height), "format": "24" | "32", "pixels": raw RGB or RGBA bytes}.
+        An upload goes in chunks: the first has the keys, the next ones only m=."""
+        with self.lock:
+            data = bytes(self.out[since:])
+        found = []
+        for match in UPLOAD.finditer(data):
+            keys = dict(item.split(b"=", 1) for item in match[1].split(b",") if b"=" in item)
+            keys = {key.decode(): value.decode() for key, value in keys.items()}
+            if keys.get("a") in ("t", "T") and "s" in keys and "v" in keys:
+                found.append({"id": keys.get("i"), "keys": keys, "payload": [match[2]]})
+            elif found and "a" not in keys and "m" in keys:
+                found[-1]["payload"].append(match[2])
+        images = []
+        for item in found:
+            pixels = base64.b64decode(b"".join(item["payload"]))
+            if item["keys"].get("o") == "z":
+                pixels = zlib.decompress(pixels)
+            images.append({"id": item["id"], "format": item["keys"].get("f", "32"),
+                           "size": (int(item["keys"]["s"]), int(item["keys"]["v"])),
+                           "pixels": pixels})
+        return images
+
+    def shown(self):
+        """The images on the screen now: a list of {"at": (row, column), "size":
+        (width, height)}, one per placement of an image that the terminal has.
+
+        A model of kitty's image state from all graphics commands: an upload
+        (a=t, a=T) keeps an image, a=p places it, and a=d deletes placements
+        (d=i, d=a) or also their images (d=I, d=A).
+        """
+        images, placements = {}, {}
+        for command in self.graphics():
+            action, image = command.get("a", "t"), command.get("i")
+            if action in ("t", "T") and image is not None:
+                images[image] = (int(command.get("s", 0)), int(command.get("v", 0)))
+            elif action == "p" and image is not None:
+                placements[(image, command.get("p"))] = command.get("at")
+            elif action == "d":
+                which = command.get("d", "a")
+                if which in ("a", "A"):
+                    placements.clear()
+                elif which in ("i", "I") and image is not None:
+                    for key in [key for key in placements if key[0] == image
+                                and command.get("p") in (None, key[1])]:
+                        del placements[key]
+                if which in ("A", "I"):
+                    images = {key: value for key, value in images.items()
+                              if which == "I" and key != image}
+        return [{"at": at, "size": images[image]} for (image, _), at in placements.items()
+                if image in images]
+
+    def close(self):
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(self.pid, signal.SIGKILL)
+        with contextlib.suppress(ChildProcessError):
+            os.waitpid(self.pid, 0)
+        self.thread.join(2)
+        with contextlib.suppress(OSError):
+            os.close(self.fd)
+
+
 class Stage:
     def __init__(self, name, prefix="ctrl+;", extended_keys="always", session="tp-e2e",
                  real_binds=False, width=200, height=50, xdg_config_home=True,
@@ -157,6 +362,8 @@ class Stage:
         self.slots.mkdir()
         self.tmux_socket = f"tpe-{os.getpid()}-{self.name}"
         self.width, self.height = width, height
+        # The KittyClient of start_kitty(), if any.
+        self.kitty = None
         self.editor_out = self.root / "editor.json"
         self.trace_path = self.root / "trace.txt"
         # Herdr sessions of more clients: tmux session name -> Herdr session name.
@@ -265,6 +472,30 @@ class Stage:
         self.wait_prompt()
         return self
 
+    def start_kitty(self):
+        """start() with a KittyClient as the only client, not tmux. Return the client.
+
+        The tmux helpers (screen(), keys()) do not work on this stage.
+        """
+        self.kitty = KittyClient(self, self.height, self.width)
+        wait_for(lambda: call(self.socket, "ping") is not None, "the main Herdr server")
+        for path in self.plugins:
+            call(self.socket, "plugin.link", {"path": str(path), "enabled": True})
+        wait_for(self.plugin_enabled, "the toggle-popup plugin")
+        wait_for(lambda: self.main_snapshot()["focused_workspace_id"], "the first workspace")
+        # As wait_prompt(): keys typed before the client draws the shell are lost.
+        wait_for(lambda: b"$" in self.kitty.text(), "a shell prompt")
+        return self.kitty
+
+    def yazi_config(self):
+        """The repo's yazi previewers and kitty-popup.yazi, in this stage's yazi config."""
+        folder = self.config_home / "yazi"
+        (folder / "plugins").mkdir(parents=True)
+        shutil.copy(YAZI_CONFIG / "yazi.toml", folder / "yazi.toml")
+        (folder / "init.lua").write_text('require("kitty-popup"):setup()\n', encoding="utf-8")
+        (folder / "plugins" / "kitty-popup.yazi").symlink_to(
+            YAZI_CONFIG / "plugins" / "kitty-popup.yazi")
+
     def wait_prompt(self, target="main"):
         def probe():
             return any(line.rstrip().endswith("$")
@@ -329,6 +560,9 @@ class Stage:
 
     def close(self):
         """Stop the servers and remove the files. One failed step does not stop the rest."""
+        if self.kitty is not None:
+            with contextlib.suppress(OSError):
+                self.kitty.close()
         for session in (self.session, *self.clients.values(), "toggle-popup"):
             with contextlib.suppress(subprocess.SubprocessError, OSError):
                 self.herdr("--session", session, "server", "stop", check=False)
@@ -444,8 +678,11 @@ class Stage:
 
     def diagnose(self):
         trace = self.trace_path.read_text() if self.trace_path.exists() else ""
-        screens = "".join(f"--- {target} screen\n{self.screen_text(target)}\n"
-                          for target in ("main", *self.clients))
+        if self.kitty is not None:
+            screens = f"--- kitty client screen\n{chr(10).join(self.kitty.screen())}\n"
+        else:
+            screens = "".join(f"--- {target} screen\n{self.screen_text(target)}\n"
+                              for target in ("main", *self.clients))
         toasts = "".join(f"{toast}\n" for toast in self.toasts)
         return (f"{screens}--- toasts seen\n{toasts}--- popups\n{self.popup_panes_text()}\n"
                 f"--- proxy event trace\n{trace[-3000:]}\n{self.plugin_log()}")

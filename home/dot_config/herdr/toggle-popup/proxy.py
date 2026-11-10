@@ -26,6 +26,7 @@ import tty
 import typing
 
 import herdr_api
+import images
 import popups
 from herdr_api import HerdrError
 from keys import (
@@ -482,6 +483,8 @@ class Screen:
         self.stdout = stdout
         # The page that shows: render(rows, cols) gives its text.
         self.render = None
+        # All that the popup terminal got, for the image previews (images.py).
+        self.output = images.Output()
 
     def show(self, data):
         """Write to the popup terminal. After Herdr closed it, write nothing."""
@@ -493,11 +496,17 @@ class Screen:
             if not closed_terminal(error):
                 raise
             self.input.ended = True
+        self.output.feed(data)
 
     def size(self):
         """The size of the popup terminal: the terminal of the input."""
         rows, cols, _, _ = struct.unpack("HHHH", window_size(self.input.fd))
         return rows, cols
+
+    def cell_size(self):
+        """The (width, height) of a cell in pixels, or None when the terminal does not tell."""
+        rows, cols, width, height = struct.unpack("HHHH", window_size(self.input.fd))
+        return (width // cols, height // rows) if width >= cols and height >= rows else None
 
     def draw(self, render):
         """Draw a page: `render(rows, cols)` gives the text of each cell.
@@ -697,11 +706,13 @@ class Next(enum.Enum):
 
 class Proxy:
     def __init__(self, popup_id, prefix, scrollback, main_herdr, popup_herdr, stdin=0, stdout=1,
-                 default_shell=None, on_shown=None):
+                 default_shell=None, on_shown=None, images=None):
         """`main_herdr` is the Herdr session that shows the popup. `default_shell`
         is the main config's default_shell: the picker names it as the label does.
         `on_shown()` runs once, after the popup first shows the frame of its
-        program (see AttachNudge)."""
+        program (see AttachNudge), or at a popup key that comes after the
+        program's first output. `images` is the images.Images of the popup,
+        when the toggle made it before the program started."""
         self.popup_id = popup_id
         self.on_shown = on_shown
         self.default_shell = default_shell
@@ -715,6 +726,10 @@ class Proxy:
         self.input = Input(stdin, self.wake_read)
         self.screen = Screen(self.input, stdout)
         self.viewer = None
+        # The image previews of the popup that shows (images.py).
+        self.images = images
+        if images is not None:
+            images.attach(self.screen)
         # The record of the popup that shows: relay() sets it from the popup session.
         self.record = None
         self.cooked = None
@@ -755,6 +770,8 @@ class Proxy:
             if self.viewer is not None:
                 self.viewer.stop()
                 self.viewer = None
+            if self.images is not None:
+                self.images.close()
             # A terminal that Herdr closed has no modes to restore.
             if not self.input.ended:
                 self.set_modes(self.cooked)
@@ -790,6 +807,10 @@ class Proxy:
                 trace_event(self.popup_id, "popup-gone")
                 return
             self.record = popup.record
+            if self.images is None or self.images.popup_id != self.popup_id:
+                if self.images is not None:
+                    self.images.close()
+                self.images = images.Images(self.popup_id, self.screen)
             terminal_id = popup.pane["terminal_id"]
             key_filter = self.key_filter()
             self.viewer = Viewer(terminal_id, self.stdin)
@@ -834,6 +855,9 @@ class Proxy:
         Input after the popup key stays in self.input for the next reader.
         """
         viewer, input_ = self.viewer, self.input
+        # The program shows from the viewer's first output on: the viewer
+        # clears the screen when it starts.
+        program_shows = False
         while not input_.ended:
             input_.expire()
             data, action = key_filter.take(input_.tokens)
@@ -846,27 +870,48 @@ class Proxy:
                     # The viewer ended, as when the program exited: relay() asks why.
                     return None
             if action is not None:
+                # A popup key can come before the frame counts as shown
+                # (AttachNudge.SHOWN_BY). The program showed its output, so
+                # the toggle still runs on_shown(), and with it the sweep.
+                if program_shows:
+                    self.run_on_shown()
                 return action
             fds = [viewer.fd] + ([viewer.errors_fd] if viewer.errors_fd is not None else [])
+            image_fd = self.images.fileno() if self.images is not None else None
+            if image_fd is not None:
+                fds.append(image_fd)
             ready = input_.wait(viewer.resize, fds, viewer.nudge.timeout(time.monotonic()))
             viewer.nudge.tick(time.monotonic())
             if viewer.errors_fd is not None and viewer.errors_fd in ready:
                 viewer.read_errors()
+            if image_fd is not None and image_fd in ready:
+                self.images.serve(program_shows)
             if viewer.fd in ready:
                 data = viewer.read()
                 if not data:
                     return None
                 self.screen.show(data)
-            if viewer.nudge.shown and self.on_shown is not None:
-                on_shown, self.on_shown = self.on_shown, None
-                on_shown()
+                program_shows = True
+            if self.images is not None:
+                self.images.sync(program_shows)
+            if viewer.nudge.shown:
+                self.run_on_shown()
         return None
+
+    def run_on_shown(self):
+        """Run on_shown() once."""
+        if self.on_shown is not None:
+            on_shown, self.on_shown = self.on_shown, None
+            on_shown()
 
     def act(self, action, popup):
         """Run popup commands, from `action` on: a page can give the next one.
 
         `popup` is the LivePopup that shows. Return what comes next: a Next.
         """
+        # The program does not show now: its image goes.
+        if self.images is not None:
+            self.images.sync(program_shows=False)
         while action is not None and not self.input.ended:
             if action is Action.HIDE:
                 self.main.call("popup.close")

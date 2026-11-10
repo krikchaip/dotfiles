@@ -39,11 +39,12 @@ from pathlib import Path
 
 import herdr_api
 import herdr_config
+import images
 import popups
 import proxy
 from herdr_api import POPUP_SESSION, Herdr, HerdrError
 from keys import parse_binding
-from launch import DEFAULT_SHELL_ENV, OWNER_SOCKET_ENV, START_ENV
+from launch import DEFAULT_SHELL_ENV, IMAGE_SOCKET_ENV, OWNER_SOCKET_ENV, START_ENV
 from popups import SCOPES, Owner, PopupRecord
 
 # A toggle key must feel instant. So the modules that only a new popup or a
@@ -152,9 +153,12 @@ def popup_session_config(default_shell):
         "#!/bin/sh", "# Written by the toggle-popup plugin. Changes are lost.", value,
         f"exec {shlex.quote(sys.executable)} {shlex.quote(str(LAUNCHER))}", ""]), 0o755)
     path = herdr_api.popup_session_config_path()
+    # Without kitty graphics, the popup panes keep image placeholder cells as
+    # text, and the viewer passes them to the popup (see images.py).
     write_if_changed(path, "\n".join([
         "# Written by the toggle-popup plugin. Changes are lost.", "onboarding = false", "",
-        "[terminal]", f"default_shell = {json.dumps(str(shell))}", ""]))
+        "[terminal]", f"default_shell = {json.dumps(str(shell))}", "kitty_graphics = false",
+        ""]))
     return path
 
 
@@ -277,9 +281,14 @@ def create_popup(herdr, popup_id, options, owner, label, default_shell):
     Raise HerdrError when the program cannot start (see StartCheck).
     """
     folder = {"cwd": options.directory} if options.directory else {}
+    # The last image request of an old program of this popup: a new program
+    # shows no image yet.
+    images.request_path(popup_id).unlink(missing_ok=True)
     with StartCheck() as start:
         # launch.py points `herdr` commands in the popup at the owner session.
-        env = {**start.env, OWNER_SOCKET_ENV: owner.socket}
+        # The program sends its image previews to the proxy (images.py).
+        env = {**start.env, OWNER_SOCKET_ENV: owner.socket,
+               IMAGE_SOCKET_ENV: str(images.socket_path(popup_id))}
         params = {"label": popup_id, "focus": False, **folder}
         if not options.command:
             # The root pane runs the default shell: popup-shell, then launch.py.
@@ -428,9 +437,17 @@ def toggle(argv, env, state):
     config = herdr_config.read_main_config()
     with popups.popup_lock():
         herdr = ensure_popup_server(config.default_shell)
-        prepare_popup(herdr, popup_id, options, owner, config.default_shell)
+        # The image socket listens before the program starts: the program's
+        # first image request waits on it until the proxy runs.
+        previews = images.Images(popup_id)
+        try:
+            prepare_popup(herdr, popup_id, options, owner, config.default_shell)
+        except BaseException:
+            previews.close()
+            raise
     proxy.Proxy(popup_id, config.prefix, config.scrollback, Herdr(endpoint), herdr,
-                default_shell=config.default_shell, on_shown=sweep_in_background).run()
+                default_shell=config.default_shell, on_shown=sweep_in_background,
+                images=previews).run()
 
 
 def main(argv=None):

@@ -117,6 +117,15 @@ class PopupShell(unittest.TestCase):
         toggle_popup.popup_session_config(self.shell("it's here"))
         self.assertEqual(self.run_popup_shell(), "it's here\n")
 
+    def test_the_popup_server_keeps_image_placeholders_as_text(self):
+        # With kitty graphics on, Herdr removes placeholder cells from the
+        # frames of `terminal attach` (images.py).
+        import tomllib
+
+        path = toggle_popup.popup_session_config(None)
+        config = tomllib.loads(path.read_text(encoding="utf-8"))
+        self.assertIs(config["terminal"]["kitty_graphics"], False)
+
 
 class Launcher(unittest.TestCase):
     """launch.py gives a backing pane's program the user's values back."""

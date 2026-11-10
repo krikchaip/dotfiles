@@ -212,6 +212,23 @@ key press ─► Herdr popup ─► toggle.sh ─► toggle_popup.py (one proces
   program, so it does not slow the popup. A Herdr
   session counts as gone only when its socket is missing or refuses; a
   timeout keeps its popups.
+- **Image previews (yazi):** Herdr 0.9.5 shows no images to attach viewers
+  ([herdrdev/herdr#5408](https://github.com/herdrdev/herdr/issues/5408)), so
+  the proxy draws yazi's previews (`images.py`).
+  - `launch.py` gives the program `TOGGLE_POPUP_IMAGE_SOCKET`. The proxy
+    listens on it while the popup shows.
+  - In that mode, `kitty-popup.yazi` (`herdr.py`) sends the hovered image
+    and its preview area. The proxy sends the image as kitty graphics with
+    inline data, and yazi draws the Unicode placeholder cells. The popup
+    server runs with `kitty_graphics = false`, so these cells reach the
+    viewer as text. Inline data also works on a remote Herdr client.
+  - Rule: when the program shows and a request is there, the image is in
+    the terminal; otherwise it is not. The help page and the picker erase
+    it, and it comes back when the program shows again.
+  - The image comes from yazi's own previewer for its type (for example
+    `svg` with resvg, `magick` for HEIC), as in a normal pane. Other programs show no
+    images in a popup. A popup made before this change has no socket until
+    you kill it (`prefix` `q`) and toggle it again.
 
 | Module | Job |
 |---|---|
@@ -219,6 +236,7 @@ key press ─► Herdr popup ─► toggle.sh ─► toggle_popup.py (one proces
 | `toggle_popup.py` | Entry point of a key: find or create the popup, then run the proxy. |
 | `proxy.py` | The key-filter proxy: viewer, keys, help, picker, scrollback. |
 | `pages.py` | Draws the help page and the picker; the picker filter. |
+| `images.py` | yazi image previews: the socket of `kitty-popup.yazi` and the kitty graphics. Remove it when Herdr fixes #5408. |
 | `herdr_theme.py` | Herdr theme tokens, from the palettes that chezmoi downloads into `herdr-src/` (`.chezmoiexternals/herdr.toml`). A copy of `navigation/herdr_theme.py`. |
 | `keys.py` | Decode key input; find toggle keys and `prefix` chords. |
 | `popups.py` | Popup records, scopes, live popups, sweep. |
@@ -236,6 +254,8 @@ All state is under `$XDG_STATE_HOME/herdr/plugins/dotfiles.toggle-popup/`
 | Path | Content |
 |---|---|
 | `popups/<first 32 hex characters of sha256(popup id)>.json` | Popup record: id, scope, label, terminal id, command, toggle keys, owner (session socket, workspace, tab, or folder). |
+| `images/<popup id>.sock` | Image socket of a showing popup (`TOGGLE_POPUP_IMAGE_SOCKET`). |
+| `images/<popup id>.json` | The program's last image request, for the next show. |
 | `popup-session.toml` | Minimal config of the popup server. |
 | `popup-config/` | Private `XDG_CONFIG_HOME` of the popup server. |
 | `popup-shell` | Default shell script of the popup server. |

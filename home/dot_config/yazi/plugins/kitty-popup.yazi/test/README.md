@@ -4,7 +4,7 @@ The owned plugin is `home/dot_config/yazi/plugins/kitty-popup.yazi/`.
 
 ## Paths
 
-- Kitty without tmux: `main.lua` delegates to Yazi's built-in image previewer. No tmux process or socket is needed.
+- Outside a popup (Kitty without tmux, a normal pane, Herdr): the plugin is a no-op. `main.lua` hands each file to the previewer that Yazi's own rules pick for its type (`image`, `svg`, `magick`, `video`, …), so the preview is the same as without the plugin. No tmux process or socket is needed.
 - An ordinary tmux pane: the same native fallback applies.
 - The persistent tmux popup: `main.py run` starts normal Yazi on its original terminal. It owns image IDs and wraps Kitty packets for the two tmux layers. It does not relay input or replay a saved terminal screen.
 
@@ -12,7 +12,7 @@ The existing popup plugin still owns process persistence, windows, panes, and hi
 
 ## Internal boundary
 
-`main.lua` owns preview widgets. It delegates to the native image or video previewer unless the owned `yazi_pwd` popup has complete Kitty/tmux/helper context. It gets a generation from the main Lua state, prepares the image over a private socket, then commits its token after `ya.preview_widget` accepts the job. The socket belongs to one Yazi PID. A nested app that inherits the socket cannot use that app's preview state. An exited owner also gives native fallback, not a custom preview error.
+`main.lua` owns preview widgets. `preset()` finds the first rule in Yazi's `rt.plugin.previewers` (and spotters) that is not `kitty-popup`, and peek, seek and spot delegate to it unless the owned `yazi_pwd` popup has complete Kitty/tmux/helper context. It gets a generation from the main Lua state, prepares the image over a private socket, then commits its token after `ya.preview_widget` accepts the job. The socket belongs to one Yazi PID. A nested app that inherits the socket cannot use that app's preview state. An exited owner also gives native fallback, not a custom preview error.
 
 Only the owned popup subscribes to Yazi's hover event. When selection leaves the committed image, the owner captures its inner tmux grid and erases cells that still contain the Kitty placeholder character inside the exact committed image area. Text cells that already replaced placeholders stay unchanged. The owner also deletes that image ID and removes it from reopen state.
 
@@ -21,6 +21,8 @@ Before creating an owner, `main.py run` checks that both input and output refer 
 `main.py` serializes graphics writes and cancels the previous decoder before starting another. Decoder output is bounded at 64 MiB; completion state retains at most one result. The socket directory is mode 0700 and its socket is mode 0600. It does not change Yazi's inherited umask.
 
 `preview.py` validates packets and placeholder rows, splits payloads at base64 boundaries, and tracks one committed image. Deletes name only its owned IDs. It accepts the unpadded payloads and repeated transmit actions produced by real `kitten icat`. `--loop=0` still emits later animation frames and header-only animation controls. The parser checks their image ID and transfer policy, discards them, and forwards only the first frame. A generated red/blue GIF test verifies the transmitted pixels are red.
+
+In a popup, the image is the output of that preset's preloader (resvg for SVG, magick for HEIC, the video frame, or Yazi's precache), so it matches a normal pane.
 
 Physical cell dimensions come from the popup's original tmux client. Yazi's cell estimate inside the nested popup is not reliable. Animations show their first frame. The adapter covers `image/*` and `video/*`; PDF previewers are not changed.
 

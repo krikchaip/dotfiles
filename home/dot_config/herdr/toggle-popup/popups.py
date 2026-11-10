@@ -17,6 +17,7 @@ import os
 import shlex
 from dataclasses import asdict, dataclass
 
+import images
 from herdr_api import Herdr, HerdrError, log_error, plugin_state_dir
 
 # How long to wait for an owner session's snapshot. A toggle key must feel
@@ -137,6 +138,8 @@ def save_record(record):
 
 def delete_record(popup_id):
     record_path(popup_id).unlink(missing_ok=True)
+    # The image request of the program: a new program shows no image yet.
+    images.request_path(popup_id).unlink(missing_ok=True)
 
 
 def all_records():

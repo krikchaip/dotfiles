@@ -22,6 +22,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import herdr_api
 import herdr_config
+import images
 import keys
 import launch
 import popups
@@ -778,6 +779,14 @@ class PreparePopup(unittest.TestCase):
                 self.assertEqual(self.session.start_envs[-1][launch.OWNER_SOCKET_ENV],
                                  record.owner.socket)
 
+    def test_the_program_pane_gets_the_image_socket_of_its_popup(self):
+        for argv in (["--", "yazi"], ["--scope", "tab"]):
+            with self.subTest(argv=argv):
+                self.session.start_envs.clear()
+                record = self.prepare(*argv)
+                self.assertEqual(self.session.start_envs[-1][launch.IMAGE_SOCKET_ENV],
+                                 str(images.socket_path(record.id)))
+
     def test_a_program_that_cannot_start_is_a_toast_and_leaves_no_popup(self):
         for argv in (["--", "lazygitx"], ["--scope", "tab"]):
             with self.subTest(argv=argv):
@@ -836,14 +845,18 @@ class FakeProxy:
     on_run = None
 
     def __init__(self, popup_id, prefix, scrollback, main_herdr, popup_herdr,
-                 default_shell=None, on_shown=None):
+                 default_shell=None, on_shown=None, images=None):
         self.values = (popup_id, prefix, scrollback, main_herdr, popup_herdr, default_shell,
                        on_shown)
+        self.images = images
+        FakeProxy.last = self
 
     def run(self):
         self.started.append(self.values)
         if self.on_run is not None:
             self.on_run()
+        if self.images is not None:
+            self.images.close()
 
 
 class Toggle(unittest.TestCase):
@@ -885,6 +898,50 @@ class Toggle(unittest.TestCase):
                                               toggle_popup.sweep_in_background)])
         # No Herdr popup opens: the bind's popup runs this process.
         self.assertEqual(self.main.calls, [])
+
+    def test_the_image_socket_listens_before_the_program_starts(self):
+        """The program's first image request must reach the proxy (images.py)."""
+        reached = []
+
+        def start_program(env, start=self.session.launch):
+            path = env.get(launch.IMAGE_SOCKET_ENV)
+            if path:
+                with socket.socket(socket.AF_UNIX) as client:
+                    client.connect(path)
+                    reached.append(path)
+            start(env)
+
+        patch(self, mock.patch.object(self.session, "launch", start_program))
+        state = self.toggle("--name", "files", "--", "yazi")
+        self.assertEqual(reached, [str(images.socket_path(state["popup_id"]))])
+        # The proxy gets the socket, with the request that waits on it.
+        self.assertEqual(FakeProxy.last.images.popup_id, state["popup_id"])
+        # The proxy closed it at its end.
+        self.assertFalse(images.socket_path(state["popup_id"]).exists())
+
+    def test_a_new_program_does_not_get_the_image_of_an_old_one(self):
+        """An old program's last image request must not show over a new program."""
+        argv = ["--name", "files", "--", "yazi"]
+        popup_id = popup_identity(parse_args(argv), ENV)[0]
+        stale = images.request_path(popup_id)
+        stale.parent.mkdir(parents=True, exist_ok=True)
+        stale.write_text('{"file": "/old.png"}', encoding="utf-8")
+        seen = []
+
+        def start_program(env, start=self.session.launch):
+            seen.append(stale.exists())
+            start(env)
+
+        patch(self, mock.patch.object(self.session, "launch", start_program))
+        self.toggle(*argv)
+        self.assertEqual(seen, [False, False])
+
+    def test_a_failed_popup_start_closes_the_image_socket(self):
+        self.session.start_error = "cannot run no-such-program: No such file or directory"
+        state = {}
+        with self.assertRaisesRegex(HerdrError, "cannot run no-such-program"):
+            toggle_popup.toggle(["--", "no-such-program"], ENV, state)
+        self.assertFalse(images.socket_path(state["popup_id"]).exists())
 
     def test_a_failed_popup_start_does_not_start_the_proxy(self):
         self.session.start_error = "cannot run no-such-program: No such file or directory"

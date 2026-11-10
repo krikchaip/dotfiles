@@ -5,6 +5,7 @@ encoding is tmux `extended-keys`: off sends legacy bytes, always sends CSI u.
 The inner key encoding is the mode the popup program asks for (keylog.py).
 """
 
+import base64
 import contextlib
 import fcntl
 import json
@@ -16,6 +17,7 @@ import signal
 import struct
 import subprocess
 import sys
+import tempfile
 import termios
 import threading
 import time
@@ -1384,6 +1386,352 @@ class RealBinds(StageCase):
                                 for record in records), sorted(folders))
 
 
+
+def png_file(path, width, height):
+    """Write a PNG of one color."""
+    import zlib
+
+    def chunk(kind, data):
+        return (struct.pack(">I", len(data)) + kind + data
+                + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
+    raw = b"".join(b"\x00" + b"\xff\x00\x00" * width for _ in range(height))
+    Path(path).write_bytes(
+        b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+
+
+# Keys as a kitty terminal sends them.
+KITTY_KEYS = {"alt+1": b"\x1b1", "alt+2": b"\x1b2", "alt+3": b"\x1b3", "alt+4": b"\x1b4",
+              "prefix": b"\x1b[59;5u", "esc": b"\x1b", "enter": b"\r"}
+
+
+class ImageCase(unittest.TestCase):
+    """yazi image previews in popups (images.py), seen by a client that shows images.
+
+    The checks read what the client shows (KittyClient.shown()): the images
+    that Herdr uploaded and placed, less the ones it deleted.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.stage = Stage(cls.__name__.lower(), width=120, height=40)
+        try:
+            cls.setUpStage(cls.stage)
+            cls.client = cls.stage.start_kitty()
+        except BaseException:
+            cls.stage.close()
+            raise
+
+    @classmethod
+    def setUpStage(cls, stage):
+        stage.yazi_config()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.stage.close()
+
+    def setUp(self):
+        self.s = self.stage
+        self.addCleanup(self.reset)
+
+    def reset(self):
+        """Close the popups. Their records and image requests go too."""
+        close_popup(self.s.socket)
+        for pane in self.s.started_popup_panes().values():
+            if pane:
+                call(self.s.popup_socket, "workspace.close", {"workspace_id": pane["workspace_id"]})
+        self.s.wait(lambda: not self.s.started_popup_panes(), "no backing popups")
+        for path in self.s.record_files():
+            path.unlink(missing_ok=True)
+        for path in (self.s.state_home / "herdr" / "plugins" / "dotfiles.toggle-popup"
+                     / "images").glob("*.json"):
+            path.unlink()
+        self.s.wait(self.popup_closed, "the popup to close")
+
+    def popup_closed(self):
+        try:
+            call(self.s.socket, "popup.close")
+        except RuntimeError as error:
+            return "popup_not_open" in str(error)
+        return False
+
+    def hide(self, key, name):
+        """Press the toggle key of the popup NAME, and wait until it hides."""
+        popup_id = self.s.popup_id(name)
+        event = f"{popup_id}\ttoggle-key\n"
+        before = self.s.trace_path.read_text().count(event)
+        self.press(key)
+        self.s.wait(lambda: self.s.trace_path.read_text().count(event) > before,
+                    f"the {name} popup to hide")
+
+    def press(self, *keys):
+        for key in keys:
+            self.client.press(KITTY_KEYS.get(key, key.encode()))
+
+    def images(self, size=None):
+        """The (row, column) of each placement on the screen, of `size` pixels if given."""
+        return sorted(item["at"] for item in self.client.shown()
+                      if size is None or item["size"] == size)
+
+    def wait_image(self, size, what, at=None):
+        """Wait until the image of `size` pixels shows in its 5 rows (at `at`,
+        the top left cell, if given). Return the top left cell."""
+        def probe():
+            rows = self.images(size)
+            if len(rows) != 5 or rows != [(rows[0][0] + index, rows[0][1]) for index in range(5)]:
+                return None
+            return rows[0] if at is None or rows[0] == at else None
+        try:
+            return self.s.wait(probe, what)
+        except AssertionError as error:
+            commands = [{key: value for key, value in command.items() if key in "aidpsv"}
+                        for command in self.client.graphics() if "a" in command]
+            raise AssertionError(f"{error}\n--- shown: {self.client.shown()}\n"
+                                 f"--- last graphics commands: {commands[-12:]}") from None
+
+    def wait_no_image(self, what):
+        self.s.wait(lambda: not self.images(), what)
+
+    def assert_no_image_for(self, seconds=1.5):
+        """No image shows for `seconds`: one that comes late fails too."""
+        end = time.monotonic() + seconds
+        while time.monotonic() < end:
+            self.assertEqual(self.client.shown(), [])
+            time.sleep(0.1)
+
+
+class ImagePreviews(ImageCase):
+    @classmethod
+    def setUpStage(cls, stage):
+        super().setUpStage(stage)
+        cls.pictures = stage.root / "pictures"
+        cls.pictures.mkdir()
+        png_file(cls.pictures / "a.png", 200, 100)
+        (cls.pictures / "b.txt").write_text("text\n" * 20, encoding="utf-8")
+        png_file(cls.pictures / "c.png", 60, 90)
+        cls.notes = stage.root / "notes"
+        cls.notes.mkdir()
+        (cls.notes / "n1.txt").write_text("note\n", encoding="utf-8")
+        stage.slot("alt+1", "--name", "pictures", "--toggle-key", "alt+1",
+                   "-d", str(cls.pictures), "--", "yazi")
+        stage.slot("alt+2", "--name", "notes", "--toggle-key", "alt+2",
+                   "-d", str(cls.notes), "--", "yazi")
+
+    # a.png is 200x100 pixels: 20 columns and 5 rows of cells of 10x20 pixels.
+    A_PNG = (200, 100)
+
+    def open_pictures(self):
+        self.press("alt+1")
+        return self.wait_image(self.A_PNG, "the preview of a.png")
+
+    def test_the_hovered_image_shows_and_a_text_file_deletes_it(self):
+        self.open_pictures()
+        self.assertTrue(all(command["c"] == "20" and command["r"] == "1"
+                            for command in self.client.graphics() if command.get("a") == "p"))
+        self.press("j")
+        self.wait_no_image("no image for b.txt")
+        self.assert_no_image_for()
+        self.press("j")
+        self.s.wait(lambda: len(self.images((60, 90))) == 5, "the preview of c.png")
+
+    def test_a_page_deletes_the_image_and_the_program_draws_it_again(self):
+        at = self.open_pictures()
+        pages = (("help", ("prefix", "?"), "x"), ("picker", ("prefix", "g"), "esc"))
+        for name, keys, back in pages:
+            with self.subTest(page=name):
+                self.press(*keys)
+                self.wait_no_image(f"no image on the {name} page")
+                self.assert_no_image_for()
+                self.press(back)
+                self.wait_image(self.A_PNG, f"the preview after the {name} page", at)
+
+    def test_a_hidden_popup_draws_the_image_again_when_it_shows(self):
+        at = self.open_pictures()
+        self.hide("alt+1", "pictures")
+        self.wait_no_image("no image while the popup hides")
+        self.press("alt+1")
+        self.wait_image(self.A_PNG, "the preview after show", at)
+
+    def test_a_switch_to_another_popup_does_not_show_the_old_image(self):
+        self.press("alt+2")
+        notes = self.s.wait(lambda: self.s.popup_id("notes"), "the notes popup")
+        self.s.wait_pane(notes, "n1.txt")
+        self.hide("alt+2", "notes")
+        at = self.open_pictures()
+        self.press("prefix", "g", *"notes", "enter")
+        self.s.wait(lambda: f"{notes}\tswitch" in self.s.trace_path.read_text(), "the switch")
+        self.wait_no_image("no image in the notes popup")
+        self.assert_no_image_for()
+        # Back to the pictures popup: its image shows again.
+        self.press("prefix", "g", *"pictures", "enter")
+        self.wait_image(self.A_PNG, "the preview after the switch back", at)
+
+    def test_the_image_follows_the_preview_after_a_resize(self):
+        self.open_pictures()
+        # yazi draws the text of b.txt at the top left cell of its preview area.
+        self.press("j")
+        self.wait_no_image("no image for b.txt")
+        before = self.s.wait(self.text_preview, "the preview of b.txt")
+        self.client.resize(44, 140)
+        self.addCleanup(self.client.resize, 40, 120)
+        # Herdr first shows the old screen in the new size, then yazi draws again.
+        after = self.s.wait(lambda: self.moved_text_preview(before),
+                            "the preview of b.txt in the new size")
+        self.press("k")
+        self.wait_image(self.A_PNG, "a.png in the preview area of the new size", after)
+
+    def moved_text_preview(self, before):
+        """text_preview() when it is not at `before` and stays for 1 second, or None."""
+        at = self.text_preview()
+        if at in (None, before):
+            return None
+        time.sleep(1)
+        return at if self.text_preview() == at else None
+
+    def text_preview(self):
+        """(row, column), 1-based, of the first line of the b.txt preview, or None."""
+        lines = self.client.screen()
+        for row, line in enumerate(lines[:-1]):
+            column = line.find("text")
+            if column >= 0 and lines[row + 1][column:column + 4] == "text":
+                return row + 1, column + 1
+        return None
+
+
+
+def rgba_png(path, width, height):
+    """Write a PNG with alpha: a blue square in a transparent border of width // 4."""
+    import zlib
+
+    def chunk(kind, data):
+        return (struct.pack(">I", len(data)) + kind + data
+                + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
+    border = width // 4
+
+    def pixel(x, y):
+        inside = border <= x < width - border and border <= y < height - border
+        return b"\x00\x00\xff\xff" if inside else b"\x00\x00\x00\x00"
+    raw = b"".join(b"\x00" + b"".join(pixel(x, y) for x in range(width)) for y in range(height))
+    Path(path).write_bytes(
+        b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+
+
+SVG = ('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">'
+       '<circle cx="32" cy="32" r="28" fill="#1e88e5"/></svg>\n')
+
+
+def magick_can(kind):
+    """True when ImageMagick can write images of `kind` (for example HEIC)."""
+    if not shutil.which("magick"):
+        return False
+    formats = subprocess.run(["magick", "-list", "format"], capture_output=True, text=True,
+                             check=False).stdout
+    # A line: "JPEG* JPEG rw- ...". A * marks a format that ImageMagick reads natively.
+    return any(line.split()[0].rstrip("*") == kind and "w" in line.split()[2]
+               for line in formats.splitlines() if len(line.split()) > 2)
+
+
+class PresetImages(ImageCase):
+    """Each image type shows as yazi's own previewers show it.
+
+    Outside popups, kitty-popup.yazi changes nothing: a normal pane with the
+    plugin gets the same image bytes as without it. In a popup, the image is
+    the one that yazi's preloader makes (an SVG rendered by resvg, a HEIC
+    converted by ImageMagick), so it has the same sharpness and transparency.
+    """
+
+    @classmethod
+    def setUpStage(cls, stage):
+        super().setUpStage(stage)
+        # Each yazi config has its own cache: a preview cannot borrow the other's.
+        config = stage.config_home / "yazi" / "yazi.toml"
+        config.write_text(config.read_text(encoding="utf-8")
+                          + f'\n[preview]\ncache_dir = "{stage.root / "cache-plugin"}"\n',
+                          encoding="utf-8")
+        cls.plain = stage.root / "yazi-plain"
+        cls.plain.mkdir()
+        (cls.plain / "yazi.toml").write_text(
+            f'[preview]\ncache_dir = "{stage.root / "cache-plain"}"\n', encoding="utf-8")
+        makers = {"alpha.png": lambda path: rgba_png(path, 80, 60)}
+        if shutil.which("resvg"):
+            makers["circle.svg"] = lambda path: path.write_text(SVG, encoding="utf-8")
+        if magick_can("JPEG"):
+            makers["photo.jpg"] = lambda path: subprocess.run(
+                ["magick", "-size", "1200x800", "gradient:red-blue", path], check=True)
+        if magick_can("HEIC"):
+            makers["photo.heic"] = lambda path: subprocess.run(
+                ["magick", "-size", "800x600", "gradient:yellow-green", path], check=True)
+        cls.files = {}
+        for number, (name, make) in enumerate(makers.items(), start=1):
+            folder = stage.root / "types" / name.replace(".", "_")
+            folder.mkdir(parents=True)
+            make(folder / name)
+            key = f"alt+{number}"
+            stage.slot(key, "--name", name, "--toggle-key", key, "-d", str(folder), "--", "yazi")
+            cls.files[name] = (folder, key)
+
+    def last_image(self, since, what):
+        """The last image that Herdr sent since `since`, once it shows and no newer one comes."""
+        def probe():
+            uploads = self.client.uploads(since)
+            if not uploads or not self.client.shown():
+                return None
+            time.sleep(1)
+            again = self.client.uploads(since)
+            return again[-1] if len(again) == len(uploads) else None
+        return self.s.wait(probe, what)
+
+    def pane_image(self, folder, config=None):
+        """The image of yazi's preview in the main pane, with yazi config `config`."""
+        since = self.client.mark()
+        prefix = f"YAZI_CONFIG_HOME={shlex.quote(str(config))} " if config else ""
+        self.client.press(f"{prefix}yazi {shlex.quote(str(folder))}\r".encode())
+        try:
+            return self.last_image(since, f"the preview in a pane of {folder.name}")
+        finally:
+            self.client.press(b"q")
+            self.s.wait(lambda: not self.client.shown(), "yazi to quit")
+
+    def popup_image(self, key, name):
+        since = self.client.mark()
+        self.press(key)
+        try:
+            return self.last_image(since, f"the preview of {name} in a popup")
+        finally:
+            self.reset()
+
+    def test_the_plugin_changes_no_preview_outside_popups(self):
+        for name, (folder, _) in self.files.items():
+            with self.subTest(file=name):
+                # The first view: yazi's image previewer shows the file when its
+                # preloader has not made the smaller copy yet, so only the size is
+                # the same each time. The second view uses that copy in both.
+                for view in ("first", "second"):
+                    plain = self.pane_image(folder, self.plain)
+                    plugin = self.pane_image(folder)
+                    self.assertEqual((plugin["size"], plugin["format"]),
+                                     (plain["size"], plain["format"]), view)
+                self.assertEqual(plugin["pixels"], plain["pixels"])
+
+    def test_a_popup_shows_the_image_that_yazi_makes(self):
+        for name, (folder, key) in self.files.items():
+            with self.subTest(file=name):
+                pane = self.pane_image(folder, self.plain)
+                popup = self.popup_image(key, name)
+                (pane_width, pane_height), (width, height) = pane["size"], popup["size"]
+                # Not smaller than in a pane (yazi makes the pane image to fit
+                # its area), and the same shape.
+                self.assertGreaterEqual(width, pane_width)
+                self.assertAlmostEqual(width / height, pane_width / pane_height, delta=0.02)
+                # The same corner: transparent stays transparent, no white background.
+                self.assertEqual(corner_alpha(popup), corner_alpha(pane))
+
+
+def corner_alpha(image):
+    """The alpha of the top left pixel: 255 for an image without alpha."""
+    return image["pixels"][3] if image["format"] == "32" else 255
+
 REMOTE_CONFIG = """onboarding = false
 
 [keys]
@@ -1441,17 +1789,22 @@ herdr plugin link /plugin --enabled >/dev/null
 """
 
 
+def remote_ssh(host, command, stdin=""):
+    """Run a shell command on the remote machine. Return its output."""
+    result = subprocess.run(["ssh", "-o", "BatchMode=yes", host, command], input=stdin,
+                            capture_output=True, text=True, timeout=60)
+    if result.returncode:
+        raise AssertionError(f"ssh {command!r}: {result.stderr.strip()}")
+    return result.stdout
+
+
 @unittest.skipUnless(os.environ.get("E2E_REMOTE"), "needs the Docker `remote` service")
 class RemoteMachine(StageCase):
     """A popup on a saved SSH machine: its bind, plugin, and programs run there."""
 
     @classmethod
     def ssh(cls, command, stdin=""):
-        result = subprocess.run(["ssh", "-o", "BatchMode=yes", cls.host, command], input=stdin,
-                                capture_output=True, text=True, timeout=60)
-        if result.returncode:
-            raise AssertionError(f"ssh {command!r}: {result.stderr.strip()}")
-        return result.stdout
+        return remote_ssh(cls.host, command, stdin)
 
     @classmethod
     def setUpClass(cls):
@@ -1643,6 +1996,110 @@ class RemoteMachine(StageCase):
         s.wait_popup_closed()
         s.wait(lambda: not self.remote_popups(), "the remote popup to close")
         self.assertEqual(s.popup_panes(), {})
+
+
+# The remote yazi popup, after REMOTE_CONFIG.
+REMOTE_IMAGE_BIND = """
+[[keys.command]]
+key = "alt+4"
+type = "popup"
+width = "80%"
+height = "80%"
+command = 'exec /bin/sh /plugin/executable_toggle.sh --name pictures --toggle-key alt+4 \
+-d /home/tester/pictures -- yazi'
+"""
+
+# The remote yazi config and pictures: a.png comes as base64 on stdin.
+REMOTE_IMAGE_SETUP = """set -eu
+rm -rf ~/pictures ~/.config/yazi
+mkdir -p ~/pictures ~/.config/yazi/plugins
+base64 -d > ~/pictures/a.png
+cp /yazi/yazi.toml ~/.config/yazi/
+echo 'require("kitty-popup"):setup()' > ~/.config/yazi/init.lua
+ln -s /yazi/plugins/kitty-popup.yazi ~/.config/yazi/plugins/kitty-popup.yazi
+"""
+
+
+@unittest.skipUnless(os.environ.get("E2E_REMOTE"), "needs the Docker `remote` service")
+class RemoteImages(ImageCase):
+    """yazi image previews in a popup on a saved SSH machine: the remote proxy
+    draws them, and the image goes through both Herdr servers to the client."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.host = os.environ["E2E_REMOTE"]
+        remote_ssh(cls.host, REMOTE_SETUP, REMOTE_CONFIG + REMOTE_IMAGE_BIND)
+        with tempfile.TemporaryDirectory() as folder:
+            image = Path(folder) / "a.png"
+            png_file(image, 200, 100)
+            remote_ssh(cls.host, REMOTE_IMAGE_SETUP, base64.b64encode(image.read_bytes()).decode())
+        super().setUpClass()
+        try:
+            subprocess.run([cls.stage.herdr_bin, "machine", "add", cls.host], env=cls.stage.env,
+                           stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=120)
+            cls.stage.wait(lambda: any(f" {cls.host} " in line for line in cls.client.screen()),
+                           "the remote machine in the sidebar")
+            cls.stage.wait(cls.select_remote_workspace, "the remote workspace")
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        # Cleanup: a server that already stopped is no error.
+        remote_ssh(cls.host, "herdr --session toggle-popup server stop; herdr server stop; true")
+
+    @classmethod
+    def select_remote_workspace(cls):
+        """Move down to the remote workspace in Herdr's workspace nav.
+
+        Return False when it did not show."""
+        client = cls.client
+        client.press(KITTY_KEYS["prefix"])
+        client.press(b"w", pause=0.5)
+        client.press(b"\x1b[B")
+        client.press(b"\r", pause=1)
+        return any("REMOTE$" in line for line in client.screen())
+
+    def reset(self):
+        """Close the remote popups. Their records and image requests go too."""
+        text = remote_ssh(self.host, f"[ -e {REMOTE_POPUP_SOCKET} ] || exit 0\n"
+                                     "herdr --session toggle-popup workspace list")
+        for item in json.loads(text)["result"]["workspaces"] if text.strip() else []:
+            remote_ssh(self.host,
+                       f"herdr --session toggle-popup workspace close {item['workspace_id']}")
+        self.wait_no_image("no image after the remote popup closed")
+
+    def wait_image(self, size, what, at=None):
+        """ImageCase.wait_image(), with the remote popup's own screen in a failure."""
+        try:
+            return super().wait_image(size, what, at)
+        except AssertionError as error:
+            raise AssertionError(f"{error}\n--- remote popups:\n{self.remote_screens()}") from None
+
+    def remote_screens(self):
+        script = ("for id in $(herdr --session toggle-popup pane list | python3 -c "
+                  "'import json, sys; print(*(p[\"pane_id\"] for p in "
+                  "json.load(sys.stdin)[\"result\"][\"panes\"]))'); do "
+                  "echo \"== $id\"; herdr --session toggle-popup pane read \"$id\" "
+                  "--source visible; done")
+        try:
+            return remote_ssh(self.host, script)
+        except (AssertionError, OSError, subprocess.SubprocessError) as error:
+            return f"no answer: {error!r}"
+
+    def test_the_remote_preview_shows_hides_and_shows_again(self):
+        self.press("alt+4")
+        at = self.wait_image((200, 100), "the preview of the remote a.png")
+        self.press("prefix", "?")
+        self.wait_no_image("no image on the help page")
+        self.press("x")
+        self.wait_image((200, 100), "the preview after the help page", at)
+        self.press("alt+4")
+        self.wait_no_image("no image while the popup hides")
+        self.press("alt+4")
+        self.wait_image((200, 100), "the preview after show", at)
 
 
 if __name__ == "__main__":

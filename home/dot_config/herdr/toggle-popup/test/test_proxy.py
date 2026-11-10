@@ -1007,6 +1007,26 @@ class FirstFrame(RelayCase):
         time.sleep(0.05)
         self.assertEqual(len(shown), 1)
 
+    def test_a_popup_key_soon_after_the_frame_still_runs_on_shown(self):
+        # Each toggle sweeps once the program showed. Before the fix, a toggle
+        # key within SHOWN_BY of the first output ended the popup without it.
+        shown = []
+        self.popup.on_shown = lambda: shown.append(self.drawn())
+        patch(self, mock.patch.object(proxy.AttachNudge, "SHOWN_BY", 60.0))
+        self.viewer.peer.sendall(b"setupframe")
+        time.sleep(0.05)
+        os.write(self.input_write, b"\x1a")
+        self.assertIs(self.popup.view(self.key_filter(["ctrl+z"])), Action.HIDE)
+        self.assertEqual(shown, ["setupframe"])
+        self.assertIsNone(self.popup.on_shown)
+
+    def test_a_popup_key_before_any_output_does_not_run_on_shown(self):
+        shown = []
+        self.popup.on_shown = lambda: shown.append(True)
+        os.write(self.input_write, b"\x1a")
+        self.assertIs(self.popup.view(self.key_filter(["ctrl+z"])), Action.HIDE)
+        self.assertEqual(shown, [])
+
 
 def wait_until(probe, what, timeout=5.0):
     deadline = time.monotonic() + timeout

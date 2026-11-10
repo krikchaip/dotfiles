@@ -40,6 +40,8 @@ USER_ENV = "TOGGLE_POPUP_USER_ENV"
 DEFAULT_SHELL_ENV = "TOGGLE_POPUP_DEFAULT_SHELL"
 START_ENV = "TOGGLE_POPUP_START_SOCKET"
 OWNER_SOCKET_ENV = "TOGGLE_POPUP_OWNER_SOCKET"
+# The socket for the image previews of the popup (images.py). The program keeps it.
+IMAGE_SOCKET_ENV = "TOGGLE_POPUP_IMAGE_SOCKET"
 # The values that name objects in the popup server. Herdr gives them to each
 # pane (src/pane.rs:203-213, src/integration/env.rs:8-10 in Herdr 0.9.5).
 POPUP_SERVER_IDS = ("HERDR_PANE_ID", "HERDR_TAB_ID", "HERDR_WORKSPACE_ID")
