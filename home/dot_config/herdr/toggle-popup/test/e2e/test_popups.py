@@ -264,8 +264,12 @@ class Scenarios:
         self.assertRegex(text, r"\n     ctrl\+z\s+hide this popup\n")
         self.assertRegex(text, rf"\n     {prefix}   f\s+hide this popup\n")
         self.assertRegex(text, rf"\n     {prefix}   e\s+edit the scrollback in \$EDITOR\n")
-        self.assertIn("any key  back to the program", text)
+        self.assertIn("esc  back to the program", text)
+        # Other keys keep the help page open; only esc closes it.
         self.s.text("j")
+        time.sleep(0.3)
+        self.assertIn("help popup", self.s.screen())
+        self.s.keys("Escape")
         self.s.wait_screen("keylog legacy ready")
         self.s.keys("C-z")
         self.wait_closed("keylog legacy ready")
@@ -716,7 +720,7 @@ class Pages(ShellPopups, StageCase):
         s.chord("?")
         s.wait_screen("alpha popup")
         self.assert_theme_colors("help page")
-        s.text("x")
+        s.keys("Escape")
         s.wait_screen("alpha popup", present=False)
         self.open_picker()
         self.assert_theme_colors("picker")
@@ -1536,7 +1540,7 @@ class ImagePreviews(ImageCase):
 
     def test_a_page_deletes_the_image_and_the_program_draws_it_again(self):
         at = self.open_pictures()
-        pages = (("help", ("prefix", "?"), "x"), ("picker", ("prefix", "g"), "esc"))
+        pages = (("help", ("prefix", "?"), "esc"), ("picker", ("prefix", "g"), "esc"))
         for name, keys, back in pages:
             with self.subTest(page=name):
                 self.press(*keys)
@@ -2094,7 +2098,7 @@ class RemoteImages(ImageCase):
         at = self.wait_image((200, 100), "the preview of the remote a.png")
         self.press("prefix", "?")
         self.wait_no_image("no image on the help page")
-        self.press("x")
+        self.press("esc")
         self.wait_image((200, 100), "the preview after the help page", at)
         self.press("alt+4")
         self.wait_no_image("no image while the popup hides")

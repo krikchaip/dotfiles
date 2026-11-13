@@ -167,7 +167,7 @@ def header_footer(canvas, title, origin, hints):
 def help_page(rows, cols, title, origin, keys):
     """The help page. `keys` are (section, [key chips], text) rows."""
     canvas = Canvas(rows, cols)
-    header_footer(canvas, title, origin, [("any key", "back to the program")])
+    header_footer(canvas, title, origin, [("esc", "back to the program")])
     text_x = max([HELP_TEXT_X] + [4 + sum(cells(key) + 3 for key in chips) + 2
                                   for _, chips, _ in keys])
     last = rows - 4

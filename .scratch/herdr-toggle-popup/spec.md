@@ -85,7 +85,7 @@ Pi quick chat is out of scope.
 | `prefix` `prefix` | send one literal prefix key (`ctrl+;`) to the program |
 | `prefix` + any other key | forward both keys to the program unchanged |
 
-While the help page is open, every key first closes help. A toggle key then hides the popup, and `prefix` `q`, `g`, or `e` then runs its action. `prefix` `?` only closes help. Any other key only closes help and is not sent to the program.
+While the help page is open, Esc or `prefix` `?` closes it. A toggle key closes help and hides the popup, and `prefix` `q`, `g`, or `e` closes help and runs its action. Other keys do nothing and are not sent to the program.
 
 The proxy reads the prefix from Herdr's `[keys] prefix` (yours is `ctrl+;`). Do not add `prefix+ctrl+<key>` binds (the user said so in Q21). There is no restart command; to restart, kill with `prefix` `q` and press the outer key again.
 

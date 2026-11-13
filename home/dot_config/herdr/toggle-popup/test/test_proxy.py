@@ -296,13 +296,23 @@ class Relay(RelayCase):
 class Pages(RelayCase):
     """The help page and the picker: popup keys act, other keys stay out of the program."""
 
-    def test_another_key_closes_help_and_does_not_reach_the_program(self):
-        os.write(self.input_write, b"\x02?xy")
+    def test_only_esc_closes_help_and_other_keys_do_not_reach_the_program(self):
+        os.write(self.input_write, b"\x02?xy\r")
         self.assertIs(self.popup.view(self.key_filter()), Action.HELP)
-        self.assertIs(self.popup.act(Action.HELP, self.live("p")), Next.SHOW)
+        closed = []
+        thread = threading.Thread(
+            target=lambda: closed.append(self.popup.act(Action.HELP, self.live("p"))))
+        thread.start()
+        time.sleep(0.2)
+        # Other keys keep the help page open.
+        self.assertEqual(closed, [])
+        os.write(self.input_write, b"\x1b")
+        thread.join(2.0)
+        self.assertEqual(closed, [Next.SHOW])
         self.next_viewer()
         self.start(self.key_filter())
-        self.assertEqual(self.received(2, seconds=0.5), b"y")
+        os.write(self.input_write, b"z")
+        self.assertEqual(self.received(1, seconds=0.5), b"z")
 
     def test_prefix_q_on_the_help_page_kills_the_popup(self):
         os.write(self.input_write, b"\x02?\x02q")
@@ -351,7 +361,7 @@ class Pages(RelayCase):
         self.add_popup("a3f9c2", "workspace", "floating", workspace_id="w1")
         self.popup.popup_id = "a3f9c2"
         self.popup.record = popups.load_record("a3f9c2")
-        os.write(self.input_write, b"x")
+        os.write(self.input_write, b"\x1b")
         self.assertIsNone(self.popup.help())
         rows = screen_rows(self.drawn())
         title = "  floating popup"
@@ -360,7 +370,7 @@ class Pages(RelayCase):
         self.assertEqual(rows[1], "─" * 80)
         self.assertEqual(rows[3:6], ["  Popup", "     ctrl+b   q         kill this popup",
                                      "     ctrl+b   g         switch to another popup"])
-        self.assertEqual(rows[-3:], ["─" * 80, "   any key  back to the program", ""])
+        self.assertEqual(rows[-3:], ["─" * 80, "   esc  back to the program", ""])
 
     def test_the_picker_groups_this_sessions_popups(self):
         # Popups of another session never show, even with the same workspace ids.

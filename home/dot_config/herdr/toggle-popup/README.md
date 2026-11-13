@@ -88,8 +88,9 @@ If `[keys] prefix` is `ctrl+b` (Herdr's default, for example on a remote
 host), the proxy takes `ctrl+b` first: `ctrl+b q` then kills the popup and
 its program.
 
-Help page: every key closes help first. Then a toggle key hides the popup,
-and `prefix` `q`, `g` or `e` runs its action. Other keys do nothing more.
+Help page: `esc` or `prefix` `?` closes it. A toggle key hides the popup,
+and `prefix` `q`, `g` or `e` runs its action. Other keys do nothing, and the
+program does not get them.
 
 Picker:
 

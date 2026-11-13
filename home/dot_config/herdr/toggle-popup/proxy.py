@@ -940,9 +940,9 @@ class Proxy:
     def help(self):
         """Show the keys. Return the popup Action of a popup key, or None to go back.
 
-        Every key closes help. A toggle key, prefix q, g, or e then runs its
-        action. Prefix ? and any other key only close help: the program does
-        not get them.
+        Esc and prefix ? close help. A toggle key, prefix q, g, or e closes
+        help and runs its action. Other keys do nothing: the program does not
+        get them.
         """
         import pages
 
@@ -954,7 +954,11 @@ class Proxy:
                                                       self.scrollback)]
         self.screen.draw(lambda height, width: pages.help_page(
             height, width, title, origin, rows).render(tokens))
-        key = self.screen.read_key(self.key_filter(to_program=False))
+        key_filter = self.key_filter(to_program=False)
+        while True:
+            key = self.screen.read_key(key_filter)
+            if key is None or isinstance(key, Action) or key.combo == Combo("esc", 0):
+                break
         self.screen.leave()
         return key if isinstance(key, Action) and key is not Action.HELP else None
 

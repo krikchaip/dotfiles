@@ -161,7 +161,7 @@ class Pages(unittest.TestCase):
         self.assertEqual(rows[0], "  floating popup" + "7151f9 · prefix ctrl+;".rjust(62))
         self.assertEqual(rows[3:5], ["  Popup", "     ctrl+;   f         hide this popup"])
         self.assertIn("  Program", rows)
-        self.assertEqual(rows[-2], "   any key  back to the program")
+        self.assertEqual(rows[-2], "   esc  back to the program")
 
     def test_the_picker_marks_the_selected_row_and_the_current_popup(self):
         canvas = self.picker()
