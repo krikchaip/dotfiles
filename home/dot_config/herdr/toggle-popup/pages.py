@@ -253,6 +253,12 @@ def fuzzy(row, query):
     return hits if at == len(letters) else None
 
 
+def searched(rows, query):
+    """The rows that a filter searches. While `query` has text, the popup that
+    shows in this frame (`current`) is left out: esc already goes back to it."""
+    return [row for row in rows if not (query and row.current)]
+
+
 def matches(rows, query):
     """The rows that match `query`: [(row, hits)], in the order of `rows`."""
     found = []
@@ -273,10 +279,11 @@ def picker_columns(rows, cols):
 
 
 def picker_page(rows, cols, query, cursor, found, total, selected, columns, esc_closes=False):
-    """The picker. `found` are the (row, hits) that match `query`, of `total`
-    popups. `cursor` is the index in `query` of the input cursor. `selected`
-    is the index of the selected row in `found`. `esc_closes`: no popup shows
-    (the picker bind), so esc with an empty filter closes the popup frame."""
+    """The picker. `found` are the (row, hits) that match `query`, of the `total`
+    popups that the filter searches (searched()). `cursor` is the index in
+    `query` of the input cursor. `selected` is the index of the selected row in
+    `found`. `esc_closes`: no popup shows (the picker bind), so esc with an
+    empty filter closes the popup frame."""
     canvas = Canvas(rows, cols)
     width = seen_width(canvas)
     esc = "clear" if query else "close" if esc_closes else "stay"

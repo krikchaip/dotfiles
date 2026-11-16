@@ -535,7 +535,32 @@ class PickerFilter(RelayCase):
         self.assertEqual(self.pick(b"xx\r\x03"), (None, False))
         rows = screen_rows(self.drawn())
         self.assertIn("     No popup matches “xx”", rows)
-        self.assertTrue(rows[0].endswith("0 of 3"))
+        self.assertTrue(rows[0].endswith("0 of 2"))
+        self.assertEqual(self.events(), [])
+
+    def test_a_filter_leaves_out_this_popup(self):
+        # Esc goes back to popup p: a filter searches the other popups only.
+        self.assertEqual(self.pick(b"p\x03"), (None, False))
+        rows = screen_rows(self.drawn())
+        self.assertNotIn("p", picker_labels(rows))
+        self.assertRegex(rows[0], r" of 2$")
+
+    def test_a_filter_that_only_this_popup_matches_has_no_rows(self):
+        self.popup.popup_id = "g1"
+        self.popup.record = popups.load_record("g1")
+        self.assertEqual(self.pick(b"lazy\r\x03"), (None, False))
+        rows = screen_rows(self.drawn())
+        self.assertIn("     No popup matches “lazy”", rows)
+        self.assertTrue(rows[0].endswith("0 of 2"))
+        self.assertEqual(self.events(), [])
+        self.assertEqual(self.popup.popup_id, "g1")
+
+    def test_an_empty_filter_shows_and_selects_this_popup_again(self):
+        # ctrl+u clears the filter: p shows again, selected, so enter keeps it.
+        self.assertEqual(self.pick(b"q\x15\r"), (None, False))
+        rows = screen_rows(self.drawn())
+        self.assertTrue(rows[0].endswith("3 of 3"))
+        self.assertTrue(any(row.startswith(" │ › p ●") for row in rows), rows)
         self.assertEqual(self.events(), [])
 
     def test_j_k_and_q_are_filter_text(self):
@@ -634,7 +659,8 @@ class PickerKill(RelayCase):
         self.assertIn("› q", self.last_page())
         self.press(b"\x04", "Kill popup?")
         self.press(b"\x03", gone="Kill popup?")
-        self.assertIn("1 of 3", self.last_page())
+        # The count leaves out popup p, which shows: a filter does not search it.
+        self.assertIn("1 of 2", self.last_page())
         self.press(b"\r")
         self.assertEqual(self.finish(), (None, True))
         self.assertEqual(self.popup.popup_id, "q")
@@ -982,6 +1008,23 @@ class OutsidePicker(RelayCase):
         thread.join(5)
         self.assertEqual(result, [True])
         self.assertEqual(picker.popup_id, "p")
+
+    def test_a_filter_searches_every_popup_before_a_popup_shows(self):
+        picker = self.outside("w2")
+        os.write(self.input_write, b"p\r")
+        self.assertTrue(picker.choose())
+        self.assertEqual(picker.popup_id, "p")
+
+    def test_after_a_choice_a_filter_leaves_out_the_chosen_popup(self):
+        picker = self.outside("w2")
+        os.write(self.input_write, b"\r")
+        self.assertTrue(picker.choose())
+        self.assertEqual(picker.popup_id, "q")
+        os.write(self.input_write, b"q\x03")
+        self.assertEqual(picker.pick(), (None, False))
+        rows = screen_rows(self.drawn())
+        self.assertIn("     No popup matches “q”", rows)
+        self.assertTrue(rows[0].endswith("0 of 1"))
 
     def test_without_popups_a_toast_says_so(self):
         for popup_id in ("p", "q"):

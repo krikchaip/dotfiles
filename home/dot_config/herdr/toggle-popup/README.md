@@ -131,15 +131,19 @@ Picker:
 - A row shows the label, the place, and the command. The place is the
   folder for `pwd` and `tab <name>` for `tab`. A green `●` marks the popup
   that is open now. The header shows how many popups match the filter.
+- While the filter has text, the popup open in this frame (`●`) is left
+  out of the list and the count: `Esc` already goes back to it. The
+  outside picker searches every popup until you choose one. Example: the
+  frame shows `shell`, and `lg` lists the 2 other popups:
 
   ```text
-    Switch popup                                                  2 of 3
+    Switch popup                                                  2 of 2
   ────────────────────────────────────────────────────────────────────────
 
      › lg
 
     work session
-   │ › lazygit ●      ~/proj/shop               lazygit-recent          ▌
+   │ › lazygit        ~/proj/shop               lazygit-recent          ▌
 
     api workspace
        logs           tab api                   tail -f app.log

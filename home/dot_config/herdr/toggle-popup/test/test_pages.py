@@ -75,6 +75,14 @@ class Fuzzy(unittest.TestCase):
         self.assertEqual([row for row, _ in pages.matches(ROWS, "")], ROWS)
         self.assertEqual([row.label for row, _ in pages.matches(ROWS, "dev")], ["logs"])
 
+    def test_a_filter_leaves_out_the_popup_that_shows(self):
+        # Esc goes back to the popup that shows: a filter does not search it.
+        self.assertEqual(pages.searched(ROWS, ""), ROWS)
+        self.assertEqual(pages.searched(ROWS, "f"), [ROWS[0], ROWS[1], ROWS[3]])
+        # The picker bind shows no popup before a choice: a filter searches each row.
+        rows = [row._replace(current=False) for row in ROWS]
+        self.assertEqual(pages.searched(rows, "f"), rows)
+
 
 class Theme(unittest.TestCase):
     def test_the_roles_come_from_the_theme_as_herdr_derives_them(self):
@@ -135,10 +143,11 @@ class Pages(unittest.TestCase):
         return pages.help_page(rows, cols, "floating popup", "7151f9 · prefix ctrl+;", keys)
 
     def picker(self, query="", rows=24, cols=120, data=ROWS, cursor=None):
-        found = pages.matches(data, query)
-        current = next((n for n, (row, _) in enumerate(found) if row.current and not query), 0)
+        searched = pages.searched(data, query)
+        found = pages.matches(searched, query)
+        current = next((n for n, (row, _) in enumerate(found) if row.current), 0)
         return pages.picker_page(rows, cols, query, len(query) if cursor is None else cursor,
-                                 found, len(data), current, pages.picker_columns(data, cols))
+                                 found, len(searched), current, pages.picker_columns(data, cols))
 
     def test_every_color_is_a_theme_token(self):
         tokens = theme(TOKENS)
@@ -210,9 +219,21 @@ class Pages(unittest.TestCase):
                                            pages.picker_columns(ROWS, 120), esc_closes=closes)
                 self.assertIn(f"esc  {label}", text_rows(canvas)[-2])
 
+    def test_a_filter_hides_the_popup_that_shows_and_its_group(self):
+        rows = text_rows(self.picker("o"))
+        # The count leaves it out too: 3 popups to search.
+        self.assertTrue(rows[0].endswith(" of 3"), rows[0])
+        self.assertFalse(any("floating" in row for row in rows), rows)
+        self.assertNotIn("  dotfiles workspace", rows)
+
+    def test_a_filter_that_only_the_popup_that_shows_matches_shows_a_note(self):
+        rows = text_rows(self.picker("floating"))
+        self.assertTrue(rows[0].endswith("0 of 3"), rows[0])
+        self.assertEqual(rows[5], "     No popup matches “floating”")
+
     def test_no_match_shows_a_note(self):
         rows = text_rows(self.picker("qqq"))
-        self.assertTrue(rows[0].endswith("0 of 4"))
+        self.assertTrue(rows[0].endswith("0 of 3"))
         self.assertEqual(rows[5], "     No popup matches “qqq”")
         self.assertIn("esc  clear", rows[-2])
 

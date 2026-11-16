@@ -934,6 +934,25 @@ class OutsidePicker(ShellPopups, StageCase):
         s.wait_screen("beta-ready")
         self.hide("beta")
 
+    def test_a_filter_searches_every_popup(self):
+        # No popup shows in this frame before a choice: no popup is left out.
+        s = self.s
+        self.ready_slot("alt+1", "alpha")
+        self.ready_slot("alt+2", "beta")
+        for key, label in (("alt+1", "alpha"), ("alt+2", "beta")):
+            self.show(key, label)
+            self.hide(label)
+        self.open_picker()
+        s.text("a")
+        s.wait_screen("2 of 2")
+        rows = s.popup_lines()
+        self.assertTrue(any(" alpha " in row for row in rows), rows)
+        self.assertTrue(any(" beta " in row for row in rows), rows)
+        s.keys("Escape")
+        s.wait_screen("esc  close")
+        s.keys("Escape")
+        s.wait_popup_closed()
+
     def test_without_popups_a_toast_says_so(self):
         s = self.s
         s.keys("M-5")
@@ -1016,14 +1035,15 @@ class Pages(ShellPopups, StageCase):
         # The group label is a random folder name: only "beta-ready" has "-" after
         # "beta". The letters match in order: "b" "e" "t" "a" in the label, "-" in the command.
         s.text("beta-")
-        s.wait_screen("1 of 2")
+        # The count leaves out alpha, which shows: a filter does not search it.
+        s.wait_screen("1 of 1")
         rows = s.popup_lines()
         self.assertEqual(rows[3].strip(), "› beta-")
         self.assertTrue(any(row.startswith(" │ › beta ") for row in rows), rows)
         self.assertFalse(any(" alpha " in row for row in rows), rows)
         s.keys("Enter")
         # The list shows "beta-ready" too: wait for the picker to go first.
-        s.wait_screen("1 of 2", present=False)
+        s.wait_screen("1 of 1", present=False)
         s.wait_screen("beta-ready")
         beta = self.s.popup_id("beta")
         s.wait(lambda: beta in trace_ids(s, "switch"), "the switch to beta")
@@ -1143,14 +1163,14 @@ class Pages(ShellPopups, StageCase):
         beta = s.popup_id("beta")
         self.open_picker()
         s.text("beta-")
-        s.wait_screen("1 of 2")
+        s.wait_screen("1 of 1")
         self.open_kill_dialog("beta")
         s.keys("Escape")
         s.wait_screen("Kill popup?", present=False)
         self.assertIn("› beta-", s.screen())
         self.assertIn(beta, s.started_popup_panes())
         s.keys("Enter")
-        s.wait_screen("1 of 2", present=False)
+        s.wait_screen("1 of 1", present=False)
         s.wait_screen("beta-ready")
 
     def test_killing_the_showing_popup_then_enter_shows_another(self):
@@ -1191,13 +1211,31 @@ class Pages(ShellPopups, StageCase):
         s.wait(lambda: not s.started_popup_panes(), "no popups")
         self.assertFalse(any("No popups" in toast for toast in s.toasts), s.toasts)
 
+    def test_the_filter_leaves_out_this_popup(self):
+        s = self.s
+        self.open_picker()
+        # "a" is in both labels, but alpha shows: esc goes back to it.
+        s.text("a")
+        s.wait_screen("1 of 1")
+        rows = s.popup_lines()
+        self.assertTrue(any(row.startswith(" │ › beta ") for row in rows), rows)
+        self.assertFalse(any("alpha" in row for row in rows[4:]), rows)
+        # An empty filter shows alpha again, selected.
+        s.keys("Escape")
+        s.wait_screen("2 of 2")
+        self.assertTrue(any(row.startswith(" │ › alpha ●") for row in s.popup_lines()),
+                        s.popup_lines())
+        s.keys("Escape")
+        s.wait_screen("Switch popup", present=False)
+        s.wait_screen("alpha-ready")
+
     def test_esc_clears_the_filter_then_keeps_this_popup(self):
         s = self.s
         self.open_picker()
         # j, k and q are filter text now.
         s.text("%jkq")
         s.wait_screen("No popup matches “%jkq”")
-        s.wait_screen("0 of 2")
+        s.wait_screen("0 of 1")
         s.keys("Escape")
         s.wait_screen("2 of 2")
         s.wait_screen("Filter popups")

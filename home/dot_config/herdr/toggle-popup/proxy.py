@@ -1011,7 +1011,8 @@ class Proxy:
     def pick(self, rows=None):
         """Choose a popup of this session in a list with a filter.
 
-        Typed text filters the list (pages.fuzzy). Up/down and ctrl+n/ctrl+p
+        Typed text filters the list (pages.fuzzy), without the popup that
+        shows (pages.searched()). Up/down and ctrl+n/ctrl+p
         move, and enter shows the selected popup. Backspace, ctrl+w and
         ctrl+u edit the filter. Esc clears the filter. With an empty filter,
         esc keeps this popup, as ctrl+c does. Ctrl+d kills the selected
@@ -1030,12 +1031,14 @@ class Proxy:
         query, cursor, selected = "", 0, here
         key_filter = self.key_filter(to_program=False)
         while True:
-            found = pages.matches(rows, query)
+            searched = pages.searched(rows, query)
+            found = pages.matches(searched, query)
+            total = len(searched)
             selected = min(selected, max(0, len(found) - 1))
 
             def page(height, width, query=query, cursor=cursor, found=found, selected=selected,
-                     rows=rows):
-                return pages.picker_page(height, width, query, cursor, found, len(rows),
+                     rows=rows, total=total):
+                return pages.picker_page(height, width, query, cursor, found, total,
                                          selected, pages.picker_columns(rows, width),
                                          esc_closes=self.record is None)
 
