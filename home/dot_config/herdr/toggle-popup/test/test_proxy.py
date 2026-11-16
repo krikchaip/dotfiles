@@ -126,7 +126,7 @@ def screen_rows(drawn):
 
 def picker_lines(rows):
     """The list of a picker page: the rows between the filter field and the bottom rule."""
-    end = max(index for index, row in enumerate(rows) if row.startswith("─"))
+    end = max(index for index, row in enumerate(rows) if row.lstrip().startswith("─"))
     return [row for row in rows[5:end] if row.strip()]
 
 
@@ -373,11 +373,12 @@ class Pages(RelayCase):
         rows = screen_rows(self.drawn())
         title = "  floating popup"
         origin = "a3f9c2 · prefix ctrl+b"
-        self.assertEqual(rows[0], title + origin.rjust(80 - 2 - len(title)))
-        self.assertEqual(rows[1], "─" * 80)
+        self.assertEqual(rows[0], title + origin.rjust(80 - 1 - len(title)))
+        # Herdr's scrollbar column is the right margin: one empty column at each side.
+        self.assertEqual(rows[1], " " + "─" * 79)
         self.assertEqual(rows[3:6], ["  Popup", "     ctrl+b   q         kill this popup",
                                      "     ctrl+b   g         switch to another popup"])
-        self.assertEqual(rows[-3:], ["─" * 80, "   esc  back to the program", ""])
+        self.assertEqual(rows[-3:], [" " + "─" * 79, "   esc  back to the program", ""])
 
     def test_the_picker_groups_this_sessions_popups(self):
         # Popups of another session never show, even with the same workspace ids.
@@ -394,7 +395,7 @@ class Pages(RelayCase):
         os.write(self.input_write, b"\x1b")
         self.assertEqual(self.popup.pick(), (None, False))
         rows = screen_rows(self.drawn())
-        self.assertEqual(rows[0], "  Switch popup" + "5 of 5".rjust(80 - 2 - 14))
+        self.assertEqual(rows[0], "  Switch popup" + "5 of 5".rjust(80 - 1 - 14))
         self.assertEqual(rows[3], "   › Filter popups")
         self.assertEqual(picker_lines(rows), [
             "  work session",
@@ -402,7 +403,7 @@ class Pages(RelayCase):
             "     notes" + " " * 36 + "nvim notes.md",
             "  home workspace",
             "     htop           tab logs" + " " * 18 + "htop",
-            " │ › p ●" + " " * 38 + "shell" + " " * 27 + "▌",
+            " │ › p ●" + " " * 38 + "shell" + " " * 28 + "▌",
             "  notes workspace",
             "     q" + " " * 40 + "shell"])
 

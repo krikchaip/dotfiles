@@ -29,6 +29,11 @@ PLACE_X = 20
 COMMAND_X = 46
 # The column of the help texts: the minimum.
 HELP_TEXT_X = 24
+# Herdr 0.9.5 gives a popup's terminal one column less than the inside of
+# its frame: Herdr keeps the last column for its scrollbar
+# (resolve_popup_geometry in src/popup_size.rs). The pages count that column
+# as their right edge, so their margins are the same at both sides.
+SCROLLBAR_COLUMNS = 1
 # Herdr's close confirmation (render_confirm_close_overlay in
 # src/client/shell/overlays.rs, Herdr 0.9.5): its size, and its buttons with
 # their widths in cells and the gap between them.
@@ -171,17 +176,23 @@ def chip(canvas, y, x, text, fg="text", bg="surface0"):
     return canvas.put(y, x, f" {text} ", fg, bg, True)
 
 
+def seen_width(canvas):
+    """The width of the inside of the popup frame: the canvas and Herdr's scrollbar column."""
+    return canvas.cols + SCROLLBAR_COLUMNS
+
+
 def header_footer(canvas, title, origin, hints):
     """The title and its origin, the rules, and the key hints of the footer."""
-    cols, bottom = canvas.cols, canvas.rows
-    origin = fit(origin, cols // 2)
-    canvas.put(0, 2, fit(title, cols - cells(origin) - 6), bold=True)
-    canvas.put(0, cols - 2 - cells(origin), origin, "overlay0")
-    canvas.put(1, 0, "─" * cols, "surface1")
-    canvas.put(bottom - 3, 0, "─" * cols, "surface1")
+    width, bottom = seen_width(canvas), canvas.rows
+    origin = fit(origin, canvas.cols // 2)
+    canvas.put(0, 2, fit(title, width - cells(origin) - 6), bold=True)
+    canvas.put(0, width - 2 - cells(origin), origin, "overlay0")
+    # One empty column at each side of the rules.
+    canvas.put(1, 1, "─" * (width - 2), "surface1")
+    canvas.put(bottom - 3, 1, "─" * (width - 2), "surface1")
     x = 2
     for key, text in hints:
-        if x + cells(f" {key}  {text}") > cols - 2:
+        if x + cells(f" {key}  {text}") > width - 2:
             break
         x = chip(canvas, bottom - 2, x, key)
         x = canvas.put(bottom - 2, x, f" {text}   ", "overlay1")
@@ -206,7 +217,7 @@ def help_page(rows, cols, title, origin, keys):
             x = 4
             for key in chips:
                 x = chip(canvas, y, x, key, "accent") + 1
-            canvas.put(y, text_x, fit(text, cols - text_x - 2))
+            canvas.put(y, text_x, fit(text, seen_width(canvas) - text_x - 2))
             y += 1
         y += 1
     return canvas
@@ -267,14 +278,15 @@ def picker_page(rows, cols, query, cursor, found, total, selected, columns, esc_
     is the index of the selected row in `found`. `esc_closes`: no popup shows
     (the picker bind), so esc with an empty filter closes the popup frame."""
     canvas = Canvas(rows, cols)
+    width = seen_width(canvas)
     esc = "clear" if query else "close" if esc_closes else "stay"
     # ctrl+d is last: a narrow page drops it first.
     hints = [("↑↓", "move"), ("enter", "show"), ("esc", esc), ("ctrl+d", "kill")]
     header_footer(canvas, "Switch popup", f"{len(found)} of {total}", hints)
     # A filled input, as navigation's _input draws it.
-    canvas.fill(3, 1, cols - 2, "surface0")
+    canvas.fill(3, 1, width - 2, "surface0")
     canvas.put(3, 3, "›", "accent", "surface0", True)
-    room = max(1, cols - 8)
+    room = max(1, width - 8)
     # Scroll a long filter so that the cursor cell stays in the field.
     start = 0
     while cells(query[start:cursor]) > room - 1:
@@ -286,7 +298,7 @@ def picker_page(rows, cols, query, cursor, found, total, selected, columns, esc_
     canvas.cursor = (3, min(5 + cells(query[start:cursor]), cols - 1))
     if not found:
         x = canvas.put(5, 5, "No popup matches ", "overlay1")
-        canvas.put(5, x, fit(f"“{query}”", cols - x - 2), "text", bold=True)
+        canvas.put(5, x, fit(f"“{query}”", width - x - 2), "text", bold=True)
         return canvas
     # The lines of the list: group titles, rows, and a gap after each group.
     lines = []
@@ -312,9 +324,9 @@ def picker_page(rows, cols, query, cursor, found, total, selected, columns, esc_
         active = index == selected
         bg = "selection" if active else "panel_bg"
         if active:
-            canvas.fill(y, 1, cols - 2, bg)
+            canvas.fill(y, 1, width - 3, bg)
             canvas.put(y, 1, "│", "accent", bg)
-            canvas.put(y, cols - 2, "▌", "selection", "panel_bg")
+            canvas.put(y, width - 2, "▌", "selection", "panel_bg")
             canvas.put(y, 3, "›", "accent", bg)
         label_room = place_x - 5 - (4 if row.current else 2)
         end = canvas.put(y, 5, fit(row.label, label_room), "text", bg, active, hits["label"])
@@ -322,7 +334,7 @@ def picker_page(rows, cols, query, cursor, found, total, selected, columns, esc_
             canvas.put(y, end + 1, "●", "green", bg)
         canvas.put(y, place_x, fit(row.place, command_x - place_x - 2), "overlay1", bg,
                    hits=hits["place"])
-        canvas.put(y, command_x, fit(row.command, cols - 3 - command_x), "overlay0", bg,
+        canvas.put(y, command_x, fit(row.command, width - 3 - command_x), "overlay0", bg,
                    hits=hits["command"])
     return canvas
 
@@ -337,11 +349,11 @@ def kill_dialog(canvas, row):
     canvas.dim()
     # Herdr's dialog shows no cursor: the filter is not where keys go now.
     canvas.cursor = None
-    width = min(DIALOG_SIZE[0], canvas.cols - 4)
+    width = min(DIALOG_SIZE[0], seen_width(canvas) - 4)
     height = min(DIALOG_SIZE[1], canvas.rows - 2)
     if width < 4 or height < 4:
         return canvas
-    left, top = (canvas.cols - width) // 2, (canvas.rows - height) // 2
+    left, top = (seen_width(canvas) - width) // 2, (canvas.rows - height) // 2
     right, bottom = left + width - 1, top + height - 1
     for y in range(top, bottom + 1):
         canvas.fill(y, left, width, "panel_bg")

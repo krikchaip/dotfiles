@@ -159,7 +159,7 @@ class Pages(unittest.TestCase):
 
     def test_the_help_page_lists_the_keys_in_sections(self):
         rows = text_rows(self.help())
-        self.assertEqual(rows[0], "  floating popup" + "7151f9 · prefix ctrl+;".rjust(62))
+        self.assertEqual(rows[0], "  floating popup" + "7151f9 · prefix ctrl+;".rjust(63))
         self.assertEqual(rows[3:5], ["  Popup", "     ctrl+;   f         hide this popup"])
         self.assertIn("  Program", rows)
         self.assertEqual(rows[-2], "   esc  back to the program")
@@ -174,7 +174,8 @@ class Pages(unittest.TestCase):
         self.assertTrue(rows[10].endswith("▌"))
         self.assertEqual(canvas.cells[10][5][1:], ("text", "selection", True))
         self.assertEqual(canvas.cells[10][14][1], "green")
-        self.assertEqual(canvas.cells[10][118][1:3], ("selection", "panel_bg"))
+        # The last column: Herdr's scrollbar column after it is the right margin.
+        self.assertEqual(canvas.cells[10][119][1:3], ("selection", "panel_bg"))
         self.assertIsNotNone(canvas.cursor)
 
     def test_matched_letters_show_in_the_accent_color(self):
@@ -220,7 +221,7 @@ class Pages(unittest.TestCase):
                 for n in range(40)]
         rows = text_rows(self.picker(rows=20, data=data))
         self.assertTrue(any("popup30 ●" in row for row in rows))
-        self.assertEqual(rows[-3], "─" * 120)
+        self.assertEqual(rows[-3], " " + "─" * 119)
 
     def test_long_texts_are_cut_and_wide_characters_take_two_cells(self):
         data = [PickerRow("a", "日本語のラベル", "x" * 200, "~/" + "y" * 100, "g", "session",
@@ -229,8 +230,20 @@ class Pages(unittest.TestCase):
         rows = text_rows(canvas)
         row = next(row for row in rows if "日本" in row)
         self.assertTrue(row.endswith("… ▌"))
-        self.assertLessEqual(pages.cells(row), 59)
+        self.assertLessEqual(pages.cells(row), 60)
         self.assertEqual(canvas.cells[6][6][0], "")
+
+    def test_the_margins_count_herdrs_scrollbar_column(self):
+        # Herdr draws one more column after the page: the right margin is one
+        # column less in the page than the left margin.
+        for cols in (79, 80):
+            pages_ = (("help", self.help(cols=cols)), ("picker", self.picker(cols=cols)))
+            for name, canvas in pages_:
+                with self.subTest(page=name, cols=cols):
+                    rows = text_rows(canvas)
+                    self.assertEqual(rows[1], " " + "─" * (cols - 1))
+                    self.assertEqual(len(rows[0]), cols - 1)
+                    self.assertTrue(rows[0].startswith("  ") and rows[0][2] != " ")
 
     def test_the_picker_footer_names_ctrl_d(self):
         self.assertIn("ctrl+d  kill", text_rows(self.picker())[-2])
@@ -287,9 +300,10 @@ class KillDialog(unittest.TestCase):
 
     def test_a_small_page_gets_a_smaller_box_and_a_cut_detail(self):
         rows = text_rows(self.dialog(rows=10, cols=40))
-        # 36 x 6 cells: 4 columns less than the page, as in Herdr.
-        self.assertEqual(rows[2][2:38], "┌" + "─" * 34 + "┐")
-        self.assertTrue(rows[4][2:38].endswith("… │"), rows[4])
+        # 37 x 6 cells: 4 columns less than the inside of the frame (the page
+        # and Herdr's scrollbar column), as in Herdr.
+        self.assertEqual(rows[2][2:39], "┌" + "─" * 35 + "┐")
+        self.assertTrue(rows[4][2:39].endswith("… │"), rows[4])
 
     def test_a_long_command_is_cut_before_the_place(self):
         row = ROWS[0]._replace(command="lazygit --work-tree " + "x" * 80)

@@ -841,6 +841,59 @@ class Pages(ShellPopups, StageCase):
         s.wait_screen("› eta ")
         self.assertEqual(s.popup_cursor(), (3, start + 3))
 
+    def test_the_pages_have_the_same_margin_at_both_sides_of_the_frame(self):
+        # Herdr gives a popup's terminal one column less than the frame (its
+        # scrollbar column): the pages must still look the same at both sides.
+        s = self.s
+        self.addCleanup(s.tmux, "resize-window", "-t", "main", "-x", str(s.width))
+        parities = set()
+        for window in (200, 171, 143):
+            with self.subTest(window=window):
+                s.keys("C-z")
+                s.wait_popup_closed()
+                s.tmux("resize-window", "-t", "main", "-x", str(window))
+                s.wait(lambda window=window: len(s.screen().splitlines()[0]) <= window,
+                       "the client in the new size")
+                self.show("alt+1", "alpha")
+                width = len(s.popup_cells()[0])
+                parities.add(width % 2)
+                s.chord("?")
+                s.wait_screen("alpha popup")
+                self.assert_same_margins("help page", [0, 1, -3])
+                s.keys("Escape")
+                s.wait_screen("alpha popup", present=False)
+                self.open_picker()
+                self.assert_same_margins("picker", [0, 1, 3, -3])
+                self.assert_same_margins("selected row", [
+                    next(y for y, row in enumerate(s.popup_lines()) if row.startswith(" │ ›"))])
+                s.keys("C-d")
+                s.wait_screen("Kill popup?")
+                box = next(y for y, row in enumerate(s.popup_lines()) if "┌" in row)
+                self.assert_same_margins("kill dialog", [box], centered=True)
+                s.keys("Escape")
+                s.wait_screen("Kill popup?", present=False)
+                s.keys("C-c")
+                s.wait_screen("Switch popup", present=False)
+        self.assertEqual(parities, {0, 1}, "odd and even popup widths")
+
+    def assert_same_margins(self, page, rows, centered=False):
+        """The rows of a page have as many empty cells at the left as at the right.
+
+        A cell counts as empty when it has a space on the panel color. A
+        centered box can have one more at the right, on an odd width.
+        """
+        panel = rgb(PAGE_THEME["panel_bg"])
+        cells = self.s.popup_cells()
+        for y in rows:
+            row = cells[y]
+            filled = [x for x, (char, _, bg) in enumerate(row) if char != " " or bg != panel]
+            left, right = filled[0], len(row) - 1 - filled[-1]
+            text = "".join(char for char, _, _ in row)
+            if centered:
+                self.assertIn(right - left, (0, 1), f"{page} row {y}: {text!r}")
+            else:
+                self.assertEqual(left, right, f"{page} row {y}: {text!r}")
+
     def open_kill_dialog(self, label):
         """Press ctrl+d in the picker, and wait for the dialog of the popup `label`."""
         self.s.keys("C-d")
