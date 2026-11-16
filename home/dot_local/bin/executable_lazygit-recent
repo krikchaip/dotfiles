@@ -26,6 +26,20 @@ abs_path_of() {
     )
 }
 
+# Between lazygit and fzf no TUI owns the terminal, so typed keys echo as ^[[A.
+# Mute echo when lazygit closes; drop the typed keys and unmute before fzf opens.
+tty_mute() {
+    stty -echo 2> /dev/null < /dev/tty || return 0
+    trap tty_unmute EXIT
+}
+
+tty_unmute() {
+    {
+        while IFS= read -r -s -t 0.01 -n 1024 _ < /dev/tty; do :; done
+        stty echo < /dev/tty
+    } 2> /dev/null || true
+}
+
 show_help() {
     cat <<'EOF'
 Usage: lazygit-recent [OPTIONS] [PATH...]
@@ -254,6 +268,7 @@ run_fzf() {
         fzf_opts+=(--bind="load:pos($pos)")
     fi
 
+    tty_unmute
     printf '%s\n' "$repos" | env TERM=xterm-256color fzf "${fzf_opts[@]}"
 }
 
@@ -261,6 +276,7 @@ run_lazygit() {
     local repo="$1"
     sync_custom_to_lazygit
     lazygit -p "$repo"
+    tty_mute
     sync_lazygit_to_custom
     sync_custom_to_lazygit
 }
@@ -489,6 +505,8 @@ run_workspace_loop() {
         if [[ "${pos:-0}" -gt 0 ]]; then
             fzf_opts+=(--bind="load:pos($pos)")
         fi
+
+        tty_unmute
 
         local result
         result=$(printf '%s\n' "$lines" | env TERM=xterm-256color fzf "${fzf_opts[@]}") || break
