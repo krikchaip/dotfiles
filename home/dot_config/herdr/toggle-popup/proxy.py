@@ -1136,7 +1136,10 @@ class Proxy:
             herdr_api.report_error("kill", error, self.main.endpoint)
 
     def edit_scrollback(self, popup):
-        """Open the scrollback of the LivePopup `popup` in $EDITOR, in the popup session.
+        """Open the scrollback of the LivePopup `popup` in the editor, in the popup session.
+
+        The proxy's TOGGLE_POPUP_EDITOR, else its $EDITOR, chooses the editor
+        (see scrollback.editor_command()).
 
         Then the popup shows the editor (see relay()). A failed read or start
         is a toast, and the popup shows the program again. Keys typed before
@@ -1145,7 +1148,7 @@ class Proxy:
         import scrollback
 
         try:
-            scrollback.open_editor(self.popup_herdr, popup, os.environ.get("EDITOR"))
+            scrollback.open_editor(self.popup_herdr, popup, os.environ)
         except (HerdrError, OSError) as error:
             herdr_api.report_error("scrollback", error, self.main.endpoint)
             return

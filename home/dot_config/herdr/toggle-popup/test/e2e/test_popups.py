@@ -331,9 +331,9 @@ class Scenarios:
         out = self.s.wait(lambda: self.s.editor_out.exists() and self.s.editor_out.read_text(),
                           "the editor to run")
         result = json.loads(out)
-        # $EDITOR runs as written: the file is its only argument, with no `+`.
-        self.assertEqual(len(result["args"]), 1, result["args"])
-        path = Path(result["args"][0])
+        # $EDITOR gets +N, the number of the file's last line, then the file.
+        path = Path(result["path"])
+        self.assertEqual(result["args"], [f"+{last_line_number(result['text'])}", str(path)])
         self.assertIn("keylog legacy ready", result["text"])
         self.assertIn("got b'h", result["text"])
         # The editor gets the proxy's $EDITOR, and `herdr` reaches the owner session.
@@ -352,6 +352,30 @@ class Scenarios:
             return b"z" in logged(log)
 
         self.s.wait(typed_at_the_program, "z at the program")
+        self.s.keys("C-z")
+        self.wait_closed("keylog legacy ready")
+
+    def test_toggle_popup_editor_is_a_template_for_the_editor(self):
+        # The template of the proxy's environment replaces $EDITOR. {file} is the
+        # quoted path, and {line} the number of its last line.
+        self.s.editor_out.unlink(missing_ok=True)
+        log = self.s.root / "template.log"
+        editor = shlex.join([sys.executable, str(harness.E2E / "fake_editor.py")])
+        template = f"{editor} --goto {{file}}:{{line}} --wait"
+        self.s.slot("alt+2", "--name", "template", "--toggle-key", "ctrl+z", "--",
+                    *self.s.keylog_command("legacy", log),
+                    env={"TOGGLE_POPUP_EDITOR": template})
+        self.press_slot("alt+2")
+        self.s.wait_screen("keylog legacy ready")
+        self.s.chord("e")
+        out = self.s.wait(lambda: self.s.editor_out.exists() and self.s.editor_out.read_text(),
+                          "the editor to run")
+        result = json.loads(out)
+        path = result["path"]
+        self.assertEqual(result["args"],
+                         ["--goto", f"{path}:{last_line_number(result['text'])}", "--wait"])
+        self.s.wait(lambda: not Path(path).exists(), "the scrollback file to go")
+        self.s.wait_screen("keylog legacy ready")
         self.s.keys("C-z")
         self.wait_closed("keylog legacy ready")
 
@@ -377,7 +401,7 @@ class Scenarios:
         self.s.chord("e")
         self.s.wait_screen("fake-editor ready")
         result = json.loads(out.read_text())
-        path = Path(result["args"][-1])
+        path = Path(result["path"])
         self.addCleanup(path.unlink, missing_ok=True)
         return path, keys, result["pid"]
 
@@ -1473,6 +1497,11 @@ class StageDiagnostics(unittest.TestCase):
         self.assertEqual(self.stage.toasts, ["main: invalid choice: 'git'"])
 
 
+def last_line_number(text):
+    """The number of the last line of a file with this text, as an editor counts lines."""
+    return max(len(text.split("\n")) - text.endswith("\n"), 1)
+
+
 def drain_quietly(fd):
     """Read a pseudo-terminal until it closes, so that its writer never blocks."""
     with contextlib.suppress(OSError):
@@ -2215,9 +2244,9 @@ chmod +x ~/remote-shell.sh
 mkdir -p ~/.local/bin
 printf '#!/bin/sh\necho login-path-$((40+2))\nexec /bin/sh\n' > ~/.local/bin/login-path-program
 chmod +x ~/.local/bin/login-path-program
-# The remote $EDITOR: it notes its file, and the signal that stops it.
+# The remote $EDITOR: it notes its arguments, and the signal that stops it.
 printf '%s\n' '#!/bin/sh' 'trap "echo HUP > /tmp/remote-editor.signal; exit 0" HUP' \
-    'echo "$1" > /tmp/remote-editor.path' 'echo remote-editor-ready' \
+    'printf "%s\\n" "$@" > /tmp/remote-editor.args' 'echo remote-editor-ready' \
     'while :; do sleep 0.1; done' > ~/remote-editor.sh
 chmod +x ~/remote-editor.sh
 herdr plugin link /plugin --enabled >/dev/null
@@ -2395,7 +2424,12 @@ class RemoteMachine(StageCase):
         # prefix e runs the remote $EDITOR in the remote popup session.
         s.chord("e")
         s.wait_screen("remote-editor-ready")
-        path = s.wait(lambda: self.remote_file("/tmp/remote-editor.path"), "the remote file")
+        args = s.wait(lambda: self.remote_file("/tmp/remote-editor.args"),
+                      "the remote editor's arguments").splitlines()
+        # The remote proxy's $EDITOR gets the number of the last line, then the file.
+        self.assertEqual(len(args), 2, args)
+        self.assertRegex(args[0], r"^\+[1-9][0-9]*$")
+        path = args[1]
         self.assertRegex(path, rf"/scrollback/{popup_id}-[^/]+\.txt$")
         self.assertEqual(s.started_popup_panes(), {}, "the client machine must not run the popup")
         # The toggle key hides the popup. The editor stays, and shows again.

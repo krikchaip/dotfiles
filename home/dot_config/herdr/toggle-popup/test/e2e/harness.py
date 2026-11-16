@@ -623,9 +623,14 @@ class Stage:
 
     # Slots
 
-    def slot(self, key, *argv, cwd=None, script=TOGGLE_SCRIPT):
-        """Bind KEY to `toggle.sh ARGV...`, as the popup binds of the repo config do."""
-        line = shlex.join(["exec", "/bin/sh", str(script), *argv])
+    def slot(self, key, *argv, cwd=None, script=TOGGLE_SCRIPT, env=None):
+        """Bind KEY to `toggle.sh ARGV...`, as the popup binds of the repo config do.
+
+        `env` holds more environment values for the toggle, and so for its proxy.
+        """
+        values = [f"{name}={value}" for name, value in (env or {}).items()]
+        line = shlex.join(["exec", *(["env", *values] if values else []), "/bin/sh",
+                           str(script), *argv])
         if cwd:
             line = f"cd {shlex.quote(str(cwd))} && {line}"
         (self.slots / f"{key.replace('+', '-')}.sh").write_text(line + "\n", encoding="utf-8")

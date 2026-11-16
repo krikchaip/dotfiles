@@ -93,10 +93,24 @@ and `prefix` `q`, `g` or `e` runs its action. Other keys do nothing, and the
 program does not get them.
 
 Scrollback editor (`prefix` `e`): it opens the program's recent output in
-`$EDITOR`, as written, with no line argument. For flags, put them in
-`$EDITOR`, for example `EDITOR="nvim +"` for the last line. The editor runs
-in a `scrollback` tab of the popup's workspace in the popup session, so it
-works with any `$EDITOR` and no editor config.
+an editor, on the last line. The editor runs in a `scrollback` tab of the
+popup's workspace in the popup session, so it needs no editor config.
+
+- Default: `$EDITOR +N FILE`, where N is the last line (`vi` when `$EDITOR`
+  is empty). `+N` works in vi, vim, nvim, nano, emacs, kakoune and micro.
+- `TOGGLE_POPUP_EDITOR`, when set, runs in place of `$EDITOR`. `{line}`
+  becomes N and `{file}` the quoted path; without `{file}` the path goes at
+  the end, and without `{line}` there is no line number. Examples:
+
+  ```nu
+  $env.TOGGLE_POPUP_EDITOR = 'hx {file}:{line}'
+  $env.TOGGLE_POPUP_EDITOR = 'code --wait --goto {file}:{line}'
+  ```
+
+  A GUI editor needs its wait flag; without it the command ends at once and
+  the file is deleted.
+- Both variables come from the proxy's environment, also on a remote
+  machine.
 
 - While the editor is open, the popup shows the editor. A toggle key hides
   it, and `prefix` `g` opens the picker; the editor stays open. Example:

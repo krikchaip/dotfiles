@@ -9,6 +9,7 @@ import select
 import signal
 import socket
 import stat
+import subprocess
 import sys
 import tempfile
 import threading
@@ -147,7 +148,8 @@ class OpenEditor(StateCase):
                 held.append(False)
 
         patch(self, mock.patch.object(popups, "popup_lock", lock))
-        scrollback.open_editor(self.session, self.live(), "nvim +")
+        scrollback.open_editor(self.session, self.live(),
+                               {"EDITOR": "nvim", "TOGGLE_POPUP_EDITOR": ""})
         self.assertEqual(self.reads, ["w1:p1"])
         self.assertEqual(held, [True, False])
         [path] = self.files()
@@ -160,26 +162,36 @@ class OpenEditor(StateCase):
         self.assertEqual(root["cwd"], "/work")
         env = root["env"]
         self.assertEqual({name: env[name] for name in (
-            scrollback.EDITOR_ENV, scrollback.PROGRAM_PANE_ENV, scrollback.POPUP_SOCKET_ENV,
-            launch.OWNER_SOCKET_ENV)}, {
-            scrollback.EDITOR_ENV: "nvim +", scrollback.PROGRAM_PANE_ENV: "w1:p1",
+            scrollback.COMMAND_ENV, scrollback.EDITOR_VALUES_ENV, scrollback.PROGRAM_PANE_ENV,
+            scrollback.POPUP_SOCKET_ENV, launch.OWNER_SOCKET_ENV)}, {
+            # "secret\n" has one line: the editor opens on line 1.
+            scrollback.COMMAND_ENV: f"nvim +1 {path}",
+            # The proxy's values: the editor's pane sets them, or removes them when empty.
+            scrollback.EDITOR_VALUES_ENV: json.dumps(
+                {"EDITOR": "nvim", scrollback.TEMPLATE_ENV: None}),
+            scrollback.PROGRAM_PANE_ENV: "w1:p1",
             scrollback.POPUP_SOCKET_ENV: self.session.endpoint,
             launch.OWNER_SOCKET_ENV: "/x/main.sock"})
         self.assertEqual(self.live().editor["terminal_id"], "term-w1-editor")
 
-    def test_without_editor_the_shell_default_applies(self):
-        scrollback.open_editor(self.session, self.live(), None)
-        self.assertEqual(self.session.layouts[0]["env"][scrollback.EDITOR_ENV], "")
+    def test_the_template_of_the_proxy_reaches_the_pane(self):
+        scrollback.open_editor(self.session, self.live(),
+                               {"TOGGLE_POPUP_EDITOR": "hx {file}:{line}"})
+        [path] = self.files()
+        env = self.session.layouts[0]["env"]
+        self.assertEqual(env[scrollback.COMMAND_ENV], f"hx {path}:1")
+        self.assertEqual(json.loads(env[scrollback.EDITOR_VALUES_ENV]),
+                         {"EDITOR": None, scrollback.TEMPLATE_ENV: "hx {file}:{line}"})
 
     def test_a_popup_with_an_editor_keeps_it(self):
         self.session.add_editor("w1")
-        scrollback.open_editor(self.session, self.live(), "vi")
+        scrollback.open_editor(self.session, self.live(), {"EDITOR": "vi"})
         self.assertEqual((self.session.layouts, self.files()), ([], []))
 
     def test_a_failed_start_leaves_no_file_and_no_tab(self):
         self.session.start_error = "cannot run python3: No such file or directory"
         with self.assertRaisesRegex(herdr_api.HerdrError, "cannot run python3"):
-            scrollback.open_editor(self.session, self.live(), "vi")
+            scrollback.open_editor(self.session, self.live(), {"EDITOR": "vi"})
         self.assertEqual(self.files(), [])
         self.assertEqual(self.session.closed_tabs, ["w1:t6"])
         self.assertIsNone(self.live().editor)
@@ -190,8 +202,74 @@ class OpenEditor(StateCase):
 
         patch(self, mock.patch.object(scrollback, "read_scrollback", fail))
         with self.assertRaisesRegex(herdr_api.HerdrError, "no such pane"):
-            scrollback.open_editor(self.session, self.live(), "vi")
+            scrollback.open_editor(self.session, self.live(), {"EDITOR": "vi"})
         self.assertEqual((self.session.layouts, self.files()), ([], []))
+
+
+class EditorCommand(unittest.TestCase):
+    """editor_command(): the shell command of the editor, on the last line of its file.
+
+    Each test runs the command with /bin/sh. The editor is a stand-in that
+    prints its arguments.
+    """
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.folder = pathlib.Path(folder.name)
+        self.args = self.folder / "args"
+        script = self.folder / "show-args"
+        script.write_text(f"#!/bin/sh\nprintf '%s\\n' \"$@\" > {self.args}\n")
+        script.chmod(0o700)
+        self.editor = str(script)
+        self.path = str(self.folder / "p-abc.txt")
+
+    def run_editor(self, env, path=None, line=42):
+        command = scrollback.editor_command(path or self.path, line, env)
+        subprocess.run(["/bin/sh", "-c", command], check=True,
+                       env=dict(os.environ, PATH=f"{self.folder}:{os.environ['PATH']}"))
+        return self.args.read_text().splitlines()
+
+    def test_editor_gets_the_line_then_the_file(self):
+        self.assertEqual(self.run_editor({"EDITOR": self.editor}), ["+42", self.path])
+
+    def test_without_editor_vi_runs(self):
+        (self.folder / "vi").symlink_to(self.editor)
+        for env in ({}, {"EDITOR": ""}, {"EDITOR": "  "}):
+            with self.subTest(env=env):
+                self.assertEqual(self.run_editor(env), ["+42", self.path])
+
+    def test_editor_can_hold_flags(self):
+        self.assertEqual(self.run_editor({"EDITOR": f"{self.editor} -u NONE"}),
+                         ["-u", "NONE", "+42", self.path])
+
+    def test_a_template_replaces_editor(self):
+        env = {"EDITOR": "nvim", "TOGGLE_POPUP_EDITOR": f"{self.editor} --goto {{file}}:{{line}}"}
+        self.assertEqual(self.run_editor(env), ["--goto", f"{self.path}:42"])
+
+    def test_a_template_without_file_gets_the_file_at_its_end(self):
+        env = {"TOGGLE_POPUP_EDITOR": f"{self.editor} -l {{line}} --wait"}
+        self.assertEqual(self.run_editor(env), ["-l", "42", "--wait", self.path])
+
+    def test_a_template_without_line_gets_no_line_number(self):
+        env = {"TOGGLE_POPUP_EDITOR": f"{self.editor} --wait {{file}}"}
+        self.assertEqual(self.run_editor(env), ["--wait", self.path])
+
+    def test_an_empty_template_does_not_count(self):
+        env = {"EDITOR": self.editor, "TOGGLE_POPUP_EDITOR": ""}
+        self.assertEqual(self.run_editor(env), ["+42", self.path])
+
+    def test_a_path_with_spaces_and_quotes_stays_one_argument(self):
+        path = str(self.folder / "it's a \"file\" $HOME {line}.txt")
+        self.assertEqual(self.run_editor({"EDITOR": self.editor}, path), ["+42", path])
+        env = {"TOGGLE_POPUP_EDITOR": f"{self.editor} {{file}}:{{line}}"}
+        self.assertEqual(self.run_editor(env, path), [f"{path}:42"])
+
+    def test_the_last_line(self):
+        for text, line in (("", 1), ("\n", 1), ("a", 1), ("a\n", 1), ("a\nb", 2),
+                           ("a\nb\n", 2), ("a\n\n", 2), ("a\x0cb\u2028c\n", 1)):
+            with self.subTest(text=text):
+                self.assertEqual(scrollback.last_line(text), line)
 
 
 class ReadScrollback(unittest.TestCase):
@@ -260,8 +338,9 @@ class FakePopupServer:
 class EditorPane(unittest.TestCase):
     """scrollback.py FILE: the editor's pane, in a terminal of its own.
 
-    The stand-in editor notes its arguments, its EDITOR, and each SIGHUP and
-    SIGINT. It stays while the file `stay` exists, else it ends with status 3.
+    The stand-in editor notes its arguments, its EDITOR and
+    TOGGLE_POPUP_EDITOR, and each SIGHUP and SIGINT. It stays while the file
+    `stay` exists, else it ends with status 3.
     """
 
     def setUp(self):
@@ -276,7 +355,8 @@ class EditorPane(unittest.TestCase):
 exec 2>/dev/null
 trap 'echo HUP >> {self.folder}/signals; exit 0' HUP
 trap 'echo INT >> {self.folder}/signals' INT
-echo "$#|$*|$EDITOR" > {self.folder}/args.tmp && mv {self.folder}/args.tmp {self.folder}/args
+echo "$#|$*|${{EDITOR-unset}}|${{TOGGLE_POPUP_EDITOR-unset}}" > {self.folder}/args.tmp
+mv {self.folder}/args.tmp {self.folder}/args
 [ -f {self.folder}/stay ] || exit 3
 while :; do sleep 0.05; done
 """)
@@ -285,12 +365,19 @@ while :; do sleep 0.05; done
         self.file.write_text("secret\n")
         self.pid = None
 
-    def start(self, editor=None, stay=True, env=None):
-        """Run the editor's pane in a new terminal. Return the terminal's main fd."""
+    def start(self, command=None, values=None, stay=True, env=None):
+        """Run the editor's pane in a new terminal. Return the terminal's main fd.
+
+        `command` is the shell command of the editor, and `values` the
+        proxy's EDITOR and TOGGLE_POPUP_EDITOR, as open_editor() gives them.
+        """
         if stay:
             (self.folder / "stay").write_text("")
+        if values is None:
+            values = {"EDITOR": str(self.editor), scrollback.TEMPLATE_ENV: None}
         values = dict(os.environ, **{
-            scrollback.EDITOR_ENV: str(self.editor) if editor is None else editor,
+            scrollback.COMMAND_ENV: command or f"{self.editor} {self.file}",
+            scrollback.EDITOR_VALUES_ENV: json.dumps(values),
             scrollback.PROGRAM_PANE_ENV: PROGRAM,
             scrollback.POPUP_SOCKET_ENV: self.server.path, "PYTHONDONTWRITEBYTECODE": "1",
             **(env or {})})
@@ -340,18 +427,17 @@ while :; do sleep 0.05; done
     def wait_editor(self):
         wait_until(lambda: self.note("args"), "the editor to start")
 
-    def test_the_editor_gets_only_the_file_and_its_end_removes_the_file(self):
-        self.start(editor=f"{self.editor} --flag", stay=False)
+    def test_the_pane_runs_the_command_and_its_end_removes_the_file(self):
+        self.start(command=f"{self.editor} +1 '{self.file}'", stay=False)
         self.assertEqual(self.wait_status(), 3)
-        self.assertEqual(self.note("args"), f"2|--flag {self.file}|{self.editor} --flag\n")
+        self.assertEqual(self.note("args"), f"2|+1 {self.file}|{self.editor}|unset\n")
         self.assertFalse(self.file.exists())
 
-    def test_without_an_editor_value_vi_runs_and_a_stale_editor_goes(self):
-        (self.folder / "vi").symlink_to(self.editor)
-        path = f"{self.folder}:{os.environ['PATH']}"
-        self.start(editor="", stay=False, env={"PATH": path, "EDITOR": "stale"})
+    def test_the_proxy_values_replace_those_of_the_pane(self):
+        self.start(values={"EDITOR": None, scrollback.TEMPLATE_ENV: "ed {file}"}, stay=False,
+                   env={"EDITOR": "stale", scrollback.TEMPLATE_ENV: "stale"})
         self.assertEqual(self.wait_status(), 3)
-        self.assertEqual(self.note("args"), f"1|{self.file}|\n")
+        self.assertEqual(self.note("args"), f"1|{self.file}|unset|ed {{file}}\n")
 
     def test_the_program_exit_stops_the_editor(self):
         self.start()
@@ -416,14 +502,12 @@ class EditorStop(unittest.TestCase):
             editor = pathlib.Path(folder) / "editor"
             editor.write_text("#!/bin/sh\ntrap '' HUP\nwhile :; do sleep 0.05; done\n")
             editor.chmod(0o700)
-            with mock.patch.dict(os.environ, EDITOR=str(editor)):
-                process = scrollback.EditorProcess(str(path))
+            process = scrollback.EditorProcess(f"{editor} {path}")
             time.sleep(0.2)
             start = time.monotonic()
             process.stop(seconds=0.3)
             self.assertLess(time.monotonic() - start, 2.0)
-            # The shell ends with SIGHUP; the editor, its child, ends with SIGKILL.
-            self.assertEqual(process.status, -signal.SIGHUP)
+            self.assertIsNotNone(process.status)
             wait_until(lambda: not process._group_alive(), "the editor to end")
 
 

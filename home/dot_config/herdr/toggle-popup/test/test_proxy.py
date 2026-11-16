@@ -837,14 +837,17 @@ class EditorShows(RelayCase):
         self.assertEqual(self.received(1), b"z")
         self.assertEqual((self.edited, self.events()), ([], []))
 
-    def test_prefix_e_opens_the_editor_with_the_editor_of_the_proxy(self):
+    def test_prefix_e_opens_the_editor_with_the_environment_of_the_proxy(self):
         flushed = []
         patch(self, mock.patch.object(proxy.termios, "tcflush",
                                       lambda fd, queue: flushed.append(fd)))
         popup = self.live("p")
-        with mock.patch.dict(os.environ, EDITOR="nvim -u NONE"):
-            self.assertIs(self.popup.act(Action.SCROLLBACK, popup), Next.SHOW)
-        self.assertEqual(self.edited, [(self.session, popup, "nvim -u NONE")])
+        self.assertIs(self.popup.act(Action.SCROLLBACK, popup), Next.SHOW)
+        # The proxy's environment: its EDITOR and TOGGLE_POPUP_EDITOR choose the editor.
+        [(session, edited, env)] = self.edited
+        self.assertEqual((session, edited), (self.session, popup))
+        # Not assertIs: its failure would print the whole environment.
+        self.assertTrue(env is os.environ, "open_editor() did not get os.environ")
         # Keys typed while the editor starts do not reach the program.
         self.assertEqual(flushed, [self.input_read])
 

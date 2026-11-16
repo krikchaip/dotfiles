@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Stand-in for $EDITOR: save the arguments, the file and the process id, then exit.
 
+The file is the last argument that names a file, as is or before a `:LINE`
+suffix (as in `{file}:{line}` of TOGGLE_POPUP_EDITOR).
+
 While the file E2E_EDITOR_OUT.hold exists, the editor stays open until a
 signal comes. Then it writes the signal name to E2E_EDITOR_OUT.signal.
 Meanwhile it shows "fake-editor ready <rows>x<cols> keys <n>", with a bar
@@ -52,10 +55,21 @@ def draw(first=False):
 if hold.exists():
     for signum in (signal.SIGHUP, signal.SIGTERM):
         signal.signal(signum, stop)
-path = sys.argv[-1]
+
+
+def file_argument(args):
+    for arg in reversed(args):
+        for candidate in (arg, arg.rpartition(":")[0]):
+            if candidate and Path(candidate).is_file():
+                return candidate
+    raise SystemExit(f"fake-editor: no file in {args}")
+
+
+path = file_argument(sys.argv[1:])
 temporary = out.with_name(out.name + ".tmp")
 temporary.write_text(json.dumps({
-    "args": sys.argv[1:], "text": Path(path).read_text(encoding="utf-8"), "pid": os.getpid(),
+    "args": sys.argv[1:], "path": path, "text": Path(path).read_text(encoding="utf-8"),
+    "pid": os.getpid(),
     "env": {name: os.environ.get(name) for name in ("EDITOR", "HERDR_SOCKET_PATH")}}))
 os.replace(temporary, out)
 if hold.exists():
