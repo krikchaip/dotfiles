@@ -199,6 +199,15 @@ class Pages(unittest.TestCase):
                 if cursor < len(query):
                     self.assertEqual(row[canvas.cursor[1]], query[cursor])
 
+    def test_esc_names_what_it_does(self):
+        found = pages.matches(ROWS, "")
+        for query, closes, label in (("", False, "stay"), ("", True, "close"),
+                                     ("x", True, "clear")):
+            with self.subTest(query=query, closes=closes):
+                canvas = pages.picker_page(24, 120, query, len(query), found, len(ROWS), 0,
+                                           pages.picker_columns(ROWS, 120), esc_closes=closes)
+                self.assertIn(f"esc  {label}", text_rows(canvas)[-2])
+
     def test_no_match_shows_a_note(self):
         rows = text_rows(self.picker("qqq"))
         self.assertTrue(rows[0].endswith("0 of 4"))

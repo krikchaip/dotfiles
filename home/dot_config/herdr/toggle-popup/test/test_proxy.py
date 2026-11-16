@@ -95,6 +95,7 @@ class FakeMain:
         # (tab id, tab label)
         self.tabs = [("w1:t1", "1"), ("w1:t2", "logs"), ("w2:t1", "1")]
         self.calls = []
+        self.toasts = []
         self.fail = None
 
     def snapshot(self):
@@ -107,6 +108,10 @@ class FakeMain:
     def call(self, method, params=None):
         self.calls.append(method)
         return {}
+
+    def notify(self, title, body):
+        self.call("notification.show")
+        self.toasts.append((title, body))
 
 
 def screen_rows(drawn):
@@ -167,6 +172,8 @@ class RelayCase(unittest.TestCase):
         self.fds = [self.input_read, self.input_write, self.output_read, self.output,
                     self.popup.wake_read, self.popup.wake_write]
         self.addCleanup(lambda: [os.close(fd) for fd in self.fds if fd is not None])
+        # relay() opens the image socket of the popup that shows; run() would close it.
+        self.addCleanup(lambda: self.popup.images is not None and self.popup.images.close())
         # Plans for the next fake viewers: keyword arguments of FakeViewer.
         self.plans = []
         self.viewers = []
@@ -688,6 +695,64 @@ class Attaches(RelayCase):
         self.popup.viewer = None
         self.relay()
         self.assertEqual(self.viewers[1].size_fd, self.input_read)
+
+
+class OutsidePicker(RelayCase):
+    """The picker bind (toggle.sh --picker): the picker opens first, with no popup shown."""
+
+    def outside(self, workspace_id=None):
+        picker = proxy.Proxy(None, ["ctrl+b"], [], self.main, self.session,
+                             stdin=self.input_read, stdout=self.output, workspace_id=workspace_id)
+        self.fds += [picker.wake_read, picker.wake_write]
+        self.popup = picker
+        return picker
+
+    def test_the_first_popup_of_the_focused_workspace_is_selected(self):
+        self.add_popup("s", "session")
+        for workspace_id, chosen in (("w2", "q"), ("w1", "p"), (None, "s"), ("w9", "s")):
+            with self.subTest(workspace=workspace_id):
+                picker = self.outside(workspace_id)
+                os.write(self.input_write, b"\r")
+                self.assertTrue(picker.choose())
+                self.assertEqual(picker.popup_id, chosen)
+                self.assertEqual(self.events()[-2:], [chosen, "switch"])
+
+    def test_esc_and_ctrl_c_close_the_frame(self):
+        for data in (b"\x1b", b"\x03", b"xx\x1b\x1b"):
+            with self.subTest(keys=data):
+                picker = self.outside("w1")
+                os.write(self.input_write, data)
+                self.assertFalse(picker.choose())
+                self.assertIsNone(picker.popup_id)
+                self.assertIn("esc  close", "\n".join(screen_rows(self.drawn())))
+        self.assertEqual(self.main.toasts, [])
+
+    def test_popup_keys_do_nothing_before_a_popup_shows(self):
+        # prefix q, ? and g have no popup to act on: the picker stays.
+        picker = self.outside("w2")
+        os.write(self.input_write, b"\x02q\x02?\x02g\r")
+        self.assertTrue(picker.choose())
+        self.assertEqual(picker.popup_id, "q")
+
+    def test_without_popups_a_toast_says_so(self):
+        for popup_id in ("p", "q"):
+            popups.delete_record(popup_id)
+        self.session.workspaces.clear()
+        picker = self.outside("w1")
+        self.assertFalse(picker.choose())
+        self.assertEqual(self.main.toasts, [(herdr_api.TITLE, "No popups in this session")])
+        self.assertEqual(self.drawn(), "")
+
+    def test_enter_shows_the_chosen_popup_with_its_toggle_keys(self):
+        # The chosen popup q shows, and its toggle key ctrl+z hides it.
+        self.plans = [{}]
+        picker = self.outside("w2")
+        os.write(self.input_write, b"\r\x1a")
+        self.relay()
+        self.assertEqual([viewer.terminal_id for viewer in self.viewers[1:]], ["term-w2"])
+        self.assertEqual(self.main.calls, ["popup.close"])
+        self.assertEqual(self.events(), ["q", "switch", "q", "open", "q", "toggle-key"])
+        self.assertIsNotNone(picker.record)
 
 
 class InputDeadline(unittest.TestCase):

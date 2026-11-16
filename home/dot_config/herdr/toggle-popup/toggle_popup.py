@@ -80,7 +80,11 @@ def parse_args(argv):
     parser.add_argument("--name")
     parser.add_argument("--toggle-key", dest="toggle_keys", action="append", default=[])
     parser.add_argument("-d", dest="directory")
+    # The picker bind: show the picker of this session's popups, with no popup of its own.
+    parser.add_argument("--picker", action="store_true")
     options = parser.parse_args(argv)
+    if options.picker and (command is not None or argv != ["--picker"]):
+        raise UsageError("--picker takes no other flags and no command")
     if options.name is not None and not options.name.strip():
         raise UsageError("--name must not be empty")
     for key in options.toggle_keys:
@@ -432,6 +436,9 @@ def toggle(argv, env, state):
     if not endpoint:
         raise UsageError("run this from a Herdr key binding: HERDR_SOCKET_PATH is not set")
     options = parse_args(argv)
+    if options.picker:
+        pick_popup(env, endpoint)
+        return
     popup_id, owner = popup_identity(options, env)
     state["popup_id"] = popup_id
     config = herdr_config.read_main_config()
@@ -448,6 +455,28 @@ def toggle(argv, env, state):
     proxy.Proxy(popup_id, config.prefix, config.scrollback, Herdr(endpoint), herdr,
                 default_shell=config.default_shell, on_shown=sweep_in_background,
                 images=previews).run()
+
+
+def pick_popup(env, endpoint):
+    """The picker bind: choose a popup of this session, then show it in this popup frame.
+
+    A popup server that does not run has no popups: the toggle does not start
+    one for the picker.
+    """
+    config = herdr_config.read_main_config()
+    herdr = herdr_api.popup_herdr()
+    try:
+        herdr.call("ping")
+    except HerdrError as error:
+        if error.code != "gone":
+            raise
+        Herdr(endpoint).notify(herdr_api.TITLE, proxy.NO_POPUPS)
+        return
+    herdr_api.check_popup_server(herdr)
+    # The picker sweeps first, so on_shown() needs no sweep.
+    proxy.Proxy(None, config.prefix, config.scrollback, Herdr(endpoint), herdr,
+                default_shell=config.default_shell,
+                workspace_id=env.get("HERDR_ACTIVE_WORKSPACE_ID")).run()
 
 
 def main(argv=None):

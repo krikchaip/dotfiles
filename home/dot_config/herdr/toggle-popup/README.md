@@ -129,6 +129,12 @@ Picker:
   cancels.
 - Toggle keys and `prefix` `q`, `?`, `e` also work here. They come before
   filter text.
+- From a normal pane, `prefix` `shift+g` opens the same picker
+  (`toggle.sh --picker`). The first popup of the focused workspace is
+  selected. `Enter` shows the chosen popup in this frame, with its own
+  toggle keys. `Esc` or `ctrl+c` closes the frame (footer `esc  close`).
+  Popup keys do nothing before a popup is chosen. With no popups, a toast
+  says "No popups in this session".
 
 The help page and the picker take their colors from the Herdr theme
 (`[theme]` in the main config), as the `navigation` dialogs do. A color

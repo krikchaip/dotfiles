@@ -116,6 +116,15 @@ class StageCase(unittest.TestCase):
             path.unlink(missing_ok=True)
         self.s.wait_popup_closed()
         call(self.s.socket, "workspace.focus", {"workspace_id": self.home})
+        self.wait_home()
+
+    def wait_home(self):
+        """Wait until the client shows the home workspace again.
+
+        The client shows a focus change a moment after the API call returns.
+        A key pressed before then runs in the old workspace's pane.
+        """
+        self.s.wait_tab(self.s.focused_tab())
 
 
 class Scenarios:
@@ -661,6 +670,56 @@ class TwoSessions(ShellPopups, StageCase):
         s.keys("Escape")
         s.wait_screen("Switch popup", present=False)
         self.hide("shell")
+
+
+class OutsidePicker(ShellPopups, StageCase):
+    """The picker bind (toggle.sh --picker) opens the picker from a normal pane."""
+
+    def setUp(self):
+        super().setUp()
+        self.s.slot("alt+5", "--picker")
+
+    def open_picker(self):
+        self.s.keys("M-5")
+        self.s.wait_screen("Switch popup")
+
+    def test_enter_shows_the_chosen_popup_and_its_toggle_key_hides_it(self):
+        s = self.s
+        self.ready_slot("alt+1", "alpha", "--scope", "session")
+        self.ready_slot("alt+2", "beta")
+        for key, label in (("alt+1", "alpha"), ("alt+2", "beta")):
+            self.show(key, label)
+            self.hide(label)
+        self.open_picker()
+        rows = [row for row in s.popup_lines()[5:-3] if row.strip()]
+        # The session popup comes first, but the first popup of the focused workspace is selected.
+        self.assertEqual([re.sub(r"^( {5}\S+| │ › \S+).*", r"\1", row) for row in rows
+                          if not re.match(r"  \S", row)],
+                         ["     alpha", " │ › beta"])
+        s.keys("Enter")
+        # The picker rows also show "beta-ready", in the command: wait for the program.
+        s.wait_screen("Switch popup", present=False)
+        s.wait_screen("beta-ready")
+        self.hide("beta")
+
+    def test_esc_and_ctrl_c_close_the_frame(self):
+        self.ready_slot("alt+1", "alpha")
+        self.show("alt+1", "alpha")
+        self.hide("alpha")
+        for key in ("Escape", "C-c"):
+            with self.subTest(key=key):
+                self.open_picker()
+                self.assertIn("esc  close", self.s.screen())
+                self.s.keys(key)
+                self.s.wait_popup_closed()
+                self.assertNotIn("alpha-ready", self.s.screen())
+
+    def test_without_popups_a_toast_says_so(self):
+        s = self.s
+        s.keys("M-5")
+        toast = "No popups in this session"
+        s.wait(lambda: s.screen() and any(toast in seen for seen in s.toasts), "the toast")
+        s.wait_popup_closed()
 
 
 # A theme with one color for each Herdr token. Without herdr-src, as in the
@@ -1336,6 +1395,13 @@ class RealBinds(StageCase):
         s.keys("M-y")
         s.wait_popup_closed()
 
+    def test_prefix_shift_g_opens_the_picker_outside_a_popup(self):
+        s = self.s
+        s.chord("G")
+        toast = "No popups in this session"
+        s.wait(lambda: s.screen() and any(toast in seen for seen in s.toasts), "the toast")
+        s.wait_popup_closed()
+
     def test_yazi_starts_in_the_folder_of_the_focused_pane(self):
         s = self.s
         # A yazi in another workspace and folder must not decide where this one starts.
@@ -1766,6 +1832,13 @@ height = "80%"
 command = 'exec /bin/sh /plugin/executable_toggle.sh --name login --toggle-key ctrl+z \
 -- login-path-program'
 
+[[keys.command]]
+key = "alt+5"
+type = "popup"
+width = "80%"
+height = "80%"
+command = 'exec /bin/sh /plugin/executable_toggle.sh --picker'
+
 [terminal]
 default_shell = "/home/tester/remote-shell.sh"
 
@@ -1850,6 +1923,11 @@ class RemoteMachine(StageCase):
         if "REMOTE$" in self.s.screen():
             self.s.wait(self.select_local_workspace, "the local workspace")
 
+    def wait_home(self):
+        # The API focus can leave the remote workspace on the client: reset() selects
+        # the local workspace with the keys.
+        pass
+
     def remote_pane_text(self, popup_id):
         workspace = self.remote_popups()[popup_id]["workspace_id"]
         panes = json.loads(
@@ -1907,6 +1985,26 @@ class RemoteMachine(StageCase):
         s.chord("q")
         s.wait_popup_closed()
         s.wait(lambda: popup_id not in self.remote_popups(), "the remote popup to close")
+
+    def test_the_picker_bind_lists_and_shows_the_remote_popups(self):
+        s = self.s
+        s.wait_screen(f" {self.host} ", what="the remote machine in the sidebar")
+        s.wait(self.select_remote_workspace, "a remote workspace")
+        s.keys("M-1")
+        s.wait_screen("keylog legacy ready")
+        s.keys("C-z")
+        s.wait_popup_closed()
+        s.keys("M-5")
+        s.wait_screen("Switch popup")
+        rows = [row for row in s.popup_lines()[5:-3] if row.strip()]
+        self.assertTrue(rows[1].startswith(" │ › remote"), rows)
+        s.keys("Enter")
+        s.wait_screen("Switch popup", present=False)
+        s.wait_screen("keylog legacy ready")
+        # The chosen popup's own toggle key hides it.
+        s.keys("C-z")
+        s.wait_popup_closed()
+        self.assertEqual(s.started_popup_panes(), {}, "the client machine must not run the popup")
 
     def test_herdr_commands_in_a_remote_popup_reach_the_remote_session(self):
         s = self.s

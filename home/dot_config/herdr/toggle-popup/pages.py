@@ -199,6 +199,7 @@ class PickerRow(typing.NamedTuple):
     group: str
     kind: str  # The kind of the group: "session" or "workspace".
     current: bool  # The popup that shows.
+    workspace_id: str | None = None  # The owner workspace; None for session and pwd popups.
 
 
 def fuzzy(row, query):
@@ -237,12 +238,14 @@ def picker_columns(rows, cols):
     return place_x, min(command_x, 2 * cols // 3)
 
 
-def picker_page(rows, cols, query, cursor, found, total, selected, columns):
+def picker_page(rows, cols, query, cursor, found, total, selected, columns, esc_closes=False):
     """The picker. `found` are the (row, hits) that match `query`, of `total`
     popups. `cursor` is the index in `query` of the input cursor. `selected`
-    is the index of the selected row in `found`."""
+    is the index of the selected row in `found`. `esc_closes`: no popup shows
+    (the picker bind), so esc with an empty filter closes the popup frame."""
     canvas = Canvas(rows, cols)
-    hints = [("↑↓", "move"), ("enter", "show"), ("esc", "clear" if query else "stay")]
+    esc = "clear" if query else "close" if esc_closes else "stay"
+    hints = [("↑↓", "move"), ("enter", "show"), ("esc", esc)]
     header_footer(canvas, "Switch popup", f"{len(found)} of {total}", hints)
     # A filled input, as navigation's _input draws it.
     canvas.fill(3, 1, cols - 2, "surface0")

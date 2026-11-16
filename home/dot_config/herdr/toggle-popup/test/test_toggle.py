@@ -85,6 +85,16 @@ class Flags(unittest.TestCase):
                 with self.assertRaises(UsageError):
                     parse_args(argv)
 
+    def test_picker_opens_the_picker_and_takes_no_popup_flags(self):
+        self.assertTrue(parse_args(["--picker"]).picker)
+        self.assertFalse(parse_args([]).picker)
+        for argv in (["--picker", "--", "nu"], ["--picker", "--name", "x"],
+                     ["--picker", "--toggle-key", "ctrl+z"], ["--picker", "-d", "/tmp"],
+                     ["--picker", "--scope", "session"]):
+            with self.subTest(argv=argv):
+                with self.assertRaisesRegex(UsageError, "--picker"):
+                    parse_args(argv)
+
 
 def identity(*argv, env=ENV):
     return popup_identity(parse_args(list(argv)), env)
@@ -337,7 +347,8 @@ class RealConfig(unittest.TestCase):
 
     def test_each_toggle_popup_bind_has_valid_flags(self):
         binds = tomllib.loads(self.PATH.read_text(encoding="utf-8"))["keys"]["command"]
-        binds = [bind for bind in binds if "toggle-popup/" in bind["command"]]
+        binds = [bind for bind in binds
+                 if "toggle-popup/" in bind["command"] and "--picker" not in bind["command"]]
         self.assertEqual(len(binds), 3)
         for bind in binds:
             with self.subTest(command=bind["command"]):
@@ -349,6 +360,16 @@ class RealConfig(unittest.TestCase):
                 self.assertTrue(options.toggle_keys)
                 for text in options.toggle_keys:
                     keys.parse_binding(text)
+
+    def test_the_picker_bind_opens_the_picker_outside_a_popup(self):
+        binds = tomllib.loads(self.PATH.read_text(encoding="utf-8"))["keys"]["command"]
+        binds = [bind for bind in binds if "toggle.sh --picker" in bind["command"]]
+        self.assertEqual(len(binds), 1)
+        bind = binds[0]
+        self.assertEqual((bind["key"], bind["type"], bind["width"], bind["height"]),
+                         ("prefix+shift+g", "popup", "80%", "80%"))
+        self.assertEqual(bind["command"], "exec ~/.config/herdr/toggle-popup/toggle.sh --picker")
+        keys.parse_binding(bind["key"])
 
 
 class Nudge(unittest.TestCase):
@@ -419,6 +440,46 @@ class FakeMain:
 
     def notify(self, title, body):
         self.call("notification.show", {"title": title, "body": body})
+
+
+class PickerBind(unittest.TestCase):
+    """toggle.sh --picker: the picker of this session's popups, outside a popup."""
+
+    ENV = {"HERDR_SOCKET_PATH": "/x/sessions/work/herdr.sock", "HERDR_ACTIVE_WORKSPACE_ID": "w2"}
+
+    def setUp(self):
+        self.main = FakeMain()
+        self.server = FakePopupSession()
+        for target, value in ((toggle_popup, "Herdr"), (herdr_api, "popup_herdr")):
+            patcher = mock.patch.object(target, value, self.main if value == "Herdr"
+                                        else lambda: self.server)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        config = mock.patch.object(herdr_config, "read_main_config",
+                                   return_value=HerdrConfig(["ctrl+b"], [], None))
+        config.start()
+        self.addCleanup(config.stop)
+
+    def test_without_a_popup_server_a_toast_says_there_are_no_popups(self):
+        def gone(method, params=None):
+            raise HerdrError("no server", code="gone")
+
+        self.server.call = gone
+        with mock.patch.object(toggle_popup, "start_popup_server") as start, \
+                mock.patch.object(proxy, "Proxy") as picker:
+            toggle_popup.toggle(["--picker"], self.ENV, {})
+        start.assert_not_called()
+        picker.assert_not_called()
+        self.assertEqual(self.main.toasts, [(herdr_api.TITLE, proxy.NO_POPUPS)])
+
+    def test_a_running_popup_server_opens_the_picker_with_the_focused_workspace(self):
+        with mock.patch.object(herdr_api, "check_popup_server") as check, \
+                mock.patch.object(proxy, "Proxy") as picker:
+            toggle_popup.toggle(["--picker"], self.ENV, {})
+        check.assert_called_once_with(self.server)
+        args, kwargs = picker.call_args
+        self.assertEqual((args[0], args[4], kwargs["workspace_id"]), (None, self.server, "w2"))
+        picker.return_value.run.assert_called_once_with()
 
 
 class ToggleScript(unittest.TestCase):

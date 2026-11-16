@@ -78,6 +78,8 @@ TRACE_EVENTS = frozenset(info.event for info in ACTIONS.values()) | {
 # The viewer, `herdr terminal attach`, closes on ctrl+b q. A Herdr prefix of
 # ctrl+b takes that chord first: then prefix q kills the popup.
 VIEWER_CLOSE_PREFIX = Combo("b", CTRL)
+# The toast of the picker bind when this session has no popups.
+NO_POPUPS = "No popups in this session"
 
 
 # The errors of a terminal that is gone: Herdr closed the popup, or the viewer ended.
@@ -706,14 +708,17 @@ class Next(enum.Enum):
 
 class Proxy:
     def __init__(self, popup_id, prefix, scrollback, main_herdr, popup_herdr, stdin=0, stdout=1,
-                 default_shell=None, on_shown=None, images=None):
-        """`main_herdr` is the Herdr session that shows the popup. `default_shell`
+                 default_shell=None, on_shown=None, images=None, workspace_id=None):
+        """`main_herdr` is the Herdr session that shows the popup. A `popup_id`
+        of None is the picker bind: the picker shows first, and selects the
+        first popup of the focused workspace `workspace_id`. `default_shell`
         is the main config's default_shell: the picker names it as the label does.
         `on_shown()` runs once, after the popup first shows the frame of its
         program (see AttachNudge), or at a popup key that comes after the
         program's first output. `images` is the images.Images of the popup,
         when the toggle made it before the program started."""
         self.popup_id = popup_id
+        self.workspace_id = workspace_id
         self.on_shown = on_shown
         self.default_shell = default_shell
         self.stdin = stdin
@@ -797,8 +802,11 @@ class Proxy:
     def relay(self):
         """Show the popup's program until the popup closes.
 
-        Each attach takes the popup from another viewer.
+        Each attach takes the popup from another viewer. A popup_id of None
+        (the picker bind) chooses the popup in the picker first.
         """
+        if self.popup_id is None and not self.choose():
+            return
         trace_event(self.popup_id, "open")
         retries = 0
         while True:
@@ -841,12 +849,28 @@ class Proxy:
             if self.act(action, popup) is Next.CLOSE:
                 return
 
+    def choose(self):
+        """The picker bind: choose the popup to show. Return False when none shows.
+
+        With no popups, a toast says so. Esc and ctrl+c close the popup frame.
+        """
+        rows = self.picker_rows()
+        if not rows:
+            try:
+                self.main.notify(herdr_api.TITLE, NO_POPUPS)
+            except HerdrError as error:
+                herdr_api.log_error("picker", error)
+            return False
+        return self.pick(rows)[1]
+
     def popups_live(self):
         return popups.live_popups(self.popup_herdr.snapshot())
 
     def key_filter(self, to_program=True):
         """The key filter of the current popup. Pages use to_program=False."""
-        return KeyFilter(self.prefix, self.record.toggle_keys, self.scrollback,
+        # The picker bind has no popup before the first choice: no toggle keys.
+        toggle_keys = self.record.toggle_keys if self.record is not None else []
+        return KeyFilter(self.prefix, toggle_keys, self.scrollback,
                          held=self.input.held, to_program=to_program)
 
     def view(self, key_filter):
@@ -975,16 +999,8 @@ class Proxy:
                       for item in snapshot.get("workspaces", [])]
         return workspaces, {item["tab_id"]: item.get("label") for item in snapshot.get("tabs", [])}
 
-    def pick(self):
-        """Choose a popup of this session in a list with a filter.
-
-        Typed text filters the list (pages.fuzzy). Up/down and ctrl+n/ctrl+p
-        move, and enter shows the selected popup. Backspace, ctrl+w and
-        ctrl+u edit the filter. Esc clears the filter. With an empty filter,
-        esc keeps this popup, as ctrl+c does. Popup keys act as in the
-        program, before filter text. Return (popup Action or None, True when
-        the popup changed).
-        """
+    def picker_rows(self):
+        """The picker rows of this session's popups (pages.PickerRow), after a sweep."""
         import pages
 
         with popups.popup_lock():
@@ -1002,11 +1018,40 @@ class Proxy:
                     popup_id, pages.visible(record.label),
                     pages.visible(popups.program_text(record.command, self.default_shell)),
                     pages.visible(picker_place(record.owner, tabs)), pages.visible(group),
-                    "session" if shared else "workspace", popup_id == self.popup_id))
+                    "session" if shared else "workspace", popup_id == self.popup_id,
+                    record.owner.workspace_id))
+        return rows
+
+    def first_row(self, rows):
+        """The index of the row that the picker selects first: the popup that shows.
+
+        When no popup shows (the picker bind), the first popup of the focused
+        workspace, or else the first row.
+        """
+        here = next((n for n, row in enumerate(rows) if row.current), None)
+        if here is None:
+            here = next((n for n, row in enumerate(rows)
+                         if self.workspace_id and row.workspace_id == self.workspace_id), 0)
+        return here
+
+    def pick(self, rows=None):
+        """Choose a popup of this session in a list with a filter.
+
+        Typed text filters the list (pages.fuzzy). Up/down and ctrl+n/ctrl+p
+        move, and enter shows the selected popup. Backspace, ctrl+w and
+        ctrl+u edit the filter. Esc clears the filter. With an empty filter,
+        esc keeps this popup, as ctrl+c does. Popup keys act as in the
+        program, before filter text. `rows` are the picker_rows(), when the
+        caller has them. Return (popup Action or None, True when the popup
+        changed).
+        """
+        import pages
+
+        rows = self.picker_rows() if rows is None else rows
         if not rows:
             return None, False
         tokens = pages.theme()
-        here = next((n for n, row in enumerate(rows) if row.current), 0)
+        here = self.first_row(rows)
         query, cursor, selected = "", 0, here
         key_filter = self.key_filter(to_program=False)
         while True:
@@ -1015,11 +1060,13 @@ class Proxy:
             self.screen.draw(lambda height, width, query=query, cursor=cursor, found=found,
                              selected=selected:
                              pages.picker_page(height, width, query, cursor, found, len(rows),
-                                               selected, pages.picker_columns(rows, width))
+                                               selected, pages.picker_columns(rows, width),
+                                               esc_closes=self.record is None)
                              .render(tokens))
             key = self.screen.read_key(key_filter)
             if isinstance(key, Action):
-                if key is Action.PICKER:
+                # The picker bind has no popup for the popup keys before the first choice.
+                if key is Action.PICKER or self.record is None:
                     continue
                 self.screen.leave()
                 return key, False
