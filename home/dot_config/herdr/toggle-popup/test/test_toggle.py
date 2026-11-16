@@ -27,6 +27,7 @@ import keys
 import launch
 import popups
 import proxy
+import start_check
 import toggle_popup
 from fakes import FakeOwners, FakePopupSession, FakeServerProcess
 from herdr_api import HerdrError
@@ -868,7 +869,7 @@ class PreparePopup(unittest.TestCase):
 
     def test_a_pane_that_never_runs_the_launcher_is_a_toast(self):
         self.session.start_error = ...
-        patch(self, mock.patch.object(toggle_popup, "PROGRAM_START_SECONDS", 0.1))
+        patch(self, mock.patch.object(start_check, "PROGRAM_START_SECONDS", 0.1))
         with self.assertRaisesRegex(HerdrError, "did not start in 0.1 seconds"):
             self.prepare("--", "lazygit")
         self.assertEqual(self.session.workspaces, {})
@@ -1094,7 +1095,10 @@ class SweepInBackground(unittest.TestCase):
         self.assertNotEqual(result["session"], os.getsid(0))
 
     def test_an_error_in_the_sweep_process_never_reaches_the_caller(self):
+        started = self.folder / "started.json"
+
         def sweep(herdr):
+            started.write_text(json.dumps(os.getpid()))
             raise RuntimeError("boom")
 
         patch(self, mock.patch.object(popups, "housekeeping_sweep", sweep))
@@ -1102,6 +1106,19 @@ class SweepInBackground(unittest.TestCase):
         # The caller goes on, with no child process left to reap.
         with self.assertRaises(ChildProcessError):
             os.waitpid(-1, os.WNOHANG)
+        # The sweep process writes its lock file in the state folder: let it
+        # end before the cleanup removes the folder.
+        pid = wait_for_file(started)
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            try:
+                os.kill(pid, 0)
+            except (ProcessLookupError, PermissionError):
+                # macOS gives EPERM for a zombie.
+                break
+            time.sleep(0.01)
+        else:
+            self.fail("the sweep process did not end")
 
     def test_a_failed_fork_only_skips_the_sweep(self):
         patch(self, mock.patch.object(os, "fork", side_effect=BlockingIOError(

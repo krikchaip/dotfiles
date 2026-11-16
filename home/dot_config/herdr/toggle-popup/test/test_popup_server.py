@@ -14,6 +14,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import herdr_api
 import launch
+import start_check
 import toggle_popup
 
 LAUNCHER = pathlib.Path(herdr_api.__file__).resolve().parent / "launch.py"
@@ -222,7 +223,7 @@ class Launcher(unittest.TestCase):
         self.assertEqual(launch.shell_argv0("/opt/bin/nu", "linux"), "nu")
 
     def test_a_started_program_passes_the_start_check(self):
-        with toggle_popup.StartCheck() as start:
+        with start_check.StartCheck() as start:
             # The program runs longer than the wait: the connection closes at its start.
             process = subprocess.Popen(
                 [sys.executable, str(LAUNCHER), "/bin/sh", "-c",
@@ -230,7 +231,7 @@ class Launcher(unittest.TestCase):
                 env=dict(os.environ, **start.env), stdout=subprocess.PIPE, text=True)
             self.addCleanup(process.wait)
             self.addCleanup(process.kill)
-            with mock.patch.object(toggle_popup, "PROGRAM_START_SECONDS", 2):
+            with mock.patch.object(start_check, "PROGRAM_START_SECONDS", 2):
                 start.wait()
             # The program does not get the start check value.
             self.assertEqual(process.stdout.readline(), "start=unset\n")
@@ -243,7 +244,7 @@ class Launcher(unittest.TestCase):
             cases = {"no-such-program-x": "No such file or directory",
                      str(not_a_program): "Permission denied"}
             for program, reason in cases.items():
-                with self.subTest(program=program), toggle_popup.StartCheck() as start:
+                with self.subTest(program=program), start_check.StartCheck() as start:
                     result = self.launch({}, program, **start.env)
                     with self.assertRaises(herdr_api.HerdrError) as raised:
                         start.wait()
@@ -251,8 +252,8 @@ class Launcher(unittest.TestCase):
                     self.assertEqual(result.returncode, 127)
 
     def test_a_launcher_that_does_not_run_fails_the_start_check(self):
-        with toggle_popup.StartCheck() as start, \
-                mock.patch.object(toggle_popup, "PROGRAM_START_SECONDS", 0.2):
+        with start_check.StartCheck() as start, \
+                mock.patch.object(start_check, "PROGRAM_START_SECONDS", 0.2):
             with self.assertRaisesRegex(herdr_api.HerdrError,
                                         "^the popup program did not start in 0.2 seconds$"):
                 start.wait()
@@ -266,10 +267,10 @@ class Launcher(unittest.TestCase):
             return made[-1]
 
         with mock.patch.object(tempfile, "mkdtemp", mkdtemp), \
-                mock.patch.object(toggle_popup.socket.socket, "listen",
+                mock.patch.object(start_check.socket.socket, "listen",
                                   side_effect=OSError("no listen")):
             with self.assertRaisesRegex(OSError, "no listen"):
-                with toggle_popup.StartCheck():
+                with start_check.StartCheck():
                     pass
         self.assertFalse(os.path.exists(made[0]))
 

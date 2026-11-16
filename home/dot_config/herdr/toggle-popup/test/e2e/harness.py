@@ -751,10 +751,30 @@ class Stage:
         crashed or hangs has no popups, but a "popup is gone" check must not
         pass because of that.
         """
+        return {label: panes[0] if panes else None
+                for label, panes in self.popup_workspace_panes().items()}
+
+    def popup_workspace_panes(self):
+        """The panes of each popup workspace by popup id: its program pane first.
+
+        The program pane is the one that the popup's record names. A popup
+        with an open scrollback editor has the editor's pane too.
+        """
         snapshot = call(self.popup_socket, "session.snapshot")["snapshot"]
-        panes = {pane["workspace_id"]: pane for pane in snapshot["panes"]}
-        return {item["label"]: panes.get(item["workspace_id"])
-                for item in snapshot["workspaces"]}
+        records = self.records()
+        result = {}
+        for item in snapshot["workspaces"]:
+            panes = [pane for pane in snapshot["panes"]
+                     if pane["workspace_id"] == item["workspace_id"]]
+            terminal = records.get(item["label"], {}).get("terminal_id")
+            panes.sort(key=lambda pane: pane.get("terminal_id") != terminal)
+            result[item["label"]] = panes
+        return result
+
+    def editor_pane(self, popup_id):
+        """The pane of the popup's scrollback editor, or None."""
+        panes = self.popup_workspace_panes().get(popup_id) or []
+        return panes[1] if len(panes) > 1 else None
 
     def started_popup_panes(self):
         """popup_panes(), or {} when the popup session did not start yet (no socket file)."""
@@ -810,8 +830,13 @@ class Stage:
 
         The plugin replaces a record file in one step, so each file is complete.
         """
-        records = [json.loads(path.read_text(encoding="utf-8")) for path in self.record_files()]
-        return {record["id"]: record for record in records}
+        records = {}
+        for path in self.record_files():
+            # A sweep can remove a record between the listing and the read.
+            with contextlib.suppress(FileNotFoundError):
+                record = json.loads(path.read_text(encoding="utf-8"))
+                records[record["id"]] = record
+        return records
 
     def popup_ids(self, label, socket=None):
         """The sorted ids of the live popups with this label, of one session if SOCKET is set."""

@@ -92,6 +92,23 @@ Help page: `esc` or `prefix` `?` closes it. A toggle key hides the popup,
 and `prefix` `q`, `g` or `e` runs its action. Other keys do nothing, and the
 program does not get them.
 
+Scrollback editor (`prefix` `e`): it opens the program's recent output in
+`$EDITOR`, as written, with no line argument. For flags, put them in
+`$EDITOR`, for example `EDITOR="nvim +"` for the last line. The editor runs
+in a `scrollback` tab of the popup's workspace in the popup session, so it
+works with any `$EDITOR` and no editor config.
+
+- While the editor is open, the popup shows the editor. A toggle key hides
+  it, and `prefix` `g` opens the picker; the editor stays open. Example:
+  nvim is on line 300, you hide the popup and show it again, and nvim is
+  still on line 300.
+- `esc` on the help page or the picker goes back to the editor, with its
+  cursor shape. `prefix` `e` does nothing there.
+- The editor closes when you quit it, when the popup is killed, or when the
+  program exits. The file is deleted each time. When you quit it while the
+  popup shows, the popup shows the program again.
+- The picker has no row for the editor.
+
 Picker:
 
 - It lists the popups of this Herdr session only. The first group, named
@@ -252,6 +269,8 @@ key press ─► Herdr popup ─► toggle.sh ─► toggle_popup.py (one proces
 | `toggle_popup.py` | Entry point of a key: find or create the popup, then run the proxy. |
 | `proxy.py` | The key-filter proxy: viewer, keys, help, picker, scrollback. |
 | `pages.py` | Draws the help page and the picker; the picker filter. |
+| `scrollback.py` | The scrollback editor: writes the file, opens `$EDITOR` in a second tab of the popup, deletes the file when the editor or the popup ends. |
+| `start_check.py` | Learns whether the program of a new pane in the popup session started. |
 | `images.py` | yazi image previews: the socket of `kitty-popup.yazi` and the kitty graphics. Remove it when Herdr fixes #5408. |
 | `herdr_theme.py` | Herdr theme tokens, from the palettes that chezmoi downloads into `herdr-src/` (`.chezmoiexternals/herdr.toml`). A copy of `navigation/herdr_theme.py`. |
 | `keys.py` | Decode key input; find toggle keys and `prefix` chords. |
@@ -270,6 +289,7 @@ All state is under `$XDG_STATE_HOME/herdr/plugins/dotfiles.toggle-popup/`
 | Path | Content |
 |---|---|
 | `popups/<first 32 hex characters of sha256(popup id)>.json` | Popup record: id, scope, label, terminal id, command, toggle keys, owner (session socket, workspace, tab, or folder). |
+| `scrollback/<popup id>-*.txt` | Scrollback of an open editor (mode 0600, folder 0700). The toggle sweep deletes files whose popup has no editor. |
 | `images/<popup id>.sock` | Image socket of a showing popup (`TOGGLE_POPUP_IMAGE_SOCKET`). |
 | `images/<popup id>.json` | The program's last image request, for the next show. |
 | `popup-session.toml` | Minimal config of the popup server. |

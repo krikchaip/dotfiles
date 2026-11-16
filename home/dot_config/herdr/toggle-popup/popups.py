@@ -18,7 +18,7 @@ import shlex
 from dataclasses import asdict, dataclass
 
 import images
-from herdr_api import Herdr, HerdrError, log_error, plugin_state_dir
+from herdr_api import Herdr, HerdrError, log_error, plugin_state_dir, plugin_state_path
 
 # How long to wait for an owner session's snapshot. A toggle key must feel
 # instant, so it waits only briefly; hooks run in the background.
@@ -150,10 +150,14 @@ def all_records():
 
 @dataclass(frozen=True)
 class LivePopup:
-    """A popup that runs: its backing pane (from the snapshot) and its record."""
+    """A popup that runs: its backing pane (from the snapshot) and its record.
+
+    `editor` is the pane of its scrollback editor (see scrollback.py), or None.
+    """
 
     pane: dict
     record: PopupRecord
+    editor: dict | None = None
 
     @property
     def workspace_id(self):
@@ -163,20 +167,26 @@ class LivePopup:
 def live_popups(snapshot):
     """Map popup id to a LivePopup for each popup workspace in the snapshot.
 
-    A workspace counts only when its record names the same terminal. A
-    workspace that Herdr restored after a restart runs a new terminal, so it
-    is stale.
+    A workspace counts only when one of its panes runs the terminal that its
+    record names: the program. A workspace that Herdr restored after a
+    restart runs a new terminal, so it is stale, and so is a workspace whose
+    program exited while its editor still ends. Another pane of the
+    workspace is the scrollback editor.
     """
     panes = {}
     for pane in snapshot["panes"]:
-        panes.setdefault(pane["workspace_id"], pane)
+        panes.setdefault(pane["workspace_id"], []).append(pane)
     live = {}
     for workspace in snapshot["workspaces"]:
-        pane = panes.get(workspace["workspace_id"])
         record = load_record(workspace["label"])
-        if pane is None or record is None or record.terminal_id != pane["terminal_id"]:
+        if record is None:
             continue
-        live[workspace["label"]] = LivePopup(pane, record)
+        mine = panes.get(workspace["workspace_id"], [])
+        program = next((pane for pane in mine if pane["terminal_id"] == record.terminal_id), None)
+        if program is None:
+            continue
+        editor = next((pane for pane in mine if pane is not program), None)
+        live[workspace["label"]] = LivePopup(program, record, editor)
     return live
 
 
@@ -280,3 +290,33 @@ def sweep(herdr, owner_timeout=HOOK_OWNER_TIMEOUT):
     for record in all_records():
         if record.id not in live:
             delete_record(record.id)
+    remove_editor_files(live)
+
+
+def scrollback_folder():
+    """The folder of the scrollback files: only the user can read it."""
+    folder = plugin_state_dir() / "scrollback"
+    folder.mkdir(mode=0o700, exist_ok=True)
+    return folder
+
+
+def editor_file_popup(path):
+    """The popup id in the name of a scrollback file: `<popup id>-<random>.txt`."""
+    return path.name.partition("-")[0]
+
+
+def remove_editor_files(live):
+    """Remove the scrollback files of popups that have no editor open.
+
+    The editor removes its file when it ends. A file stays only when the
+    editor was killed first, or the popup server stopped. The file can hold
+    secrets from the program's output. `live` is live_popups() of the same
+    snapshot, under the popup lock, so a new editor has its pane already.
+    """
+    folder = plugin_state_path() / "scrollback"
+    if not folder.is_dir():
+        return
+    for path in folder.iterdir():
+        popup = live.get(editor_file_popup(path))
+        if popup is None or popup.editor is None:
+            path.unlink(missing_ok=True)

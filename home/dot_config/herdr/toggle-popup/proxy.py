@@ -7,7 +7,9 @@ adds --takeover, so the popup moves from another viewer of the same
 terminal. It sends every input byte to the viewer, except the popup's toggle
 keys, Herdr's [keys] edit_scrollback keys, and the prefix commands in
 keys.PREFIX_COMMANDS. The toggle keys hide the popup and the program keeps
-running. help_rows() lists every key on the help page.
+running. help_rows() lists every key on the help page. While the popup's
+scrollback editor runs (see scrollback.py), the viewer shows the editor, and
+the same keys act there.
 """
 
 import collections
@@ -49,13 +51,9 @@ from popups import SCOPES
 # Wait this long for the rest of an unfinished escape sequence.
 ESCAPE_SECONDS = 0.02
 VIEWER_STOP_SECONDS = 2.0
-SCROLLBACK_LINES = 100000
 # Herdr closes a popup with SIGHUP to each process of the popup, then SIGTERM
 # and SIGKILL, 250 ms apart (src/pane.rs:1760-1790 in Herdr 0.9.5).
 HANG_UP_SIGNALS = (signal.SIGHUP, signal.SIGTERM)
-# After Herdr closed the popup, the editor can end by itself for this long.
-# Herdr gives it the same signals.
-EDITOR_STOP_SECONDS = 0.2
 
 
 class ActionInfo(typing.NamedTuple):
@@ -108,27 +106,6 @@ def window_size(fd):
         return default
     rows, cols, _, _ = struct.unpack("HHHH", size)
     return size if rows and cols else default
-
-
-def run_editor(path):
-    """Open `path` in $EDITOR at the last line, as `+` does in vi, vim, and nvim.
-
-    Do not kill the editor on an exception, as subprocess.run does. When Herdr
-    closes the popup, the editor gets its own SIGHUP. Let it end by itself, so
-    that it can keep its recovery state. Herdr then ends each process that
-    stays in the popup's session.
-    """
-    # Only the scrollback editor needs subprocess and tempfile. A popup must
-    # show fast, so the proxy imports them here.
-    import subprocess
-
-    editor = subprocess.Popen(["/bin/sh", "-c", 'eval "${EDITOR:-vi} + \\"\\$1\\""', "sh", path])
-    try:
-        editor.wait()
-    except BaseException:
-        with contextlib.suppress(subprocess.TimeoutExpired):
-            editor.wait(EDITOR_STOP_SECONDS)
-        raise
 
 
 def write_all(fd, data):
@@ -592,19 +569,6 @@ def help_rows(prefix, toggle_keys, scrollback):
     return rows
 
 
-def read_scrollback(pane_id):
-    """Read the recent output of a popup pane. Bytes that are not UTF-8 become U+FFFD."""
-    import subprocess
-
-    argv, env = herdr_api.popup_session_command(
-        "pane", "read", pane_id, "--source", "recent-unwrapped", "--lines", str(SCROLLBACK_LINES))
-    result = subprocess.run(argv, env=env, stdin=subprocess.DEVNULL, capture_output=True,
-                            encoding="utf-8", errors="replace")
-    if result.returncode != 0:
-        raise HerdrError(f"pane read: {result.stderr.strip() or result.returncode}")
-    return result.stdout
-
-
 def picker_groups(records, socket, session_name, workspaces):
     """The picker's popups: [(group label, [popup ids])].
 
@@ -748,9 +712,8 @@ class Proxy:
     def end_on_hang_up(self):
         """End quietly on SIGHUP or SIGTERM: Herdr closed the popup.
 
-        SystemExit runs the finally blocks: they stop the viewer and remove
-        the scrollback file. A Python signal handler does not pass to a child
-        program, so the editor still gets its own SIGHUP.
+        SystemExit runs the finally blocks: they stop the viewer. A
+        scrollback editor runs in the popup session, so it stays open.
         """
         for signum in HANG_UP_SIGNALS:
             signal.signal(signum, self.hang_up)
@@ -800,10 +763,10 @@ class Proxy:
         return True
 
     def relay(self):
-        """Show the popup's program until the popup closes.
+        """Show the popup's program, or its scrollback editor, until the popup closes.
 
-        Each attach takes the popup from another viewer. A popup_id of None
-        (the picker bind) chooses the popup in the picker first.
+        Each attach takes the popup from another viewer. When the editor
+        ends and the program runs, the program shows again.
         """
         if self.popup_id is None and not self.choose():
             return
@@ -819,10 +782,11 @@ class Proxy:
                 if self.images is not None:
                     self.images.close()
                 self.images = images.Images(self.popup_id, self.screen)
-            terminal_id = popup.pane["terminal_id"]
+            editing = popup.editor is not None
+            terminal_id = (popup.editor or popup.pane)["terminal_id"]
             key_filter = self.key_filter()
             self.viewer = Viewer(terminal_id, self.stdin)
-            action = self.view(key_filter)
+            action = self.view(key_filter, editing)
             if self.input.ended:
                 # Herdr closed the popup: stop the viewer, and write nothing more.
                 self.viewer.stop()
@@ -838,6 +802,11 @@ class Proxy:
                 if end is ViewerEnd.BUSY:
                     retries += 1
                     time.sleep(ATTACH_RETRY_SECONDS)
+                    continue
+                if editing and end is ViewerEnd.CLOSED and status != 0 and (
+                        self.popup_id in self.popups_live()):
+                    # The editor ended, and the program runs: show the program.
+                    retries = 0
                     continue
                 trace_event(self.popup_id, end.value)
                 return
@@ -873,10 +842,12 @@ class Proxy:
         return KeyFilter(self.prefix, toggle_keys, self.scrollback,
                          held=self.input.held, to_program=to_program)
 
-    def view(self, key_filter):
+    def view(self, key_filter, editing=False):
         """Relay until the viewer ends (None) or a popup key arrives (its Action).
 
         Input after the popup key stays in self.input for the next reader.
+        `editing` is True when the viewer shows the scrollback editor: then
+        the scrollback key does nothing, and the program's image does not show.
         """
         viewer, input_ = self.viewer, self.input
         # The program shows from the viewer's first output on: the viewer
@@ -893,6 +864,9 @@ class Proxy:
                         raise
                     # The viewer ended, as when the program exited: relay() asks why.
                     return None
+            if action is Action.SCROLLBACK and editing:
+                # The editor is open already. Keys after it wait in input_.tokens.
+                continue
             if action is not None:
                 # A popup key can come before the frame counts as shown
                 # (AttachNudge.SHOWN_BY). The program showed its output, so
@@ -909,7 +883,7 @@ class Proxy:
             if viewer.errors_fd is not None and viewer.errors_fd in ready:
                 viewer.read_errors()
             if image_fd is not None and image_fd in ready:
-                self.images.serve(program_shows)
+                self.images.serve(program_shows and not editing)
             if viewer.fd in ready:
                 data = viewer.read()
                 if not data:
@@ -917,7 +891,7 @@ class Proxy:
                 self.screen.show(data)
                 program_shows = True
             if self.images is not None:
-                self.images.sync(program_shows)
+                self.images.sync(program_shows and not editing)
             if viewer.nudge.shown:
                 self.run_on_shown()
         return None
@@ -951,11 +925,7 @@ class Proxy:
                     return Next.SHOW
             elif action is Action.SCROLLBACK:
                 action = None
-                try:
-                    self.edit_scrollback(popup.pane)
-                except (HerdrError, OSError) as error:
-                    # Show the error and go back to the program in the popup.
-                    herdr_api.report_error("scrollback", error, self.main.endpoint)
+                self.edit_scrollback(popup)
             if action is not None:
                 trace_event(self.popup_id, ACTIONS[action].event)
         return Next.CLOSE if self.input.ended else Next.SHOW
@@ -1165,31 +1135,24 @@ class Proxy:
         except HerdrError as error:
             herdr_api.report_error("kill", error, self.main.endpoint)
 
-    def edit_scrollback(self, pane):
-        """Open the scrollback in $EDITOR. If Herdr closes the popup meanwhile, stop quietly."""
-        text = read_scrollback(pane["pane_id"])
+    def edit_scrollback(self, popup):
+        """Open the scrollback of the LivePopup `popup` in $EDITOR, in the popup session.
+
+        Then the popup shows the editor (see relay()). A failed read or start
+        is a toast, and the popup shows the program again. Keys typed before
+        the editor starts reach neither the editor nor the program.
+        """
+        import scrollback
+
         try:
-            saved = termios.tcgetattr(self.stdin)
+            scrollback.open_editor(self.popup_herdr, popup, os.environ.get("EDITOR"))
+        except (HerdrError, OSError) as error:
+            herdr_api.report_error("scrollback", error, self.main.endpoint)
+            return
+        try:
+            termios.tcflush(self.stdin, termios.TCIFLUSH)
         except termios.error as error:
             if not closed_terminal(error):
                 raise
             self.input.ended = True
-            return
-        import tempfile
-
-        handle, path = tempfile.mkstemp(prefix="herdr-popup-scrollback-", suffix=".txt")
-        try:
-            with os.fdopen(handle, "w", encoding="utf-8") as stream:
-                stream.write(text)
-            self.screen.show(Screen.RESET_KEYS)
-            # TCSAFLUSH drops the input that the proxy did not read yet. Drop the
-            # input that it read too, so no key typed before the editor reaches
-            # the program after it.
-            if not self.set_modes(self.cooked):
-                return
-            self.input.discard()
-            run_editor(path)
-        finally:
-            if not self.input.ended:
-                self.set_modes(saved)
-            os.unlink(path)
+        self.input.discard()

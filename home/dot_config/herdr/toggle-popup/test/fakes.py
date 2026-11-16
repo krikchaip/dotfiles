@@ -24,7 +24,9 @@ class FakeServerProcess:
 
 
 class FakePopupSession:
-    """An in-memory popup session: workspaces with one pane each.
+    """An in-memory popup session: workspaces with one pane each, and a
+    scrollback editor's pane in a second tab when `add_editor()` or a tab
+    with a layout made it.
 
     `fail` maps a method name to the error that the call raises. A new pane
     reports to the start check as launch.py does: with `start_error` as the
@@ -35,6 +37,11 @@ class FakePopupSession:
     def __init__(self):
         self.workspaces = {}
         self.closed = []
+        # The editor tabs: tab id -> workspace id. And the tabs that closed.
+        self.tabs = {}
+        self.closed_tabs = []
+        # The root of each layout.apply, in order.
+        self.layouts = []
         self.fail = {}
         self.count = 0
         self.start_error = None
@@ -65,13 +72,24 @@ class FakePopupSession:
     def pane(self, workspace_id):
         item = self.workspaces[workspace_id]
         return {"pane_id": item["pane_id"], "workspace_id": workspace_id,
-                "terminal_id": item["terminal_id"]}
+                "terminal_id": item["terminal_id"], "cwd": "/work"}
+
+    def add_editor(self, workspace_id):
+        """Give a workspace the pane of a scrollback editor, after its program."""
+        self.workspaces[workspace_id]["editor"] = {
+            "pane_id": f"{workspace_id}:p9", "workspace_id": workspace_id,
+            "terminal_id": f"term-{workspace_id}-editor"}
 
     def snapshot(self):
+        panes = []
+        for workspace_id, item in self.workspaces.items():
+            panes.append(self.pane(workspace_id))
+            if "editor" in item:
+                panes.append(dict(item["editor"]))
         return {
             "workspaces": [{"workspace_id": w, "label": item["label"]}
                            for w, item in self.workspaces.items()],
-            "panes": [self.pane(w) for w in self.workspaces],
+            "panes": panes,
         }
 
     def call(self, method, params=None):
@@ -89,6 +107,25 @@ class FakePopupSession:
             return {"workspace": {"workspace_id": workspace_id},
                     "tab": {"tab_id": f"{workspace_id}:t1"},
                     "root_pane": self.pane(workspace_id)}
+        if method == "tab.create":
+            tab_id = f"{params['workspace_id']}:t5"
+            self.tabs[tab_id] = params["workspace_id"]
+            return {"tab": {"tab_id": tab_id}}
+        if method == "tab.close":
+            self.closed_tabs.append(params["tab_id"])
+            workspace_id = self.tabs.pop(params["tab_id"], None)
+            if workspace_id in self.workspaces:
+                self.workspaces[workspace_id].pop("editor", None)
+            return {}
+        if method == "layout.apply" and params["tab_id"] in self.tabs:
+            # The editor's tab gets its pane, and a new tab id, as in Herdr.
+            workspace_id = self.tabs.pop(params["tab_id"])
+            self.tabs[f"{workspace_id}:t6"] = workspace_id
+            self.layouts.append(params["root"])
+            self.add_editor(workspace_id)
+            self.launch(params["root"].get("env", {}))
+            return {"layout": {"tab_id": f"{workspace_id}:t6",
+                               "focused_pane_id": f"{workspace_id}:p9"}}
         if method == "layout.apply":
             workspace_id = params["tab_id"].split(":")[0]
             item = self.workspaces[workspace_id]

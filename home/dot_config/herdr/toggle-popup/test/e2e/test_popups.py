@@ -63,6 +63,23 @@ def logged(path):
     return bytes.fromhex("".join(lines))
 
 
+def process_runs(pid):
+    """True while process `pid` runs. A zombie does not run.
+
+    The popup server's panes are not children of the tests, so `ps` tells a
+    zombie apart (EPERM from kill() on macOS, success on Linux).
+    """
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        pass
+    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True,
+                           text=True).stdout.strip()
+    return bool(state) and not state.startswith("Z")
+
+
 class StageCase(unittest.TestCase):
     """One Stage for each test class. Each test starts with no popups."""
 
@@ -314,41 +331,201 @@ class Scenarios:
         out = self.s.wait(lambda: self.s.editor_out.exists() and self.s.editor_out.read_text(),
                           "the editor to run")
         result = json.loads(out)
-        self.assertEqual(result["args"][0], "+")
+        # $EDITOR runs as written: the file is its only argument, with no `+`.
+        self.assertEqual(len(result["args"]), 1, result["args"])
+        path = Path(result["args"][0])
         self.assertIn("keylog legacy ready", result["text"])
         self.assertIn("got b'h", result["text"])
-        # Back in the live popup after the editor exits.
-        self.s.text("z")
-        self.wait_logged(self.s.root / "scroll.log", b"z")
+        # The editor gets the proxy's $EDITOR, and `herdr` reaches the owner session.
+        self.assertEqual(result["env"], {"EDITOR": self.s.env["EDITOR"],
+                                         "HERDR_SOCKET_PATH": str(self.s.socket)})
+        # The editor ended: the scrollback file goes, and the live program shows
+        # again. A key typed before then goes to the editor: type z again until
+        # the program gets it.
+        self.s.wait(lambda: not path.exists(), "the scrollback file to go")
+        log = self.s.root / "scroll.log"
+
+        def typed_at_the_program():
+            if b"z" not in logged(log):
+                self.s.text("z")
+                time.sleep(0.2)
+            return b"z" in logged(log)
+
+        self.s.wait(typed_at_the_program, "z at the program")
         self.s.keys("C-z")
         self.wait_closed("keylog legacy ready")
 
-    def test_a_popup_that_closes_in_the_editor_removes_the_scrollback_file(self):
-        # The scrollback file can hold secrets. Herdr ends a closed popup with SIGHUP.
+    def open_held_editor(self, name, slot="alt+1", command=None):
+        """Open the scrollback editor of a popup. It stays until a signal or `q`.
+
+        The popup runs keylog, or `command`. Return the scrollback file, the
+        file of the editor's input bytes, and the editor's process id.
+        """
         out = self.s.editor_out
-        out.unlink(missing_ok=True)
-        hold, caught = out.with_name(out.name + ".hold"), out.with_name(out.name + ".signal")
-        caught.unlink(missing_ok=True)
+        keys = out.with_name(out.name + ".keys")
+        for stale in (out, keys, out.with_name(out.name + ".signal")):
+            stale.unlink(missing_ok=True)
+        hold = out.with_name(out.name + ".hold")
         hold.write_text("")
         self.addCleanup(hold.unlink, missing_ok=True)
-        self.open_keylog("alt+1", "scroll-hup")
+        if command is None:
+            self.open_keylog(slot, name)
+        else:
+            self.s.slot(slot, "--name", name, "--toggle-key", "ctrl+z", "--", *command)
+            self.press_slot(slot)
+            self.s.wait_pane(self.s.popup_id(name), "program-started")
         self.s.chord("e")
-        text = self.s.wait(lambda: out.exists() and out.read_text(), "the editor to run")
-        path = Path(json.loads(text)["args"][-1])
-        self.assertTrue(path.exists())
+        self.s.wait_screen("fake-editor ready")
+        result = json.loads(out.read_text())
+        path = Path(result["args"][-1])
         self.addCleanup(path.unlink, missing_ok=True)
+        return path, keys, result["pid"]
+
+    def editor_signal(self):
+        caught = self.s.editor_out.with_name(self.s.editor_out.name + ".signal")
+        return caught.read_text() if caught.exists() else None
+
+    def wait_editor_stopped(self, path, pid):
+        self.assertEqual(self.s.wait(self.editor_signal, "the editor to get a signal"), "SIGHUP")
+        self.s.wait(lambda: not path.exists(), "the scrollback file to go")
+        self.s.wait(lambda: not process_runs(pid), "the editor process to end")
+
+    def assert_editor_open(self, path, pid):
+        self.assertTrue(process_runs(pid), "the editor ended")
+        self.assertTrue(path.exists(), "the scrollback file is gone")
+        self.assertIsNone(self.editor_signal())
+
+    def test_the_editor_stays_open_while_the_popup_hides(self):
+        path, keys, pid = self.open_held_editor("edit-hide")
+        popup_id = self.s.popup_id("edit-hide")
+        self.s.text("x")
+        self.s.wait_screen("fake-editor ready", what="the editor")
+        self.s.wait(lambda: keys.exists() and keys.read_bytes() == b"x", "x at the editor")
+        self.s.wait_screen(" keys 1")
+        # The toggle key hides the popup. The editor and its file stay.
+        self.s.keys("C-z")
+        self.wait_closed("fake-editor ready")
+        time.sleep(0.5)
+        self.assert_editor_open(path, pid)
+        # The next toggle shows the same editor, as it was.
+        self.press_slot("alt+1")
+        self.s.wait_screen(" keys 1")
+        # Herdr closing the popup frame does not stop the editor either.
         toasts = list(self.s.toasts)
         call(self.s.socket, "popup.close")
         self.s.wait_popup_closed()
-        self.s.wait(lambda: not path.exists(), "the scrollback file to go")
-        # The editor gets its own SIGHUP from Herdr, so that it can end as it does in a shell.
-        self.assertEqual(self.s.wait(lambda: caught.exists() and caught.read_text(),
-                                     "the editor to get a signal"), "SIGHUP")
-        # Herdr closed the popup: the proxy ends quietly.
-        for _ in range(10):
-            self.s.screen()
-            time.sleep(0.1)
+        time.sleep(0.5)
+        self.assert_editor_open(path, pid)
         self.assertEqual(self.s.toasts, toasts)
+        self.press_slot("alt+1")
+        self.s.wait_screen(" keys 1")
+        # Quitting the editor deletes the file and shows the live program again.
+        self.s.text("q")
+        self.s.wait_screen("keylog legacy ready")
+        self.s.wait(lambda: not path.exists(), "the scrollback file to go")
+        self.s.wait(lambda: not process_runs(pid), "the editor process to end")
+        self.s.wait(lambda: self.s.editor_pane(popup_id) is None, "the editor tab to close")
+        self.assertEqual(keys.read_bytes(), b"xq")
+        self.assertEqual(logged(self.s.root / "edit-hide.log"), b"")
+        self.s.keys("C-z")
+        self.wait_closed("keylog legacy ready")
+
+    def test_keys_in_the_editor_prefix_e_and_help(self):
+        path, keys, pid = self.open_held_editor("edit-keys")
+        popup_id = self.s.popup_id("edit-keys")
+        self.s.text("x")
+        self.s.wait(lambda: keys.exists() and keys.read_bytes() == b"x", "x at the editor")
+        # The editor's bar cursor shows in the popup.
+        self.wait_bar_cursor("the editor's bar cursor")
+        # prefix e does nothing in the editor: the editor is open.
+        self.s.chord("e")
+        # prefix ? shows the help page. Esc goes back to the same editor, with its cursor.
+        self.s.chord("?")
+        self.s.wait_screen("edit-keys popup")
+        self.s.keys("Escape")
+        self.s.wait_screen("edit-keys popup", present=False)
+        self.s.wait_screen(" keys 1")
+        self.wait_bar_cursor("the editor's bar cursor after help")
+        self.s.text("y")
+        self.s.wait(lambda: keys.read_bytes() == b"xy", "y at the editor, and no popup key")
+        self.assertEqual(len(self.s.popup_workspace_panes()[popup_id]), 2)
+        self.assert_editor_open(path, pid)
+        self.s.keys("C-z")
+        self.wait_closed("fake-editor ready")
+
+    def wait_bar_cursor(self, what):
+        """Wait until the outer terminal shows a bar cursor.
+
+        tmux 3.5a (the Docker image) does not report the cursor shape
+        (#{cursor_shape} is empty): there this check does nothing.
+        """
+        def shape():
+            return self.s.tmux("display-message", "-p", "-t", "main", "#{cursor_shape}").strip()
+
+        if shape():
+            self.s.wait(lambda: shape() == "bar", what)
+
+    def test_prefix_q_in_the_editor_kills_the_popup_and_the_editor(self):
+        path, _, pid = self.open_held_editor("edit-kill")
+        popup_id = self.s.popup_id("edit-kill")
+        self.s.chord("q")
+        self.wait_closed("fake-editor ready")
+        self.wait_editor_stopped(path, pid)
+        self.s.wait(lambda: popup_id not in self.s.popup_panes(), "the popup to end")
+
+    def test_the_picker_keeps_the_editor(self):
+        self.s.slot("alt+2", "--name", "other", "--toggle-key", "alt+s", "--",
+                    *self.s.keylog_command("mok", self.s.root / "other.log"))
+        self.press_slot("alt+2")
+        self.s.wait_screen("keylog mok ready")
+        self.s.keys("M-s")
+        self.wait_closed("keylog mok ready")
+        path, _, pid = self.open_held_editor("edit-pick")
+        # Esc in the picker goes back to the editor.
+        self.s.chord("g")
+        self.s.wait_screen("Switch popup")
+        self.assert_editor_open(path, pid)
+        self.s.keys("Escape")
+        self.s.wait_screen("fake-editor ready")
+        # A switch to another popup keeps the editor, and its popup shows it again.
+        self.s.chord("g")
+        self.s.wait_screen(" │ › edit-pick ● ")
+        self.s.keys("Down")
+        self.s.wait_screen(" │ › other ")
+        self.s.keys("Enter")
+        self.s.wait_screen("keylog mok ready")
+        self.assert_editor_open(path, pid)
+        self.s.keys("M-s")
+        self.wait_closed("keylog mok ready")
+        self.press_slot("alt+1")
+        self.s.wait_screen("fake-editor ready")
+        # ctrl+d in the picker kills the popup and its editor.
+        self.s.chord("g")
+        self.s.wait_screen(" │ › edit-pick ● ")
+        self.s.keys("C-d")
+        self.s.wait_screen("Kill popup?")
+        self.s.keys("Enter")
+        self.wait_editor_stopped(path, pid)
+
+    def test_program_exit_closes_the_editor(self):
+        command = ["/bin/sh", "-c", "echo program-started; exec /bin/sh"]
+        # The program exits while the popup is hidden.
+        path, _, pid = self.open_held_editor("edit-exit", command=command)
+        popup_id = self.s.popup_id("edit-exit")
+        program = self.s.popup_panes()[popup_id]["pane_id"]
+        self.s.keys("C-z")
+        self.wait_closed("fake-editor ready")
+        call(self.s.popup_socket, "pane.send_text", {"pane_id": program, "text": "exit\r"})
+        self.wait_editor_stopped(path, pid)
+        self.s.wait(lambda: popup_id not in self.s.popup_panes(), "the popup to end")
+        # The program exits while the editor shows: the popup closes.
+        path, _, pid = self.open_held_editor("edit-exit", command=command)
+        popup_id = self.s.popup_id("edit-exit")
+        program = self.s.popup_panes()[popup_id]["pane_id"]
+        call(self.s.popup_socket, "pane.send_text", {"pane_id": program, "text": "exit\r"})
+        self.wait_closed("fake-editor ready")
+        self.wait_editor_stopped(path, pid)
+        self.s.wait(lambda: popup_id not in self.s.popup_panes(), "the popup to end")
 
     def test_program_exit_closes_the_popup(self):
         self.s.slot("alt+1", "--name", "shell", "--toggle-key", "ctrl+z", "--",
@@ -821,8 +998,11 @@ class Pages(ShellPopups, StageCase):
         self.assertTrue(any(row.startswith(" │ › beta ") for row in rows), rows)
         self.assertFalse(any(" alpha " in row for row in rows), rows)
         s.keys("Enter")
+        # The list shows "beta-ready" too: wait for the picker to go first.
+        s.wait_screen("1 of 2", present=False)
         s.wait_screen("beta-ready")
-        self.assertIn(self.s.popup_id("beta"), trace_ids(s, "switch"))
+        beta = self.s.popup_id("beta")
+        s.wait(lambda: beta in trace_ids(s, "switch"), "the switch to beta")
 
     def test_the_filter_cursor_moves_and_edits_in_place(self):
         s = self.s
@@ -1998,6 +2178,14 @@ command = 'exec /bin/sh /plugin/executable_toggle.sh --name login --toggle-key c
 -- login-path-program'
 
 [[keys.command]]
+key = "alt+6"
+type = "popup"
+width = "80%"
+height = "80%"
+command = 'EDITOR=/home/tester/remote-editor.sh exec /bin/sh /plugin/executable_toggle.sh \
+--name edit --toggle-key ctrl+z -- python3 /plugin/test/e2e/keylog.py legacy /tmp/remote.log'
+
+[[keys.command]]
 key = "alt+5"
 type = "popup"
 width = "80%"
@@ -2027,6 +2215,11 @@ chmod +x ~/remote-shell.sh
 mkdir -p ~/.local/bin
 printf '#!/bin/sh\necho login-path-$((40+2))\nexec /bin/sh\n' > ~/.local/bin/login-path-program
 chmod +x ~/.local/bin/login-path-program
+# The remote $EDITOR: it notes its file, and the signal that stops it.
+printf '%s\n' '#!/bin/sh' 'trap "echo HUP > /tmp/remote-editor.signal; exit 0" HUP' \
+    'echo "$1" > /tmp/remote-editor.path' 'echo remote-editor-ready' \
+    'while :; do sleep 0.1; done' > ~/remote-editor.sh
+chmod +x ~/remote-editor.sh
 herdr plugin link /plugin --enabled >/dev/null
 """
 
@@ -2083,7 +2276,7 @@ class RemoteMachine(StageCase):
             self.ssh(f"herdr --session toggle-popup workspace close {item['workspace_id']}")
         self.s.wait(lambda: not self.remote_popups(), "no remote popups")
         # The remote program ended, so the next test starts with an empty log.
-        self.ssh("rm -f /tmp/remote.log /tmp/remote-herdr.json")
+        self.ssh("rm -f /tmp/remote.log /tmp/remote-herdr.json /tmp/remote-editor.*")
         super().reset()
         if "REMOTE$" in self.s.screen():
             self.s.wait(self.select_local_workspace, "the local workspace")
@@ -2188,6 +2381,37 @@ class RemoteMachine(StageCase):
         # The last popup is gone: the frame closes.
         s.wait_popup_closed()
         s.wait(lambda: popup_id not in self.remote_popups(), "the remote popup to close")
+
+    def remote_file(self, path):
+        return self.ssh(f"[ -e {path} ] || exit 0\ncat {path}").strip()
+
+    def test_the_scrollback_editor_of_a_remote_popup(self):
+        s = self.s
+        s.wait_screen(f" {self.host} ", what="the remote machine in the sidebar")
+        s.wait(self.select_remote_workspace, "a remote workspace")
+        s.keys("M-6")
+        s.wait_screen("keylog legacy ready")
+        popup_id = s.wait(lambda: next(iter(self.remote_popups()), None), "the remote popup")
+        # prefix e runs the remote $EDITOR in the remote popup session.
+        s.chord("e")
+        s.wait_screen("remote-editor-ready")
+        path = s.wait(lambda: self.remote_file("/tmp/remote-editor.path"), "the remote file")
+        self.assertRegex(path, rf"/scrollback/{popup_id}-[^/]+\.txt$")
+        self.assertEqual(s.started_popup_panes(), {}, "the client machine must not run the popup")
+        # The toggle key hides the popup. The editor stays, and shows again.
+        s.keys("C-z")
+        s.wait_popup_closed()
+        self.assertEqual(self.remote_file("/tmp/remote-editor.signal"), "")
+        s.keys("M-6")
+        s.wait_screen("remote-editor-ready")
+        # prefix q kills the popup and its editor, and deletes the file.
+        s.chord("q")
+        s.wait_popup_closed()
+        s.wait(lambda: popup_id not in self.remote_popups(), "the remote popup to close")
+        s.wait(lambda: self.remote_file("/tmp/remote-editor.signal") == "HUP",
+               "the remote editor to get SIGHUP")
+        s.wait(lambda: self.ssh(f"[ -e {path} ] && echo kept; true").strip() == "",
+               "the remote file to go")
 
     def test_herdr_commands_in_a_remote_popup_reach_the_remote_session(self):
         s = self.s

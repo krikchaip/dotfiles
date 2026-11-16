@@ -33,7 +33,6 @@ import hashlib
 import json
 import shlex
 import signal
-import socket
 import time
 from pathlib import Path
 
@@ -44,8 +43,9 @@ import popups
 import proxy
 from herdr_api import POPUP_SESSION, Herdr, HerdrError
 from keys import parse_binding
-from launch import DEFAULT_SHELL_ENV, IMAGE_SOCKET_ENV, OWNER_SOCKET_ENV, START_ENV
+from launch import DEFAULT_SHELL_ENV, IMAGE_SOCKET_ENV, OWNER_SOCKET_ENV
 from popups import SCOPES, Owner, PopupRecord
+from start_check import StartCheck
 
 # A toggle key must feel instant. So the modules that only a new popup or a
 # new popup server needs (shutil, subprocess, tempfile) are imported where
@@ -53,8 +53,6 @@ from popups import SCOPES, Owner, PopupRecord
 POPUP_ID_LENGTH = 6
 LAUNCHER = Path(__file__).resolve().parent / "launch.py"
 SERVER_START_SECONDS = 5.0
-# How long a new backing pane may take to start launch.py.
-PROGRAM_START_SECONDS = 5.0
 
 
 class UsageError(ValueError):
@@ -223,66 +221,13 @@ def start_popup_server(herdr):
     raise HerdrError(f"the {POPUP_SESSION} Herdr session did not start")
 
 
-class StartCheck:
-    """Learn whether the program of a new backing pane started.
-
-    launch.py connects to this Unix socket (its path is in `env`) before it
-    runs the program. The connection closes when the program starts, with no
-    data. When the program cannot start, launch.py sends the error first.
-    This catches each start failure: a missing program, a file that is not a
-    program, and a launcher that does not run at all.
-    """
-
-    def __enter__(self):
-        import tempfile
-
-        # A short folder: a Unix socket path must stay below 104 bytes on macOS.
-        self.folder = tempfile.mkdtemp(prefix="toggle-popup-")
-        path = os.path.join(self.folder, "start.sock")
-        self.server = socket.socket(socket.AF_UNIX)
-        try:
-            self.server.bind(path)
-            self.server.listen(1)
-        except BaseException:
-            self.__exit__()
-            raise
-        self.env = {START_ENV: path}
-        return self
-
-    def __exit__(self, *exc_info):
-        import shutil
-
-        self.server.close()
-        shutil.rmtree(self.folder, ignore_errors=True)
-
-    def wait(self):
-        """Return when the program started. Raise HerdrError when it did not."""
-        timeout = PROGRAM_START_SECONDS
-        deadline = time.monotonic() + timeout
-        data = b""
-        try:
-            self.server.settimeout(timeout)
-            client, _ = self.server.accept()
-            with client:
-                while True:
-                    client.settimeout(max(deadline - time.monotonic(), 0.01))
-                    chunk = client.recv(4096)
-                    if not chunk:
-                        break
-                    data += chunk
-        except TimeoutError:
-            raise HerdrError(f"the popup program did not start in {timeout:g} seconds") from None
-        if data:
-            raise HerdrError(data.decode(errors="replace").strip())
-
-
 def create_popup(herdr, popup_id, options, owner, label, default_shell):
     """Create the popup's workspace and backing pane, and save its record.
 
     `default_shell` is the main config's default_shell, or None. It names the
     program in the toast of a default shell that exits at once.
 
-    Raise HerdrError when the program cannot start (see StartCheck).
+    Raise HerdrError when the program cannot start (see start_check.StartCheck).
     """
     folder = {"cwd": options.directory} if options.directory else {}
     # The last image request of an old program of this popup: a new program

@@ -11,13 +11,11 @@ import signal
 import socket
 import stat
 import struct
-import subprocess
 import sys
 import tempfile
 import termios
 import threading
 import time
-import tty
 import unittest
 from unittest import mock
 
@@ -27,6 +25,7 @@ import herdr_api
 import keys
 import popups
 import proxy
+import scrollback
 import toggle_popup
 from fakes import FakeOwners, FakePopupSession
 from keys import Action, Combo
@@ -44,6 +43,18 @@ def patch(case, patcher):
     """Start a mock patcher for one test."""
     patcher.start()
     case.addCleanup(patcher.stop)
+
+
+def process_exists(pid):
+    """True while process `pid` runs. A zombie (EPERM on macOS) does not run."""
+    try:
+        os.kill(pid, 0)
+    except (ProcessLookupError, PermissionError):
+        return False
+    with contextlib.suppress(ChildProcessError):
+        if os.waitpid(pid, os.WNOHANG)[0]:
+            return False
+    return True
 
 
 # proxy.Viewer before a test replaces it with fake viewers.
@@ -361,7 +372,7 @@ class Pages(RelayCase):
         os.write(self.input_write, b"\x02?\x02e")
         self.assertIs(self.popup.view(self.key_filter()), Action.HELP)
         self.assertIs(self.popup.act(Action.HELP, self.live("p")), Next.SHOW)
-        self.assertEqual(edited, [self.session.pane("w1")])
+        self.assertEqual(edited, [self.live("p")])
         self.assertEqual(self.events()[-2:], ["p", "scrollback"])
 
     def test_the_help_page_names_the_popup_by_its_label(self):
@@ -774,6 +785,70 @@ class EndedViewer(RelayCase):
         self.assertIsNone(self.popup.view(self.key_filter()))
 
 
+class EditorShows(RelayCase):
+    """While the scrollback editor of the popup runs, the popup shows the editor."""
+
+    def setUp(self):
+        super().setUp()
+        self.session.add_editor("w1")
+        self.popup.viewer = None
+        self.edited = []
+        patch(self, mock.patch.object(scrollback, "open_editor",
+                                      lambda *args: self.edited.append(args)))
+
+    def test_the_popup_attaches_to_the_editor(self):
+        self.plans = [{"ended": True, "end": (0, "")}]
+        self.relay()
+        self.assertEqual(self.viewers[1].terminal_id, "term-w1-editor")
+
+    def test_when_the_editor_ends_the_program_shows(self):
+        exited = proxy.TERMINAL_EXITED.format(terminal_id="term-w1-editor")
+        self.plans = [{"ended": True, "end": (1, exited)}, {"ended": True, "end": (0, "")}]
+        make_viewer = self.make_viewer
+
+        def editor_ends(terminal_id, size_fd=0):
+            # The editor's pane ends while the popup attaches to it.
+            self.session.workspaces["w1"].pop("editor", None)
+            return make_viewer(terminal_id, size_fd)
+
+        patch(self, mock.patch.object(proxy, "Viewer", editor_ends))
+        self.relay()
+        self.assertEqual([viewer.terminal_id for viewer in self.viewers[1:]],
+                         ["term-w1-editor", "term-w1"])
+        self.assertEqual(self.events()[-2:], ["p", "viewer-ended"])
+
+    def test_the_toggle_key_hides_the_popup_and_the_editor_stays(self):
+        os.write(self.input_write, b"\x1a")
+        self.relay()
+        self.assertEqual(self.main.calls, ["popup.close"])
+        self.assertEqual(self.session.closed_tabs, [])
+        self.assertIsNotNone(self.live("p").editor)
+
+    def test_prefix_e_does_nothing_and_later_keys_reach_the_editor(self):
+        self.popup.scrollback = ["prefix+e"]
+        self.viewer = self.make_viewer("term-w1-editor")
+        self.popup.viewer = self.viewer
+        thread = threading.Thread(target=self.popup.view, args=(self.popup.key_filter(), True),
+                                  daemon=True)
+        thread.start()
+        self.addCleanup(thread.join, 5)
+        self.addCleanup(self.viewer.peer.shutdown, socket.SHUT_RDWR)
+        os.write(self.input_write, b"\x02ez")
+        self.assertEqual(self.received(1), b"z")
+        self.assertEqual((self.edited, self.events()), ([], []))
+
+    def test_prefix_e_opens_the_editor_with_the_editor_of_the_proxy(self):
+        flushed = []
+        patch(self, mock.patch.object(proxy.termios, "tcflush",
+                                      lambda fd, queue: flushed.append(fd)))
+        popup = self.live("p")
+        with mock.patch.dict(os.environ, EDITOR="nvim -u NONE"):
+            self.assertIs(self.popup.act(Action.SCROLLBACK, popup), Next.SHOW)
+        self.assertEqual(self.edited, [(self.session, popup, "nvim -u NONE")])
+        # Keys typed while the editor starts do not reach the program.
+        self.assertEqual(flushed, [self.input_read])
+
+
 class ClosedPopup(RelayCase):
     """After Herdr closes the popup, the proxy writes nothing and starts no viewer."""
 
@@ -1084,17 +1159,6 @@ class HelpRows(unittest.TestCase):
         self.assertEqual(detach(["ctrl+a", "CTRL+b"]), [])
 
 
-class ScrollbackRead(unittest.TestCase):
-    def test_bytes_that_are_not_utf8_become_replacement_characters(self):
-        folder = tempfile.TemporaryDirectory()
-        self.addCleanup(folder.cleanup)
-        herdr = pathlib.Path(folder.name) / "herdr"
-        herdr.write_text("#!/bin/sh\nprintf 'ok \\377\\376 \\303\\251\\n'\n")
-        herdr.chmod(herdr.stat().st_mode | stat.S_IXUSR)
-        patch(self, mock.patch.dict(os.environ, HERDR_BIN_PATH=str(herdr)))
-        self.assertEqual(proxy.read_scrollback("w1:p1"), "ok �� é\n")
-
-
 class ViewerEnds(unittest.TestCase):
     """How the proxy tells why a viewer ended by itself."""
 
@@ -1389,7 +1453,7 @@ class ScrollbackErrors(unittest.TestCase):
             raise herdr_api.HerdrError("pane read: no such pane")
 
         patch(self, mock.patch.object(herdr_api, "Herdr", Main))
-        patch(self, mock.patch.object(proxy, "read_scrollback", fail))
+        patch(self, mock.patch.object(scrollback, "read_scrollback", fail))
         popup = proxy.Proxy("p", ["ctrl+b"], [], Main("/x/main.sock"), None)
         self.addCleanup(os.close, popup.wake_read)
         self.addCleanup(os.close, popup.wake_write)
@@ -1399,153 +1463,6 @@ class ScrollbackErrors(unittest.TestCase):
         self.assertEqual(toasts, [("/x/main.sock", "pane read: no such pane")])
         # stderr is the popup terminal, in raw mode: the toast is enough.
         self.assertEqual(stderr.getvalue(), "")
-
-
-class ScrollbackInput(unittest.TestCase):
-    def test_keys_typed_before_the_editor_do_not_reach_it_or_the_program(self):
-        main, terminal = os.openpty()
-        self.addCleanup(os.close, main)
-        self.addCleanup(os.close, terminal)
-        # TCSAFLUSH waits until the terminal output is read: write it elsewhere.
-        output = os.open(os.devnull, os.O_WRONLY)
-        self.addCleanup(os.close, output)
-        popup = proxy.Proxy("p", ["ctrl+b"], [], FakeMain(), None, stdin=terminal,
-                            stdout=output)
-        self.addCleanup(os.close, popup.wake_read)
-        self.addCleanup(os.close, popup.wake_write)
-        popup.cooked = termios.tcgetattr(terminal)
-        tty.setraw(terminal)
-        os.write(main, b"G")
-        popup.input.read()
-        self.assertEqual(len(popup.input.tokens), 1)
-        queued = []
-
-        def editor(path):
-            queued.append(len(popup.input.tokens))
-
-        patch(self, mock.patch.object(proxy, "read_scrollback", lambda pane_id: "text\n"))
-        patch(self, mock.patch.object(proxy, "run_editor", editor))
-        self.assertIs(popup.act(Action.SCROLLBACK, SCROLLBACK_POPUP), Next.SHOW)
-        self.assertEqual(queued, [0])
-        self.assertEqual(list(popup.input.tokens), [])
-
-
-class ScrollbackClosedTerminal(unittest.TestCase):
-    def test_a_popup_that_closes_while_the_editor_runs_closes_quietly(self):
-        main, terminal = os.openpty()
-        self.addCleanup(os.close, main)
-        self.addCleanup(os.close, terminal)
-        output = os.open(os.devnull, os.O_WRONLY)
-        self.addCleanup(os.close, output)
-        popup = proxy.Proxy("p", ["ctrl+b"], [], FakeMain(), None, stdin=terminal,
-                            stdout=output)
-        self.addCleanup(os.close, popup.wake_read)
-        self.addCleanup(os.close, popup.wake_write)
-        popup.cooked = termios.tcgetattr(terminal)
-        real_tcsetattr = termios.tcsetattr
-        closed = []
-
-        def tcsetattr(fd, when, modes):
-            # On Linux a terminal that Herdr closed gives EIO.
-            if closed:
-                raise termios.error(errno.EIO, "Input/output error")
-            real_tcsetattr(fd, when, modes)
-
-        def editor(path):
-            closed.append(True)
-
-        patch(self, mock.patch.object(proxy, "read_scrollback", lambda pane_id: "text\n"))
-        patch(self, mock.patch.object(proxy, "run_editor", editor))
-        patch(self, mock.patch.object(proxy.termios, "tcsetattr", tcsetattr))
-        self.assertIs(popup.act(Action.SCROLLBACK, SCROLLBACK_POPUP), Next.CLOSE)
-        self.assertTrue(popup.input.ended)
-
-
-# A proxy in the scrollback editor, in a process of its own. It prints
-# "toast" for each toast. Herdr ends a closed popup with signals to each
-# process of the popup's session: the test sends them to the process group.
-HANG_UP_PROXY = """
-import os, pty, sys, termios, types
-sys.path.insert(0, sys.argv[1])
-import herdr_api, popups, proxy
-from keys import Action
-herdr_api.report_error = lambda *args: print("toast", flush=True)
-proxy.read_scrollback = lambda pane_id: "secret\\n"
-main, terminal = pty.openpty()
-output = os.open(os.devnull, os.O_WRONLY)
-popup = proxy.Proxy("p", ["ctrl+b"], [], types.SimpleNamespace(endpoint="/x"), None,
-                    stdin=terminal, stdout=output)
-popup.cooked = termios.tcgetattr(terminal)
-popup.end_on_hang_up()
-popup.act(Action.SCROLLBACK, popups.LivePopup({"pane_id": "w1:p1"}, None))
-print("editor ended", flush=True)
-"""
-
-
-class ScrollbackHangUp(unittest.TestCase):
-    def setUp(self):
-        folder = tempfile.TemporaryDirectory()
-        self.addCleanup(folder.cleanup)
-        self.folder = pathlib.Path(folder.name)
-        editor = self.folder / "editor"
-        # The editor gets "+" and the file. It ends on its own SIGHUP. Its
-        # shell writes nothing about the end of its sleep.
-        editor.write_text(f"""#!/bin/sh
-exec 2>/dev/null
-trap 'echo HUP > {self.folder}/caught; exit 0' HUP
-echo "$2" > {self.folder}/file.tmp && mv {self.folder}/file.tmp {self.folder}/file
-while :; do sleep 0.05; done
-""")
-        editor.chmod(0o700)
-        env = dict(os.environ, EDITOR=str(editor), TMPDIR=str(self.folder))
-        plugin = str(pathlib.Path(proxy.__file__).parent)
-        self.proxy = subprocess.Popen(
-            [sys.executable, "-I", "-B", "-c", HANG_UP_PROXY, plugin], env=env,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
-        self.addCleanup(self.kill_group)
-        deadline = time.monotonic() + 10
-        while not (self.folder / "file").exists():
-            self.assertLess(time.monotonic(), deadline, "the editor did not start")
-            self.assertIsNone(self.proxy.poll(), "the proxy ended before the editor started")
-            time.sleep(0.01)
-        self.path = pathlib.Path((self.folder / "file").read_text().strip())
-        self.assertEqual(self.path.read_text(), "secret\n")
-
-    def kill_group(self):
-        with contextlib.suppress(ProcessLookupError, PermissionError):
-            os.killpg(self.proxy.pid, signal.SIGKILL)
-        self.proxy.communicate()
-
-    def hang_up(self, *signals):
-        for signum in signals:
-            # macOS gives EPERM for a group that holds only a zombie.
-            with contextlib.suppress(ProcessLookupError, PermissionError):
-                os.killpg(self.proxy.pid, signum)
-            time.sleep(0.05)
-        return self.proxy.communicate(timeout=10)
-
-    def test_herdr_closing_the_popup_removes_the_scrollback_file_quietly(self):
-        output, errors = self.hang_up(signal.SIGHUP)
-        self.assertFalse(self.path.exists())
-        self.assertEqual((output, errors), ("", ""))
-        self.assertEqual(self.proxy.returncode, 128 + signal.SIGHUP)
-        # The editor ends by itself on its own SIGHUP.
-        self.assertEqual((self.folder / "caught").read_text(), "HUP\n")
-
-    def test_a_second_signal_does_not_stop_the_cleanup(self):
-        # Herdr sends SIGTERM 250 ms after SIGHUP.
-        output, errors = self.hang_up(signal.SIGHUP, signal.SIGTERM)
-        self.assertFalse(self.path.exists())
-        self.assertEqual((output, errors), ("", ""))
-
-    def test_sigterm_alone_removes_the_scrollback_file_quietly(self):
-        os.kill(self.proxy.pid, signal.SIGTERM)
-        self.proxy.wait(10)
-        self.assertFalse(self.path.exists())
-        self.assertEqual(self.proxy.returncode, 128 + signal.SIGTERM)
-        # The editor stays until Herdr ends the processes of the closed popup.
-        self.assertFalse((self.folder / "caught").exists())
-        self.assertEqual(self.hang_up(signal.SIGHUP), ("", ""))
 
 
 class Kill(unittest.TestCase):
