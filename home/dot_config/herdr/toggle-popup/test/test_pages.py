@@ -144,7 +144,8 @@ class Pages(unittest.TestCase):
         tokens = theme(TOKENS)
         allowed = set(tokens.values())
         for name, canvas in (("help", self.help()), ("picker", self.picker()),
-                             ("filter", self.picker("lg")), ("no match", self.picker("qqq"))):
+                             ("filter", self.picker("lg")), ("no match", self.picker("qqq")),
+                             ("kill dialog", pages.kill_dialog(self.picker(), ROWS[0]))):
             with self.subTest(page=name):
                 colors = {color for _, color in sgr_colors(canvas.render(tokens))}
                 self.assertTrue(colors)
@@ -231,8 +232,70 @@ class Pages(unittest.TestCase):
         self.assertLessEqual(pages.cells(row), 59)
         self.assertEqual(canvas.cells[6][6][0], "")
 
+    def test_the_picker_footer_names_ctrl_d(self):
+        self.assertIn("ctrl+d  kill", text_rows(self.picker())[-2])
+
     def test_control_characters_cannot_reach_the_terminal(self):
         self.assertEqual(pages.visible("a\x1b[2Jb\n"), "a\\x1b[2Jb\\n")
+
+
+class KillDialog(unittest.TestCase):
+    """The ctrl+d confirmation over the picker, as Herdr's close confirmation draws it."""
+
+    def dialog(self, row=ROWS[0], rows=24, cols=120):
+        found = pages.matches(ROWS, "")
+        backdrop = pages.picker_page(rows, cols, "", 0, found, len(ROWS), 2,
+                                     pages.picker_columns(ROWS, cols))
+        return pages.kill_dialog(backdrop, row)
+
+    def test_a_box_of_herdrs_size_in_the_middle_names_the_popup(self):
+        canvas = self.dialog()
+        rows = text_rows(canvas)
+        # 64 x 6 cells, in the middle of 120 x 24: columns 28 to 91, rows 9 to 14.
+        self.assertEqual(rows[9][28:92], "┌" + "─" * 62 + "┐")
+        self.assertEqual(rows[10][28:92], "│ Kill popup?".ljust(63) + "│")
+        self.assertEqual(rows[11][28:92],
+                         "│ lazygit — lazygit-recent · ~/.local/share/chezmoi".ljust(63) + "│")
+        self.assertEqual(rows[12][28:92], "│" + " " * 62 + "│")
+        # Two buttons of 13 and 12 cells with a gap of 2, in the middle of the box.
+        self.assertEqual(rows[13][28:92], "│" + " " * 17 + "   ↵ kill    " + "  "
+                         + " esc cancel " + " " * 18 + "│")
+        self.assertEqual(rows[14][28:92], "└" + "─" * 62 + "┘")
+
+    def test_the_dialog_has_the_colors_of_herdrs_confirmation(self):
+        canvas = self.dialog()
+        self.assertEqual(canvas.cells[9][28][1:], ("red", "panel_bg", False))
+        self.assertEqual(canvas.cells[10][30][1:], ("red", "panel_bg", True))
+        self.assertEqual(canvas.cells[11][30][1:3], ("text", "panel_bg"))
+        self.assertEqual(canvas.cells[13][46][1:], ("contrast", "red", True))
+        self.assertEqual(canvas.cells[13][61][1:], ("text", "surface0", True))
+
+    def test_the_picker_behind_the_dialog_is_dim(self):
+        canvas = self.dialog()
+        self.assertIn((0, 2), canvas.dimmed)
+        self.assertIn((13, 10), canvas.dimmed)
+        self.assertNotIn((9, 28), canvas.dimmed)
+        self.assertNotIn((13, 50), canvas.dimmed)
+        output = canvas.render(theme(TOKENS))
+        # Each dim cell has SGR 2 after its colors. The dialog cells have none.
+        self.assertIn("\x1b[2m", output)
+        self.assertNotIn("\x1b[2m┌", output)
+
+    def test_a_popup_without_a_place_names_its_group(self):
+        rows = text_rows(self.dialog(ROWS[2]))
+        self.assertEqual(rows[11][28:92], "│ floating — nu · dotfiles workspace".ljust(63) + "│")
+
+    def test_a_small_page_gets_a_smaller_box_and_a_cut_detail(self):
+        rows = text_rows(self.dialog(rows=10, cols=40))
+        # 36 x 6 cells: 4 columns less than the page, as in Herdr.
+        self.assertEqual(rows[2][2:38], "┌" + "─" * 34 + "┐")
+        self.assertTrue(rows[4][2:38].endswith("… │"), rows[4])
+
+    def test_a_long_command_is_cut_before_the_place(self):
+        row = ROWS[0]._replace(command="lazygit --work-tree " + "x" * 80)
+        rows = text_rows(self.dialog(row))
+        self.assertEqual(rows[11][28:92],
+                         "│ lazygit — lazygit --work-tree xxxx… · ~/.local/share/chezmoi │")
 
 
 if __name__ == "__main__":

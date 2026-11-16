@@ -113,7 +113,7 @@ Picker:
     api workspace
        logs           tab api                   tail -f app.log
   ────────────────────────────────────────────────────────────────────────
-     ↑↓  move    enter  show    esc  clear
+     ↑↓  move    enter  show    esc  clear    ctrl+d  kill
   ```
 
 - Type to filter, as in fzf: the letters must come in order through the
@@ -122,6 +122,15 @@ Picker:
 - A new filter selects the first match. An empty filter selects the open
   popup again.
 - `↑`/`↓` or `ctrl+n`/`ctrl+p` move. `Enter` switches.
+- `ctrl+d` kills the selected popup after a "Kill popup?" dialog, in the
+  look of Herdr's close confirmation. The dialog shows
+  `label — command · place`. `Enter` kills, as `prefix` `q` does. `Esc` or
+  `ctrl+c` cancels and keeps the filter and the selection. After a kill,
+  the picker stays open with the other popups. After you kill the popup
+  that shows, `Enter` shows another popup and `Esc` closes the frame
+  (footer `esc  close`). When the last popup is killed, the frame closes.
+  If the kill fails, a toast shows the error. Toggle keys and `prefix`
+  `q`, `?`, `e` also work in the dialog; other keys do nothing.
 - The filter edits at its cursor: `←`/`→`, `Home`/`End` and
   `ctrl+a`/`ctrl+e` move it. `Backspace` and `ctrl+w` delete before it,
   `Delete` after it. `ctrl+u` clears the filter.

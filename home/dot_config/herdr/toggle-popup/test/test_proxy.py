@@ -558,6 +558,151 @@ class PickerFilter(RelayCase):
         wait_until(probe, repr(text))
 
 
+class PickerKill(RelayCase):
+    """ctrl+d in the picker kills the selected popup after a confirmation.
+
+    Popup p (workspace w1, selected) shows. Popup q (workspace w2) is below it.
+    """
+
+    def run_pick(self, target=None):
+        """Run pick() (or `target`) in a thread. self.result gets its result."""
+        self.result = []
+        self.seen = []
+        thread = threading.Thread(
+            target=lambda: self.result.append((target or self.popup.pick)()), daemon=True)
+        thread.start()
+        self.addCleanup(thread.join, 5)
+        self.thread = thread
+
+    def press(self, data, then=None, gone=None):
+        """Type `data`, then wait until the last page shows the text `then`, and not `gone`."""
+        os.write(self.input_write, data)
+        if then is not None or gone is not None:
+            def probe():
+                self.seen.append(self.drawn())
+                page = self.last_page()
+                return (then is None or then in page) and (gone is None or gone not in page)
+
+            wait_until(probe, repr(then or f"no {gone}"))
+
+    def last_page(self):
+        """The text of the last page that the proxy drew."""
+        text = "".join(self.seen)
+        return "\n".join(screen_rows(text[text.rfind("\x1b[1;1H"):]))
+
+    def finish(self):
+        self.thread.join(5)
+        self.assertFalse(self.thread.is_alive(), "pick() did not return")
+        return self.result[0]
+
+    def test_enter_kills_another_popup_and_the_picker_stays(self):
+        self.run_pick()
+        self.press(b"\x1b[B\x04", "Kill popup?")
+        self.assertIn("q — shell · notes workspace", self.last_page())
+        self.assertIn("↵ kill", self.last_page())
+        self.assertIn("esc cancel", self.last_page())
+        self.assertEqual(self.session.closed, [])
+        self.press(b"\r", "1 of 1")
+        self.assertEqual(self.session.closed, ["w2"])
+        self.assertIsNone(popups.load_record("q"))
+        self.assertEqual(picker_labels(self.last_page().split("\n")), ["p"])
+        self.assertEqual(self.events()[-2:], ["q", "kill"])
+        # The picker keeps this popup: esc stays.
+        self.assertIn("esc  stay", self.last_page())
+        self.press(b"\x1b")
+        self.assertEqual(self.finish(), (None, False))
+        self.assertEqual(self.popup.popup_id, "p")
+
+    def test_esc_cancels_and_keeps_the_selection_and_the_filter(self):
+        self.add_popup("g1", "workspace", "lazygit", command=["lazygit"], workspace_id="w1")
+        self.run_pick()
+        # The filter "q" matches popup q only.
+        self.press(b"q\x04", "Kill popup?")
+        self.press(b"\x1b", gone="Kill popup?")
+        self.assertIn("› q", self.last_page())
+        self.press(b"\x04", "Kill popup?")
+        self.press(b"\x03", gone="Kill popup?")
+        self.assertIn("1 of 3", self.last_page())
+        self.press(b"\r")
+        self.assertEqual(self.finish(), (None, True))
+        self.assertEqual(self.popup.popup_id, "q")
+        self.assertEqual(self.session.closed, [])
+
+    def test_other_keys_in_the_dialog_do_nothing(self):
+        self.run_pick()
+        self.press(b"\x04", "Kill popup?")
+        self.press(b"xy\x1b[B\x04\x02g")
+        self.press(b"\x1b", gone="Kill popup?")
+        self.assertIn("› Filter popups", self.last_page())
+        self.press(b"\r")
+        # The selection did not move: enter keeps this popup.
+        self.assertEqual(self.finish(), (None, False))
+        self.assertEqual(self.session.closed, [])
+
+    def test_popup_keys_in_the_dialog_act_as_in_the_picker(self):
+        self.run_pick()
+        self.press(b"\x04", "Kill popup?")
+        self.press(b"\x1a")
+        self.assertEqual(self.finish(), (Action.HIDE, False))
+        self.assertEqual(self.session.closed, [])
+
+    def test_killing_the_showing_popup_then_enter_shows_another(self):
+        self.run_pick()
+        self.press(b"\x04", "Kill popup?")
+        self.assertIn("p — shell · home workspace", self.last_page())
+        self.press(b"\r", "1 of 1")
+        self.assertEqual(self.session.closed, ["w1"])
+        # No popup shows now: esc closes the frame, and the toggle key of p does nothing.
+        self.assertIn("esc  close", self.last_page())
+        self.assertIsNone(self.popup.record)
+        self.press(b"\x1a\r")
+        self.assertEqual(self.finish(), (None, True))
+        self.assertEqual(self.popup.popup_id, "q")
+
+    def test_killing_the_showing_popup_then_esc_closes_the_frame(self):
+        # The viewer of p gives prefix g. Then the picker kills p, and esc closes.
+        self.popup.viewer = None
+        self.run_pick(self.popup.relay)
+        self.press(b"\x02g\x04", "Kill popup?")
+        self.press(b"\r", "1 of 1")
+        self.press(b"\x1b")
+        self.assertIsNone(self.finish())
+        self.assertEqual(self.session.closed, ["w1"])
+        self.assertEqual(self.events(), ["p", "open", "p", "picker", "p", "kill", "p",
+                                         "popup-gone"])
+        self.assertEqual(self.main.calls, [])
+
+    def test_killing_the_last_popup_closes_the_frame(self):
+        popups.delete_record("q")
+        self.session.workspaces.pop("w2")
+        self.run_pick()
+        self.press(b"\x04", "Kill popup?")
+        self.press(b"\r")
+        self.assertEqual(self.finish(), (None, False))
+        self.assertEqual(self.session.closed, ["w1"])
+        self.assertEqual(self.main.toasts, [])
+
+    def test_ctrl_d_without_a_match_does_nothing(self):
+        self.run_pick()
+        self.press(b"xx\x04\x03")
+        self.assertEqual(self.finish(), (None, False))
+        self.assertNotIn("Kill popup?", "".join(self.seen) + self.drawn())
+
+    def test_a_failed_kill_is_a_toast_and_the_picker_stays(self):
+        toasts = []
+        patch(self, mock.patch.object(herdr_api, "report_error",
+                                      lambda *args, **kwargs: toasts.append(args[:2])))
+        error = herdr_api.HerdrError("workspace.close: timed out")
+        self.session.fail["workspace.close"] = error
+        self.run_pick()
+        self.press(b"\x1b[B\x04", "Kill popup?")
+        self.press(b"\r", gone="Kill popup?")
+        self.assertIn("2 of 2", self.last_page())
+        self.assertEqual(toasts, [("kill", error)])
+        self.press(b"\x03")
+        self.assertEqual(self.finish(), (None, False))
+
+
 class FilterEdits(unittest.TestCase):
     def press(self, data):
         return keys.Tokenizer().feed(data)[0].key
@@ -733,6 +878,31 @@ class OutsidePicker(RelayCase):
         os.write(self.input_write, b"\x02q\x02?\x02g\r")
         self.assertTrue(picker.choose())
         self.assertEqual(picker.popup_id, "q")
+
+    def test_ctrl_d_kills_the_selected_popup_and_the_picker_stays(self):
+        picker = self.outside("w2")
+        result = []
+        thread = threading.Thread(target=lambda: result.append(picker.choose()), daemon=True)
+        thread.start()
+        seen = []
+
+        def page_shows(text, present=True):
+            def probe():
+                seen.append(self.drawn())
+                text_now = "".join(seen)
+                return (text in text_now[text_now.rfind("\x1b[1;1H"):]) == present
+            return probe
+
+        os.write(self.input_write, b"\x04")
+        wait_until(page_shows("Kill popup?"), "the dialog")
+        # Popup keys do nothing in the dialog before a popup shows.
+        os.write(self.input_write, b"\x02q\x1a\r")
+        wait_until(page_shows("Kill popup?", present=False), "the picker")
+        self.assertEqual(self.session.closed, ["w2"])
+        os.write(self.input_write, b"\r")
+        thread.join(5)
+        self.assertEqual(result, [True])
+        self.assertEqual(picker.popup_id, "p")
 
     def test_without_popups_a_toast_says_so(self):
         for popup_id in ("p", "q"):

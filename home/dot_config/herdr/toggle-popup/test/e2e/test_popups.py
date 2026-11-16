@@ -714,6 +714,25 @@ class OutsidePicker(ShellPopups, StageCase):
                 self.s.wait_popup_closed()
                 self.assertNotIn("alpha-ready", self.s.screen())
 
+    def test_ctrl_d_kills_the_selected_popup_and_the_picker_stays(self):
+        s = self.s
+        self.ready_slot("alt+1", "alpha")
+        self.ready_slot("alt+2", "beta")
+        for key, label in (("alt+1", "alpha"), ("alt+2", "beta")):
+            self.show(key, label)
+            self.hide(label)
+        alpha = s.popup_id("alpha")
+        self.open_picker()
+        s.keys("C-d")
+        s.wait_screen("│ alpha — ")
+        s.keys("Enter")
+        s.wait_screen("1 of 1")
+        s.wait(lambda: alpha not in s.started_popup_panes(), "alpha to close")
+        s.keys("Enter")
+        s.wait_screen("Switch popup", present=False)
+        s.wait_screen("beta-ready")
+        self.hide("beta")
+
     def test_without_popups_a_toast_says_so(self):
         s = self.s
         s.keys("M-5")
@@ -821,6 +840,99 @@ class Pages(ShellPopups, StageCase):
         s.keys("Home", "DC", "End", "BSpace")
         s.wait_screen("› eta ")
         self.assertEqual(s.popup_cursor(), (3, start + 3))
+
+    def open_kill_dialog(self, label):
+        """Press ctrl+d in the picker, and wait for the dialog of the popup `label`."""
+        self.s.keys("C-d")
+        self.s.wait_screen("Kill popup?")
+        self.s.wait_screen(f"│ {label} — ")
+
+    def assert_dialog(self, label):
+        """The dialog of `label` in the middle of the popup, with Herdr's buttons."""
+        rows = self.s.popup_lines()
+        top = next(index for index, row in enumerate(rows) if "┌" in row)
+        left = rows[top].index("┌")
+        right = rows[top].index("┐")
+        self.assertEqual(right - left + 1, 64)
+        # In the middle: the same room at each side, or one more at the right.
+        width = len(rows[1])
+        self.assertIn(width - 1 - right - left, (0, 1), rows[top])
+        self.assertEqual(rows[top + 1][left:right + 1].rstrip("│ "), "│ Kill popup?")
+        self.assertTrue(rows[top + 2][left:].startswith(f"│ {label} — /bin/sh -c "),
+                        rows[top + 2])
+        self.assertEqual(rows[top + 4][left:right + 1].split(),
+                         ["│", "↵", "kill", "esc", "cancel", "│"])
+        self.assertEqual(rows[top + 5][left:right + 1], "└" + "─" * 62 + "┘")
+
+    def test_ctrl_d_kills_another_popup_and_the_picker_stays(self):
+        s = self.s
+        beta = s.popup_id("beta")
+        self.open_picker()
+        s.keys("Down")
+        self.open_kill_dialog("beta")
+        self.assert_dialog("beta")
+        self.assert_theme_colors("kill dialog")
+        s.keys("Enter")
+        s.wait_screen("1 of 1")
+        s.wait(lambda: beta not in s.started_popup_panes(), "beta to close")
+        self.assertNotIn("Kill popup?", s.screen())
+        s.wait(lambda: beta in trace_ids(s, "kill"), "the kill in the trace")
+        s.keys("Escape")
+        s.wait_screen("Switch popup", present=False)
+        s.wait_screen("alpha-ready")
+
+    def test_esc_in_the_dialog_keeps_the_popup_the_selection_and_the_filter(self):
+        s = self.s
+        beta = s.popup_id("beta")
+        self.open_picker()
+        s.text("beta-")
+        s.wait_screen("1 of 2")
+        self.open_kill_dialog("beta")
+        s.keys("Escape")
+        s.wait_screen("Kill popup?", present=False)
+        self.assertIn("› beta-", s.screen())
+        self.assertIn(beta, s.started_popup_panes())
+        s.keys("Enter")
+        s.wait_screen("1 of 2", present=False)
+        s.wait_screen("beta-ready")
+
+    def test_killing_the_showing_popup_then_enter_shows_another(self):
+        s = self.s
+        alpha = s.popup_id("alpha")
+        self.open_picker()
+        self.open_kill_dialog("alpha")
+        s.keys("Enter")
+        s.wait_screen("1 of 1")
+        s.wait(lambda: alpha not in s.started_popup_panes(), "alpha to close")
+        # No popup shows in this frame now: esc closes it.
+        self.assertIn("esc  close", s.screen())
+        s.keys("Enter")
+        s.wait_screen("1 of 1", present=False)
+        s.wait_screen("beta-ready")
+
+    def test_killing_the_showing_popup_then_esc_closes_the_frame(self):
+        s = self.s
+        beta = s.popup_id("beta")
+        self.open_picker()
+        self.open_kill_dialog("alpha")
+        s.keys("Enter")
+        s.wait_screen("1 of 1")
+        s.keys("Escape")
+        s.wait_popup_closed()
+        self.assertEqual(list(s.started_popup_panes()), [beta])
+
+    def test_killing_the_last_popup_closes_the_frame(self):
+        s = self.s
+        self.open_picker()
+        s.keys("Down")
+        self.open_kill_dialog("beta")
+        s.keys("Enter")
+        s.wait_screen("1 of 1")
+        self.open_kill_dialog("alpha")
+        s.keys("Enter")
+        s.wait_popup_closed()
+        s.wait(lambda: not s.started_popup_panes(), "no popups")
+        self.assertFalse(any("No popups" in toast for toast in s.toasts), s.toasts)
 
     def test_esc_clears_the_filter_then_keeps_this_popup(self):
         s = self.s
@@ -2005,6 +2117,24 @@ class RemoteMachine(StageCase):
         s.keys("C-z")
         s.wait_popup_closed()
         self.assertEqual(s.started_popup_panes(), {}, "the client machine must not run the popup")
+
+    def test_ctrl_d_in_the_picker_kills_a_remote_popup(self):
+        s = self.s
+        s.wait_screen(f" {self.host} ", what="the remote machine in the sidebar")
+        s.wait(self.select_remote_workspace, "a remote workspace")
+        s.keys("M-1")
+        s.wait_screen("keylog legacy ready")
+        popup_id = s.wait(lambda: next(iter(self.remote_popups()), None), "the remote popup")
+        s.keys("C-z")
+        s.wait_popup_closed()
+        s.keys("M-5")
+        s.wait_screen("Switch popup")
+        s.keys("C-d")
+        s.wait_screen("Kill popup?")
+        s.keys("Enter")
+        # The last popup is gone: the frame closes.
+        s.wait_popup_closed()
+        s.wait(lambda: popup_id not in self.remote_popups(), "the remote popup to close")
 
     def test_herdr_commands_in_a_remote_popup_reach_the_remote_session(self):
         s = self.s

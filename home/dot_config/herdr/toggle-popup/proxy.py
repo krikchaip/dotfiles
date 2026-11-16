@@ -941,8 +941,7 @@ class Proxy:
                 self.main.call("popup.close")
                 return Next.CLOSE
             if action is Action.KILL:
-                with popups.popup_lock():
-                    popups.close_popup(self.popup_herdr, popup.workspace_id, self.popup_id)
+                self.kill(self.popup_id, popup.workspace_id)
                 return Next.CLOSE
             if action is Action.HELP:
                 action = self.help()
@@ -960,6 +959,11 @@ class Proxy:
             if action is not None:
                 trace_event(self.popup_id, ACTIONS[action].event)
         return Next.CLOSE if self.input.ended else Next.SHOW
+
+    def kill(self, popup_id, workspace_id):
+        """Kill a popup: close its workspace in the popup session, under the popup lock."""
+        with popups.popup_lock():
+            popups.close_popup(self.popup_herdr, workspace_id, popup_id)
 
     def help(self):
         """Show the keys. Return the popup Action of a popup key, or None to go back.
@@ -1025,8 +1029,8 @@ class Proxy:
     def first_row(self, rows):
         """The index of the row that the picker selects first: the popup that shows.
 
-        When no popup shows (the picker bind), the first popup of the focused
-        workspace, or else the first row.
+        When no popup shows (the picker bind, or after a kill of it), the
+        first popup of the focused workspace, or else the first row.
         """
         here = next((n for n, row in enumerate(rows) if row.current), None)
         if here is None:
@@ -1040,10 +1044,11 @@ class Proxy:
         Typed text filters the list (pages.fuzzy). Up/down and ctrl+n/ctrl+p
         move, and enter shows the selected popup. Backspace, ctrl+w and
         ctrl+u edit the filter. Esc clears the filter. With an empty filter,
-        esc keeps this popup, as ctrl+c does. Popup keys act as in the
-        program, before filter text. `rows` are the picker_rows(), when the
-        caller has them. Return (popup Action or None, True when the popup
-        changed).
+        esc keeps this popup, as ctrl+c does. Ctrl+d kills the selected
+        popup after a confirmation (confirm_kill()), and the picker stays
+        with the other popups. Popup keys act as in the program, before
+        filter text. `rows` are the picker_rows(), when the caller has them.
+        Return (popup Action or None, True when the popup changed).
         """
         import pages
 
@@ -1057,12 +1062,14 @@ class Proxy:
         while True:
             found = pages.matches(rows, query)
             selected = min(selected, max(0, len(found) - 1))
-            self.screen.draw(lambda height, width, query=query, cursor=cursor, found=found,
-                             selected=selected:
-                             pages.picker_page(height, width, query, cursor, found, len(rows),
-                                               selected, pages.picker_columns(rows, width),
-                                               esc_closes=self.record is None)
-                             .render(tokens))
+
+            def page(height, width, query=query, cursor=cursor, found=found, selected=selected,
+                     rows=rows):
+                return pages.picker_page(height, width, query, cursor, found, len(rows),
+                                         selected, pages.picker_columns(rows, width),
+                                         esc_closes=self.record is None)
+
+            self.screen.draw(lambda height, width, page=page: page(height, width).render(tokens))
             key = self.screen.read_key(key_filter)
             if isinstance(key, Action):
                 # The picker bind has no popup for the popup keys before the first choice.
@@ -1093,6 +1100,29 @@ class Proxy:
                     self.screen.leave()
                     return None, True
                 break
+            elif combo == Combo("d", CTRL):
+                if not found:
+                    continue
+                target = found[selected][0]
+                action, confirmed = self.confirm_kill(target, page, tokens, key_filter)
+                if action is not None:
+                    self.screen.leave()
+                    return action, False
+                if self.input.ended:
+                    break
+                if not confirmed:
+                    continue
+                self.kill_row(target)
+                rows = self.picker_rows()
+                if not rows:
+                    # The last popup is gone: the frame closes.
+                    break
+                if target.popup_id == self.popup_id:
+                    # No popup shows now: as in the picker bind, popup keys do
+                    # nothing, and esc closes the frame.
+                    self.record = None
+                    key_filter = self.key_filter(to_program=False)
+                here = self.first_row(rows)
             else:
                 edited, cursor = edit_filter(query, cursor, key)
                 if edited != query:
@@ -1100,6 +1130,40 @@ class Proxy:
                     selected = 0 if query else here
         self.screen.leave()
         return None, False
+
+    def confirm_kill(self, row, page, tokens, key_filter):
+        """Ask before a kill: Herdr's close confirmation over the picker `page`.
+
+        Enter confirms. Esc and ctrl+c cancel. Popup keys act as in the
+        picker. Other keys do nothing. Return (popup Action or None, True
+        when the user confirms).
+        """
+        import pages
+
+        self.screen.draw(lambda height, width: pages.kill_dialog(page(height, width), row)
+                         .render(tokens))
+        while True:
+            key = self.screen.read_key(key_filter)
+            if isinstance(key, Action):
+                if key is Action.PICKER or self.record is None:
+                    continue
+                return key, False
+            if key is None:
+                return None, False
+            if key.combo == Combo("enter", 0):
+                return None, True
+            if key.combo in (Combo("esc", 0), Combo("c", CTRL)):
+                return None, False
+
+    def kill_row(self, row):
+        """Kill the popup of a picker row. A failed kill is a toast, and the picker stays."""
+        trace_event(row.popup_id, "kill")
+        try:
+            popup = self.popups_live().get(row.popup_id)
+            if popup is not None:
+                self.kill(row.popup_id, popup.workspace_id)
+        except HerdrError as error:
+            herdr_api.report_error("kill", error, self.main.endpoint)
 
     def edit_scrollback(self, pane):
         """Open the scrollback in $EDITOR. If Herdr closes the popup meanwhile, stop quietly."""

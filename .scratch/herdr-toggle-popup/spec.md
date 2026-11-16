@@ -170,6 +170,7 @@ The outer key and the toggle keys are independent. The `key` in `[[keys.command]
     - The `prefix+shift+g` bind (`toggle.sh --picker`) opens the same picker outside a popup. The first popup of the focused workspace is selected. Enter shows the chosen popup in this popup frame, with its own toggle keys. Esc or `ctrl+c` closes the frame. With no popups, a toast says "No popups in this session".
   - **Picker keys and filter:** the `prefix` `g` picker has a filter field. Typed text filters the list with an fzf-style match: the letters must appear in order. The match checks the label, the command, the folder, and the group name, and the matched letters show in the accent color.
     - Up/down and `ctrl+n`/`ctrl+p` move. Enter switches.
+    - `ctrl+d` kills the selected popup after a confirmation: a dialog "Kill popup?" shows the popup's label, command and place, in the look of `navigation`'s confirm dialog. Enter kills and Esc cancels. The picker then stays open with the other popups. If the killed popup was showing, Enter shows another popup and Esc closes the frame. When no popup is left, the frame closes.
     - The filter edits at its cursor: left/right, home/end and `ctrl+a`/`ctrl+e` move it. Backspace and `ctrl+w` delete before it, and delete after it. `ctrl+u` clears the filter.
     - Esc clears the filter. When the filter is empty, Esc cancels, as in `navigation`'s move dialog. `ctrl+c` cancels.
     - The toggle keys and `prefix` `q`, `?` and `e` still work, and they come before filter text. `j`, `k` and `q` are filter text.

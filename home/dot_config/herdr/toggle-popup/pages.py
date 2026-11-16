@@ -3,7 +3,9 @@
 The pages use look A of the prototype: a bold title with a dim origin on the
 right and a rule under them, and a footer with key chips. The picker has a
 filter field, and its selected row looks like the rows of navigation's
-dialogs (navigation/move_ui.py).
+dialogs (navigation/move_ui.py). The kill confirmation (ctrl+d in the
+picker) looks like Herdr's close confirmation, as navigation's confirm_ui.py
+draws it.
 
 Each cell has a Herdr theme token for its foreground and its background.
 herdr_theme reads the active theme. The roles "contrast" and "selection"
@@ -27,6 +29,14 @@ PLACE_X = 20
 COMMAND_X = 46
 # The column of the help texts: the minimum.
 HELP_TEXT_X = 24
+# Herdr's close confirmation (render_confirm_close_overlay in
+# src/client/shell/overlays.rs, Herdr 0.9.5): its size, and its buttons with
+# their widths in cells and the gap between them.
+DIALOG_SIZE = (64, 6)
+DIALOG_BUTTONS = ((" ↵ kill ", 13), (" esc cancel ", 12))
+DIALOG_BUTTON_GAP = 2
+# The fewest cells of the command in the dialog before the place is cut too.
+DIALOG_COMMAND_MIN = 8
 
 
 def theme():
@@ -90,8 +100,18 @@ class Canvas:
         self.cells = [[blank] * cols for _ in range(rows)]
         # The (row, column) of the terminal cursor, or None to hide it.
         self.cursor = None
+        # The (row, column) of each dim cell (SGR 2): a page behind a dialog.
+        self.dimmed = set()
+
+    def dim(self):
+        """Make each cell dim, as Herdr dims the screen behind a dialog.
+
+        A later write to a cell makes it not dim.
+        """
+        self.dimmed = {(y, x) for y in range(self.rows) for x in range(self.cols)}
 
     def _set(self, y, x, cell):
+        self.dimmed.discard((y, x))
         row = self.cells[y]
         # Do not leave half of a wide character.
         if row[x][0] == "" and x > 0:
@@ -128,12 +148,15 @@ class Canvas:
         for y, row in enumerate(self.cells):
             out.append(f"\x1b[{y + 1};1H")
             last = None
-            for char, fg, bg, bold in row:
+            for x, (char, fg, bg, bold) in enumerate(row):
                 if char == "":
                     continue
-                if (fg, bg, bold) != last:
+                dim = (y, x) in self.dimmed
+                if (fg, bg, bold, dim) != last:
                     out.append(herdr_theme.sgr(tokens.get(fg), tokens.get(bg), bold))
-                    last = (fg, bg, bold)
+                    if dim:
+                        out.append("\x1b[2m")
+                    last = (fg, bg, bold, dim)
                 out.append(char)
         out.append("\x1b[0m")
         if self.cursor is not None:
@@ -245,7 +268,8 @@ def picker_page(rows, cols, query, cursor, found, total, selected, columns, esc_
     (the picker bind), so esc with an empty filter closes the popup frame."""
     canvas = Canvas(rows, cols)
     esc = "clear" if query else "close" if esc_closes else "stay"
-    hints = [("↑↓", "move"), ("enter", "show"), ("esc", esc)]
+    # ctrl+d is last: a narrow page drops it first.
+    hints = [("↑↓", "move"), ("enter", "show"), ("esc", esc), ("ctrl+d", "kill")]
     header_footer(canvas, "Switch popup", f"{len(found)} of {total}", hints)
     # A filled input, as navigation's _input draws it.
     canvas.fill(3, 1, cols - 2, "surface0")
@@ -300,4 +324,48 @@ def picker_page(rows, cols, query, cursor, found, total, selected, columns, esc_
                    hits=hits["place"])
         canvas.put(y, command_x, fit(row.command, cols - 3 - command_x), "overlay0", bg,
                    hits=hits["command"])
+    return canvas
+
+
+def kill_dialog(canvas, row):
+    """The kill confirmation of the picker row `row`, over the picker `canvas`.
+
+    It is Herdr's close confirmation: a red frame in the middle of the dim
+    page, the title, the popup's label, command, and place (or group), and
+    two buttons. Return the canvas.
+    """
+    canvas.dim()
+    # Herdr's dialog shows no cursor: the filter is not where keys go now.
+    canvas.cursor = None
+    width = min(DIALOG_SIZE[0], canvas.cols - 4)
+    height = min(DIALOG_SIZE[1], canvas.rows - 2)
+    if width < 4 or height < 4:
+        return canvas
+    left, top = (canvas.cols - width) // 2, (canvas.rows - height) // 2
+    right, bottom = left + width - 1, top + height - 1
+    for y in range(top, bottom + 1):
+        canvas.fill(y, left, width, "panel_bg")
+    canvas.put(top, left, "┌" + "─" * (width - 2) + "┐", "red")
+    canvas.put(bottom, left, "└" + "─" * (width - 2) + "┘", "red")
+    for y in range(top + 1, bottom):
+        canvas.put(y, left, "│", "red")
+        canvas.put(y, right, "│", "red")
+    inner, room = left + 1, width - 2
+    # One space at each side of the texts.
+    text_room = room - 2
+    canvas.put(top + 1, inner + 1, fit("Kill popup?", text_room), "red", bold=True)
+    # A long command is cut first: the label and the place tell which popup it is.
+    head, tail = f"{row.label} — ", f" · {row.place or f'{row.group} {row.kind}'}"
+    command_room = text_room - cells(head) - cells(tail)
+    detail = (head + fit(row.command, command_room) + tail if command_room >= DIALOG_COMMAND_MIN
+              else fit(head + row.command + tail, text_room))
+    canvas.put(top + 2, inner + 1, detail)
+    styles = (("contrast", "red"), ("text", "surface0"))
+    total = sum(size for _, size in DIALOG_BUTTONS) + DIALOG_BUTTON_GAP * (len(DIALOG_BUTTONS) - 1)
+    x, y = inner + max(0, room - total) // 2, top + 1 + min(3, height - 3)
+    for (text, size), (fg, bg) in zip(DIALOG_BUTTONS, styles, strict=True):
+        size = min(size, inner + room - x)
+        canvas.put(y, x, " " * size, fg, bg, True)
+        canvas.put(y, x + max(0, size - cells(text)) // 2, fit(text, size), fg, bg, True)
+        x += size + DIALOG_BUTTON_GAP
     return canvas
