@@ -151,6 +151,7 @@ return {
   {
     "petertriho/nvim-scrollbar",
     event = "User FilePost",
+    dependencies = { "lewis6991/gitsigns.nvim" },
     config = function(_, opts)
       return require("configs.scrollbar").setup(opts)
     end,
