@@ -37,10 +37,10 @@ M.config = function(opts)
     },
     explorer = {
       hover = "I", -- Show file diff preview
-      toggle_view_mode = "V", -- Toggle between 'list' and 'tree' views
+      toggle_view_mode = "i", -- Toggle between 'list' and 'tree' views
     },
     history = {
-      toggle_view_mode = "V", -- Toggle between 'list' and 'tree' views
+      toggle_view_mode = "i", -- Toggle between 'list' and 'tree' views
     },
     conflict = {
       accept_incoming = "<localleader>al", -- Accept incoming (theirs) change
