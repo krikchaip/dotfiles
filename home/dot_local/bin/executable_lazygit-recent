@@ -28,22 +28,68 @@ abs_path_of() {
 
 # Between lazygit and fzf no TUI owns the terminal, so typed keys echo as ^[[A.
 # Mute echo when lazygit closes; drop the typed keys and unmute before fzf opens.
+TTY_MUTED=0
+
 tty_mute() {
     stty -echo 2> /dev/null < /dev/tty || return 0
-    trap tty_unmute EXIT
+    TTY_MUTED=1
 }
 
 tty_unmute() {
+    [[ "$TTY_MUTED" == 1 ]] || return 0
     {
         while IFS= read -r -s -t 0.01 -n 1024 _ < /dev/tty; do :; done
         stty echo < /dev/tty
     } 2> /dev/null || true
+    TTY_MUTED=0
 }
 
 # Lazygit prints "+ <command>" and "Press enter to return to lazygit" on the main
 # screen when it runs an editor or custom command. Clear them before the picker opens.
 clear_screen() {
     printf '\e[H\e[2J' 2> /dev/null > /dev/tty || true
+}
+
+# fzf reload actions call this script again to list the picker entries
+SELF="$(abs_path_of "$(dirname "${BASH_SOURCE[0]}")")/$(basename "${BASH_SOURCE[0]}")"
+
+# fzf has no timer, so a background loop sends the reload action to its socket
+REFRESH_PID=""
+
+start_auto_refresh() {
+    local sock="$1"
+    local action="$2"
+    local interval="${LAZYGIT_RECENT_REFRESH:-10}"
+
+    [[ "$interval" =~ ^[0-9]+([.][0-9]+)?$ && "$interval" != 0 ]] || return 0
+    command -v curl > /dev/null 2>&1 || return 0
+
+    # Stop when this script is gone, also when it is killed before cleanup runs
+    local parent=$$
+    while sleep "$interval" && kill -0 "$parent" 2> /dev/null; do
+        curl -s --max-time 2 --unix-socket "$sock" --data-binary "$action" http://localhost > /dev/null 2>&1 || true
+    done > /dev/null 2>&1 &
+    REFRESH_PID=$!
+}
+
+stop_auto_refresh() {
+    [[ -n "$REFRESH_PID" ]] || return 0
+    kill "$REFRESH_PID" 2> /dev/null || true
+    wait "$REFRESH_PID" 2> /dev/null || true
+    REFRESH_PID=""
+}
+
+cleanup() {
+    stop_auto_refresh
+    tty_unmute
+}
+
+trap cleanup EXIT
+
+# fzf action that lists the picker entries again; the cursor stays on the same path
+# through --track and --id-nth=1
+reload_action() {
+    printf 'reload-sync:%s' "$(printf '%q ' "$SELF" "$@")"
 }
 
 show_help() {
@@ -74,8 +120,11 @@ Workspace picker:
   Lists the workspace repo, its nested repos, and every worktree of them,
   also worktrees outside the workspace. Changed or unpushed ones come first.
 
+Both pickers refresh every $LAZYGIT_RECENT_REFRESH seconds (default 10, 0 = off).
+
 FZF Keybindings:
   Enter               Open selected repo in lazygit
+  Ctrl-R              Refresh the list
   Ctrl-X              Delete selected repo from recent list (recent picker only)
   Esc / Ctrl-C        Exit picker
 EOF
@@ -136,6 +185,16 @@ prune_invalid_repos() {
     done | jq -R . | jq -s 'reduce .[] as $repo ([]; if index($repo) then . else . + [$repo] end)' > "${REPO_FILE}.tmp"
 
     mv "${REPO_FILE}.tmp" "$REPO_FILE"
+}
+
+# Recent repos that still exist, without a write to the repo file. Timed reloads use
+# this, so two open pickers do not write the file at the same time.
+list_valid_repos() {
+    cmd_list | while IFS= read -r repo; do
+        if is_git_repo "$repo"; then
+            printf '%s\n' "$repo"
+        fi
+    done
 }
 
 sync_custom_to_lazygit() {
@@ -249,6 +308,10 @@ run_fzf() {
         return 1
     fi
 
+    local sock="${TMPDIR:-/tmp}/lazygit-recent-$$.sock"
+    local reload
+    reload=$(reload_action --list-recent)
+
     local pos=0
     if [[ -n "$preferred_selection" ]]; then
         pos=$(printf '%s\n' "$repos" | grep -n -F -x "$preferred_selection" | head -1 | cut -d: -f1 || echo "0")
@@ -257,6 +320,13 @@ run_fzf() {
     local fzf_opts=(
         --layout=reverse
         --expect=ctrl-x
+        # One field per line, so --id-nth=1 tracks the whole path
+        --delimiter=$'\t'
+        --track
+        --id-nth=1
+        --listen="$sock"
+        --with-shell='bash -c'
+        --bind="ctrl-r:$reload"
         # Bind every key the header lists, so the header holds without FZF_DEFAULT_OPTS
         --bind='ctrl-n:down,ctrl-p:up'
         --bind='ctrl-d:half-page-down,ctrl-u:half-page-up'
@@ -267,15 +337,23 @@ run_fzf() {
         --info=inline-right
         --prompt="❯ "
         --pointer="▶"
-        --header=$'Keybindings: enter=open, ctrl-x=delete, esc=quit, type=filter, ctrl-\\=clear filter\n             ctrl-n/p=down/up, ctrl-d/u=half page down/up, ctrl-f/b=last/first\n\nPath'
+        # --track adds "+T" to the match count; show the plain count
+        --info-command='echo "$FZF_MATCH_COUNT/$FZF_TOTAL_COUNT"'
+        --header=$'Keybindings: enter=open, ctrl-r=refresh, ctrl-x=delete, esc=quit, type=filter, ctrl-\\=clear filter\n             ctrl-n/p=down/up, ctrl-d/u=half page down/up, ctrl-f/b=last/first\n\nPath'
     )
 
+    # Only on the first load: a reload keeps the cursor on the tracked path
     if [[ "$pos" -gt 0 ]]; then
-        fzf_opts+=(--bind="load:pos($pos)")
+        fzf_opts+=(--bind="load:pos($pos)+unbind(load)")
     fi
 
     tty_unmute
-    printf '%s\n' "$repos" | env TERM=xterm-256color fzf "${fzf_opts[@]}"
+    start_auto_refresh "$sock" "$reload"
+
+    local status=0
+    printf '%s\n' "$repos" | env TERM=xterm-256color fzf "${fzf_opts[@]}" || status=$?
+    stop_auto_refresh
+    return "$status"
 }
 
 run_lazygit() {
@@ -479,23 +557,31 @@ run_workspace_loop() {
     local root="$1"
     local last_selection=""
 
+    local sock="${TMPDIR:-/tmp}/lazygit-recent-$$.sock"
+    local reload
+    reload=$(reload_action --list-workspace "$root")
+
     while true; do
-        # The first line is the column header, aligned with the entries
-        local lines header
+        # The first line is the column header, aligned with the entries. It goes to
+        # fzf as a header line, so a reload also updates the column widths.
+        local lines
         lines=$(workspace_lines "$root")
-        header="${lines%%$'\n'*}"
-        header="${header#*$'\t'}"
-        lines="${lines#*$'\n'}"
 
         local pos=0
         if [[ -n "$last_selection" ]]; then
-            pos=$(printf '%s\n' "$lines" | awk -F '\t' -v p="$last_selection" '$1 == p { print NR; exit }')
+            pos=$(printf '%s\n' "$lines" | awk -F '\t' -v p="$last_selection" 'NR > 1 && $1 == p { print NR - 1; exit }')
         fi
 
         local fzf_opts=(
             --layout=reverse
             --delimiter=$'\t'
             --with-nth=2
+            --header-lines=1
+            --track
+            --id-nth=1
+            --listen="$sock"
+            --with-shell='bash -c'
+            --bind="ctrl-r:$reload"
             # Bind every key the header lists, so the header holds without FZF_DEFAULT_OPTS
             --bind='ctrl-n:down,ctrl-p:up'
             --bind='ctrl-d:half-page-down,ctrl-u:half-page-up'
@@ -506,17 +592,23 @@ run_workspace_loop() {
             --info=inline-right
             --prompt="❯ "
             --pointer="▶"
-            --header=$'Keybindings: enter=open, esc=quit, type=filter, ctrl-\\=clear filter\n             ctrl-n/p=down/up, ctrl-d/u=half page down/up, ctrl-f/b=last/first\n\n'"$header"
+            --header=$'Keybindings: enter=open, ctrl-r=refresh, esc=quit, type=filter, ctrl-\\=clear filter\n             ctrl-n/p=down/up, ctrl-d/u=half page down/up, ctrl-f/b=last/first\n\n'
+            # --track adds "+T" to the match count; show the plain count
+            --info-command='echo "$FZF_MATCH_COUNT/$FZF_TOTAL_COUNT"'
         )
 
+        # Only on the first load: a reload keeps the cursor on the tracked path
         if [[ "${pos:-0}" -gt 0 ]]; then
-            fzf_opts+=(--bind="load:pos($pos)")
+            fzf_opts+=(--bind="load:pos($pos)+unbind(load)")
         fi
 
         tty_unmute
+        start_auto_refresh "$sock" "$reload"
 
-        local result
-        result=$(printf '%s\n' "$lines" | env TERM=xterm-256color fzf "${fzf_opts[@]}") || break
+        local result status=0
+        result=$(printf '%s\n' "$lines" | env TERM=xterm-256color fzf "${fzf_opts[@]}") || status=$?
+        stop_auto_refresh
+        [[ "$status" -eq 0 ]] || break
 
         local selection="${result%%$'\t'*}"
         if [[ -z "$selection" ]]; then
@@ -551,6 +643,13 @@ case "${1:-}" in
         ;;
     --picker)
         run_picker_loop
+        ;;
+    # Internal: fzf reload actions list the picker entries with these
+    --list-recent)
+        list_valid_repos
+        ;;
+    --list-workspace)
+        workspace_lines "$2"
         ;;
     "")
         if git rev-parse --git-dir > /dev/null 2>&1; then
