@@ -40,6 +40,12 @@ tty_unmute() {
     } 2> /dev/null || true
 }
 
+# Lazygit prints "+ <command>" and "Press enter to return to lazygit" on the main
+# screen when it runs an editor or custom command. Clear them before the picker opens.
+clear_screen() {
+    printf '\e[H\e[2J' 2> /dev/null > /dev/tty || true
+}
+
 show_help() {
     cat <<'EOF'
 Usage: lazygit-recent [OPTIONS] [PATH...]
@@ -303,6 +309,7 @@ run_picker_loop() {
 
         cmd_add "$FZF_SELECTION" > /dev/null
         run_lazygit "$FZF_SELECTION"
+        clear_screen
         preferred_selection=$(preferred_repo_after_return)
     done
 }
@@ -518,6 +525,7 @@ run_workspace_loop() {
 
         cmd_add "$selection" > /dev/null
         run_lazygit "$selection"
+        clear_screen
         last_selection="$selection"
     done
 }
